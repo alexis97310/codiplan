@@ -4652,6 +4652,21 @@ export const fr = {
   "materiel.refus.famille_hors_societe":
     "Cette famille n\u2019existe pas dans cette société.",
   "materiel.refus.introuvable": "Cette ligne est introuvable.",
+  // 9I95-REFONTE-PARAMETRES-MATERIEL — onglets, recherche et filtre d'état,
+  // ajoutés à l'écran existant ; aucune des clés ci-dessus ne change de sens.
+  "materiel.modifier": "Modifier",
+  "materiel.annuler": "Annuler",
+  "materiel.recherche_familles": "Code ou libellé",
+  "materiel.recherche_modeles": "Marque, référence ou libellé",
+  "materiel.rechercher": "Rechercher",
+  "materiel.filtre.actifs": "Actifs",
+  "materiel.filtre.inactifs": "Inactifs",
+  "materiel.filtre.tous": "Tous",
+  "materiel.familles_compte": "familles",
+  "materiel.familles_compte_un": "famille",
+  "materiel.recherche_aucun_resultat_titre": "Aucun résultat",
+  "materiel.recherche_aucun_resultat_detail":
+    "Aucune ligne ne correspond à cette recherche.",
   // REPRIS MOT POUR MOT DE LA MAQUETTE (9EWD1-PARAMETRES-HUB-SOLDE, page
   // Paramètres, M:4385) — clé propre à ce hub (confronté par grep).
   "parametres.index_prestations_titre": "Prestations",

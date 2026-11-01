@@ -1,20 +1,28 @@
 import type { Metadata } from "next";
 
+import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { Badge, type TonBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { BarreDeFiltres } from "@/components/ui/barre-de-filtres";
 import { Carte } from "@/components/ui/carte";
 import { CaseACocher } from "@/components/ui/case-a-cocher";
 import { Champ } from "@/components/ui/champ";
+import { EtatVide } from "@/components/ui/etat-vide";
+import { ActionPrimaire, LienPrimaire } from "@/components/ui/action-primaire";
 import { ListeCartes } from "@/components/ui/liste-cartes";
-import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
+import { ListeQuiFiltre } from "@/components/ui/liste-qui-filtre";
+import { Onglets } from "@/components/ui/onglets";
+import { Cellule, Tableau } from "@/components/ui/tableau";
+import { Volet } from "@/components/ui/volet";
 import { Page } from "@/components/mise-en-page/page";
 import { RefusAcces } from "@/components/ui/refus-acces";
 import { peutPleinement } from "@/lib/auth/habilitations";
 import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
+import { normaliserRaisonSociale } from "@/lib/excel/rapprochement";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import {
   listerLesFamilles,
@@ -31,62 +39,55 @@ export const metadata: Metadata = { title: t("materiel.titre") };
 /**
  * LE RÉFÉRENTIEL MATÉRIEL (L1-05b, AT-04 ; L1-05, D4 amendé, D6).
  *
- * ## Pourquoi cet écran existe, et ce que son absence coûtait
+ * ## 9I95-REFONTE-PARAMETRES-MATERIEL — DEUX ONGLETS, UN VOLET, UNE RECHERCHE
  *
- * *Mesuré le 14/09/2026 puis le 15/09/2026 : `ls lib/materiel/` rendait un seul
- * fichier.* Les deux tables existaient depuis L1-05 ; **il n'y avait ni dépôt,
- * ni route, ni écran.**
+ * Trois gênes nommées par Alexis le 02/11/2026 (« Trop long, tout mélangé » ;
+ * « Créer et modifier, pas clair » ; « Lecture des tableaux ») refaisaient
+ * cet écran : familles et modèles vivaient sur la MÊME page, chaque ligne
+ * portait un formulaire de modification replié (`<details>`), et aucune
+ * recherche ni aucun filtre d'activité n'existaient. Familles et modèles
+ * sont désormais deux onglets (`?onglet=`), « Ajouter » et « Modifier »
+ * ouvrent le MÊME formulaire dans un volet latéral (`?volet=`, `?id=`,
+ * jamais de formulaire déplié dans la liste), et chaque onglet porte sa
+ * propre recherche (`?q=`) et son filtre d'activité (`?etat=`).
  *
- * **Et c'est un ENCHAÎNEMENT plutôt qu'un manque isolé.** Une machine exige un
- * modèle — D6, quatre champs obligatoires —, un modèle exige une famille, et
- * **aucun des deux ne pouvait naître**. *Le parc ne se remplissait donc que par
- * le semis.* L'import ne le sauvait pas davantage : une seule fonction
- * d'application existe dans tout le dépôt, et c'est celle des clients (R6-01) ;
- * il n'existe même aucun gabarit de FAMILLE (R6-03).
+ * **CONTRAT EXTERNE PRÉSERVÉ** : `/vgp/a-determiner` (route `vgp.indetermines.
+ * decider`) lie toujours vers `/parametres/materiel?famille=<id>#modeles` —
+ * un lien HORS de cet écran, hors du territoire de ce lot. `famille` seul,
+ * SANS `onglet`, bascule donc implicitement sur l'onglet Modèles, filtré ; le
+ * fragment `#modeles` devient inerte (plus aucune ancre de défilement, les
+ * onglets ne scrollent pas), mais inoffensif.
  *
- * ## AUCUNE ÉNUMÉRATION N'EST INVENTÉE
+ * **LIMITE CONNUE, HORS TERRITOIRE** : après une création, une modification
+ * ou une bascule d'activité, les routes de `app/api/parametres/materiel/**`
+ * redirigent TOUJOURS vers `/parametres/materiel` (avec `?motif=` au refus),
+ * sans jamais reporter l'onglet ni les filtres — `versLeReferentiel`
+ * (`app/api/parametres/materiel/saisie-recue.ts`) ne les connaît pas, et ce
+ * fichier est hors territoire de ce lot. `equipe`/`demandes` reportent déjà
+ * ces paramètres dans leurs propres routes (`suite.toString()`) : un lot
+ * futur qui ouvrirait ce fichier devrait faire de même ici. En attendant, le
+ * motif de refus reste visible quel que soit l'onglet par défaut (Familles),
+ * exactement comme avant ce lot ; seul le retour sur l'onglet Modèles après
+ * une action sur un modèle ne suit pas encore.
  *
- * Ni les familles, ni les marques, ni les références. **C'est le fond de L1-05
- * et pas une économie** : D4 rangeait ces tables parmi les référentiels de
- * plateforme, avec un catalogue d'éditeur qu'une société surchargeait par copie ;
- * l'amendement du 08/09/2026 a retiré ce mécanisme parce qu'il se contredisait.
- * *Chez CODIMA, les modèles viennent du fichier de suivi, pas d'un catalogue* —
- * ce sont des données saisies, et une liste close ici serait la même faute,
- * déplacée d'une couche.
+ * Le reste de ce commentaire — pourquoi cet écran existe, pourquoi aucune
+ * énumération n'est inventée, le régime VGP, l'absence de suppression — n'a
+ * pas changé et vit toujours ici, inchangé par ce lot :
  *
- * ## LE RÉGIME VGP EST VISIBLE, ET C'EST UN REVIREMENT ASSUMÉ (AT-04)
- *
- * *Chaque famille porte son régime — assujettissement, périodicité, référence
- * du texte —, le sous-titre de cet écran en parle depuis L1-05b, et le régime
- * n'était affiché NULLE PART.* C'est l'information la plus précieuse de
- * l'écran, une obligation réglementaire, et elle était invisible. La colonne
- * « Régime VGP » la rend, avec la pastille qui convient à chacune des quatre
- * valeurs — « à déterminer » comprise, une question ouverte qui doit se voir.
- *
- * **Ce que ce revirement NE change pas** : ce formulaire n'ÉCRIT toujours
- * aucune colonne de VGP. `periodicite_jours` et `periodicite_compteur` restent
- * l'entretien du constructeur, une autre question que la périodicité
- * RÉGLEMENTAIRE des vérifications générales — celle-ci se déclare à la
- * famille, exige le texte qui la fonde (L9-04), et le modèle peut la PRÉCISER
- * sans jamais faire exception (L9-06). *Les mêler dans un même champ ferait
- * facturer un entretien pour une vérification légale, ou l'inverse.* Une
- * famille créée ici naît donc toujours « à déterminer », et se décide au
- * registre des VGP — cet écran LIT ce qui s'y décide, il n'y répond pas à sa
- * place.
- *
- * ## AUCUNE SUPPRESSION
- *
- * Quatre clés étrangères retiennent une famille et deux un modèle, toutes en
- * `Restrict`. *Proposer un bouton qui échoue huit fois sur dix est pire que de
- * ne pas le proposer* — la bascule d'activité retire du CHOIX sans toucher au
- * passé.
- *
- * ## ZÉRO FAMILLE N'EST PAS UNE PAGE VIDE
- *
- * Le tableau des modèles dit alors **pourquoi** on ne peut pas encore en créer,
- * et non « aucun modèle ». *Un tableau vide sans phrase se lirait comme un écran
- * cassé, ou pire, comme une question qui ne se pose pas.*
+ * Ni les familles, ni les marques, ni les références ne sont des listes
+ * closes : D4 rangeait ces tables parmi les référentiels de plateforme, et
+ * l'amendement du 08/09/2026 a retiré le catalogue d'éditeur qui les
+ * peuplait. Chaque famille porte son régime VGP, visible depuis AT-04. Quatre
+ * clés étrangères retiennent une famille et deux un modèle, toutes en
+ * `Restrict` : aucune suppression, seulement une bascule d'activité. Zéro
+ * famille n'est pas une page vide muette : l'onglet Modèles dit pourquoi on
+ * ne peut pas encore en créer.
  */
+type OngletMateriel = "familles" | "modeles";
+type EtatFiltre = "actifs" | "inactifs" | "tous";
+type Filtres = Readonly<{ q: string; etat: EtatFiltre }>;
+type TypeVolet = "famille" | "modele";
+
 export default async function PageMateriel({
   searchParams,
 }: {
@@ -117,8 +118,28 @@ export default async function PageMateriel({
     session.contexte.role !== null &&
     peutPleinement(session.contexte.role, "parametrer_societe");
 
-  const motif = (await searchParams).motif;
-  const familleParam = (await searchParams).famille;
+  const params = await searchParams;
+  const motif = params.motif;
+  const texteQ = typeof params.q === "string" ? params.q : "";
+  const etat: EtatFiltre =
+    params.etat === "tous" || params.etat === "inactifs"
+      ? params.etat
+      : "actifs";
+  const filtres: Filtres = { q: texteQ, etat };
+  const familleParam =
+    typeof params.famille === "string" ? params.famille : undefined;
+
+  // `famille` SEUL, SANS `onglet` EXPLICITE, BASCULE SUR MODÈLES — le lien
+  // externe `vgp.indetermines.decider` ne connaît que ce paramètre (voir
+  // l'en-tête de ce fichier).
+  const ongletActif: OngletMateriel =
+    params.onglet === "modeles"
+      ? "modeles"
+      : params.onglet === "familles"
+        ? "familles"
+        : familleParam !== undefined
+          ? "modeles"
+          : "familles";
 
   const familles = await listerLesFamilles(session.contexte);
   const modeles = await listerLesModeles(session.contexte);
@@ -128,36 +149,66 @@ export default async function PageMateriel({
   // déjà filtrée par la session, donc l'absence ici couvre les deux cas d'un
   // seul geste (jamais d'erreur, jamais l'identifiant affiché).
   const familleActive =
-    typeof familleParam === "string"
-      ? familles.find((f) => f.id === familleParam)
-      : undefined;
-  const modelesAffiches =
+    familleParam === undefined
+      ? undefined
+      : familles.find((f) => f.id === familleParam);
+
+  const famillesAffichees = familles.filter(
+    (f) =>
+      etatCorrespond(f.actif, etat) && correspond([f.code, f.libelle], texteQ),
+  );
+
+  const modelesDeLaFamille =
     familleActive === undefined
       ? modeles
       : modeles.filter((m) => m.famille_id === familleActive.id);
+  const modelesAffiches = modelesDeLaFamille.filter(
+    (m) =>
+      etatCorrespond(m.actif, etat) &&
+      correspond(
+        [m.marque, m.reference, nomDeFamille.get(m.famille_id)],
+        texteQ,
+      ),
+  );
 
-  // LE TITRE ET LE FILTRE DE LA CARTE « MODÈLES », ÉCRITS UNE FOIS ET RENDUS
-  // DEUX (9G2B-FINITIONS-CARTES-375) — par le tableau ET par la liste de
-  // cartes sous 900 px, voir plus bas : une seconde écriture aurait divergé
-  // en silence (§9, 01/09).
   const titreModeles =
     familleActive === undefined
       ? t("materiel.modeles")
       : titreFamilleFiltree(familleActive.libelle);
-  const actionModeles =
-    familleActive === undefined
-      ? undefined
-      : {
-          libelle: t("materiel.tout_afficher"),
-          href: "/parametres/materiel#modeles",
-        };
+
+  // ── LE VOLET (création OU modification, un seul formulaire par entité) ──
+  const voletType: TypeVolet | null =
+    params.volet === "famille"
+      ? "famille"
+      : params.volet === "modele"
+        ? "modele"
+        : null;
+  const idEdite = typeof params.id === "string" ? params.id : undefined;
+  const familleEditee =
+    voletType === "famille" && idEdite !== undefined
+      ? familles.find((f) => f.id === idEdite)
+      : undefined;
+  const modeleEdite =
+    voletType === "modele" && idEdite !== undefined
+      ? modeles.find((m) => m.id === idEdite)
+      : undefined;
+  // UN IDENTIFIANT INCONNU NE ROUVRE RIEN (même discipline que `famille`
+  // ci-dessus) ; CRÉER UN MODÈLE SANS AUCUNE FAMILLE EST IMPOSSIBLE (le
+  // formulaire exige un parent) : le volet reste fermé plutôt que d'ouvrir
+  // un `<select>` vide.
+  const voletOuvert =
+    peutEcrire &&
+    voletType !== null &&
+    (idEdite === undefined
+      ? voletType === "famille" || familles.length > 0
+      : voletType === "famille"
+        ? familleEditee !== undefined
+        : modeleEdite !== undefined);
 
   return (
     <Page
       chemin="/parametres/materiel"
       titre={t("materiel.titre")}
-      // FIL D'ARIANE (9DR-TP-NAV2-RETOURS-FIL, D168) — remplace
-      // `<RetourParametres />`, retiré.
       filAriane={[
         { libelle: t("nav.societes_tarifs"), href: "/parametres" },
         { libelle: t("materiel.titre") },
@@ -173,271 +224,161 @@ export default async function PageMateriel({
         </p>
       ) : null}
 
-      {/* ── LES FAMILLES ─────────────────────────────────────────────────── */}
+      <Onglets
+        libelleAria={t("materiel.titre")}
+        dataNav="materiel"
+        elements={[
+          {
+            libelle: t("materiel.familles"),
+            href: hrefEcran("familles", filtres),
+            compte: famillesAffichees.length,
+            actif: ongletActif === "familles",
+          },
+          {
+            libelle: t("materiel.modeles"),
+            href: hrefEcran("modeles", filtres),
+            compte: modelesAffiches.length,
+            actif: ongletActif === "modeles",
+          },
+        ]}
+      />
 
-      {peutEcrire ? (
-        <Carte titre={t("materiel.creer_famille")}>
-          <div className="flex flex-col gap-3 p-4">
-            <FormulaireFamille
-              action="/api/parametres/materiel/familles/creer"
-              soumettre={t("materiel.creer_action")}
-            />
-            <p className="text-app-encre-faible text-12 font-bold">
-              {t("materiel.vgp_ailleurs")}
-            </p>
-          </div>
-        </Carte>
-      ) : null}
-
-      <Carte titre={t("materiel.familles")} className="max-[900px]:hidden">
-        <Tableau colonnes={colonnesFamilles()} minimum="920px">
-          {familles.length === 0 ? (
-            <LignePleine colonnes={5}>
-              {t("materiel.aucune_famille")}
-            </LignePleine>
-          ) : null}
-          {familles.map((famille) => (
-            <tr key={famille.id}>
-              <Cellule fort>{famille.code}</Cellule>
-              <Cellule>{famille.libelle}</Cellule>
-              <Cellule>
-                <RegimeVgp famille={famille} />
-              </Cellule>
-              <Cellule droite>
-                <a
-                  href={`/parametres/materiel?famille=${famille.id}#modeles`}
-                  className={CLASSES_LIEN}
-                >
-                  {decompteModeles(famille._count.modeles)}
-                </a>
-              </Cellule>
-              <Cellule>
-                {peutEcrire ? (
-                  <Activite
-                    action={`/api/parametres/materiel/familles/${famille.id}/activite`}
-                    actif={famille.actif}
-                  />
-                ) : (
-                  <span>
-                    {famille.actif
-                      ? t("materiel.active")
-                      : t("materiel.inactive")}
-                  </span>
-                )}
-              </Cellule>
-            </tr>
-          ))}
-        </Tableau>
-      </Carte>
-
-      {/* SOUS 900 PX — une carte par famille (audit 9F6 du 21/10/2026, même
-          forme que /parametres/equipe). */}
-      {familles.length === 0 ? (
-        <p className="text-app-encre-faible min-[901px]:hidden text-13 font-bold">
-          {t("materiel.aucune_famille")}
-        </p>
-      ) : null}
-      <ListeCartes libelle={t("materiel.familles")}>
-        {familles.map((famille) => (
-          <CarteFamille
-            key={famille.id}
-            famille={famille}
-            peutEcrire={peutEcrire}
-          />
-        ))}
-      </ListeCartes>
-
-      {/*
-        REPLI PAR LIGNE (ERGO-1) — même raisonnement et même mesure que
-        `/parametres/equipe` (voir son commentaire) : le formulaire de
-        modification est le geste rare, le tableau au-dessus est ce qu'on lit
-        d'abord. Le TITRE reste un `<h2>` — DANS le `<summary>`, ce que le
-        standard autorise explicitement à la place du texte nu — pour ne pas
-        retirer un niveau de titre à une page qui en portait un pour chaque
-        formulaire (`80-VISUEL-2`, `tests/e2e/visuel-2.spec.ts`, filtre les
-        formulaires « Modifier le modèle » par leur `<h2>`).
-        D153 (03/10/2026, TP-S3, PA-02) — absent plutôt que repliè quand le
-        rôle n'a pas le ●, même garde que la carte de création ci-dessus.
-      */}
-      {peutEcrire
-        ? familles.map((famille) => (
-            <details
-              key={famille.id}
-              className="bg-app-surface border-app-bord rounded-lg border"
-            >
-              <summary className="cursor-pointer px-[16px] py-[14px]">
-                <h2 className="inline text-[14px] font-bold">
-                  {titreDe(t("materiel.modifier_famille"), famille.code)}
-                </h2>
-              </summary>
-              <div className="p-4 pt-0">
-                <FormulaireFamille
-                  action={`/api/parametres/materiel/familles/${famille.id}/modifier`}
-                  soumettre={t("materiel.enregistrer")}
-                  valeurs={famille}
-                />
-              </div>
-            </details>
-          ))
-        : null}
-
-      {/* ── LES MODÈLES ──────────────────────────────────────────────────── */}
-
-      {peutEcrire ? (
-        <Carte titre={t("materiel.creer_modele")}>
-          <div className="flex flex-col gap-3 p-4">
-            {familles.length === 0 ? (
-              // *Un formulaire dont le seul choix de parent est vide est un
-              // formulaire qui ne peut que refuser.* La phrase dit où aller ;
-              // afficher le champ aurait fait cliquer avant de lire.
-              <p className="text-app-encre-faible text-13 font-bold">
-                {t("materiel.modele_sans_famille")}
-              </p>
-            ) : (
-              <FormulaireModele
-                action="/api/parametres/materiel/modeles/creer"
-                familles={familles}
-                soumettre={t("materiel.creer_action")}
-              />
-            )}
-            <p className="text-app-encre-faible text-12 font-bold">
-              {t("materiel.pas_la_vgp")}
-            </p>
-          </div>
-        </Carte>
-      ) : null}
-
-      {/*
-        L'ANCRE VIT SUR CE CONTENEUR, JAMAIS SUR LA SEULE `<Carte>` DU
-        TABLEAU (9G2B-FINITIONS-CARTES-375, 25/10/2026) — mesuré sur
-        `36146141` : `id="modeles"` posé sur la `<Carte>` `max-[900px]:
-        hidden` ci-dessous rendait l'ancre MORTE sous 900 px (`display:none`
-        n'a pas de position à défiler vers), alors que « N modèles »
-        (tableau des familles) et « Décider » (`/vgp/a-determiner`) la
-        visent explicitement. Ce `<div>` n'est JAMAIS masqué : l'ancre
-        atterrit toujours sur un point visible, quelle que soit la largeur.
-      */}
-      <div id="modeles" className="scroll-mt-4 flex flex-col gap-3">
-        <Carte
+      {ongletActif === "familles" ? (
+        <OngletFamilles
+          familles={famillesAffichees}
+          nombreTotal={familles.length}
+          peutEcrire={peutEcrire}
+          filtres={filtres}
+        />
+      ) : (
+        <OngletModeles
           titre={titreModeles}
-          action={actionModeles}
-          className="max-[900px]:hidden"
-        >
-          <Tableau colonnes={colonnesModeles()} minimum="960px">
-            {modelesAffiches.length === 0 ? (
-              <LignePleine colonnes={5}>
-                {familles.length === 0
-                  ? t("materiel.modele_sans_famille")
-                  : t("materiel.aucun_modele")}
-              </LignePleine>
-            ) : null}
-            {modelesAffiches.map((modele) => (
-              <tr key={modele.id}>
-                <Cellule fort>{modele.marque}</Cellule>
-                <Cellule>{modele.reference}</Cellule>
-                <Cellule>
-                  {nomDeFamille.get(modele.famille_id) ??
-                    t("materiel.famille_inconnue")}
-                </Cellule>
-                <Cellule>{entretienAffiche(modele)}</Cellule>
-                <Cellule>
-                  {peutEcrire ? (
-                    <Activite
-                      action={`/api/parametres/materiel/modeles/${modele.id}/activite`}
-                      actif={modele.actif}
-                    />
-                  ) : (
-                    <span>
-                      {modele.actif
-                        ? t("materiel.active")
-                        : t("materiel.inactive")}
-                    </span>
-                  )}
-                </Cellule>
-              </tr>
-            ))}
-          </Tableau>
-        </Carte>
-
-        {/* SOUS 900 PX — même titre et même filtre que la carte ci-dessus,
-            portés par la MÊME `<Carte>` (son en-tête gère déjà `titre` et
-            `action`) plutôt que par un second `<h2>` recopié à la main :
-            le titre et « Tout afficher » disparaissaient avec le tableau
-            masqué (même audit), laissant la liste de cartes sans l'un ni
-            l'autre. */}
-        <Carte
-          titre={titreModeles}
-          action={actionModeles}
-          className="min-[901px]:hidden"
-        >
-          <div className="flex flex-col gap-2 p-3">
-            {modelesAffiches.length === 0 ? (
-              <p className="text-app-encre-faible text-13 font-bold">
-                {familles.length === 0
-                  ? t("materiel.modele_sans_famille")
-                  : t("materiel.aucun_modele")}
-              </p>
-            ) : null}
-            <ListeCartes libelle={titreModeles}>
-              {modelesAffiches.map((modele) => (
-                <CarteModele
-                  key={modele.id}
-                  modele={modele}
-                  nomFamille={
-                    nomDeFamille.get(modele.famille_id) ??
-                    t("materiel.famille_inconnue")
-                  }
-                  peutEcrire={peutEcrire}
-                />
-              ))}
-            </ListeCartes>
-          </div>
-        </Carte>
-      </div>
-
-      {peutEcrire
-        ? modelesAffiches.map((modele) => (
-            <details
-              key={modele.id}
-              className="bg-app-surface border-app-bord rounded-lg border"
-            >
-              <summary className="cursor-pointer px-[16px] py-[14px]">
-                <h2 className="inline text-[14px] font-bold">
-                  {titreDe(t("materiel.modifier_modele"), designation(modele))}
-                </h2>
-              </summary>
-              <div className="p-4 pt-0">
-                <FormulaireModele
-                  action={`/api/parametres/materiel/modeles/${modele.id}/modifier`}
-                  familles={familles}
-                  soumettre={t("materiel.enregistrer")}
-                  valeurs={modele}
-                />
-              </div>
-            </details>
-          ))
-        : null}
+          modeles={modelesAffiches}
+          nombreTotal={modelesDeLaFamille.length}
+          familles={familles}
+          familleActive={familleActive}
+          nomDeFamille={nomDeFamille}
+          peutEcrire={peutEcrire}
+          filtres={filtres}
+        />
+      )}
 
       <p className="text-app-encre-faible text-12 font-bold">
         {t("materiel.aucune_suppression")}
       </p>
+
+      {voletOuvert ? (
+        <VoletMateriel
+          type={voletType as TypeVolet}
+          famille={familleEditee}
+          modele={modeleEdite}
+          familles={familles}
+          ongletActif={ongletActif}
+          filtres={filtres}
+          familleFiltre={familleActive?.id}
+        />
+      ) : null}
     </Page>
   );
 }
 
-const ACTIF = "oui";
-const INACTIF = "non";
+/** Une recherche vide ne filtre rien ; sinon, accents et casse sont ignorés. */
+function correspond(
+  champs: readonly (string | null | undefined)[],
+  recherche: string,
+): boolean {
+  if (recherche.trim() === "") {
+    return true;
+  }
+  const cible = normaliserRaisonSociale(recherche);
+  return champs.some(
+    (champ) =>
+      champ !== null &&
+      champ !== undefined &&
+      normaliserRaisonSociale(champ).includes(cible),
+  );
+}
+
+function etatCorrespond(actif: boolean, etat: EtatFiltre): boolean {
+  if (etat === "tous") {
+    return true;
+  }
+  return etat === "actifs" ? actif : !actif;
+}
+
+/** Les paramètres communs aux deux onglets — recherche et filtre d'état. */
+function paramsCommuns(filtres: Filtres): URLSearchParams {
+  const params = new URLSearchParams();
+  if (filtres.q.trim() !== "") {
+    params.set("q", filtres.q);
+  }
+  if (filtres.etat !== "actifs") {
+    params.set("etat", filtres.etat);
+  }
+  return params;
+}
+
+/** L'adresse d'un onglet, avec ses filtres — `famille` seulement sur Modèles. */
+function hrefEcran(
+  onglet: OngletMateriel,
+  filtres: Filtres,
+  familleFiltre?: string,
+): string {
+  const params = paramsCommuns(filtres);
+  if (onglet === "modeles") {
+    params.set("onglet", "modeles");
+    if (familleFiltre !== undefined) {
+      params.set("famille", familleFiltre);
+    }
+  }
+  const requete = params.toString();
+  return requete === ""
+    ? "/parametres/materiel"
+    : `/parametres/materiel?${requete}`;
+}
+
+/** Depuis une famille : ses modèles, et rien d'autre (jamais la recherche en cours). */
+function hrefVoirModeles(familleId: string): string {
+  return hrefEcran("modeles", { q: "", etat: "actifs" }, familleId);
+}
+
+/** Retire le filtre « famille » — garde la recherche et l'état en cours. */
+function hrefToutAfficher(filtres: Filtres): string {
+  return hrefEcran("modeles", filtres);
+}
+
+function hrefOuvrirVolet(
+  onglet: OngletMateriel,
+  filtres: Filtres,
+  familleFiltre: string | undefined,
+  type: TypeVolet,
+  id?: string,
+): string {
+  const base = hrefEcran(onglet, filtres, familleFiltre);
+  const separateur = base.includes("?") ? "&" : "?";
+  const idSuffixe = id === undefined ? "" : `&id=${encodeURIComponent(id)}`;
+  return `${base}${separateur}volet=${type}${idSuffixe}`;
+}
+
+function hrefFermerVolet(
+  onglet: OngletMateriel,
+  filtres: Filtres,
+  familleFiltre: string | undefined,
+): string {
+  return hrefEcran(onglet, filtres, familleFiltre);
+}
+
 const TIRET = " — ";
 const ESPACE = " ";
-const SEPARATEUR = " / ";
+const DEUX_POINTS = " : ";
 const JOURS = " j";
 const COMPTEUR = " h";
+const SEPARATEUR = " / ";
 const NOUVEAU = "nouveau";
-const DEUX_POINTS = " : ";
 
 /**
  * La composition est faite HORS du JSX — un littéral n'y est pas admis, fût-il
- * le tiret d'un titre (L0-11). C'est le gardien qui l'a dit, pas la relecture.
+ * le tiret d'un titre (L0-11).
  */
 function titreDe(prefixe: string, suffixe: string): string {
   return `${prefixe}${TIRET}${suffixe}`;
@@ -450,6 +391,312 @@ function designation(modele: LigneModele): string {
 /** Le titre de la carte des modèles quand elle est filtrée sur une famille. */
 function titreFamilleFiltree(libelleFamille: string): string {
   return `${t("materiel.famille")}${DEUX_POINTS}${libelleFamille}`;
+}
+
+/** L'ONGLET « FAMILLES » — son titre, son décompte, son bouton, son tableau. */
+function OngletFamilles({
+  familles,
+  nombreTotal,
+  peutEcrire,
+  filtres,
+}: {
+  readonly familles: readonly LigneFamille[];
+  readonly nombreTotal: number;
+  readonly peutEcrire: boolean;
+  readonly filtres: Filtres;
+}) {
+  return (
+    <section className="flex flex-col gap-3">
+      <EnTeteOnglet
+        titre={decompteFamilles(familles.length)}
+        action={
+          peutEcrire ? (
+            <LienPrimaire
+              href={hrefOuvrirVolet("familles", filtres, undefined, "famille")}
+            >
+              {t("materiel.creer_famille")}
+            </LienPrimaire>
+          ) : undefined
+        }
+      />
+      <FormulaireRecherche
+        onglet="familles"
+        filtres={filtres}
+        libelleChamp={t("materiel.recherche_familles")}
+        familleFiltre={undefined}
+      />
+
+      {nombreTotal === 0 ? (
+        <p className="text-app-encre-faible text-13 font-bold">
+          {t("materiel.aucune_famille")}
+        </p>
+      ) : familles.length === 0 ? (
+        <EtatVide titre={t("materiel.recherche_aucun_resultat_titre")}>
+          {t("materiel.recherche_aucun_resultat_detail")}
+        </EtatVide>
+      ) : (
+        <>
+          <Carte className="max-[900px]:hidden">
+            <Tableau colonnes={colonnesFamilles()} minimum="960px">
+              {familles.map((famille) => (
+                <tr key={famille.id}>
+                  <Cellule fort>{famille.code}</Cellule>
+                  <Cellule>{famille.libelle}</Cellule>
+                  <Cellule>
+                    <RegimeVgp famille={famille} />
+                  </Cellule>
+                  <Cellule droite>
+                    <a
+                      href={hrefVoirModeles(famille.id)}
+                      className={CLASSES_LIEN}
+                    >
+                      {decompteModeles(famille._count.modeles)}
+                    </a>
+                  </Cellule>
+                  <Cellule>
+                    <ActionsLigne
+                      peutEcrire={peutEcrire}
+                      hrefModifier={hrefOuvrirVolet(
+                        "familles",
+                        filtres,
+                        undefined,
+                        "famille",
+                        famille.id,
+                      )}
+                      action={`/api/parametres/materiel/familles/${famille.id}/activite`}
+                      actif={famille.actif}
+                    />
+                  </Cellule>
+                </tr>
+              ))}
+            </Tableau>
+          </Carte>
+
+          <ListeCartes libelle={t("materiel.familles")}>
+            {familles.map((famille) => (
+              <CarteFamille
+                key={famille.id}
+                famille={famille}
+                peutEcrire={peutEcrire}
+                hrefModifier={hrefOuvrirVolet(
+                  "familles",
+                  filtres,
+                  undefined,
+                  "famille",
+                  famille.id,
+                )}
+              />
+            ))}
+          </ListeCartes>
+        </>
+      )}
+    </section>
+  );
+}
+
+/** L'ONGLET « MODÈLES » — filtré par famille si `familleActive` est donnée. */
+function OngletModeles({
+  titre,
+  modeles,
+  nombreTotal,
+  familles,
+  familleActive,
+  nomDeFamille,
+  peutEcrire,
+  filtres,
+}: {
+  readonly titre: string;
+  readonly modeles: readonly LigneModele[];
+  readonly nombreTotal: number;
+  readonly familles: readonly LigneFamille[];
+  readonly familleActive: LigneFamille | undefined;
+  readonly nomDeFamille: ReadonlyMap<string, string>;
+  readonly peutEcrire: boolean;
+  readonly filtres: Filtres;
+}) {
+  return (
+    // `id="modeles"` SUR LA SECTION ENTIÈRE, jamais seulement sur le tableau
+    // (9G2B-FINITIONS-CARTES-375) — le titre filtré et « Tout afficher »
+    // doivent eux aussi se trouver SOUS cette ancre, et elle doit rester
+    // visible quelle que soit la largeur.
+    <section id="modeles" className="flex flex-col gap-3">
+      <EnTeteOnglet
+        titre={titre}
+        action={
+          familleActive === undefined ? undefined : (
+            <a href={hrefToutAfficher(filtres)} className={CLASSES_LIEN}>
+              {t("materiel.tout_afficher")}
+            </a>
+          )
+        }
+      />
+      {peutEcrire ? (
+        familles.length === 0 ? (
+          <p className="text-app-encre-faible text-13 font-bold">
+            {t("materiel.modele_sans_famille")}
+          </p>
+        ) : (
+          <LienPrimaire
+            href={hrefOuvrirVolet(
+              "modeles",
+              filtres,
+              familleActive?.id,
+              "modele",
+            )}
+          >
+            {t("materiel.creer_modele")}
+          </LienPrimaire>
+        )
+      ) : null}
+      <FormulaireRecherche
+        onglet="modeles"
+        filtres={filtres}
+        libelleChamp={t("materiel.recherche_modeles")}
+        familleFiltre={familleActive?.id}
+      />
+
+      {nombreTotal === 0 ? (
+        <p className="text-app-encre-faible text-13 font-bold">
+          {familles.length === 0
+            ? t("materiel.modele_sans_famille")
+            : t("materiel.aucun_modele")}
+        </p>
+      ) : modeles.length === 0 ? (
+        <EtatVide titre={t("materiel.recherche_aucun_resultat_titre")}>
+          {t("materiel.recherche_aucun_resultat_detail")}
+        </EtatVide>
+      ) : (
+        <div className="flex flex-col gap-3">
+          <Carte className="max-[900px]:hidden">
+            <Tableau colonnes={colonnesModeles()} minimum="1000px">
+              {modeles.map((modele) => (
+                <tr key={modele.id}>
+                  <Cellule fort>{modele.marque}</Cellule>
+                  <Cellule>{modele.reference}</Cellule>
+                  <Cellule>
+                    {nomDeFamille.get(modele.famille_id) ??
+                      t("materiel.famille_inconnue")}
+                  </Cellule>
+                  <Cellule>{entretienAffiche(modele)}</Cellule>
+                  <Cellule>
+                    <ActionsLigne
+                      peutEcrire={peutEcrire}
+                      hrefModifier={hrefOuvrirVolet(
+                        "modeles",
+                        filtres,
+                        familleActive?.id,
+                        "modele",
+                        modele.id,
+                      )}
+                      action={`/api/parametres/materiel/modeles/${modele.id}/activite`}
+                      actif={modele.actif}
+                    />
+                  </Cellule>
+                </tr>
+              ))}
+            </Tableau>
+          </Carte>
+
+          <ListeCartes libelle={titre}>
+            {modeles.map((modele) => (
+              <CarteModele
+                key={modele.id}
+                modele={modele}
+                nomFamille={
+                  nomDeFamille.get(modele.famille_id) ??
+                  t("materiel.famille_inconnue")
+                }
+                peutEcrire={peutEcrire}
+                hrefModifier={hrefOuvrirVolet(
+                  "modeles",
+                  filtres,
+                  familleActive?.id,
+                  "modele",
+                  modele.id,
+                )}
+              />
+            ))}
+          </ListeCartes>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function EnTeteOnglet({
+  titre,
+  action,
+}: {
+  readonly titre: string;
+  readonly action?: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <h2 className="text-16 font-bold">{titre}</h2>
+      {action}
+    </div>
+  );
+}
+
+/** « N familles » / « 1 famille » — composé hors du JSX (L0-11). */
+function decompteFamilles(nombre: number): string {
+  return decompte(
+    nombre,
+    t("materiel.familles_compte_un"),
+    t("materiel.familles_compte"),
+  );
+}
+
+/**
+ * LA RECHERCHE ET LE FILTRE D'ÉTAT, PAR ONGLET — un champ texte
+ * (`BarreDeFiltres`) et un `<select>` qui se soumet seul (`ListeQuiFiltre`),
+ * dans le MÊME formulaire GET : l'onglet et la famille filtrée (si on est
+ * sur Modèles) voyagent en champs cachés pour ne pas se perdre au clic.
+ */
+function FormulaireRecherche({
+  onglet,
+  filtres,
+  libelleChamp,
+  familleFiltre,
+}: {
+  readonly onglet: OngletMateriel;
+  readonly filtres: Filtres;
+  readonly libelleChamp: string;
+  readonly familleFiltre: string | undefined;
+}) {
+  return (
+    <BarreDeFiltres
+      action="/parametres/materiel"
+      parametre="q"
+      valeur={filtres.q === "" ? undefined : filtres.q}
+      libelleChamp={libelleChamp}
+      libelleBouton={t("materiel.rechercher")}
+      enfants={
+        <>
+          {onglet === "modeles" ? (
+            <>
+              <input type="hidden" name="onglet" value="modeles" />
+              {familleFiltre === undefined ? null : (
+                <input type="hidden" name="famille" value={familleFiltre} />
+              )}
+            </>
+          ) : null}
+          <label className="flex flex-col gap-1 text-12 font-bold">
+            {t("materiel.activite")}
+            <ListeQuiFiltre
+              name="etat"
+              defaultValue={filtres.etat}
+              className="border-app-bord bg-app-surface h-[40px] rounded-[9px] border px-2 text-13 font-bold"
+            >
+              <option value="actifs">{t("materiel.filtre.actifs")}</option>
+              <option value="inactifs">{t("materiel.filtre.inactifs")}</option>
+              <option value="tous">{t("materiel.filtre.tous")}</option>
+            </ListeQuiFiltre>
+          </label>
+        </>
+      }
+    />
+  );
 }
 
 function colonnesFamilles() {
@@ -467,7 +714,7 @@ function colonnesFamilles() {
       largeur: "110px",
       droite: true,
     },
-    { cle: "actif", libelle: t("materiel.activite"), largeur: "200px" },
+    { cle: "actions", libelle: t("materiel.activite"), largeur: "220px" },
   ];
 }
 
@@ -477,7 +724,7 @@ function colonnesModeles() {
     { cle: "reference", libelle: t("materiel.reference") },
     { cle: "famille", libelle: t("materiel.famille") },
     { cle: "entretien", libelle: t("materiel.periodicite"), largeur: "180px" },
-    { cle: "actif", libelle: t("materiel.activite"), largeur: "220px" },
+    { cle: "actions", libelle: t("materiel.activite"), largeur: "240px" },
   ];
 }
 
@@ -567,22 +814,33 @@ function entretienAffiche(modele: LigneModele): string {
 }
 
 /**
- * LA BASCULE D'ACTIVITÉ, écrite une fois et rendue deux.
+ * LES ACTIONS D'UNE LIGNE — « Modifier » (ouvre le volet) et la bascule
+ * d'activité, dans la MÊME cellule : une colonne de plus aurait recréé le
+ * défaut d'alignement que ce lot répare (AT-04, point 4).
  *
- * L'état VISÉ voyage dans le corps plutôt que d'être déduit : *une bascule
- * aveugle inverserait un état qu'un autre onglet vient de changer, et personne
- * ne saurait lequel des deux a gagné.*
+ * L'état VISÉ de la bascule voyage dans le corps plutôt que d'être déduit :
+ * *une bascule aveugle inverserait un état qu'un autre onglet vient de
+ * changer, et personne ne saurait lequel des deux a gagné.*
  */
-function Activite({
+function ActionsLigne({
+  peutEcrire,
+  hrefModifier,
   action,
   actif,
 }: {
+  readonly peutEcrire: boolean;
+  readonly hrefModifier: string;
   readonly action: string;
   readonly actif: boolean;
 }) {
+  if (!peutEcrire) {
+    return <span>{actif ? t("materiel.active") : t("materiel.inactive")}</span>;
+  }
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span>{actif ? t("materiel.active") : t("materiel.inactive")}</span>
+      <Button variant="outline" size="sm" asChild>
+        <Link href={hrefModifier}>{t("materiel.modifier")}</Link>
+      </Button>
       <form action={action} method="post">
         <input type="hidden" name="actif" value={actif ? INACTIF : ACTIF} />
         <Button type="submit" variant="outline" size="sm">
@@ -593,13 +851,18 @@ function Activite({
   );
 }
 
+const ACTIF = "oui";
+const INACTIF = "non";
+
 /** La carte d'une famille, sous 900 px — même contenu que sa ligne de tableau. */
 function CarteFamille({
   famille,
   peutEcrire,
+  hrefModifier,
 }: {
   readonly famille: LigneFamille;
   readonly peutEcrire: boolean;
+  readonly hrefModifier: string;
 }) {
   return (
     <li>
@@ -611,22 +874,15 @@ function CarteFamille({
           </span>
         </div>
         <RegimeVgp famille={famille} />
-        <a
-          href={`/parametres/materiel?famille=${famille.id}#modeles`}
-          className={CLASSES_LIEN}
-        >
+        <a href={hrefVoirModeles(famille.id)} className={CLASSES_LIEN}>
           {decompteModeles(famille._count.modeles)}
         </a>
-        {peutEcrire ? (
-          <Activite
-            action={`/api/parametres/materiel/familles/${famille.id}/activite`}
-            actif={famille.actif}
-          />
-        ) : (
-          <span className="text-12 font-bold">
-            {famille.actif ? t("materiel.active") : t("materiel.inactive")}
-          </span>
-        )}
+        <ActionsLigne
+          peutEcrire={peutEcrire}
+          hrefModifier={hrefModifier}
+          action={`/api/parametres/materiel/familles/${famille.id}/activite`}
+          actif={famille.actif}
+        />
       </Carte>
     </li>
   );
@@ -637,10 +893,12 @@ function CarteModele({
   modele,
   nomFamille,
   peutEcrire,
+  hrefModifier,
 }: {
   readonly modele: LigneModele;
   readonly nomFamille: string;
   readonly peutEcrire: boolean;
+  readonly hrefModifier: string;
 }) {
   return (
     <li>
@@ -656,44 +914,134 @@ function CarteModele({
           {t("ponctuation.deux_points")}
           {entretienAffiche(modele)}
         </div>
-        {peutEcrire ? (
-          <Activite
-            action={`/api/parametres/materiel/modeles/${modele.id}/activite`}
-            actif={modele.actif}
-          />
-        ) : (
-          <span className="text-12 font-bold">
-            {modele.actif ? t("materiel.active") : t("materiel.inactive")}
-          </span>
-        )}
+        <ActionsLigne
+          peutEcrire={peutEcrire}
+          hrefModifier={hrefModifier}
+          action={`/api/parametres/materiel/modeles/${modele.id}/activite`}
+          actif={modele.actif}
+        />
       </Carte>
     </li>
   );
 }
 
 /**
- * LES FORMULAIRES, ÉCRITS UNE FOIS ET RENDUS DEUX — création et modification.
- *
- * *Deux formulaires auraient porté les mêmes champs deux fois, et la divergence
- * se serait vue au pire moment : un champ accepté ici et refusé là, sans que
- * rien ne le dise* (§9, 01/09).
+ * LE VOLET — « Ajouter » et « Modifier » ouvrent le MÊME formulaire
+ * (`FormulaireFamille`/`FormulaireModele`), champs pré-remplis en
+ * modification par `valeurs` : jamais un second formulaire qui pourrait
+ * diverger (§9, 01/09).
  */
+function VoletMateriel({
+  type,
+  famille,
+  modele,
+  familles,
+  ongletActif,
+  filtres,
+  familleFiltre,
+}: {
+  readonly type: TypeVolet;
+  readonly famille: LigneFamille | undefined;
+  readonly modele: LigneModele | undefined;
+  readonly familles: readonly LigneFamille[];
+  readonly ongletActif: OngletMateriel;
+  readonly filtres: Filtres;
+  readonly familleFiltre: string | undefined;
+}) {
+  const hrefFermer = hrefFermerVolet(ongletActif, filtres, familleFiltre);
+  const titreVolet =
+    type === "famille"
+      ? famille === undefined
+        ? t("materiel.creer_famille")
+        : titreDe(t("materiel.modifier_famille"), famille.code)
+      : modele === undefined
+        ? t("materiel.creer_modele")
+        : titreDe(t("materiel.modifier_modele"), designation(modele));
+  return (
+    <Volet
+      surtitre={t("materiel.titre")}
+      titre={titreVolet}
+      hrefFermer={hrefFermer}
+    >
+      {type === "famille" ? (
+        <FormulaireFamille
+          action={
+            famille === undefined
+              ? "/api/parametres/materiel/familles/creer"
+              : `/api/parametres/materiel/familles/${famille.id}/modifier`
+          }
+          soumettre={
+            famille === undefined
+              ? t("materiel.creer_action")
+              : t("materiel.enregistrer")
+          }
+          valeurs={famille}
+          hrefAnnuler={hrefFermer}
+        />
+      ) : (
+        <FormulaireModele
+          action={
+            modele === undefined
+              ? "/api/parametres/materiel/modeles/creer"
+              : `/api/parametres/materiel/modeles/${modele.id}/modifier`
+          }
+          familles={familles}
+          soumettre={
+            modele === undefined
+              ? t("materiel.creer_action")
+              : t("materiel.enregistrer")
+          }
+          valeurs={modele}
+          hrefAnnuler={hrefFermer}
+        />
+      )}
+      {type === "famille" ? (
+        <p className="text-app-encre-faible text-12 font-bold">
+          {t("materiel.vgp_ailleurs")}
+        </p>
+      ) : (
+        <p className="text-app-encre-faible text-12 font-bold">
+          {t("materiel.pas_la_vgp")}
+        </p>
+      )}
+    </Volet>
+  );
+}
+
+function PiedDuVolet({
+  hrefAnnuler,
+  soumettre,
+}: {
+  readonly hrefAnnuler: string;
+  readonly soumettre: string;
+}) {
+  return (
+    <div className="flex justify-end gap-2">
+      <Link
+        href={hrefAnnuler}
+        className="border-app-bord rounded-md border px-3 py-1.5 text-13 font-bold"
+      >
+        {t("materiel.annuler")}
+      </Link>
+      <ActionPrimaire>{soumettre}</ActionPrimaire>
+    </div>
+  );
+}
+
 function FormulaireFamille({
   action,
   soumettre,
   valeurs,
+  hrefAnnuler,
 }: {
   readonly action: string;
   readonly soumettre: string;
   readonly valeurs?: LigneFamille;
+  readonly hrefAnnuler: string;
 }) {
   const prefixe = valeurs?.id ?? NOUVEAU;
   return (
-    <form
-      action={action}
-      method="post"
-      className="flex flex-wrap items-end gap-2"
-    >
+    <form action={action} method="post" className="flex flex-col gap-3">
       <Champ
         id={`${prefixe}-code`}
         nom="code"
@@ -708,9 +1056,7 @@ function FormulaireFamille({
         large
       />
       <CaseActive defaut={valeurs?.actif ?? true} />
-      <Button type="submit" variant="outline" size="sm">
-        {soumettre}
-      </Button>
+      <PiedDuVolet hrefAnnuler={hrefAnnuler} soumettre={soumettre} />
     </form>
   );
 }
@@ -720,19 +1066,17 @@ function FormulaireModele({
   familles,
   soumettre,
   valeurs,
+  hrefAnnuler,
 }: {
   readonly action: string;
   readonly familles: readonly LigneFamille[];
   readonly soumettre: string;
   readonly valeurs?: LigneModele;
+  readonly hrefAnnuler: string;
 }) {
   const prefixe = valeurs?.id ?? NOUVEAU;
   return (
-    <form
-      action={action}
-      method="post"
-      className="flex flex-wrap items-end gap-2"
-    >
+    <form action={action} method="post" className="flex flex-col gap-3">
       <div className="flex flex-col gap-1">
         <label
           htmlFor={`${prefixe}-famille`}
@@ -785,9 +1129,7 @@ function FormulaireModele({
         nombre
       />
       <CaseActive defaut={valeurs?.actif ?? true} />
-      <Button type="submit" variant="outline" size="sm">
-        {soumettre}
-      </Button>
+      <PiedDuVolet hrefAnnuler={hrefAnnuler} soumettre={soumettre} />
     </form>
   );
 }
