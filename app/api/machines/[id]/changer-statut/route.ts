@@ -66,8 +66,20 @@ async function traiter(
   if (!estStatutChoisissable(statut)) {
     return versLeRetour(retour, id, "machine.refus.statut_invalide");
   }
+  // LA CONFIRMATION DES SORTIES DU PARC, VÉRIFIÉE CÔTÉ SERVEUR
+  // (9I8F1-REPRISE-9I8F, D227) — le champ caché n'existe dans le formulaire
+  // (`components/machines/changer-statut.tsx`) QUE pour les options que le
+  // serveur posait `confirmation: true` ; sa seule présence ici ne prouve
+  // rien par elle-même, c'est `decisionDepuisLaFiche` (`./garde-statut.ts`,
+  // via `changerStatutMachine`) qui l'exige quand le passage le réclame.
+  const confirmationSortieDuParc = champ(formulaire, "confirmation") !== null;
 
-  const resultat = await changerStatutMachine(contexte, id, statut);
+  const resultat = await changerStatutMachine(
+    contexte,
+    id,
+    statut,
+    confirmationSortieDuParc,
+  );
   if (!resultat.accepte) {
     return versLeRetour(retour, id, `machine.refus.${resultat.motif}`);
   }

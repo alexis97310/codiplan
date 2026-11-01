@@ -102,6 +102,18 @@ export type StatutMachineFormulaire =
   (typeof STATUTS_MACHINE_FORMULAIRE)[number];
 
 /**
+ * LE CHAMP « ÉTAT DE LA MACHINE » SE PROPOSE-T-IL ? (9I8F1-REPRISE-9I8F) —
+ * UN SEUL calcul, partagé par le volet « Nouvelle demande », la création
+ * d'une intervention et la tuile Machine d'une fiche intervention : une
+ * machine sortie du parc (`remplacee`, `ferraillee`) ou fusionnée n'affiche
+ * plus le champ, seulement son état en lecture — jamais de réactivation
+ * silencieuse en retombant sur la première option.
+ */
+export function etatMachineEstProposable(statut: string): boolean {
+  return (STATUTS_MACHINE_FORMULAIRE as readonly string[]).includes(statut);
+}
+
+/**
  * LES ÉTATS QU'UN HUMAIN PEUT CHOISIR, PARTOUT (9I8F) — `STATUTS_MACHINE`
  * moins `fusionnee`, que seule la fusion de doublons écrit (D28, L3-10). La
  * fiche machine propose les cinq ; les formulaires de demande et

@@ -2162,6 +2162,10 @@ export const fr = {
   // message serait technique.
   "intervention.refus.machine_deja_presente":
     "Cette intervention porte déjà une machine. Une intervention ne peut pas en porter deux.",
+  // 9I8F1-REPRISE-9I8F, D227 — même refus que `demande.refus.
+  // etat_machine_hors_perimetre`, pour la création d'une intervention.
+  "intervention.refus.etat_machine_hors_perimetre":
+    "Vous ne pouvez pas changer l'état de cette machine.",
 
   "intervention.cloture.temps_mesure": "Temps mesuré par le compteur",
   "intervention.cloture.temps_valide": "Temps validé",
@@ -4093,6 +4097,11 @@ export const fr = {
   "machine.changer_etat.confirmation_apres": ".",
   "machine.statut_modifie": "L'état de la machine est enregistré.",
   "machine.refus.statut_invalide": "Cet état n'est pas valide ici.",
+  // ── 9I8F1-REPRISE-9I8F, D227 — la garde du statut (`./garde-statut.ts`).
+  "machine.refus.fusionnee": "Une machine fusionnée ne change plus d'état.",
+  "machine.refus.sortie_sans_confirmation":
+    "Cette sortie du parc (ou ce retour) doit être confirmée.",
+  "machine.voir_la_fiche": "Voir la fiche machine",
   // L0-11 (même discipline que `equipe.e2e.*`) : le numéro de série que
   // `tests/e2e/9i8f-statut-machine-modifiable.spec.ts` interroge à l'écran
   // (filtre du parc) passe par ici plutôt que par une chaîne en dur.
@@ -6669,6 +6678,10 @@ export const fr = {
   "demandes.volet.annuler": "Annuler",
   "demande.refus.machine_hors_lieu":
     "Cette machine n'appartient pas au lieu choisi.",
+  // 9I8F1-REPRISE-9I8F, D227 — capacité ou périmètre refusés sur l'état
+  // de machine posté AVEC le dépôt (`resoudreEtatMachineDuFormulaire`).
+  "demande.refus.etat_machine_hors_perimetre":
+    "Vous ne pouvez pas changer l'état de cette machine.",
   "demande.refus.saisie_invalide":
     "Vérifiez les champs : la demande n'a pas été enregistrée.",
   "demandes.creee": "Demande créée.",

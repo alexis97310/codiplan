@@ -38,11 +38,18 @@ import { POST } from "@/app/api/machines/[id]/changer-statut/route";
 
 const MACHINE_ID = "66666666-6666-6666-6666-666666666666";
 
-function requete(statut: string, retour?: string): Request {
+function requete(
+  statut: string,
+  retour?: string,
+  confirmation?: string,
+): Request {
   const corps = new FormData();
   corps.set("statut", statut);
   if (retour !== undefined) {
     corps.set("retour", retour);
+  }
+  if (confirmation !== undefined) {
+    corps.set("confirmation", confirmation);
   }
   return new Request(
     `http://localhost/api/machines/${MACHINE_ID}/changer-statut`,
@@ -90,11 +97,14 @@ describe("POST /api/machines/[id]/changer-statut — « fusionnee » n'atteint j
 describe("POST /api/machines/[id]/changer-statut — les cinq valeurs choisissables", () => {
   for (const statut of STATUTS_ACCEPTES) {
     it(`« ${statut} » atteint changerStatutMachine, et redirige avec « machine.statut_modifie »`, async () => {
-      const reponse = await POST(requete(statut), { params: params() });
+      const reponse = await POST(requete(statut, undefined, "oui"), {
+        params: params(),
+      });
       expect(changerStatutMachine).toHaveBeenCalledWith(
         expect.anything(),
         MACHINE_ID,
         statut,
+        true,
       );
       const url = new URL(
         reponse.headers.get("Location") as string,
@@ -103,6 +113,18 @@ describe("POST /api/machines/[id]/changer-statut — les cinq valeurs choisissab
       expect(url.searchParams.get("motif")).toBe("machine.statut_modifie");
     });
   }
+});
+
+describe("POST /api/machines/[id]/changer-statut — la confirmation, en chaîne vide, vaut absente", () => {
+  it("un champ « confirmation » vide atteint changerStatutMachine avec `false` (9I8F1-REPRISE-9I8F, D227)", async () => {
+    await POST(requete("en_panne"), { params: params() });
+    expect(changerStatutMachine).toHaveBeenCalledWith(
+      expect.anything(),
+      MACHINE_ID,
+      "en_panne",
+      false,
+    );
+  });
 });
 
 describe("POST /api/machines/[id]/changer-statut — le retour est fermé à deux fiches", () => {

@@ -15,6 +15,10 @@ import {
 } from "@/lib/interventions/perimetre-technicien";
 import { comparerAlphanumerique } from "@/lib/tri/collation";
 
+import {
+  decisionDepuisLaFiche,
+  type MotifRefusEtatMachine,
+} from "./garde-statut";
 import { engendrerJetonQr } from "./qr";
 import {
   LIMITE_RECHERCHE_MAXIMALE,
@@ -1433,7 +1437,9 @@ export type MotifRefusMachine =
   | "reference_interne_prise"
   | "reference_invalide"
   /** `modifierMachineDans` a touché zéro ligne : la politique a refusé. */
-  | "introuvable";
+  | "introuvable"
+  /** Les deux refus nommés de la garde du statut (`./garde-statut.ts`). */
+  | MotifRefusEtatMachine;
 
 export type ResultatMachine =
   | { readonly accepte: true; readonly id: string }
@@ -1595,38 +1601,60 @@ export async function changerStatutMachineDans(
 }
 
 /**
- * CHANGE L'ÉTAT D'UNE FICHE EXISTANTE — l'écran autonome (fiche machine,
- * tuile Machine d'une intervention) : le jumeau de `modifierMachine`, même
- * garde de périmètre par personne (QT-2, D152), même journal (I8, déclencheur
- * déjà posé sur `machine` depuis L2-01).
+ * CHANGE L'ÉTAT D'UNE FICHE EXISTANTE — l'écran autonome (fiche machine) : le
+ * jumeau de `modifierMachine`, même garde de périmètre par personne (QT-2,
+ * D152), même journal (I8, déclencheur déjà posé sur `machine` depuis
+ * L2-01).
+ *
+ * **La garde du statut** (9I8F1-REPRISE-9I8F, D227, `./garde-statut.ts`) se
+ * rejuge ICI, après la lecture sous périmètre et AVANT l'écriture, dans la
+ * MÊME transaction : une machine `fusionnee` ne change jamais de statut, et
+ * une sortie du parc (ou un retour) sans `confirmationSortieDuParc` est un
+ * refus nommé, jamais une réactivation silencieuse.
  */
 export async function changerStatutMachine(
   contexte: ContexteSession,
   id: string,
   statut: StatutMachineChoisissable,
+  confirmationSortieDuParc: boolean,
   client?: PrismaClient,
 ): Promise<ResultatMachine> {
-  const touchees = await avecContexteApplicatif(
+  const resultat = await avecContexteApplicatif(
     contexte,
-    async (tx) => {
+    async (
+      tx,
+    ): Promise<
+      { readonly touchees: number } | { readonly refuse: MotifRefusEtatMachine }
+    > => {
       const restriction = await perimetreParcDuTechnicien(
         tx,
         exigerContexteActif(contexte),
       );
-      if (restriction !== undefined) {
-        const dansLePerimetre = await tx.machine.findFirst({
-          where: { id, ...restriction },
-          select: { id: true },
-        });
-        if (dansLePerimetre === null) {
-          return 0;
-        }
+      const machine = await tx.machine.findFirst({
+        where: restriction === undefined ? { id } : { id, ...restriction },
+        select: { statut: true },
+      });
+      if (machine === null) {
+        return { touchees: 0 };
       }
-      return changerStatutMachineDans(tx, id, statut);
+      const decision = decisionDepuisLaFiche(
+        machine.statut,
+        statut,
+        confirmationSortieDuParc,
+      );
+      if (decision.action === "refuser") {
+        return { refuse: decision.motif };
+      }
+      return {
+        touchees: await changerStatutMachineDans(tx, id, decision.statut),
+      };
     },
     client,
   );
-  return touchees === 0
+  if ("refuse" in resultat) {
+    return { accepte: false, motif: resultat.refuse };
+  }
+  return resultat.touchees === 0
     ? { accepte: false, motif: "introuvable" }
     : { accepte: true, id };
 }

@@ -337,13 +337,14 @@ export default async function PageMachine({
             </Link>
           </Button>
           {/* CHANGER L'ÉTAT (9I8F-STATUT-MACHINE-MODIFIABLE) — les cinq
-              valeurs, confirmation sur les deux sorties du parc. `retour`
-              ramène sur CETTE fiche. */}
+              valeurs, confirmation sur les deux sorties du parc ET, depuis
+              9I8F1-REPRISE-9I8F (D227), sur le retour vers un état actif.
+              `retour` ramène sur CETTE fiche. */}
           <FormulaireChangerStatutMachine
             machineId={machine.id}
             retour={`/parc/${machine.id}`}
             statutActuel={machine.statut}
-            options={optionsChangerStatutMachine()}
+            options={optionsChangerStatutMachine(machine.statut)}
             libelleChamp={t("machine.changer_etat.champ")}
             libelleBouton={t("machine.changer_etat.bouton")}
             texteConfirmationAvant={t(

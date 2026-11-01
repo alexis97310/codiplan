@@ -53,6 +53,20 @@ export function FormulaireChangerStatutMachine({
       className="flex flex-wrap items-end gap-2"
     >
       <input type="hidden" name="retour" value={retour} />
+      {/* LA CONFIRMATION, VÉRIFIÉE CÔTÉ SERVEUR (9I8F1-REPRISE-9I8F, D227) —
+          posée ici, jamais ailleurs : `champ()` rend `null` pour une chaîne
+          vide (`app/api/interventions/actions.ts`), donc ce champ ne prouve
+          rien quand `optionChoisie` ne demande pas confirmation, et porte
+          une valeur dès que l'option choisie en demande une — qu'elle soit
+          réellement passée par le dialogue ou non n'est, pour ce formulaire,
+          jamais différent : la seule voie pour soumettre quand une
+          confirmation est requise EST ce dialogue (`dialogueActif`,
+          `BoutonAvecConfirmation`). */}
+      <input
+        type="hidden"
+        name="confirmation"
+        value={optionChoisie?.confirmation === true ? "oui" : ""}
+      />
       <label className="flex flex-col gap-1 text-13 font-bold">
         {libelleChamp}
         <select

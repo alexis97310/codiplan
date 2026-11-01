@@ -67,6 +67,7 @@ describe("changerStatutMachine — cloisonnement (I1)", () => {
       SESSION_INTERNE_B,
       MACHINE_A1,
       "en_panne",
+      false,
       clientApp(),
     );
     expect(resultat).toEqual({ accepte: false, motif: "introuvable" });
@@ -82,6 +83,7 @@ describe("changerStatutMachine — le périmètre par personne (QT-2, D152)", ()
       SESSION_TECH_A,
       MACHINE_A2,
       "en_panne",
+      false,
       clientApp(),
     );
     expect(resultat).toEqual({ accepte: false, motif: "introuvable" });
@@ -97,6 +99,7 @@ describe("changerStatutMachine — le chemin accepté", () => {
       SESSION_INTERNE_B,
       MACHINE_B1,
       "arretee",
+      false,
       clientApp(),
     );
     expect(resultat).toEqual({ accepte: true, id: MACHINE_B1 });
@@ -110,6 +113,7 @@ describe("changerStatutMachine — le chemin accepté", () => {
       SESSION_INTERNE_B,
       MACHINE_B1,
       "en_service",
+      false,
       clientApp(),
     );
     expect(remise).toEqual({ accepte: true, id: MACHINE_B1 });
