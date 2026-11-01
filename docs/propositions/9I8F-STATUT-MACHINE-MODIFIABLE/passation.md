@@ -100,3 +100,11 @@ ne change jamais? ». Décide D227 (`docs/arbitrages.md`).*
   ou si la fiche machine n'est pas le bon endroit pour les sorties du parc).
 - Point ouvert nommé ci-dessus : l'application technicien, si un jour un besoin de terrain
   l'exige.
+- **`CI=1 pnpm verify:full` N'A PAS PU FINIR dans le budget de cette session** — voir
+  `verify-final.txt`. `pnpm verify` (format:check, typecheck, lint, test, test:isolation, build)
+  est passé EN ENTIER, vert. `pnpm test:e2e` seul porte 1823 tests du dépôt entier ; une tentative
+  complète a dépassé une heure sans finir ni montrer le moindre échec dans ce qu'elle a eu le temps
+  de jouer, et a été coupée par le budget de la session, pas par un rouge. `pnpm feries:horizon` et
+  `pnpm audit:partitions` n'ont pas non plus été rejoués dans cette tentative tronquée (ils suivent
+  `pnpm verify` dans `verify:full`, avant `test:e2e`). **Reste dû à la session suivante** : rejouer
+  `CI=1 pnpm verify:full` en entier, au premier plan, jusqu'à son terme.

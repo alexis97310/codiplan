@@ -1,0 +1,303 @@
+=== CI=1 pnpm verify (format:check, typecheck, lint, test, test:isolation, build) — EXÉCUTÉ EN ENTIER, VERT ===
+
+> codiplan@0.1.0 verify /home/aplou/codiplan-voie1
+> pnpm format:check && pnpm typecheck && pnpm lint && pnpm test && pnpm test:isolation && pnpm build
+
+
+> codiplan@0.1.0 format:check /home/aplou/codiplan-voie1
+> prettier --check .
+
+Checking formatting...
+All matched files use Prettier code style!
+
+> codiplan@0.1.0 typecheck /home/aplou/codiplan-voie1
+> NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=6144" tsc --noEmit
+
+
+> codiplan@0.1.0 lint /home/aplou/codiplan-voie1
+> eslint --max-warnings 0
+
+
+> codiplan@0.1.0 test /home/aplou/codiplan-voie1
+> vitest run --project unit
+
+
+ RUN  v4.1.11 /home/aplou/codiplan-voie1
+
+Not implemented: HTMLFormElement's requestSubmit() method
+Not implemented: navigation to another Document
+
+ Test Files  491 passed (491)
+      Tests  5389 passed (5389)
+   Start at  13:44:14
+   Duration  55.98s (transform 44.18s, setup 136.80s, import 168.85s, tests 71.02s, environment 660.79s)
+
+
+> codiplan@0.1.0 test:isolation /home/aplou/codiplan-voie1
+> vitest run --project isolation
+
+
+ RUN  v4.1.11 /home/aplou/codiplan-voie1
+
+Harnais d'isolation — « client » existe au schéma : la fixture s'efface devant la table réelle (L1-01).
+  Ce qui reste dû, et qu'aucune suppression de fixture ne dispense :
+  — la migration pose sur « client » la politique de FORME « parc » (société ET app.client_id ET app.perimetre_sites, D10/D22),
+    et non la « forme imposée » de L0-04, qui est la clause société seule ;
+  — les scénarios de L0-05 restent au moins aussi nombreux qu'avant (voir
+    EXIGENCES_L0_05 dans contrat.ts, et le gardien tests/unit/db/contrat-isolation.test.ts) ;
+  — l'amorçage ci-dessous doit être adapté aux colonnes réelles.
+Harnais d'isolation — « site » existe au schéma : la fixture s'efface devant la table réelle (L1-02).
+  Ce qui reste dû, et qu'aucune suppression de fixture ne dispense :
+  — la migration pose sur « site » la politique de FORME « parc » (société ET app.client_id ET app.perimetre_sites, D10/D22),
+    et non la « forme imposée » de L0-04, qui est la clause société seule ;
+  — les scénarios de L0-05 restent au moins aussi nombreux qu'avant (voir
+    EXIGENCES_L0_05 dans contrat.ts, et le gardien tests/unit/db/contrat-isolation.test.ts) ;
+  — l'amorçage ci-dessous doit être adapté aux colonnes réelles.
+Harnais d'isolation — « machine » existe au schéma : la fixture s'efface devant la table réelle (L2-01).
+  Ce qui reste dû, et qu'aucune suppression de fixture ne dispense :
+  — la migration pose sur « machine » la politique de FORME « parc » (société ET app.client_id ET app.perimetre_sites, D10/D22),
+    et non la « forme imposée » de L0-04, qui est la clause société seule ;
+  — les scénarios de L0-05 restent au moins aussi nombreux qu'avant (voir
+    EXIGENCES_L0_05 dans contrat.ts, et le gardien tests/unit/db/contrat-isolation.test.ts) ;
+  — l'amorçage ci-dessous doit être adapté aux colonnes réelles.
+Harnais d'isolation — « contact » existe au schéma : la fixture s'efface devant la table réelle (L1-03).
+  Ce qui reste dû, et qu'aucune suppression de fixture ne dispense :
+  — la migration pose sur « contact » la politique de FORME « parc » (société ET app.client_id ET app.perimetre_sites, D10/D22),
+    et non la « forme imposée » de L0-04, qui est la clause société seule ;
+  — les scénarios de L0-05 restent au moins aussi nombreux qu'avant (voir
+    EXIGENCES_L0_05 dans contrat.ts, et le gardien tests/unit/db/contrat-isolation.test.ts) ;
+  — l'amorçage ci-dessous doit être adapté aux colonnes réelles.
+Harnais d'isolation — « intervention » existe au schéma : la fixture s'efface devant la table réelle (L2-D84).
+  Ce qui reste dû, et qu'aucune suppression de fixture ne dispense :
+  — la migration pose sur « intervention » la politique de FORME « parc » (société ET app.client_id ET app.perimetre_sites, D10/D22),
+    et non la « forme imposée » de L0-04, qui est la clause société seule ;
+  — les scénarios de L0-05 restent au moins aussi nombreux qu'avant (voir
+    EXIGENCES_L0_05 dans contrat.ts, et le gardien tests/unit/db/contrat-isolation.test.ts) ;
+  — l'amorçage ci-dessous doit être adapté aux colonnes réelles.
+Harnais d'isolation — « demande » existe au schéma : la fixture s'efface devant la table réelle (L2-06).
+  Ce qui reste dû, et qu'aucune suppression de fixture ne dispense :
+  — la migration pose sur « demande » la politique de FORME « parc » (société ET app.client_id ET app.perimetre_sites, D10/D22),
+    et non la « forme imposée » de L0-04, qui est la clause société seule ;
+  — les scénarios de L0-05 restent au moins aussi nombreux qu'avant (voir
+    EXIGENCES_L0_05 dans contrat.ts, et le gardien tests/unit/db/contrat-isolation.test.ts) ;
+  — l'amorçage ci-dessous doit être adapté aux colonnes réelles.
+
+ Test Files  199 passed (199)
+      Tests  1754 passed (1754)
+   Start at  13:45:11
+   Duration  164.21s (transform 3.06s, setup 661ms, import 32.35s, tests 112.29s, environment 13ms)
+
+
+> codiplan@0.1.0 build /home/aplou/codiplan-voie1
+> NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=6144" next build
+
+   ▲ Next.js 15.5.23
+   - Environments: .env
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 12.4s
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/95) ...
+   Generating static pages (23/95) 
+   Generating static pages (47/95) 
+   Generating static pages (71/95) 
+ ✓ Generating static pages (95/95)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                             Size  First Load JS
+┌ ƒ /                                                  407 B         103 kB
+├ ƒ /_not-found                                        407 B         103 kB
+├ ƒ /absences                                          831 B         121 kB
+├ ƒ /api/absences/declarer                             407 B         103 kB
+├ ƒ /api/absences/ecourter                             407 B         103 kB
+├ ƒ /api/absences/lever                                407 B         103 kB
+├ ƒ /api/auth/[...all]                                 407 B         103 kB
+├ ƒ /api/clients/[id]/modifier                         407 B         103 kB
+├ ƒ /api/clients/creer                                 407 B         103 kB
+├ ƒ /api/clients/homonymes                             407 B         103 kB
+├ ƒ /api/contacts/[id]/activite                        407 B         103 kB
+├ ƒ /api/contacts/[id]/modifier                        407 B         103 kB
+├ ƒ /api/contacts/creer                                407 B         103 kB
+├ ƒ /api/demandes/[id]/accuser                         407 B         103 kB
+├ ƒ /api/demandes/[id]/clore                           407 B         103 kB
+├ ƒ /api/demandes/[id]/qualifier                       407 B         103 kB
+├ ƒ /api/demandes/[id]/transformer                     407 B         103 kB
+├ ƒ /api/demandes/creer                                407 B         103 kB
+├ ƒ /api/documents/[id]/octets                         407 B         103 kB
+├ ƒ /api/equipe/[id]/copier-lien                       407 B         103 kB
+├ ƒ /api/equipe/[id]/copier-nouveau-lien               407 B         103 kB
+├ ƒ /api/equipe/[id]/envoyer-acces                     407 B         103 kB
+├ ƒ /api/equipe/[id]/nouveau-lien                      407 B         103 kB
+├ ƒ /api/equipe/bureau/[id]/copier-lien                407 B         103 kB
+├ ƒ /api/equipe/bureau/[id]/copier-nouveau-lien        407 B         103 kB
+├ ƒ /api/equipe/bureau/[id]/envoyer-acces              407 B         103 kB
+├ ƒ /api/equipe/bureau/[id]/nouveau-lien               407 B         103 kB
+├ ƒ /api/equipe/bureau/creer                           407 B         103 kB
+├ ƒ /api/equipe/envoyer-acces/tous                     407 B         103 kB
+├ ƒ /api/habilitations/[id]/activite                   407 B         103 kB
+├ ƒ /api/habilitations/[id]/modifier                   407 B         103 kB
+├ ƒ /api/habilitations/attributions/[id]/renouveler    407 B         103 kB
+├ ƒ /api/habilitations/attributions/[id]/retirer       407 B         103 kB
+├ ƒ /api/habilitations/attributions/creer              407 B         103 kB
+├ ƒ /api/habilitations/creer                           407 B         103 kB
+├ ƒ /api/habilitations/exigences/[id]/retirer          407 B         103 kB
+├ ƒ /api/habilitations/exigences/creer                 407 B         103 kB
+├ ƒ /api/imports/[id]/annuler                          407 B         103 kB
+├ ƒ /api/imports/[id]/appliquer                        407 B         103 kB
+├ ƒ /api/imports/[id]/rejets                           407 B         103 kB
+├ ƒ /api/imports/controler                             407 B         103 kB
+├ ƒ /api/interventions/[id]/affecter                   407 B         103 kB
+├ ƒ /api/interventions/[id]/annuler                    407 B         103 kB
+├ ƒ /api/interventions/[id]/cloturer                   407 B         103 kB
+├ ƒ /api/interventions/[id]/deplacer                   407 B         103 kB
+├ ƒ /api/interventions/[id]/machine                    407 B         103 kB
+├ ƒ /api/interventions/[id]/note-interne               407 B         103 kB
+├ ƒ /api/interventions/[id]/reprendre                  407 B         103 kB
+├ ƒ /api/interventions/[id]/resume                     407 B         103 kB
+├ ƒ /api/interventions/[id]/suspendre                  407 B         103 kB
+├ ƒ /api/interventions/[id]/transmettre                407 B         103 kB
+├ ƒ /api/interventions/[id]/valider-rapport            407 B         103 kB
+├ ƒ /api/interventions/[id]/verdict-pose               407 B         103 kB
+├ ƒ /api/interventions/creer                           407 B         103 kB
+├ ƒ /api/interventions/exporter                        407 B         103 kB
+├ ƒ /api/interventions/transmettre                     407 B         103 kB
+├ ƒ /api/machines/[id]/changer-statut                  407 B         103 kB
+├ ƒ /api/machines/[id]/modifier                        407 B         103 kB
+├ ƒ /api/machines/creer                                407 B         103 kB
+├ ƒ /api/machines/qr/[jeton]                           407 B         103 kB
+├ ƒ /api/parametres/agences/[id]/modifier              407 B         103 kB
+├ ƒ /api/parametres/agences/creer                      407 B         103 kB
+├ ƒ /api/parametres/forfaits/[id]/activite             407 B         103 kB
+├ ƒ /api/parametres/forfaits/[id]/modifier             407 B         103 kB
+├ ƒ /api/parametres/forfaits/creer                     407 B         103 kB
+├ ƒ /api/parametres/materiel/familles/[id]/activite    407 B         103 kB
+├ ƒ /api/parametres/materiel/familles/[id]/modifier    407 B         103 kB
+├ ƒ /api/parametres/materiel/familles/creer            407 B         103 kB
+├ ƒ /api/parametres/materiel/modeles/[id]/activite     407 B         103 kB
+├ ƒ /api/parametres/materiel/modeles/[id]/modifier     407 B         103 kB
+├ ƒ /api/parametres/materiel/modeles/creer             407 B         103 kB
+├ ƒ /api/parametres/pas-creneau                        407 B         103 kB
+├ ƒ /api/parametres/plages/[id]/modifier               407 B         103 kB
+├ ƒ /api/parametres/plages/[id]/supprimer              407 B         103 kB
+├ ƒ /api/parametres/plages/ajouter                     407 B         103 kB
+├ ƒ /api/parametres/prestations/[id]/activite          407 B         103 kB
+├ ƒ /api/parametres/prestations/[id]/modifier          407 B         103 kB
+├ ƒ /api/parametres/prestations/creer                  407 B         103 kB
+├ ƒ /api/parametres/societe/afficher-montants          407 B         103 kB
+├ ƒ /api/parametres/societe/logo                       407 B         103 kB
+├ ƒ /api/parametres/societe/logo/retirer               407 B         103 kB
+├ ƒ /api/parametres/societe/mentions-legales           407 B         103 kB
+├ ƒ /api/parametres/tarifs/regle-facturation           407 B         103 kB
+├ ƒ /api/parametres/taux-horaire/creer                 407 B         103 kB
+├ ƒ /api/parametres/trajet-zone                        407 B         103 kB
+├ ƒ /api/parc/exporter                                 407 B         103 kB
+├ ƒ /api/recherche                                     407 B         103 kB
+├ ƒ /api/recherche/clients                             407 B         103 kB
+├ ƒ /api/recherche/modeles                             407 B         103 kB
+├ ƒ /api/recherche/site/[id]                           407 B         103 kB
+├ ƒ /api/recherche/sites                               407 B         103 kB
+├ ƒ /api/sante                                         407 B         103 kB
+├ ƒ /api/session/code                                  407 B         103 kB
+├ ƒ /api/session/code-secours                          407 B         103 kB
+├ ƒ /api/session/connexion                             407 B         103 kB
+├ ƒ /api/session/deconnexion                           407 B         103 kB
+├ ƒ /api/session/enrolement                            407 B         103 kB
+├ ƒ /api/session/premier-acces                         407 B         103 kB
+├ ƒ /api/session/societe                               407 B         103 kB
+├ ƒ /api/sites/[id]/modifier                           407 B         103 kB
+├ ƒ /api/sites/creer                                   407 B         103 kB
+├ ƒ /api/societe/logo                                  407 B         103 kB
+├ ƒ /api/techniciens/[id]/modifier                     407 B         103 kB
+├ ƒ /api/techniciens/creer                             407 B         103 kB
+├ ƒ /api/terrain/[id]/compteur                         407 B         103 kB
+├ ƒ /api/terrain/[id]/photos                           407 B         103 kB
+├ ƒ /api/terrain/[id]/prestations                      407 B         103 kB
+├ ƒ /api/terrain/[id]/rapport                          407 B         103 kB
+├ ƒ /api/terrain/[id]/signature                        407 B         103 kB
+├ ƒ /api/terrain/[id]/terminer                         407 B         103 kB
+├ ƒ /api/terrain/instantane                            407 B         103 kB
+├ ƒ /api/vgp/enregistrer/[id]                          407 B         103 kB
+├ ƒ /api/vgp/exporter                                  407 B         103 kB
+├ ○ /apple-icon.png                                      0 B            0 B
+├ ƒ /arrivee                                           206 B         106 kB
+├ ƒ /clients                                           206 B         106 kB
+├ ƒ /clients/[id]                                      847 B         118 kB
+├ ƒ /clients/nouveau                                 4.79 kB         191 kB
+├ ƒ /connexion                                         643 B         172 kB
+├ ƒ /connexion/code                                    642 B         106 kB
+├ ƒ /demandes                                        3.86 kB         171 kB
+├ ƒ /demandes/[id]                                   1.12 kB         169 kB
+├ ƒ /enrolement                                        171 B         106 kB
+├ ○ /icon.png                                            0 B            0 B
+├ ƒ /imports                                          1.2 kB         169 kB
+├ ƒ /imports/[id]                                      831 B         121 kB
+├ ƒ /indicateurs                                       206 B         106 kB
+├ ƒ /interventions                                   2.35 kB         197 kB
+├ ƒ /interventions/[id]                              5.31 kB         203 kB
+├ ƒ /interventions/[id]/bon                            524 B         157 kB
+├ ƒ /interventions/a-facturer                          206 B         106 kB
+├ ƒ /interventions/nouvelle                          2.48 kB         175 kB
+├ ○ /manifest.webmanifest                              407 B         103 kB
+├ ƒ /mot-de-passe-oublie                               206 B         106 kB
+├ ƒ /parametres                                      3.17 kB         168 kB
+├ ƒ /parametres/agences                                847 B         118 kB
+├ ƒ /parametres/agences/[agenceId]                     206 B         106 kB
+├ ƒ /parametres/agences/calendrier/[id]                206 B         106 kB
+├ ƒ /parametres/agences/nouvelle                       206 B         106 kB
+├ ƒ /parametres/donnees                                206 B         106 kB
+├ ƒ /parametres/equipe                               7.14 kB         194 kB
+├ ƒ /parametres/forfaits/[id]                          206 B         106 kB
+├ ƒ /parametres/habilitations                          847 B         118 kB
+├ ƒ /parametres/materiel                               847 B         118 kB
+├ ƒ /parametres/prestations                            847 B         118 kB
+├ ƒ /parametres/societe                                900 B         169 kB
+├ ƒ /parametres/tarifs                               3.92 kB         190 kB
+├ ƒ /parametres/trajets                                847 B         118 kB
+├ ƒ /parc                                              206 B         106 kB
+├ ƒ /parc/[id]                                        1.6 kB         172 kB
+├ ƒ /parc/[id]/modifier                                195 B         196 kB
+├ ƒ /parc/nouvelle                                     193 B         196 kB
+├ ƒ /parc/scanner                                      190 B         217 kB
+├ ƒ /planning                                        4.61 kB         202 kB
+├ ƒ /portail                                           171 B         106 kB
+├ ƒ /premier-acces                                     731 B         118 kB
+├ ƒ /sante                                             407 B         103 kB
+├ ƒ /scanner                                           189 B         217 kB
+├ ƒ /scanner-hors-reseau                               171 B         106 kB
+├ ƒ /sites                                             206 B         106 kB
+├ ƒ /sites/[id]                                        847 B         118 kB
+├ ƒ /sites/nouveau                                   4.31 kB         169 kB
+├ ƒ /tableau-de-bord                                   480 B         106 kB
+├ ƒ /terrain                                          2.9 kB         196 kB
+├ ƒ /terrain-hors-reseau                             5.23 kB         204 kB
+├ ƒ /terrain/[id]                                      232 B         202 kB
+├ ƒ /terrain/profil                                    407 B         103 kB
+├ ƒ /vgp                                             1.17 kB         169 kB
+├ ƒ /vgp/a-determiner                                  847 B         118 kB
+└ ƒ /vgp/enregistrer/[id]                              206 B         106 kB
++ First Load JS shared by all                         102 kB
+  ├ chunks/0c86f1d0-e396209ab64996d1.js              54.2 kB
+  ├ chunks/8817-050d255d41a76bbe.js                    46 kB
+  └ other shared chunks (total)                      1.94 kB
+
+
+ƒ Middleware                                         33.9 kB
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+EXIT:0
+
+=== CI=1 pnpm verify:full — NE PEUT PAS FINIR DANS LE BUDGET DE CETTE SESSION ===
+pnpm verify:full = pnpm verify && pnpm feries:horizon && pnpm audit:partitions && pnpm test:e2e.
+pnpm verify (ci-dessus) est passé en entier, vert.
+pnpm test:e2e seul porte 1823 tests du dépôt entier ; une première tentative complète a
+dépassé 1h sans finir (coupée par le budget de l'outil), sans AUCUN échec constaté dans ce
+qu'elle a eu le temps de jouer avant la coupure. Cette tentative a aussi régénéré, comme
+effet de bord connu, des centaines de captures étrangères à ce ticket (docs/propositions/**),
+toutes écartées avant tout commit (git checkout -- / git clean -fd, hors ce dossier-ci).
+DIT EXPLICITEMENT, comme demandé par le brief : verify:full n'a PAS pu finir dans le temps de
+cette session (150 min). Son exécution complète (verify:full en entier, feries:horizon et
+audit:partitions compris) reste DUE à la session suivante.
