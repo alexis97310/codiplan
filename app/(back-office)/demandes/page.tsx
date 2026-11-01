@@ -39,6 +39,7 @@ import { LIMITE_RECHERCHE_PAR_DEFAUT } from "@/lib/demandes/saisie";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import { libellesDesMachines } from "@/lib/machines/depot";
+import { STATUTS_MACHINE_FORMULAIRE } from "@/lib/machines/saisie";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { tonDePriorite } from "@/lib/theme/priorites";
 
@@ -585,6 +586,11 @@ export default async function PageDemandes({
               libelleVoirPlus={t("selecteur.voir_plus")}
               libelleChoisirSiteDabord={choisirLeSiteDabord()}
               texteSansMachine={sansMachineSurLeSite()}
+              libelleEtatMachine={t("machine.changer_etat.champ")}
+              optionsEtatMachine={STATUTS_MACHINE_FORMULAIRE.map((valeur) => ({
+                valeur,
+                libelle: t(`statut_machine.${valeur}`),
+              }))}
             />
             <div className="flex justify-end gap-2">
               <Link

@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { STATUTS_MACHINE_FORMULAIRE } from "@/lib/machines/saisie";
+
 /**
  * LA SAISIE D'UN ORDRE D'INTERVENTION (lot 2, D84).
  *
@@ -275,6 +277,13 @@ export const schemaCreation = z
      * faille d'abord la deviner (bug 2 de l'audit).
      */
     duree_min: z.number().int().positive().nullable().default(null),
+    /**
+     * L'ÉTAT DE LA MACHINE, AU MOMENT OÙ ELLE EST DÉSIGNÉE
+     * (9I8F-STATUT-MACHINE-MODIFIABLE, décision d'Alexis du 31/10/2026) —
+     * FACULTATIF, et sans effet si `machine_ids` est vide : même raison que
+     * `lib/demandes/saisie.ts`.
+     */
+    etat_machine: z.enum(STATUTS_MACHINE_FORMULAIRE).nullable().default(null),
   })
   .strict();
 

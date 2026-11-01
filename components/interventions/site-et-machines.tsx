@@ -70,8 +70,11 @@ type OptionSite = OptionRecherche & { readonly clientId: string };
 /** Le donneur d'ordre d'un site, tel que `/api/recherche/site/[id]` le rend — jamais de courriel. */
 type DonneurOrdre = { readonly nom: string };
 
+/** Une machine du site, avec son état (9I8F) — pour préremplir « État de la machine ». */
+type OptionMachine = OptionRecherche & { readonly statut: string };
+
 type OptionAuSite = {
-  readonly machines: readonly OptionRecherche[];
+  readonly machines: readonly OptionMachine[];
   readonly contacts: readonly OptionRecherche[];
   readonly donneurOrdre: DonneurOrdre | null;
 };
@@ -109,6 +112,8 @@ export function ChampSiteEtMachines({
   textePrevenuNommeSuffixe,
   textePrevenuAucun,
   textePrevenuTechnicien,
+  libelleEtatMachine,
+  optionsEtatMachine,
   children,
 }: Readonly<{
   /** Le titre de la section 1 (TP-UX5-1-FORMULAIRES, maquette du 28/09). */
@@ -161,6 +166,16 @@ export function ChampSiteEtMachines({
   textePrevenuNommeSuffixe: string;
   textePrevenuAucun: string;
   textePrevenuTechnicien: string;
+  /** Le libellé du champ « État de la machine » (9I8F). */
+  libelleEtatMachine: string;
+  /**
+   * LES TROIS VALEURS CHOISISSABLES (9I8F) — `en_service`, `en_panne`,
+   * `arretee` ; jamais les deux sorties du parc, propres à la fiche machine.
+   */
+  optionsEtatMachine: readonly {
+    readonly valeur: string;
+    readonly libelle: string;
+  }[];
   /** La section « Ce qui est demandé » et le pied de la carte — des nœuds déjà traduits. */
   children: React.ReactNode;
 }>) {
@@ -171,6 +186,7 @@ export function ChampSiteEtMachines({
   const [auSite, setAuSite] = useState<OptionAuSite>(VIDE);
   const [machineChoisie, setMachineChoisie] = useState<string>("");
   const [contactChoisi, setContactChoisi] = useState<string>("");
+  const [etatMachine, setEtatMachine] = useState<string>("");
 
   useEffect(() => {
     if (siteId === "") {
@@ -216,6 +232,25 @@ export function ChampSiteEtMachines({
       return "";
     });
   }, [auSite, siteId, siteInitial, machineIdInitiale]);
+
+  // L'ÉTAT PRÉREMPLI DE LA MACHINE CHOISIE (9I8F) — son état ACTUEL quand
+  // c'est l'une des trois valeurs que ce formulaire propose, sinon la
+  // première option.
+  useEffect(() => {
+    if (machineChoisie === "") {
+      setEtatMachine("");
+      return;
+    }
+    const machine = auSite.machines.find((m) => m.id === machineChoisie);
+    if (machine === undefined) {
+      return;
+    }
+    setEtatMachine(
+      optionsEtatMachine.some((option) => option.valeur === machine.statut)
+        ? machine.statut
+        : (optionsEtatMachine[0]?.valeur ?? ""),
+    );
+  }, [machineChoisie, auSite, optionsEtatMachine]);
 
   useEffect(() => {
     setContactChoisi((precedent) => {
@@ -341,6 +376,27 @@ export function ChampSiteEtMachines({
             faire dans un lot ultérieur.
           */}
           <div data-alertes-creation />
+
+          {machineChoisie === "" ? null : (
+            // L'ÉTAT DE LA MACHINE (9I8F-STATUT-MACHINE-MODIFIABLE) —
+            // n'apparaît qu'une fois une machine désignée ; écrit dans la
+            // MÊME transaction que la création (`lib/interventions/depot.ts`).
+            <label className="flex flex-col gap-1.5 text-sm font-medium">
+              {libelleEtatMachine}
+              <select
+                name="etat_machine"
+                value={etatMachine}
+                onChange={(evenement) => setEtatMachine(evenement.target.value)}
+                className="border-input bg-background rounded-md border px-3 py-2 font-normal"
+              >
+                {optionsEtatMachine.map((option) => (
+                  <option key={option.valeur} value={option.valeur}>
+                    {option.libelle}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
 
           {libelleContact === undefined ? null : (
             <label className="flex flex-col gap-1.5 text-sm font-medium">

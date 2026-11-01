@@ -212,6 +212,7 @@ function saisieDemande(siteId: string): Depot {
     description: "Demande d'épreuve AA-6",
     urgence: "p3",
     machine_arretee: false,
+    etat_machine: null,
     date_souhaitee: null,
   };
 }

@@ -43,6 +43,9 @@ import {
 
 type OptionSite = OptionRecherche;
 
+/** Une machine du site choisi, telle que `/api/recherche/site/[id]` la rend. */
+type OptionMachine = OptionRecherche & { readonly statut: string };
+
 export function ChampsNouvelleDemande({
   legendeSource,
   optionsSource,
@@ -57,6 +60,8 @@ export function ChampsNouvelleDemande({
   libelleVoirPlus,
   libelleChoisirSiteDabord,
   texteSansMachine,
+  libelleEtatMachine,
+  optionsEtatMachine,
 }: Readonly<{
   legendeSource: string;
   optionsSource: readonly {
@@ -75,11 +80,23 @@ export function ChampsNouvelleDemande({
   libelleVoirPlus: string;
   libelleChoisirSiteDabord: string;
   texteSansMachine: string;
+  /** Le libellé du champ « État de la machine » (9I8F). */
+  libelleEtatMachine: string;
+  /**
+   * LES TROIS VALEURS CHOISISSABLES (9I8F) — `en_service`, `en_panne`,
+   * `arretee` ; jamais les deux sorties du parc, propres à la fiche machine.
+   */
+  optionsEtatMachine: readonly {
+    readonly valeur: string;
+    readonly libelle: string;
+  }[];
 }>) {
   const [clientId, setClientId] = useState("");
   const [siteId, setSiteId] = useState("");
   const [siteUnique, setSiteUnique] = useState<OptionSite | null>(null);
-  const [machines, setMachines] = useState<readonly OptionRecherche[]>([]);
+  const [machines, setMachines] = useState<readonly OptionMachine[]>([]);
+  const [machineId, setMachineId] = useState("");
+  const [etatMachine, setEtatMachine] = useState("");
 
   // LE SITE UNIQUE D'UN CLIENT SE PRÉSÉLECTIONNE (défaut mesuré en ligne par
   // Alexis le 21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES) — s'efface dès
@@ -117,6 +134,10 @@ export function ChampsNouvelleDemande({
   }, [clientId]);
 
   useEffect(() => {
+    // LE CHOIX PRÉCÉDENT NE SURVIT JAMAIS À UN CHANGEMENT DE SITE (9I8F) —
+    // la machine choisie appartenait au site d'avant, et l'état avec elle.
+    setMachineId("");
+    setEtatMachine("");
     if (siteId === "") {
       setMachines([]);
       return;
@@ -126,7 +147,7 @@ export function ChampsNouvelleDemande({
       headers: { accept: "application/json" },
     })
       .then((reponse) => (reponse.ok ? reponse.json() : null))
-      .then((corps: { machines: OptionRecherche[] } | null) => {
+      .then((corps: { machines: OptionMachine[] } | null) => {
         if (!annule && corps !== null) {
           setMachines(corps.machines);
         }
@@ -139,6 +160,22 @@ export function ChampsNouvelleDemande({
       annule = true;
     };
   }, [siteId]);
+
+  /**
+   * L'ÉTAT PRÉREMPLI D'UNE MACHINE DÉSIGNÉE (9I8F) — son état ACTUEL quand
+   * c'est l'une des trois valeurs que ce formulaire propose, sinon la
+   * première option : une machine remplacée ou ferraillée ne doit pas
+   * laisser le champ sur une valeur qu'il ne propose pas.
+   */
+  function etatPrerempli(id: string): string {
+    const machine = machines.find((m) => m.id === id);
+    if (machine === undefined) {
+      return "";
+    }
+    return optionsEtatMachine.some((option) => option.valeur === machine.statut)
+      ? machine.statut
+      : (optionsEtatMachine[0]?.valeur ?? "");
+  }
 
   return (
     <>
@@ -180,7 +217,12 @@ export function ChampsNouvelleDemande({
         <select
           name="machine_id"
           disabled={siteId === ""}
-          defaultValue=""
+          value={machineId}
+          onChange={(evenement) => {
+            const id = evenement.target.value;
+            setMachineId(id);
+            setEtatMachine(id === "" ? "" : etatPrerempli(id));
+          }}
           className="border-app-bord bg-app-surface rounded-md border px-3 py-1.5 text-[13px] font-bold disabled:opacity-50"
         >
           <option value="">
@@ -193,6 +235,26 @@ export function ChampsNouvelleDemande({
           ))}
         </select>
       </label>
+      {machineId === "" ? null : (
+        // L'ÉTAT DE LA MACHINE (9I8F-STATUT-MACHINE-MODIFIABLE) — n'apparaît
+        // qu'une fois une machine désignée ; écrit dans la MÊME transaction
+        // que le dépôt de la demande (`lib/demandes/depot.ts`).
+        <label className="flex flex-col gap-1 text-13 font-bold">
+          {libelleEtatMachine}
+          <select
+            name="etat_machine"
+            value={etatMachine}
+            onChange={(evenement) => setEtatMachine(evenement.target.value)}
+            className="border-app-bord bg-app-surface rounded-md border px-3 py-1.5 text-[13px] font-bold"
+          >
+            {optionsEtatMachine.map((option) => (
+              <option key={option.valeur} value={option.valeur}>
+                {option.libelle}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       <label className="flex flex-col gap-1 text-13 font-bold">
         {libelleDescription}
         <textarea

@@ -6,6 +6,7 @@ import { uuidv7 } from "@/lib/db/uuid";
 import { deposerDemande, lireDemandePourCreation } from "@/lib/demandes/depot";
 import { schemaDepot } from "@/lib/demandes/saisie";
 import { machinesDesSites } from "@/lib/machines/depot";
+import { STATUTS_MACHINE_FORMULAIRE } from "@/lib/machines/saisie";
 
 import { champ } from "../../interventions/actions";
 import { versLaFileDeQualification } from "../actions";
@@ -104,6 +105,17 @@ async function traiter(requete: Request): Promise<Response> {
   }
 
   const siteId = champ(formulaire, "site_id");
+  // L'ÉTAT DE LA MACHINE (9I8F-STATUT-MACHINE-MODIFIABLE) — `machine_arretee`
+  // en est DÉRIVÉ plutôt que saisi séparément : les deux voyageraient sinon
+  // sous deux lectures d'un même fait, qui divergent en silence (§9, 01/09).
+  // Une valeur hors des trois choisissables (forgée) retombe sur `null`,
+  // jamais sur un refus — même discipline que `machine_id` ci-dessous.
+  const etatMachineBrut = champ(formulaire, "etat_machine");
+  const etatMachine = (
+    STATUTS_MACHINE_FORMULAIRE as readonly string[]
+  ).includes(etatMachineBrut ?? "")
+    ? (etatMachineBrut as (typeof STATUTS_MACHINE_FORMULAIRE)[number])
+    : null;
   const saisie = schemaDepot.safeParse({
     id,
     source,
@@ -111,6 +123,8 @@ async function traiter(requete: Request): Promise<Response> {
     site_id: siteId,
     machine_id: champ(formulaire, "machine_id"),
     description,
+    etat_machine: etatMachine,
+    machine_arretee: etatMachine !== null && etatMachine !== "en_service",
   });
   if (!saisie.success) {
     return versVoletResoumis("demande.refus.saisie_invalide", champsResoumis);

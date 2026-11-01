@@ -79,6 +79,10 @@ async function traiter(
     machines: machines.map((machine) => ({
       id: machine.id,
       libelle: machine.libelle,
+      // L'ÉTAT ACTUEL (9I8F-STATUT-MACHINE-MODIFIABLE) — pour préremplir
+      // « État de la machine » dès qu'elle est désignée, sans seconde
+      // lecture.
+      statut: machine.statut,
     })),
     contacts: contacts.map((contact) => ({
       id: contact.id,

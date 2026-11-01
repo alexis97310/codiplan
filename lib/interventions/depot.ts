@@ -625,6 +625,21 @@ export async function creerIntervention(
         });
       }
 
+      // L'ÉTAT DE LA MACHINE, DANS LA MÊME TRANSACTION
+      // (9I8F-STATUT-MACHINE-MODIFIABLE) — même raison que les machines
+      // ci-dessus : un deuxième temps laisserait une fenêtre où la fiche
+      // machine contredit ce que le bureau vient de saisir. Écrit ICI,
+      // directement sur `tx.machine`, plutôt que par
+      // `changerStatutMachineDans` (`lib/machines/depot.ts`) : ce module
+      // importe déjà `STATUTS_INTERVENTION_FERMES` d'ici, et l'importer en
+      // retour fermerait un cycle entre les deux dépôts.
+      if (saisie.machine_ids.length === 1 && saisie.etat_machine !== null) {
+        await tx.machine.updateMany({
+          where: { id: saisie.machine_ids[0] },
+          data: { statut: saisie.etat_machine },
+        });
+      }
+
       return {
         accepte: true,
         fiche: {

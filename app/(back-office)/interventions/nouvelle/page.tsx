@@ -29,6 +29,7 @@ import {
   parametresDeLaCase,
 } from "@/lib/interventions/creer-ici";
 import { machinesDesSites } from "@/lib/machines/depot";
+import { STATUTS_MACHINE_FORMULAIRE } from "@/lib/machines/saisie";
 import { lireSite, rechercherSites } from "@/lib/sites/depot";
 import { schemaRechercheSite } from "@/lib/sites/saisie";
 import { uuidv7 } from "@/lib/db/uuid";
@@ -509,6 +510,11 @@ export default async function PageNouvelleIntervention({
           )}
           textePrevenuAucun={t("intervention.creation.prevenu_aucun")}
           textePrevenuTechnicien={t("intervention.creation.prevenu_technicien")}
+          libelleEtatMachine={t("machine.changer_etat.champ")}
+          optionsEtatMachine={STATUTS_MACHINE_FORMULAIRE.map((valeur) => ({
+            valeur,
+            libelle: t(`statut_machine.${valeur}`),
+          }))}
         >
           <SectionFormulaire
             numero={2}

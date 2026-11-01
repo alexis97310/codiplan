@@ -8,6 +8,7 @@ import {
 import { maintenant, versLocal } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
+import { changerStatutMachineDans } from "@/lib/machines/depot";
 // LE COMPTEUR DE NUMÉROTATION (9H2-NUMEROTATION-INTERVENTIONS) — UNE SEULE
 // mécanique pour les deux natures (D42, forme GÉNÉRALE de
 // `compteur_numerotation`) : la dupliquer ici aurait donné DEUX lectures du
@@ -237,6 +238,22 @@ export async function deposerDemande(
         },
         select: CHAMPS_DEMANDE,
       });
+
+      // L'ÉTAT DE LA MACHINE, DANS LA MÊME TRANSACTION QUE LE DÉPÔT
+      // (9I8F-STATUT-MACHINE-MODIFIABLE) — un deuxième temps laisserait une
+      // fenêtre où la fiche machine contredit ce que le bureau vient de
+      // saisir. Ignoré sans machine désignée : `saisie.etat_machine` ne
+      // porte de sens qu'à côté de `saisie.machine_id` (le formulaire ne
+      // montre le premier qu'une fois le second choisi), et un `etat_machine`
+      // forgé sans machine n'a nulle part où s'écrire.
+      if (saisie.machine_id !== null && saisie.etat_machine !== null) {
+        await changerStatutMachineDans(
+          tx,
+          saisie.machine_id,
+          saisie.etat_machine,
+        );
+      }
+
       return { accepte: true, fiche };
     },
     client,

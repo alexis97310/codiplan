@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { STATUTS_MACHINE_FORMULAIRE } from "@/lib/machines/saisie";
+
 /**
  * LA SAISIE D'UNE DEMANDE D'INTERVENTION (lot 2, L2-06).
  *
@@ -97,6 +99,15 @@ export const schemaDepot = z
     description: z.string().trim().min(1).max(4000),
     urgence: z.enum(URGENCES).default("p3"),
     machine_arretee: z.boolean().default(false),
+    /**
+     * L'ÉTAT DE LA MACHINE, AU MOMENT OÙ ELLE EST DÉSIGNÉE
+     * (9I8F-STATUT-MACHINE-MODIFIABLE, décision d'Alexis du 31/10/2026) —
+     * FACULTATIF : `null` quand aucune machine n'est choisie, ou quand le
+     * bureau laisse l'état inchangé. N'écrit que les trois valeurs d'un
+     * formulaire (`STATUTS_MACHINE_FORMULAIRE`) — jamais les deux sorties du
+     * parc, propres à la fiche machine.
+     */
+    etat_machine: z.enum(STATUTS_MACHINE_FORMULAIRE).nullable().default(null),
     date_souhaitee: z.date().nullable().default(null),
   })
   .strict();

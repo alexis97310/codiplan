@@ -104,6 +104,8 @@ import {
   donneesMaterielDesMachines,
   machinesDesSites,
 } from "@/lib/machines/depot";
+import { STATUTS_MACHINE_FORMULAIRE } from "@/lib/machines/saisie";
+import { FormulaireChangerStatutMachine } from "@/components/machines/changer-statut";
 import {
   libelleMaterielComplet,
   lignesDetailMachine,
@@ -1389,6 +1391,43 @@ export default async function PageIntervention({
                           className="flex flex-col gap-0.5"
                         >
                           {contenuMachines([machine])}
+                          {/* L'ÉTAT ACTUEL ET LE BOUTON « CHANGER L'ÉTAT »
+                              (9I8F-STATUT-MACHINE-MODIFIABLE) — trois valeurs,
+                              jamais de confirmation ici (réservée aux deux
+                              sorties du parc, propres à la fiche machine). */}
+                          <p className="text-app-encre-faible text-12 font-bold">
+                            {t("machine.champ.statut")}
+                            {t("ponctuation.deux_points")}
+                            {t(
+                              `statut_machine.${
+                                donneesMaterielFiche.get(machine.machineId)
+                                  ?.statut ?? "en_service"
+                              }`,
+                            )}
+                          </p>
+                          <FormulaireChangerStatutMachine
+                            machineId={machine.machineId}
+                            retour={`/interventions/${ligne.id}`}
+                            statutActuel={
+                              donneesMaterielFiche.get(machine.machineId)
+                                ?.statut ?? "en_service"
+                            }
+                            options={STATUTS_MACHINE_FORMULAIRE.map(
+                              (valeur) => ({
+                                valeur,
+                                libelle: t(`statut_machine.${valeur}`),
+                                confirmation: false,
+                              }),
+                            )}
+                            libelleChamp={t("machine.changer_etat.champ")}
+                            libelleBouton={t("machine.changer_etat.bouton")}
+                            texteConfirmationAvant=""
+                            texteConfirmationApres=""
+                            boutonConfirmer={t(
+                              "machine.changer_etat.confirmer",
+                            )}
+                            boutonRevenir={t("machine.changer_etat.revenir")}
+                          />
                           {dates === undefined ? null : (
                             <ul className="text-app-encre-faible text-12 font-bold">
                               {lignesDetailMachine(

@@ -119,6 +119,7 @@ describe("créer une intervention DEPUIS une demande (68-DEMANDES-2)", () => {
           reference_client: null,
           demande_id: demandeId,
           duree_min: null,
+          etat_machine: null,
         },
         clientApp(),
       );
@@ -158,6 +159,7 @@ describe("créer une intervention DEPUIS une demande (68-DEMANDES-2)", () => {
         // DEMANDE_A2 est du site A1_S2, jamais A1_S1 (fixture, `global.ts`).
         demande_id: DEMANDE_A2,
         duree_min: null,
+        etat_machine: null,
       },
       clientApp(),
     );
@@ -193,6 +195,7 @@ describe("créer une intervention DEPUIS une demande (68-DEMANDES-2)", () => {
         reference_client: null,
         demande_id: DEMANDE_B1,
         duree_min: null,
+        etat_machine: null,
       },
       clientApp(),
     );
@@ -228,6 +231,7 @@ describe("créer une intervention DEPUIS une demande (68-DEMANDES-2)", () => {
           reference_client: null,
           demande_id: null,
           duree_min: null,
+          etat_machine: null,
         },
         clientApp(),
       );
@@ -264,6 +268,7 @@ describe("IN-42 (D164) — seule une demande QUALIFIÉE devient une intervention
           reference_client: null,
           demande_id: demandeId,
           duree_min: null,
+          etat_machine: null,
         },
         clientApp(),
       );
@@ -302,6 +307,7 @@ describe("IN-42 (D164) — seule une demande QUALIFIÉE devient une intervention
           reference_client: null,
           demande_id: demandeId,
           duree_min: null,
+          etat_machine: null,
         },
         clientApp(),
       );
@@ -340,6 +346,7 @@ describe("IN-42 (D164) — seule une demande QUALIFIÉE devient une intervention
           reference_client: null,
           demande_id: demandeId,
           duree_min: null,
+          etat_machine: null,
         },
         clientApp(),
       );
@@ -413,6 +420,7 @@ describe("décision 14 d'Alexis du 05/10/2026 (D176) — transformation automati
           reference_client: null,
           demande_id: demandeId,
           duree_min: null,
+          etat_machine: null,
         },
         clientApp(),
       );
@@ -452,6 +460,7 @@ describe("décision 14 d'Alexis du 05/10/2026 (D176) — transformation automati
           reference_client: null,
           demande_id: demandeId,
           duree_min: null,
+          etat_machine: null,
         },
         clientApp(),
       );
@@ -487,6 +496,7 @@ describe("décision 14 d'Alexis du 05/10/2026 (D176) — transformation automati
           reference_client: null,
           demande_id: demandeId,
           duree_min: null,
+          etat_machine: null,
         },
         clientApp(),
       );
@@ -508,6 +518,7 @@ describe("décision 14 d'Alexis du 05/10/2026 (D176) — transformation automati
           reference_client: null,
           demande_id: demandeId,
           duree_min: null,
+          etat_machine: null,
         },
         clientApp(),
       );
@@ -554,6 +565,7 @@ describe("décision 14 d'Alexis du 05/10/2026 (D176) — transformation automati
           reference_client: null,
           demande_id: demandeId,
           duree_min: null,
+          etat_machine: null,
         },
         clientApp(),
       );

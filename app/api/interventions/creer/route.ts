@@ -13,6 +13,7 @@ import {
 } from "@/lib/interventions/depot";
 import { schemaCreation } from "@/lib/interventions/saisie";
 import { uuidv7 } from "@/lib/db/uuid";
+import { STATUTS_MACHINE_FORMULAIRE } from "@/lib/machines/saisie";
 
 import { champ, versLePlanning } from "../actions";
 import { motifDuRefusDeSaisie, versLeFormulaire } from "./formulaire";
@@ -145,6 +146,17 @@ async function traiter(requete: Request): Promise<Response> {
     duree_min: (() => {
       const brut = champ(formulaire, "duree_min");
       return brut === null ? null : Number(brut);
+    })(),
+    // L'ÉTAT DE LA MACHINE (9I8F-STATUT-MACHINE-MODIFIABLE) — une valeur hors
+    // des trois choisissables (forgée) retombe sur `null`, jamais sur un
+    // refus, même discipline que `machine_ids` ci-dessus.
+    etat_machine: (() => {
+      const brut = champ(formulaire, "etat_machine");
+      return (STATUTS_MACHINE_FORMULAIRE as readonly string[]).includes(
+        brut ?? "",
+      )
+        ? brut
+        : null;
     })(),
   });
   if (!saisie.success) {
