@@ -171,6 +171,21 @@ export const VARIABLE_SESSION_AUTH_IDENTIFIANT =
   "app.authentification_identifiant";
 
 /**
+ * LE SUJET D'UNE RÉINITIALISATION DU SECOND FACTEUR (9IA, téléphone perdu).
+ *
+ * Même forme que {@link VARIABLE_SESSION_DEVERROUILLAGE_SUJET}, et pour la
+ * même raison : un `UPDATE` sans clause `WHERE` ne lit aucune colonne, si bien
+ * qu'un `WHERE utilisateur_id = <sujet>` aurait exigé d'ouvrir à
+ * l'administrateur la lecture du secret et des codes de secours. Sur
+ * `utilisateur`, `admin_plateforme` (volet A de la décision) n'a de toute
+ * façon aucune société active sous laquelle lire ou écrire cette ligne par un
+ * `WHERE` — voir la migration `20261102010000_reinitialisation_second_
+ * facteur_9ia`. Remise à vide par tout contexte ordinaire.
+ */
+export const VARIABLE_SESSION_REINITIALISATION_SUJET =
+  "app.reinitialisation_sujet_id";
+
+/**
  * Contexte de session posé sur la transaction : société, rôle, auteur, adresse.
  *
  * Un objet plutôt que quatre paramètres positionnels : `avecContexteRls(prisma,
@@ -198,6 +213,13 @@ export type ContexteRls = {
    * pas** : la politique exige en plus le rôle, l'habilitation et l'état.
    */
   deverrouillageSujetId?: string | null;
+  /**
+   * Sujet d'une réinitialisation du second facteur (9IA), `null` partout
+   * ailleurs. Alimente `app.reinitialisation_sujet_id`. Même nature que
+   * {@link ContexteRls.deverrouillageSujetId} : elle désigne, la politique
+   * `app_peut_reinitialiser_second_facteur` dit qui a le droit.
+   */
+  reinitialisationSujetId?: string | null;
 };
 
 /*
@@ -250,6 +272,12 @@ const POSE: readonly {
   {
     variable: VARIABLE_SESSION_DEVERROUILLAGE_SUJET,
     valeur: (c) => c.deverrouillageSujetId ?? "",
+  },
+  // Le sujet d'une réinitialisation du second facteur (9IA). Même pose que la
+  // désignation de déverrouillage ci-dessus, et pour la même raison.
+  {
+    variable: VARIABLE_SESSION_REINITIALISATION_SUJET,
+    valeur: (c) => c.reinitialisationSujetId ?? "",
   },
 ];
 
