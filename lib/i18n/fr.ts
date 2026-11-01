@@ -4754,6 +4754,10 @@ export const fr = {
   // maintenant le CHROME, dans les trois coques, et son nom le dit plutôt que
   // de continuer à nommer un écran qu'elle a quitté.
   "nav.deconnexion": "Se déconnecter",
+  // LE BADGE AUX INITIALES MÈNE À « MON COMPTE » (9I9-MON-COMPTE) — son
+  // contenu visible (`Avatar`, `AvatarClaire`) reste `aria-hidden` ; c'est ce
+  // libellé qui porte le nom accessible du lien qui l'enrobe.
+  "nav.mon_compte": "Mon compte",
 
   // LE BANDEAU MOBILE (COQUE-375, arbitrage du directeur d'exploitation) —
   // sous 901px, la colonne sort de l'écran et ce bouton la fait revenir.
@@ -7080,6 +7084,83 @@ export const fr = {
   // peuvent lister la même page Équipe, et un nom partagé y ferait
   // apparaître deux lignes identiques.
   "captures9i6b.e2e.nom": "9I6BCAP — Compte à activer",
+
+  // ── MON COMPTE (9I9-MON-COMPTE, constat M5 / ticket T5 de l'audit du
+  // 28/10/2026) — aucun écran de bureau ne permettait de voir son identité
+  // ni de changer son mot de passe sans se déconnecter ; seul « Mot de passe
+  // oublié ? » depuis `/connexion` l'ouvrait. Le pendant, pour tout rôle de
+  // bureau, du profil du technicien (`terrain.profil.*`).
+  "mon_compte.titre": "Mon compte",
+  "mon_compte.identite.titre": "Identité",
+  "mon_compte.identite.nom": "Nom",
+  "mon_compte.identite.courriel": "Courriel",
+  "mon_compte.identite.societe": "Société",
+  "mon_compte.identite.role": "Rôle",
+  "mon_compte.identite.inconnu": "—",
+  "mon_compte.habilitations.titre": "Vos habilitations",
+  "mon_compte.habilitations.aucune": "Aucune habilitation pour ce rôle.",
+  "mon_compte.habilitations.restreint_suffixe": "restreint",
+  // LES TROIS PRÉFIXES COMPOSÉS (L0-11, vocabulaire imposé D5/D47) — ni
+  // « agence » ni « site » ne s'écrivent ici ; `lib/auth/
+  // presentation-capacites.ts` les complète au rendu avec `motDansUnePhrase`.
+  "capacite.administrer_agences_prefixe": "Administrer les",
+  "capacite.gerer_client_site_prefixe": "Gérer un client ou un",
+  "capacite.consulter_clients_sites_prefixe": "Consulter les clients et les",
+  // ── LES LIBELLÉS DE LA MATRICE DU §5.2 (`lib/auth/habilitations.ts`),
+  // dans l'ordre de `CAPACITES` — fermée contre elle par un gardien unitaire.
+  "capacite.consulter_planning": "Consulter le planning",
+  "capacite.modifier_planning": "Modifier le planning",
+  "capacite.creer_demande": "Créer une demande",
+  "capacite.qualifier_affecter": "Qualifier et affecter",
+  "capacite.saisir_rapport": "Saisir un rapport",
+  "capacite.valider_rapport": "Valider un rapport",
+  "capacite.cloturer_intervention": "Clôturer une intervention",
+  "capacite.annuler_intervention": "Annuler une intervention",
+  "capacite.suspendre_reprendre_intervention":
+    "Suspendre ou reprendre une intervention",
+  "capacite.enregistrer_vgp": "Enregistrer une vérification VGP",
+  "capacite.gerer_contrat": "Gérer un contrat",
+  "capacite.gerer_machine": "Gérer une machine",
+  "capacite.consulter_parc_complet": "Consulter le parc complet",
+  "capacite.consulter_parc_propre": "Consulter son propre parc",
+  "capacite.voir_montants_vente": "Voir les montants de vente",
+  "capacite.voir_marges": "Voir les marges",
+  "capacite.preparer_facturation": "Préparer la facturation",
+  "capacite.importer_exporter": "Importer ou exporter des données",
+  "capacite.parametrer_societe": "Paramétrer la société",
+  "capacite.administrer_utilisateurs": "Administrer les utilisateurs",
+  "capacite.regler_trajets": "Régler les temps de trajet",
+  "capacite.consulter_journal_audit": "Consulter le journal d'audit",
+  "capacite.gerer_comptes_clients": "Gérer les comptes clients",
+  "capacite.gerer_abonnements": "Gérer les abonnements",
+  "capacite.consulter_indicateurs_editeur": "Consulter les indicateurs éditeur",
+  "capacite.support_technique": "Support technique",
+  "capacite.connexion_en_tant_que": "Se connecter en tant que",
+  "capacite.modifier_referentiel_plateforme":
+    "Modifier le référentiel de plateforme",
+  "mon_compte.second_facteur.titre": "Second facteur",
+  "mon_compte.second_facteur.actif": "Activé",
+  "mon_compte.second_facteur.inactif": "Non activé",
+  "mon_compte.mot_de_passe.titre": "Changer de mot de passe",
+  "mon_compte.mot_de_passe.actuel": "Mot de passe actuel",
+  "mon_compte.mot_de_passe.nouveau": "Nouveau mot de passe",
+  "mon_compte.mot_de_passe.confirmation": "Confirmez le mot de passe",
+  "mon_compte.mot_de_passe.regle_longueur": "8 caractères ou plus",
+  "mon_compte.mot_de_passe.regle_confirmation": "Identique à la confirmation",
+  "mon_compte.mot_de_passe.valider": "Enregistrer mon mot de passe",
+  "mon_compte.mot_de_passe.abouti": "Votre mot de passe est enregistré.",
+  "mon_compte.mot_de_passe.discordance":
+    "Les deux mots de passe saisis ne sont pas identiques.",
+  "mon_compte.mot_de_passe.trop_court":
+    "Le mot de passe doit compter au moins huit caractères.",
+  "mon_compte.mot_de_passe.actuel_incorrect":
+    "Le mot de passe actuel n'est pas correct.",
+  "mon_compte.mot_de_passe.refuse": "Le mot de passe n'a pas pu être changé.",
+
+  // ── FIXTURE DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/9i9-mon-compte.spec.ts)
+  // — sa PROPRE scène, préfixée `9I9`, créée et supprimée par l'épreuve.
+  "acces9i9.e2e.nom":
+    "9I9 — Compte de bureau pour le changement de mot de passe",
 } as const;
 
 export type CleTraduction = keyof typeof fr;

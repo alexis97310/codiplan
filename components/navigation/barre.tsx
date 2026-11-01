@@ -350,7 +350,13 @@ export function BarreDeNavigation({
           {initiales === null ? null : (
             <div className="flex items-center justify-between gap-2">
               <Deconnexion />
-              <Avatar initiales={initiales} />
+              <Link
+                href="/mon-compte"
+                aria-label={t("nav.mon_compte")}
+                className="rounded-full"
+              >
+                <Avatar initiales={initiales} />
+              </Link>
             </div>
           )}
         </div>

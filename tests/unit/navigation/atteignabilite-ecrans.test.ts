@@ -104,10 +104,23 @@ const ECRANS: readonly Ecran[] = pages(GROUPE).map(({ route, fichier }) => ({
  * `feuilles`, chaque écran nesté sous un groupe (Interventions, Imports
  * Excel, …) paraîtrait orphelin alors que la barre l'ouvre bel et bien, une
  * fois le groupe déplié.
+ *
+ * **LE CHROME DU LAYOUT S'Y AJOUTE DEPUIS 9I9-MON-COMPTE** — `ENTREES` ne
+ * porte que les quatorze entrées de DOMAINE ; le pied de colonne (société
+ * active, déconnexion, badge aux initiales) vit dans `app/(back-office)/
+ * layout.tsx`, rendu sur CHAQUE écran du segment mais jamais importé PAR un
+ * `page.tsx` — `sourceAvecComposants`, qui ne suit que les imports d'un
+ * écran, ne le voit donc jamais. Sans cette ligne, le badge aux initiales
+ * (qui mène à `/mon-compte`) resterait invisible à ce gardien tout en étant
+ * réellement sur chaque écran : un départ de PLUS, jamais un écran retiré de
+ * la vérification.
  */
-const DEPARTS = feuilles(ENTREES)
-  .map((e) => e.chemin)
-  .filter((chemin): chemin is string => chemin !== null);
+const DEPARTS = [
+  ...feuilles(ENTREES)
+    .map((e) => e.chemin)
+    .filter((chemin): chemin is string => chemin !== null),
+  ...cheminsDesignes(sourceAvecComposants(join(GROUPE, "layout.tsx"))),
+];
 
 /**
  * ÉCRANS RETIRÉS MAIS GARDÉS EN REDIRECTION — liste close, VIDE depuis

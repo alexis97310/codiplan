@@ -414,6 +414,17 @@ const EXEMPTIONS: readonly Exemption[] = [
     motif:
       "lecture seule du logo de la société active, ouverte à tout compte de cette société — aucune capacité à juger, exactement la posture des routes de /api/recherche/* ci-dessus.",
   },
+  // 9I9-MON-COMPTE — change SON PROPRE mot de passe, ouvert à tout compte
+  // d'une société active : `exigerSessionActive` (lib/auth/porte.ts) ne juge
+  // qu'une société et un rôle actifs, aucune capacité. L'identité qui change
+  // réellement vient de la session que Better Auth relit elle-même — jamais
+  // d'un paramètre de cette route —, donc aucune capacité de la matrice n'a
+  // quoi que ce soit à juger ici.
+  {
+    chemin: "app/api/session/mon-compte/mot-de-passe/route.ts",
+    motif:
+      "change le mot de passe du compte connecté, identité prise de la session — même posture que /api/societe/logo ci-dessus : aucune capacité à juger, seulement une société et un rôle actifs.",
+  },
 ];
 
 /** Chaque route mutante d'`app/api/`, chemin relatif à la racine. */
