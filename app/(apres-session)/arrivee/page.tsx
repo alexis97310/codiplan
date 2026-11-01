@@ -46,10 +46,15 @@ export const metadata: Metadata = { title: t("arrivee.titre") };
  *
  * *Mesuré le 11/09/2026, fenêtre 1700 × 1000 : contenu de 448 px, centré à
  * mi-hauteur, document de 1072 px* — `max-w-md` et `justify-center`, c'est-à-
- * dire la forme d'une page de connexion. Or `/arrivee` est un écran d'APRÈS-
- * session : il vit sous la barre de navigation, dans un back-office de 1400 px,
- * et un contenu centré à mi-hauteur sous une barre ancrée en haut flotte sans
- * rien pour le tenir.
+ * dire la forme d'une page de connexion. ~~Or `/arrivee` est un écran
+ * d'APRÈS-session : il vit sous la barre de navigation, dans un back-office
+ * de 1400 px, et un contenu centré à mi-hauteur sous une barre ancrée en haut
+ * flotte sans rien pour le tenir.~~ Phrase barrée et non effacée par
+ * 9IB-ARRIVEE-HORS-BACK-OFFICE (28/10/2026, constat M6, ticket T8) :
+ * `/arrivee` ne vit plus dans `(back-office)` et ne porte plus aucune barre
+ * — voir plus bas —, mais la disposition en trois colonnes qu'elle a motivée
+ * n'a pas changé d'un mot, pour la même raison qu'avant : un contenu
+ * `max-w-md` centré sur la largeur utile du segment flotterait tout autant.
  *
  * **Ce qui est repris est le seul point où la maquette parle** : ses écrans
  * commencent en haut, sur la largeur utile, titre en 22 px extra-gras et
@@ -61,10 +66,15 @@ export const metadata: Metadata = { title: t("arrivee.titre") };
  *
  * *Il n'existait qu'ici, sur un écran d'atterrissage sur lequel on ne revient
  * jamais — en pratique, une session ouverte ne se fermait pas.* La commande
- * vit désormais dans le CHROME (`components/navigation/barre.tsx`), rendue
- * dans les trois coques. La retenir ici en plus en aurait fait un second
- * bouton pour le même geste sur le même écran, puisque `/arrivee` porte
- * elle-même cette barre.
+ * vit dans le CHROME (`components/navigation/barre.tsx`), rendue dans les
+ * trois coques du back-office, du portail et du terrain. ~~La retenir ici en
+ * plus en aurait fait un second bouton pour le même geste sur le même écran,
+ * puisque `/arrivee` porte elle-même cette barre.~~ Phrase barrée par
+ * 9IB-ARRIVEE-HORS-BACK-OFFICE : `/arrivee` ne porte plus aucune barre depuis
+ * son déménagement vers `(apres-session)`, mais la décision de ne pas y
+ * dupliquer le bouton reste la bonne — un compte qui arrive ici en vient
+ * presque toujours, et n'a jamais eu besoin d'un second chemin pour se
+ * déconnecter avant même de choisir sa société.
  */
 export default async function PageArrivee() {
   const entetes = await headers();
