@@ -2,7 +2,7 @@ import { afterAll, describe, expect, it } from "vitest";
 
 import { Role } from "@/lib/auth/roles";
 
-import { clientApp, fermerClients, urlApp } from "./setup/db";
+import { clientApp, clientOwner, fermerClients, urlApp } from "./setup/db";
 import {
   MACHINE_A1,
   MACHINE_A2,
@@ -117,5 +117,96 @@ describe("changerStatutMachine — le chemin accepté", () => {
       clientApp(),
     );
     expect(remise).toEqual({ accepte: true, id: MACHINE_B1 });
+  });
+});
+
+/**
+ * LA GARDE DU STATUT (9I8F1-REPRISE-9I8F, D227) — les trois règles serveur
+ * de `lib/machines/garde-statut.ts`, sur la vraie table. `MACHINE_B1` est la
+ * fixture déjà mutée dans ce fichier (bloc ci-dessus) : chaque épreuve la
+ * remet dans son état initial avant de rendre la main.
+ */
+describe("changerStatutMachine — une sortie du parc exige une confirmation vérifiée côté serveur", () => {
+  it("« remplacee » SANS confirmation : refus nommé, rien n'est écrit", async () => {
+    const resultat = await changerStatutMachine(
+      SESSION_INTERNE_B,
+      MACHINE_B1,
+      "remplacee",
+      false,
+      clientApp(),
+    );
+    expect(resultat).toEqual({
+      accepte: false,
+      motif: "sortie_sans_confirmation",
+    });
+    const fiche = await lireMachine(SESSION_INTERNE_B, MACHINE_B1);
+    expect(fiche?.statut).toBe("en_service");
+  });
+
+  it("« remplacee » AVEC confirmation : accepté, puis le RETOUR exige lui aussi une confirmation", async () => {
+    const sortie = await changerStatutMachine(
+      SESSION_INTERNE_B,
+      MACHINE_B1,
+      "remplacee",
+      true,
+      clientApp(),
+    );
+    expect(sortie).toEqual({ accepte: true, id: MACHINE_B1 });
+
+    const retourSansConfirmation = await changerStatutMachine(
+      SESSION_INTERNE_B,
+      MACHINE_B1,
+      "en_service",
+      false,
+      clientApp(),
+    );
+    expect(retourSansConfirmation).toEqual({
+      accepte: false,
+      motif: "sortie_sans_confirmation",
+    });
+    expect((await lireMachine(SESSION_INTERNE_B, MACHINE_B1))?.statut).toBe(
+      "remplacee",
+    );
+
+    // Remis dans son état initial, AVEC confirmation cette fois.
+    const retour = await changerStatutMachine(
+      SESSION_INTERNE_B,
+      MACHINE_B1,
+      "en_service",
+      true,
+      clientApp(),
+    );
+    expect(retour).toEqual({ accepte: true, id: MACHINE_B1 });
+    expect((await lireMachine(SESSION_INTERNE_B, MACHINE_B1))?.statut).toBe(
+      "en_service",
+    );
+  });
+});
+
+describe("changerStatutMachine — une machine fusionnée ne change jamais de statut", () => {
+  it("refus nommé « fusionnee », même avec confirmation", async () => {
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "machine" SET "statut" = 'fusionnee' WHERE "id" = '${MACHINE_B1}'`,
+    );
+    try {
+      const resultat = await changerStatutMachine(
+        SESSION_INTERNE_B,
+        MACHINE_B1,
+        "en_service",
+        true,
+        clientApp(),
+      );
+      expect(resultat).toEqual({ accepte: false, motif: "fusionnee" });
+      const fiche = await lireMachine(SESSION_INTERNE_B, MACHINE_B1);
+      expect(fiche?.statut).toBe("fusionnee");
+    } finally {
+      // Remis dans son état initial — l'écriture directe est la SEULE voie :
+      // `changerStatutMachine` refuse, par construction, de faire sortir une
+      // machine fusionnée de son statut (c'est exactement ce que cette
+      // épreuve vient de prouver).
+      await clientOwner().$executeRawUnsafe(
+        `UPDATE "machine" SET "statut" = 'en_service' WHERE "id" = '${MACHINE_B1}'`,
+      );
+    }
   });
 });
