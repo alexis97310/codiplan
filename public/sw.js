@@ -100,9 +100,20 @@ const COQUILLE = [
  */
 const REPLI_TERRAIN = /^\/terrain(\/.*)?$/;
 
-/** `/terrain` ou `/terrain/<id>` — jamais `/terrain-hors-reseau`, déjà dans la coquille. */
-function estRepliTerrain(url) {
-  return REPLI_TERRAIN.test(url.pathname) && !estDeLaCoquille(url);
+/**
+ * `/terrain` ou `/terrain/<id>` — jamais `/terrain-hors-reseau`, déjà dans la
+ * coquille. **`requete.mode === "navigate"` est EXIGÉ** (9IC-CORRECTIFS-COURTS,
+ * réserve du solde 592) : sans cette condition, un `GET` qui n'est pas une
+ * navigation plein document — le payload RSC d'un `next/link`, par exemple —
+ * recevrait, en échec, le HTML de la coquille comme s'il avait reçu les
+ * données qu'il demandait.
+ */
+function estRepliTerrain(url, requete) {
+  return (
+    requete.mode === "navigate" &&
+    REPLI_TERRAIN.test(url.pathname) &&
+    !estDeLaCoquille(url)
+  );
 }
 
 /**
@@ -114,9 +125,17 @@ function estRepliTerrain(url) {
  */
 const REPLI_SCANNER = /^\/(scanner|parc\/scanner)$/;
 
-/** `/scanner` ou `/parc/scanner` — jamais `/scanner-hors-reseau`, déjà dans la coquille. */
-function estRepliScanner(url) {
-  return REPLI_SCANNER.test(url.pathname) && !estDeLaCoquille(url);
+/**
+ * `/scanner` ou `/parc/scanner` — jamais `/scanner-hors-reseau`, déjà dans la
+ * coquille. Même exigence de NAVIGATION que `estRepliTerrain` ci-dessus, et
+ * pour la même raison.
+ */
+function estRepliScanner(url, requete) {
+  return (
+    requete.mode === "navigate" &&
+    REPLI_SCANNER.test(url.pathname) &&
+    !estDeLaCoquille(url)
+  );
 }
 
 self.addEventListener("install", (evenement) => {
@@ -162,8 +181,8 @@ self.addEventListener("fetch", (evenement) => {
   const statique =
     url.pathname.startsWith("/_next/static/") ||
     url.pathname.startsWith("/icones/");
-  const repliTerrain = estRepliTerrain(url);
-  const repliScanner = estRepliScanner(url);
+  const repliTerrain = estRepliTerrain(url, requete);
+  const repliScanner = estRepliScanner(url, requete);
   if (!statique && !estDeLaCoquille(url) && !repliTerrain && !repliScanner) {
     return;
   }
