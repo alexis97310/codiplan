@@ -1,32 +1,23 @@
-import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { fr, t } from "@/lib/i18n/fr";
+import { fr } from "@/lib/i18n/fr";
 
 /**
  * 9I5-ECRANS-INCOMPLETS-LE-DISENT — « Ma journée » dit ce qu'elle ne montre
- * pas, même esprit que le sous-titre d'« Indicateurs du mois »
- * (`text-app-encre-faible … font-bold`). Cette page n'utilise pas `Page`
- * (son propre `<header>`), et le terrain impose 16/18/24/28 px (D143,
- * point 8, `tests/unit/ui/retouches-2a.test.ts`) — jamais le 13 px du
- * back-office : `text-16`, même taille que la ligne de date voisine.
+ * pas encore.
+ *
+ * **CE FICHIER NE REND PLUS RIEN (9IC-CORRECTIFS-COURTS, réserve du solde
+ * 596)** — une version antérieure rendait son PROPRE `<p>{t("terrain.
+ * sous_titre_manquant")}`, tautologique : elle passait même si la VRAIE
+ * page perdait la phrase. La preuve que la page l'affiche RÉELLEMENT est
+ * désormais `tests/e2e/9i5-ce-qui-manque.spec.ts`, qui ouvre `/terrain` et
+ * lit la phrase dans la vraie page rendue. Ce fichier ne garde que ce qui
+ * se mesure sans rendu — la FORME de la phrase elle-même.
  */
-describe("Ma journée — ce qui manque est dit à l'écran", () => {
-  it("affiche la clé terrain.sous_titre_manquant, jamais un texte en dur", () => {
-    render(
-      <p className="text-app-encre-faible text-16 font-bold">
-        {t("terrain.sous_titre_manquant")}
-      </p>,
-    );
-
-    expect(
-      screen.getByText(fr["terrain.sous_titre_manquant"]),
-    ).toBeInTheDocument();
-  });
-
-  it("nomme l'absence des machines du terrain (D161, TP-PARC), sans promettre de date", () => {
+describe("terrain.sous_titre_manquant — la forme de la phrase", () => {
+  it("nomme l'absence de la liste des machines (D161, TP-PARC), sans promettre de date", () => {
     const texte = fr["terrain.sous_titre_manquant"];
-    expect(texte).toContain("machines du terrain");
+    expect(texte).toContain("La liste de vos machines");
     expect(texte.toLowerCase()).not.toMatch(/bientôt|prochainement|lot \d/);
   });
 });

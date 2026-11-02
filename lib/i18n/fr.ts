@@ -2853,7 +2853,7 @@ export const fr = {
   // maquette du 28/09 (…), arriveront avec TP-PARC » et « CE QUE ÇA NE
   // TOUCHE PAS : […] aucune fiche "Mes machines" ».
   "terrain.sous_titre_manquant":
-    "Cette page montre votre journée ; les machines du terrain (liste, fiche) n'y sont pas encore — seuls « Journée » et « Profil » existent dans la barre du bas.",
+    "Cette page montre votre journée. La liste de vos machines n'y est pas encore.",
   // LA JOURNÉE ÉTENDUE (9F2-TERRAIN-JOURS-MAQUETTE, décision n° 92
   // d'Alexis, D210) — « en retard », « demain » et « les jours suivants »
   // rejoignent « aujourd'hui » et « sans date », dans l'ordre de la
@@ -3631,7 +3631,7 @@ export const fr = {
   // encore. Source : D166 (\u00ab Aucun onglet \u00ab R\u00e9serves \u00bb : l'\u00e9tat n'existe
   // pas encore (lot suivant, avec migration). C'est un \u00c9CART NOMM\u00c9 \u00e0 D125. \u00bb).
   "vgp.sous_titre_manquant":
-    "Ce registre montre ce qu'on nous a transmis et les familles \u00e0 d\u00e9terminer ; les r\u00e9serves n'y ont pas encore leur propre onglet.",
+    "Ce registre montre ce qui a \u00e9t\u00e9 transmis et les familles \u00e0 d\u00e9terminer ; les r\u00e9serves n'y ont pas encore leur propre onglet.",
   // L'ONGLET \u00ab REGISTRE \u00bb (QE-13d (a), D166) \u2014 \u00ab Familles \u00e0 d\u00e9terminer \u00bb
   // r\u00e9utilise `vgp.indetermines.titre`, jamais une seconde cl\u00e9 pour le m\u00eame
   // texte (\u00a79, 01/09).
@@ -3869,7 +3869,7 @@ export const fr = {
   // emplacements de la maquette ne sont pas construits : aucun n'existe dans
   // ce d\u00e9p\u00f4t (QT-12), et les ajouter aurait \u00e9t\u00e9 une migration. \u00bb
   "machine.fiche.sous_titre_manquant":
-    "Cette fiche montre l'identit\u00e9 de la machine et son historique ; les gestes sur la machine (changer l'\u00e9tat, transf\u00e9rer, remplacer, sortir du parc) et la carte VGP s\u00e9par\u00e9e n'y sont pas encore.",
+    "Cette fiche montre l'identit\u00e9 de la machine et l'historique de ses interventions ; les gestes sur la machine (changer l'\u00e9tat, transf\u00e9rer, remplacer, sortir du parc) et la carte VGP s\u00e9par\u00e9e n'y sont pas encore.",
   "machine.fiche.identite_titre": "Identit\u00e9 et rattachement",
   "machine.fiche.kv_famille": "Famille",
   "machine.fiche.kv_marque": "Marque",
@@ -4880,7 +4880,7 @@ export const fr = {
   // jours » n'ont AUCUNE lecture sur ce dépôt et sont retirées du rendu,
   // quel que soit le rôle.
   "tableau_de_bord.sous_titre_manquant":
-    "Ce tableau compte les interventions et le parc ; il ne facture pas, ne suit pas les retours sous 30 jours, ni les réserves VGP sans intervention.",
+    "Ce tableau compte les interventions et le parc. Il ne montre pas encore ce qui reste à facturer, les retours sous 30 jours ni les réserves VGP.",
 
   // ── LES TUILES (`T`, maquette :2870-2883) ────────────────────────────────
   "tableau_de_bord.tuile_a_planifier": "À planifier",
