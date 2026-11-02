@@ -511,6 +511,7 @@ const ICONE_PAR_CHEMIN: Partial<Record<string, NomIcone>> = {
   "/parametres": "settings",
   "/imports": "upload",
   "/terrain": "phone",
+  "/feuille-de-route": "route",
 };
 
 /** Voir le commentaire de `ICONE_PAR_CHEMIN` — l'exception par `cle`, réservée à `/portail`. */

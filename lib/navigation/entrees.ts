@@ -1,5 +1,6 @@
 import { peut, peutPleinement, type Capacite } from "@/lib/auth/habilitations";
 import { Role } from "@/lib/auth/roles";
+import { ROLES_FEUILLE_DE_ROUTE } from "@/lib/feuille-de-route/acces";
 import type { CleTraduction } from "@/lib/i18n/fr";
 import { fermeAuTechnicienParD221 } from "@/lib/navigation/redirection-technicien";
 
@@ -267,6 +268,15 @@ export const ECARTS_HORS_MAQUETTE: ReadonlyArray<{
       "pourtant la page, dans le domaine du pilotage, à côté du tableau de " +
       "bord.",
   },
+  {
+    cle: "nav.feuille_de_route",
+    motif:
+      "ÉCART NOMMÉ 9IC5-FEUILLE-DE-ROUTE — demande d'Alexis du 02/11/2026 : " +
+      "la maquette ne dessine aucune entrée « Feuille de route », et n'a " +
+      "aucune raison de le faire — c'est un écran de pilotage interne, " +
+      "réservé à admin_societe et admin_plateforme, jamais montré à un " +
+      "client.",
+  },
 ];
 
 /**
@@ -369,6 +379,10 @@ export const ENTREES: readonly EntreeDeBarre[] = [
       // route n'est pas réécrite ici.
       { cle: "nav.app_technicien", chemin: "/terrain" },
       { cle: "nav.console_editeur", chemin: null, ouvertePar: "lot 7" },
+      // 9IC5-FEUILLE-DE-ROUTE (demande d'Alexis, 02/11/2026) — réservée à
+      // admin_societe et admin_plateforme, voir CAPACITE_REQUISE plus bas et
+      // `lib/feuille-de-route/acces.ts`.
+      { cle: "nav.feuille_de_route", chemin: "/feuille-de-route" },
     ],
   },
 ];
@@ -540,14 +554,29 @@ export function groupeDe(
  * exigence à côté de la capacité, jamais comme un rôle : un second rôle qui
  * recevrait demain le `○` sur `consulter_planning` suivrait la même règle,
  * sans qu'il faille revenir ici.
+ *
+ * **Troisième forme, par RÔLE (9IC5-FEUILLE-DE-ROUTE, 02/11/2026)** — pour
+ * une entrée que la matrice des capacités ne peut pas exprimer : aucune case
+ * de `lib/auth/habilitations.ts` ne tient EXACTEMENT « admin_societe et
+ * admin_plateforme, personne d'autre » (`parametrer_societe` couvrirait aussi
+ * `direction`). Posée ici plutôt que dans la matrice — hors territoire de ce
+ * ticket —, et seulement quand aucune capacité existante ne convient : une
+ * liste de rôles à côté d'une capacité serait la même faute que recopier un
+ * critère déjà décidé ailleurs (§9, 01/09).
  */
 type ExigenceCapacite =
-  Capacite | { readonly capacite: Capacite; readonly niveau: "complet" };
+  | Capacite
+  | { readonly capacite: Capacite; readonly niveau: "complet" }
+  | { readonly roles: readonly Role[] };
 
 function accesSuffisant(role: Role, exigence: ExigenceCapacite): boolean {
-  return typeof exigence === "string"
-    ? peut(role, exigence)
-    : peutPleinement(role, exigence.capacite);
+  if (typeof exigence === "string") {
+    return peut(role, exigence);
+  }
+  if ("roles" in exigence) {
+    return exigence.roles.includes(role);
+  }
+  return peutPleinement(role, exigence.capacite);
 }
 
 const CAPACITE_REQUISE: Partial<Record<CleTraduction, ExigenceCapacite>> = {
@@ -569,6 +598,7 @@ const CAPACITE_REQUISE: Partial<Record<CleTraduction, ExigenceCapacite>> = {
   "nav.societes_tarifs": "parametrer_societe",
   "nav.imports_excel": "importer_exporter",
   "nav.app_technicien": "saisir_rapport",
+  "nav.feuille_de_route": { roles: ROLES_FEUILLE_DE_ROUTE },
 };
 
 /**
