@@ -4766,6 +4766,9 @@ export const fr = {
   // lecteur, donc ce n'est pas le même mot.
   "nav.portail_parc": "Votre parc",
   "nav.imports_excel": "Imports Excel",
+  // 9IC5-FEUILLE-DE-ROUTE (demande d'Alexis, 02/11/2026) — visible aux seuls
+  // admin_societe et admin_plateforme, voir `lib/feuille-de-route/acces.ts`.
+  "nav.feuille_de_route": "Feuille de route",
   // RENOMMÉ « Paramètres » (QT-21, D167, 05/10/2026, TP-NAV1) — même
   // renommage que `parametres.index_titre`, voir son en-tête.
   "nav.societes_tarifs": "Paramètres",
@@ -6632,6 +6635,18 @@ export const fr = {
   "donnees_a_completer.kpi_vgp_a_determiner": "Familles VGP à déterminer",
   "donnees_a_completer.kpi_clients_sans_code": "Clients sans code externe",
   "donnees_a_completer.kpi_machines_incompletes": "Machines incomplètes",
+
+  // ── « Feuille de route » (9IC5-FEUILLE-DE-ROUTE, demande d'Alexis du
+  // 02/11/2026) — contenu dans `lib/feuille-de-route/contenu.ts`, réservée à
+  // admin_societe et admin_plateforme (`lib/feuille-de-route/acces.ts`).
+  "feuille_de_route.titre": "Feuille de route",
+  "feuille_de_route.etat_au": "État au",
+  "feuille_de_route.statut.en_cours": "En cours",
+  "feuille_de_route.statut.pret": "Prêt",
+  "feuille_de_route.statut.a_ecrire": "À écrire",
+  "feuille_de_route.statut.decision": "Décision",
+  "feuille_de_route.statut.bloque": "Bloqué",
+  "feuille_de_route.statut.livre": "Livré",
 
   // ── L'ORIGINE D'UNE FICHE MACHINE, `Machine.source_creation` (9DT-TP-MOD2-
   // INDICATEURS-DONNEES, QT-20) — jamais affichée avant ce ticket.

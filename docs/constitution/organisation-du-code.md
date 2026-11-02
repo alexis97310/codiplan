@@ -19,48 +19,49 @@ _Les numéros de ligne du sommaire sont RECALCULÉS, jamais saisis à la main : 
 
 ### Sommaire
 
-- `app/` — ligne 68
-- `lib/` — ligne 73
-- `lib/db/` — ligne 74
-- `lib/auth/` — ligne 120
-- `lib/absences/` — ligne 155
-- `lib/clients/` — ligne 211
-- `lib/habilitations/` — ligne 214
-- `lib/contacts/` — ligne 222
-- `lib/demandes/` — ligne 232
-- `lib/agences/` — ligne 266
-- `lib/sites/` — ligne 281
-- `lib/machines/` — ligne 311
-- `lib/interventions/` — ligne 362
-- `lib/materiel/` — ligne 536
-- `lib/tarification/` — ligne 569
-- `lib/navigation/` — ligne 665
-- `lib/money/` — ligne 701
-- `lib/courriel/` — ligne 703
-- `lib/avertissements/` — ligne 735
-- `lib/compteurs/` — ligne 748
-- `lib/calendar/` — ligne 767
-- `lib/sync/` — ligne 793
-- `lib/documents/` — ligne 794
-- `lib/excel/` — ligne 820
-- `lib/imports/` — ligne 878
-- `lib/prestations/` — ligne 1030
-- `lib/portail/` — ligne 1049
-- `lib/pdf/` — ligne 1065
-- `lib/reporting/` — ligne 1066
-- `lib/vgp/` — ligne 1067
-- `lib/techniciens/` — ligne 1120
-- `lib/terrain/` — ligne 1125
-- `lib/theme/` — ligne 1134
-- `lib/i18n/` — ligne 1169
-- `lib/tri/` — ligne 1172
-- `lib/societes/` — ligne 1177
-- `lib/audit/` — ligne 1181
-- `lib/tableau-de-bord/` — ligne 1185
-- `components/` — ligne 1189
-- `prisma/` — ligne 1190
-- `tests/` — ligne 1191
-- `docs/` — ligne 1210
+- `app/` — ligne 69
+- `lib/` — ligne 74
+- `lib/db/` — ligne 75
+- `lib/auth/` — ligne 121
+- `lib/absences/` — ligne 156
+- `lib/clients/` — ligne 212
+- `lib/habilitations/` — ligne 215
+- `lib/contacts/` — ligne 223
+- `lib/demandes/` — ligne 233
+- `lib/agences/` — ligne 267
+- `lib/sites/` — ligne 282
+- `lib/machines/` — ligne 312
+- `lib/interventions/` — ligne 363
+- `lib/materiel/` — ligne 537
+- `lib/tarification/` — ligne 570
+- `lib/navigation/` — ligne 666
+- `lib/money/` — ligne 702
+- `lib/courriel/` — ligne 704
+- `lib/avertissements/` — ligne 736
+- `lib/compteurs/` — ligne 749
+- `lib/calendar/` — ligne 768
+- `lib/sync/` — ligne 794
+- `lib/documents/` — ligne 795
+- `lib/excel/` — ligne 821
+- `lib/imports/` — ligne 879
+- `lib/prestations/` — ligne 1031
+- `lib/portail/` — ligne 1050
+- `lib/pdf/` — ligne 1066
+- `lib/reporting/` — ligne 1067
+- `lib/vgp/` — ligne 1068
+- `lib/techniciens/` — ligne 1121
+- `lib/terrain/` — ligne 1126
+- `lib/theme/` — ligne 1135
+- `lib/i18n/` — ligne 1170
+- `lib/tri/` — ligne 1173
+- `lib/societes/` — ligne 1178
+- `lib/audit/` — ligne 1182
+- `lib/tableau-de-bord/` — ligne 1186
+- `lib/feuille-de-route/` — ligne 1190
+- `components/` — ligne 1196
+- `prisma/` — ligne 1197
+- `tests/` — ligne 1198
+- `docs/` — ligne 1217
 
 ---
 
@@ -1186,6 +1187,12 @@ lib/
               (9EG-TP-UX6-TABLEAU-DE-BORD-2) — accès à ouvrir, données à
               compléter, les huit étapes de « Mise en route » (PU-1) ;
               chacune appelle la MÊME fonction que l'écran de destination
+  feuille-de-route/ LE CONTENU DE LA PAGE « FEUILLE DE ROUTE » (9IC5-FEUILLE-
+              DE-ROUTE, demande d'Alexis du 02/11/2026) — un module de
+              DONNÉES typé, jamais du Markdown, mis à jour par les tickets
+              qui livrent ; acces.ts : la page et l'entrée de menu sont
+              réservées à admin_societe et admin_plateforme, aucune case de
+              la matrice des capacités ne tient exactement ces deux rôles
 components/
 prisma/       schema.prisma, migrations/, seed.ts
 tests/
