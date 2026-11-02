@@ -24,6 +24,17 @@ import { COMPTE_TECHNICIEN_EPREUVE, MOT_DE_PASSE_EPREUVE } from "./setup/scene";
  * `rapport-terrain.spec.ts` : les événements `pointer` sont dispatchés
  * directement dans la page, jamais simulés au niveau matériel).
  *
+ * **CE QUE `ctx.lineWidth` NE PROUVE PAS (9IC-CORRECTIFS-COURTS, réserve du
+ * solde 593)** — relire la PROPRIÉTÉ posée sur le contexte ne prouve pas ce
+ * que le canevas a réellement DESSINÉ : un bogue dans la conversion
+ * `positionCanevas`, ou dans `lineCap`/`lineJoin`, laisserait `lineWidth`
+ * correct tout en traçant un trait d'une autre épaisseur. À DPR 1 et 3, une
+ * seconde mesure relit donc les PIXELS du PNG réellement enregistré
+ * (`canvas.toDataURL()`, décodé dans la page par une seconde balise `Image`)
+ * après un trait HORIZONTAL dédié — l'épaisseur verticale d'un trait
+ * horizontal est sans ambiguïté, alors que celle du trait diagonal mesuré
+ * par `ctx.lineWidth` ci-dessus ne le serait pas.
+ *
  * SA PROPRE FIXTURE, PRÉFIXÉE `9I2-`, loin dans le futur — jamais
  * `SCENE.rapportTravaillee` ni `SCENE.rapportVierge` : ces deux-là sont déjà
  * la propriété exclusive de `rapport-terrain.spec.ts` (voir le docblock de
@@ -179,6 +190,82 @@ for (const dpr of [1, 2, 3] as const) {
       // ~2 PX CSS, PAS 1 PIXEL PHYSIQUE (le défaut d'avant ce ticket aurait
       // rendu `lineWidth === 1`, soit ~0,33 px CSS à DPR 3).
       expect(mesure.lineWidth / mesure.echelle).toBeCloseTo(2, 1);
+
+      if (dpr === 1 || dpr === 3) {
+        // EFFACE LE TRAIT DIAGONAL — la mesure PNG qui suit veut un trait
+        // HORIZONTAL, sans ambiguïté, pas la diagonale ci-dessus.
+        await page
+          .getByRole("button", { name: fr["terrain.signature.effacer"] })
+          .click();
+
+        await page.locator("canvas").evaluate((element) => {
+          const rectangle = element.getBoundingClientRect();
+          const envoyer = (type: string, x: number, y: number): void => {
+            element.dispatchEvent(
+              new PointerEvent(type, {
+                bubbles: true,
+                clientX: rectangle.left + x,
+                clientY: rectangle.top + y,
+                pointerId: 1,
+              }),
+            );
+          };
+          envoyer("pointerdown", 40, 50);
+          envoyer("pointermove", 120, 50);
+          envoyer("pointerup", 120, 50);
+        });
+
+        // LES PIXELS DU PNG RÉELLEMENT ENREGISTRÉ, PAS LA PROPRIÉTÉ
+        // `lineWidth` — voir le docblock. `positionCanevas` convertit déjà le
+        // point du pointeur à l'échelle de la résolution interne, si bien que
+        // le trait horizontal tracé en x ∈ [40, 120] (coordonnées CSS) occupe
+        // x ∈ [40 × échelle, 120 × échelle] en pixels internes — la même
+        // échelle que celle du PNG décodé ci-dessous.
+        const mesurePixels = await page
+          .locator("canvas")
+          .evaluate(async (element) => {
+            const canevas = element as HTMLCanvasElement;
+            const rectangle = canevas.getBoundingClientRect();
+            const echelleInterne = canevas.width / rectangle.width;
+            const xInterne = Math.round(80 * echelleInterne);
+
+            const image = new Image();
+            await new Promise<void>((resolve, reject) => {
+              image.onload = () => resolve();
+              image.onerror = () => reject(new Error("décodage du PNG échoué"));
+              image.src = canevas.toDataURL();
+            });
+
+            const decodeur = document.createElement("canvas");
+            decodeur.width = image.naturalWidth;
+            decodeur.height = image.naturalHeight;
+            const contexteDecodeur = decodeur.getContext("2d");
+            if (contexteDecodeur === null) {
+              throw new Error("contexte 2D absent (décodage)");
+            }
+            contexteDecodeur.drawImage(image, 0, 0);
+
+            const donnees = contexteDecodeur.getImageData(
+              xInterne,
+              0,
+              1,
+              decodeur.height,
+            ).data;
+            let epaisseur = 0;
+            for (let y = 0; y < decodeur.height; y += 1) {
+              if (donnees[y * 4 + 3] > 0) epaisseur += 1;
+            }
+            return { epaisseur, echelleInterne };
+          });
+
+        // ≈ 2 × DPR PIXELS INTERNES — le défaut d'avant ce ticket aurait
+        // rendu un trait d'ÉPAISSEUR CONSTANTE (~1 pixel physique) QUEL QUE
+        // SOIT LE DPR ; `epaisseur ≥ dpr + 1` sépare sans ambiguïté les deux :
+        // à DPR 1, le défaut rendrait 1, le correctif ≥ 2 ; à DPR 3, le
+        // défaut rendrait 1, le correctif ≥ 4 (en pratique ~6 à 8).
+        expect(mesurePixels.epaisseur).toBeGreaterThanOrEqual(dpr + 1);
+        expect(mesurePixels.epaisseur).toBeLessThanOrEqual(dpr * 4 + 2);
+      }
 
       // EFFACE AVANT DE REFERMER — la fiche est partagée par les trois DPR
       // de cette boucle ; le prochain doit repartir d'un canevas vide.
