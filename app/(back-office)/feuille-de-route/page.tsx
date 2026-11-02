@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -31,6 +33,8 @@ import { t } from "@/lib/i18n/fr";
  * `lib/auth/reinitialisation.ts`), et l'exiger ici lui fermerait une page que
  * la demande d'Alexis lui ouvre explicitement.
  */
+
+export const metadata: Metadata = { title: t("feuille_de_route.titre") };
 
 const TON_PAR_STATUT: Record<StatutFeuilleDeRoute, TonBadge> = {
   en_cours: "bleu",
