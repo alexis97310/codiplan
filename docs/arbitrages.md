@@ -4704,9 +4704,9 @@ La référence interne (`Local-…`, ou `MAC-…` une fois numérotée) ne dispa
 
 **Aucune machine n'est créée par cet import.** Il ne rattache qu'à des machines déjà présentes dans CODIPLAN. Les 995 machines de l'archive ne deviennent pas 995 fiches : elles servent de source à raccorder, rien de plus.
 
-### « SI ON EST SÛR » — LA TRADUCTION EN RÈGLE
+### « SI ON EST SÛR » — LA TRADUCTION EN RÈGLE, PARCE QU'UNE MACHINE NE SAIT PAS ÊTRE SÛRE
 
-Le critère retenu est **l'unicité**. Un rapprochement n'est *sûr* que lorsqu'il désigne **exactement une** machine de chaque côté. Dès qu'il y a deux candidats, il n'est plus sûr — il descend d'un rang.
+Le critère retenu est **l'unicité**. Un rapprochement n'est *sûr* que lorsqu'il désigne **exactement une** machine de chaque côté. Dès qu'il y a deux candidats, il n'est plus sûr — il descend d'un rang. C'est vérifiable, c'est testable, et ça ne se négocie pas au cas par cas.
 
 | Rang | Règle | Ce qu'on en fait |
 |---|---|---|
@@ -4714,21 +4714,39 @@ Le critère retenu est **l'unicité**. Un rapprochement n'est *sûr* que lorsqu'
 | **2 — sûr par déduction** | Pas de n° de série exploitable, mais la conjonction **client + famille + marque + libellé** ne désigne qu'**une seule** machine CODIPLAN, et réciproquement | **Rattaché automatiquement**, et marqué comme déduit |
 | **3 — incertain** | Tout le reste : plusieurs candidats, aucun candidat, ou une machine d'archive qui viserait une fiche déjà revendiquée par une autre | **Non rattaché.** Listé avec son motif, jamais deviné |
 
-*Une correspondance ambiguë n'est pas une correspondance faible : c'est une non-correspondance.*
+*Une correspondance ambiguë n'est pas une correspondance faible : c'est une non-correspondance.* Le rang 3 n'est pas un échec de l'import, c'est son honnêteté.
 
 ### LE GESTE, EN TROIS TEMPS — ET LE PREMIER N'ÉCRIT RIEN
 
-1. **Contrôle** — le fichier est lu, rapproché, et rend son rapport (rangs 1, 2, 3 et pourquoi). **Zéro écriture.**
+L'écran `/imports` sait déjà **contrôler, confirmer, appliquer**, et il sait **annuler un lot**. La reprise emprunte ce chemin, sans en inventer un autre.
+
+1. **Contrôle** — le fichier est lu, rapproché, et rend son rapport : combien au rang 1, combien au rang 2, combien au rang 3, et pourquoi. **Zéro écriture.**
 2. **Confirmation** — Alexis voit les chiffres et décide.
 3. **Application** — seuls les rangs 1 et 2 sont écrits, en un lot **annulable**.
 
-### CE QUI NE S'INVENTE PAS
+### CE QUI EST ÉCRIT, ET CE QUI NE L'EST PAS
 
-- **Le type d'intervention** : aucun type ne se déduit d'un texte libre par ressemblance.
-- **Le technicien** : rattaché seulement s'il désigne **un seul** technicien actif ; sinon vide, nom brut conservé dans l'objet.
-- **Le statut** : une intervention d'archive est `cloturee`.
-- **Les 123 lignes `Lecture_fiable = A VERIFIER`** se signalent, elles ne se fondent pas dans un total muet.
+Pour chaque machine rattachée : ses **interventions** (`Intervention`, reliées par `intervention_machine`), leurs **montants** (`montant_ht` existe), et leurs **lignes de facturation** si le modèle les accueille — à mesurer, pas à présumer.
+
+**Ce qui ne s'invente pas :**
+
+- **Le type d'intervention.** L'archive porte un objet en texte libre (`Objet_intervention`) ; `TypeIntervention` est une liste close de neuf valeurs. **Aucun type ne se déduit d'un texte libre par ressemblance.** La session mesure les objets réels, propose une correspondance pour ceux qui en ont une certaine, et dit ce qu'elle fait des autres — avec les comptes.
+- **Le technicien.** L'archive porte un prénom (« David »). Il ne se rattache que s'il désigne **un seul** technicien actif ; sinon le champ reste vide et le nom brut est conservé dans l'objet.
+- **Le statut.** Une intervention d'archive est un fait passé : `cloturee`. Elle ne repart pas dans la file de ce qui est à planifier.
+- **Les 123 lignes marquées `Lecture_fiable = A VERIFIER`** se signalent, elles ne se fondent pas dans un total muet.
+
+### LES GARDE-FOUS QUI VIENNENT DU FICHIER LUI-MÊME
+
+- **Une observation VGP « non rattachée » ne prouve pas qu'elle est restée ouverte** — le fichier le dit lui-même. Elle ne s'affiche jamais comme un manquement.
+- **Deux dossiers d'archive nommés différemment pour une même machine** créent deux lignes : elles tomberont au rang 3 par la règle d'unicité, ce qui est exactement le bon traitement.
+- **Les 272 documents non identifiés** restent orphelins. Aucun rattachement au hasard.
 - **Le fichier n'entre pas dans le dépôt** (I9) : il passe par l'écran d'import.
+
+### CE QUE ÇA OUVRE
+
+C'est un **lot**, pas un réglage : aucun import d'interventions n'existe aujourd'hui (les types importables sont clients, sites, modèles, prestations, familles, équipements). Il faut un type d'import, un rapprochement, un chemin d'écriture et son annulation.
+
+**Le chiffre qui décide de tout reste à mesurer** : combien des 995 machines de l'archive se rattachent aux 202 de CODIPLAN. Il ne se mesure que contre la base réelle, et c'est le passage de contrôle qui le rendra.
 
 ---
 
