@@ -1,7 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   estRoleDeBureau,
+  parTranchesDeCinq,
   ROLES_DE_BUREAU,
   schemaCreationCompteDeBureau,
 } from "@/lib/auth/acces-bureau";
@@ -79,5 +80,52 @@ describe("schemaCreationCompteDeBureau", () => {
       role: "pas-un-role",
     });
     expect(analyse.success).toBe(false);
+  });
+});
+
+/**
+ * `parTranchesDeCinq` (9IC-CORRECTIFS-COURTS, point 2) — partagée par
+ * `etatsAccesDesComptes` et `etatsAccesDesTechniciens`
+ * (`lib/auth/acces-technicien.ts`) pour plafonner les lectures `compte` de
+ * l'écran Équipe. Mesurée ICI, sur la fonction nue, plutôt que sur les deux
+ * appelants en base : une mesure par comptage de transactions en vol contre
+ * `clientApp()` (tentée dans `tests/isolation/9ic-equipe-par-tranches.test.ts`)
+ * s'est révélée instable sous `pnpm test:isolation` complet — polluée par le
+ * `Promise.all` SANS plafond, déjà existant et hors territoire, qui lit le
+ * journal d'accès d'autant d'administrateurs que la société en accumule
+ * (jusqu'à 35 mesurés dans SOCIETE_A sur la suite entière). La fonction
+ * partagée, elle, ne dépend d'aucune fixture : la preuve est déterministe.
+ */
+describe("parTranchesDeCinq", () => {
+  it("N=12 — jamais plus de 5 appels en vol à la fois", async () => {
+    const DELAI_MS = 10;
+    let enVol = 0;
+    let maxVu = 0;
+    const fn = vi.fn(async (item: number) => {
+      enVol += 1;
+      maxVu = Math.max(maxVu, enVol);
+      await new Promise((resolve) => setTimeout(resolve, DELAI_MS));
+      enVol -= 1;
+      return item * 10;
+    });
+
+    const items = Array.from({ length: 12 }, (_, i) => i);
+    const resultats = await parTranchesDeCinq(items, fn);
+
+    expect(fn).toHaveBeenCalledTimes(12);
+    expect(maxVu).toBeLessThanOrEqual(5);
+    // La mesure doit être CAPABLE de voir un dépassement : au moins deux
+    // appels se sont chevauchés (sinon le délai artificiel n'a servi à
+    // rien, et « ≤ 5 » serait vrai par accident, même sans tranches).
+    expect(maxVu).toBeGreaterThan(1);
+    // Ordre conservé, aucune confusion entre tranches.
+    expect(resultats).toEqual(items.map((i) => i * 10));
+  });
+
+  it("tableau vide — rend un tableau vide sans appeler `fn`", async () => {
+    const fn = vi.fn();
+    const resultats = await parTranchesDeCinq([], fn);
+    expect(resultats).toEqual([]);
+    expect(fn).not.toHaveBeenCalled();
   });
 });

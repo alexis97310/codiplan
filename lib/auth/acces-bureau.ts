@@ -30,6 +30,35 @@ import {
   viseCetteCible,
 } from "./lien-d-acces";
 
+/** Lectures `compte` simultanées, par appel à `parTranchesDeCinq` — voir sa JSDoc. */
+const TAILLE_TRANCHE_LECTURE_COMPTE = 5;
+
+/**
+ * Résout `items` par `fn`, par tranches successives d'au plus
+ * `TAILLE_TRANCHE_LECTURE_COMPTE` promesses simultanées — ordre conservé.
+ * Partagée avec `etatsAccesDesTechniciens`
+ * (`lib/auth/acces-technicien.ts`) : un `Promise.all` SANS plafond posant les
+ * N lectures `compte.findFirst` de l'écran Équipe de front — chacune sa
+ * propre transaction, `lib/auth/lecture-identite.ts` — dépasse, pour une
+ * grande équipe, le pool Prisma par défaut (`lib/db/client.ts`) et le
+ * `maxWait` de 2 s de `$transaction` : l'écran entier échouerait (« Unable to
+ * start a transaction ») plutôt que d'être seulement lent (réserve du solde
+ * 595, 9IC-CORRECTIFS-COURTS). La politique RLS `compte_lecture` reste
+ * INCHANGÉE — plafonner la concurrence est la seule option hors territoire
+ * d'une migration.
+ */
+export async function parTranchesDeCinq<T, R>(
+  items: readonly T[],
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const resultats: R[] = [];
+  for (let i = 0; i < items.length; i += TAILLE_TRANCHE_LECTURE_COMPTE) {
+    const tranche = items.slice(i, i + TAILLE_TRANCHE_LECTURE_COMPTE);
+    resultats.push(...(await Promise.all(tranche.map(fn))));
+  }
+  return resultats;
+}
+
 /**
  * LES COMPTES DE BUREAU (D196, 9ET-COMPTES-BUREAU-1 — décisions 78 et 80
  * d'Alexis, 12/10/2026).
@@ -524,11 +553,15 @@ export type EtatAccesBureau =
  * `lib/auth/habilitations.ts`), puis le plus récent événement visant chaque
  * cible, tous confondus.
  *
- * **POURQUOI `designe.compte.findFirst` SANS `orderBy` RESTE JUSTE** — voir la
- * preuve au même endroit dans `etatsAccesDesTechniciens`
+ * **`designe.compte.findFirst` PORTE UN `orderBy` DE DÉFENSE, PAS DE
+ * CORRECTIF** — voir la preuve au même endroit dans `etatsAccesDesTechniciens`
  * (`lib/auth/acces-technicien.ts`) : mesuré sur les trois chemins de création
- * de ce dépôt, `(emetteur, compte_externe_id)` borne à UNE ligne par
- * utilisateur (9I4-EQUIPE-N-PLUS-UN, point 2).
+ * de ce dépôt, `(emetteur, compte_externe_id)` borne déjà à UNE ligne par
+ * utilisateur (9I4-EQUIPE-N-PLUS-UN, point 2). `orderBy: [{ cree_le: "asc" },
+ * { id: "asc" }]` (9IC-CORRECTIFS-COURTS) ne corrige donc rien d'observé —
+ * il borne le résultat si un jour un second émetteur ouvrait une deuxième
+ * ligne `compte` pour un même utilisateur, plutôt que de laisser Postgres
+ * choisir silencieusement laquelle `findFirst` rend.
  */
 export async function etatsAccesDesComptes(
   contexteAdmin: ContexteSession,
@@ -593,7 +626,7 @@ export async function etatsAccesDesComptes(
     instant.getTime() - DUREE_LIEN_PREMIER_ACCES_SECONDES * 1000,
   );
 
-  // ── LE COMPTE DE CHAQUE PERSONNE, DE FRONT (9I4-EQUIPE-N-PLUS-UN) ─────────
+  // ── LE COMPTE DE CHAQUE PERSONNE, PAR TRANCHES DE 5 (9I4 puis 9IC) ────────
   //
   // `compte` porte la politique « DÉSIGNATION » (self-authored,
   // `utilisateur_id = app.authentification_utilisateur_id`,
@@ -610,19 +643,19 @@ export async function etatsAccesDesComptes(
   // lot (voir `docs/propositions/9I4-EQUIPE-N-PLUS-UN/passation.md`).
   //
   // Ce qui reste, et qui ne touche ni RLS ni migration : les N lectures
-  // restent nécessaires, mais DE FRONT plutôt que l'une après l'autre — même
-  // forme que les lectures `journalAcces.findMany` par administrateur,
-  // juste au-dessus, déjà parallélisées par `Promise.all`.
-  const comptes = await Promise.all(
-    utilisateurIds
-      .filter((utilisateurId) => idsValides.has(utilisateurId))
-      .map(async (utilisateurId) => ({
-        utilisateurId,
-        compte: await designe.compte.findFirst({
-          where: { utilisateur_id: utilisateurId },
-          select: { mot_de_passe: true, cree_le: true },
-        }),
-      })),
+  // restent nécessaires, mais PAR TRANCHES DE `TAILLE_TRANCHE_LECTURE_COMPTE`
+  // plutôt que l'une après l'autre OU toutes de front sans plafond — voir
+  // `parTranchesDeCinq` ci-dessus.
+  const comptes = await parTranchesDeCinq(
+    utilisateurIds.filter((utilisateurId) => idsValides.has(utilisateurId)),
+    async (utilisateurId) => ({
+      utilisateurId,
+      compte: await designe.compte.findFirst({
+        where: { utilisateur_id: utilisateurId },
+        select: { mot_de_passe: true, cree_le: true },
+        orderBy: [{ cree_le: "asc" }, { id: "asc" }],
+      }),
+    }),
   );
 
   const resultat = new Map<string, EtatAccesBureau>();

@@ -5,7 +5,10 @@ import type { Envoi } from "@/lib/courriel/message";
 import { prisma } from "@/lib/db/client";
 import { avecSociete } from "@/lib/db/rls";
 
-import { estCibleProtegeeCopieNouveauLien } from "./acces-bureau";
+import {
+  estCibleProtegeeCopieNouveauLien,
+  parTranchesDeCinq,
+} from "./acces-bureau";
 import { DUREE_LIEN_PREMIER_ACCES_SECONDES } from "./config";
 import { type ContexteSession, exigerSocieteActive } from "./contexte";
 import {
@@ -370,8 +373,9 @@ export type EtatAcces =
  * `administrer_utilisateurs` (jamais une liste écrite à la main), puis le
  * plus récent événement visant chaque cible, tous confondus.
  *
- * **POURQUOI `designe.compte.findFirst` SANS `orderBy` RESTE JUSTE
- * (9I4-EQUIPE-N-PLUS-UN, point 2)** — `Compte` n'a aucune unicité sur
+ * **`designe.compte.findFirst` PORTE UN `orderBy` DE DÉFENSE, PAS DE
+ * CORRECTIF (9I4-EQUIPE-N-PLUS-UN, point 2 ; `orderBy` ajouté en
+ * 9IC-CORRECTIFS-COURTS)** — `Compte` n'a aucune unicité sur
  * `utilisateur_id` seul (`@@unique([emetteur, compte_externe_id])` seulement,
  * `prisma/schema.prisma`), mais **mesuré** : les TROIS chemins qui créent une
  * ligne `compte` dans ce dépôt — l'amorçage (`signUpEmail`, voir l'en-tête de
@@ -380,8 +384,10 @@ export type EtatAcces =
  * L'unicité (emetteur, compte_externe_id) borne donc, EN PRATIQUE, à UNE seule
  * ligne par utilisateur. Un second émetteur (un fournisseur OAuth, par
  * exemple) n'existe dans aucun chemin de ce dépôt aujourd'hui ; en ouvrir un
- * referait cette mesure, et c'est lui qui devrait alors rendre cette lecture
- * déterministe (pas ce module, hors territoire — voir la passation).
+ * referait cette mesure. `orderBy: [{ cree_le: "asc" }, { id: "asc" }]` ne
+ * corrige donc rien d'observé — il borne le résultat si ce jour arrivait,
+ * plutôt que de laisser Postgres choisir silencieusement laquelle
+ * `findFirst` rend.
  */
 export async function etatsAccesDesTechniciens(
   contexteAdmin: ContexteSession,
@@ -445,7 +451,7 @@ export async function etatsAccesDesTechniciens(
     instant.getTime() - DUREE_LIEN_PREMIER_ACCES_SECONDES * 1000,
   );
 
-  // ── LE COMPTE DE CHAQUE PERSONNE, DE FRONT (9I4-EQUIPE-N-PLUS-UN) ─────────
+  // ── LE COMPTE DE CHAQUE PERSONNE, PAR TRANCHES DE 5 (9I4 puis 9IC) ────────
   //
   // `compte` porte la politique « DÉSIGNATION » (self-authored,
   // `utilisateur_id = app.authentification_utilisateur_id`,
@@ -462,19 +468,19 @@ export async function etatsAccesDesTechniciens(
   // lot (voir `docs/propositions/9I4-EQUIPE-N-PLUS-UN/passation.md`).
   //
   // Ce qui reste, et qui ne touche ni RLS ni migration : les N lectures
-  // restent nécessaires, mais DE FRONT plutôt que l'une après l'autre — même
-  // forme que les lectures `journalAcces.findMany` par administrateur,
-  // juste au-dessus, déjà parallélisées par `Promise.all`.
-  const comptes = await Promise.all(
-    utilisateurIds
-      .filter((utilisateurId) => idsValides.has(utilisateurId))
-      .map(async (utilisateurId) => ({
-        utilisateurId,
-        compte: await designe.compte.findFirst({
-          where: { utilisateur_id: utilisateurId },
-          select: { mot_de_passe: true, cree_le: true },
-        }),
-      })),
+  // restent nécessaires, mais PAR TRANCHES DE `TAILLE_TRANCHE_LECTURE_COMPTE`
+  // plutôt que l'une après l'autre OU toutes de front sans plafond — voir
+  // `parTranchesDeCinq` (`lib/auth/acces-bureau.ts`).
+  const comptes = await parTranchesDeCinq(
+    utilisateurIds.filter((utilisateurId) => idsValides.has(utilisateurId)),
+    async (utilisateurId) => ({
+      utilisateurId,
+      compte: await designe.compte.findFirst({
+        where: { utilisateur_id: utilisateurId },
+        select: { mot_de_passe: true, cree_le: true },
+        orderBy: [{ cree_le: "asc" }, { id: "asc" }],
+      }),
+    }),
   );
 
   const resultat = new Map<string, EtatAcces>();
