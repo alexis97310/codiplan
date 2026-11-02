@@ -89,3 +89,34 @@ touché, `app/(back-office)/template.tsx` non touché.
 - Rien de bloquant. Le contenu (`lib/feuille-de-route/contenu.ts`) devra
   être tenu à jour par les tickets qui livrent, et par le pilote à chaque
   relance — c'est écrit en tête du fichier.
+
+## Reprise 9IC51 (02/11/2026 ~19:40–20:10)
+
+Mesuré par la vérification indépendante du lot ci-dessus (1er passage,
+`traces/9IC5-FEUILLE-DE-ROUTE-verify-1.txt`) : `document.title` valait
+« CODIPLAN » seul sur `/feuille-de-route` — la page n'exportait pas
+`metadata`, à la différence de Matériel et Équipe (VISUEL-1).
+
+- **Correction** : `app/(back-office)/feuille-de-route/page.tsx` exporte
+  désormais `export const metadata: Metadata = { title: t("feuille_de_route.titre") };`,
+  posé juste après le commentaire d'en-tête — même forme que
+  `app/(back-office)/parametres/materiel/page.tsx:37` et
+  `app/(back-office)/parametres/equipe/page.tsx:94`. La clé
+  `feuille_de_route.titre` existait déjà dans `lib/i18n/fr.ts` (posée au
+  point 1 de 9IC5, déjà utilisée pour le `<h1>` de la page) ; rien ajouté
+  au dictionnaire.
+- **Vérifié** : `tests/e2e/tous-les-ecrans-rendent.spec.ts` ciblé sur
+  `/feuille-de-route rend 200` (le fichier n'a pas été touché — hors
+  territoire) ; les trois épreuves de
+  `tests/e2e/9ic5-feuille-de-route.spec.ts` ; `CI=1 pnpm verify` entier,
+  vert.
+- **Captures** : `captures-9ic5-feuille-de-route.spec.ts` rejoué pour les
+  quatre captures. `page-1280.png` et `page-375.png` ressortent
+  bit-à-bit identiques — le titre d'onglet n'entre pas dans une capture du
+  contenu de la page, rien à mettre à jour. `menu-1280.png` avait divergé
+  de quelques octets au second passage (rendu non déterministe, aucun lien
+  avec ce correctif) ; cette capture n'était pas demandée par ce point et a
+  été restaurée à sa version déjà commitée plutôt que commitée pour rien.
+- **Hors territoire, non touché** : `tests/e2e/tous-les-ecrans-rendent.spec.ts`,
+  `lib/navigation/entrees.ts`, `lib/auth/**`, `lib/feuille-de-route/contenu.ts`,
+  toute migration, `CLAUDE.md`.
