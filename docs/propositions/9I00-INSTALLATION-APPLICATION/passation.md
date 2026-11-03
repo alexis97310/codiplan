@@ -216,3 +216,51 @@ entier, sans bornage de temps, pour confirmer qu'aucun autre fichier de la
 suite n'a été affecté par les changements de ce lot — en particulier
 `app/(sans-session)/connexion/page.tsx` et `app/api/session/connexion/
 route.ts`, touchés par le point 3.
+
+## Reprise « 9I00A-REPRISE-9I00 » (04/11/2026)
+
+La vérification indépendante du lot ci-dessus (1er passage) a rendu 7 échecs
+sur `tests/e2e/`. Les 8 commits de la garde (`9I00-INSTALLATION-APPLICATION
+-garde`) ont été reportés sur `origin/main` (`acaee2aa3`) à l'identique — `main`
+étant extrait dans un autre worktree, cette reprise travaille elle aussi sur
+une branche dédiée (`9I00A-REPRISE-9I00`), comme l'originale.
+
+### Famille A — les deux parcours de premier accès (CORRIGÉE)
+
+`tests/e2e/9i6b-lien-acces-a-copier.spec.ts` et `tests/e2e/acces-technicien.spec.ts`
+attendaient `/terrain` directement après la connexion qui suit le premier
+accès ; cette connexion passe désormais par `/installation?suite=/terrain`
+(voir le point 3 ci-dessus, `app/(apres-session)/arrivee/page.tsx`) — ces deux
+épreuves n'avaient simplement pas été mises à jour avec le nouveau parcours
+qu'elles traversent elles-mêmes. Corrigé en insérant, juste avant l'assertion
+`/\/terrain$/` inchangée, la vérification de l'arrivée sur
+`/installation?suite=%2Fterrain` puis un clic sur le lien « Plus tard »
+(`fr["pwa.etape.plus_tard"]`) — aucune autre ligne de ces deux fichiers n'a
+changé. Rejoué `CI=1 --workers=1` : 3 passed (verts).
+
+### Famille B — le glisser-déposer du planning (CLOSE, sans code touché)
+
+Les 5 épreuves nommées par le pilote
+(`glisser-deposer.spec.ts:168`, `planning-annuler-deplacement.spec.ts`,
+`planning-semaine-garde-heure.spec.ts`,
+`captures-pg-a7-semaine-garde-heure.spec.ts`,
+`captures-pg-b5-annuler-deplacement.spec.ts`) sont **vertes sur cette
+branche** : rejouées ensemble (`CI=1 --workers=1`), 16 passed. Conformément à
+la note du pilote mise à jour le 04/11 ~01:55, la cause était la date de la
+scène e2e tombant sur un jour férié (le 11/11, Armistice) — déjà corrigée par
+`9I000-SCENE-SANS-JOUR-FERIE` et sa reprise `9I000A-REPRISE-9I000`, toutes
+deux déjà sur `origin/main` (`acaee2aa3`) avant que cette branche n'en parte.
+Rien n'a été touché pour cette famille, comme demandé : ni les épreuves, ni
+le planning.
+
+### Captures
+
+Aucune — aucun écran n'a changé à cause de la famille B (close sans code),
+et la famille A n'a touché que des épreuves, jamais un écran.
+
+### Ce qui reste dû
+
+Identique au point ouvert déjà noté plus haut (captures AVANT/APRÈS absentes
+du lot d'origine, `pnpm test:e2e` jamais rejoué en entier sans bornage) — cette
+reprise n'avait pas vocation à les combler, son territoire étant les 7 échecs
+mesurés par la vérification indépendante.
