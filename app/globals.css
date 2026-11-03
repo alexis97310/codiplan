@@ -636,3 +636,34 @@
     font-size: 11pt;
   }
 }
+
+/*
+ * L'IMPRESSION DE L'AFFICHE D'INSTALLATION (9I00) — MÊME MÉCANISME que
+ * `print-bon`/`print-vgp` ci-dessus, jamais une variante : classe posée sur
+ * `<body>` par `ImprimerAfficheInstallation`
+ * (`components/pwa/actions-affiche.tsx`) avant `window.print()`, retirée par
+ * `afterprint`. `:has()` écarté pour la même raison déjà mesurée (voir
+ * `print-qr`) — cette page vit dans le back-office et porte sa barre de
+ * navigation, qu'aucune impression de ce dépôt ne laisse passer.
+ */
+@media print {
+  @page {
+    size: A4;
+    margin: 15mm;
+  }
+  body.print-affiche * {
+    visibility: hidden;
+  }
+  body.print-affiche .zone-impression-affiche,
+  body.print-affiche .zone-impression-affiche * {
+    visibility: visible;
+  }
+  body.print-affiche .zone-impression-affiche {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    border: 0;
+    box-shadow: none;
+  }
+}

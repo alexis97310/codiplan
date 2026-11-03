@@ -7245,6 +7245,15 @@ export const fr = {
   "pwa.page_installer.ios.titre": "Sur iPhone ou iPad (Safari)",
   "pwa.page_installer.connexion": "Se connecter",
 
+  // ── L'AFFICHE À IMPRIMER DE `/installer` (9I00, `/parametres/equipe/
+  // affiche`) — réservée à qui gère l'équipe, aucune donnée personnelle.
+  "pwa.affiche.titre": "Installez CODIPLAN sur votre téléphone",
+  "pwa.affiche.explication":
+    "Scannez ce code avec l'appareil photo de votre téléphone, puis suivez les instructions à l'écran.",
+  "pwa.affiche.qr.titre": "Code QR vers la page d'installation de CODIPLAN",
+  "pwa.affiche.imprimer": "Imprimer l'affiche",
+  "equipe.affiche.lien": "Affiche à imprimer",
+
   // ── L'ÉTAPE D'INSTALLATION APRÈS LE PREMIER ACCÈS (9I00,
   // `app/(apres-session)/installation/page.tsx`) — jamais bloquante.
   "pwa.etape.titre": "Installez CODIPLAN",

@@ -436,9 +436,17 @@ export default async function PageEquipe({
       ]}
       sousTitre={t("equipe.sous_titre")}
       actions={
-        <LienPrimaire href={hrefOuvrirVolet(ongletActif, filtres)}>
-          {t("equipe.ajouter_personne")}
-        </LienPrimaire>
+        <>
+          <Link
+            href="/parametres/equipe/affiche"
+            className="text-app-marque text-13 font-bold underline"
+          >
+            {t("equipe.affiche.lien")}
+          </Link>
+          <LienPrimaire href={hrefOuvrirVolet(ongletActif, filtres)}>
+            {t("equipe.ajouter_personne")}
+          </LienPrimaire>
+        </>
       }
     >
       {typeof motif === "string" &&
