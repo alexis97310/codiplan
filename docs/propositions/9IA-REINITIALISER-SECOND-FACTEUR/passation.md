@@ -196,3 +196,53 @@ reste possible dans tous les cas (aucune société active, donc aucun appel à c
 - `tests/e2e/captures-9ia1-second-facteur-exclusivite.spec.ts` rejoué seul sous `CI=1` avec
   `CAPTURES_9IA1` : vert (2 tests, ~1,6 min), deux captures produites (375/1280 px).
 - `CI=1 pnpm verify:full` : voir `verify-final.txt`.
+
+## Reprise 9IA1A (04/11/2026) — inventaire et fin de 9IA1
+
+9IA1 (parti le 03/11 23:10 de `a47ae2118`) a été arrêté par sa limite de 80 min à 00:30, sans message
+final (`traces/9IA1-REPRISE-9IA.txt` vide). Garde : `9IA1-REPRISE-9IA-garde`. Les deux vérifications
+indépendantes du pilote (`traces/9IA1-REPRISE-9IA-verify-1.txt`, `-2.txt`) n'avaient échoué QUE sur les
+5 glisser-déposer du planning (`tests/e2e/glisser-deposer.spec.ts`), cause commune à tous les lots de
+cette fenêtre (semaine de la scène e2e tombant sur le 11/11 férié), réparée à part par
+`9I000-SCENE-SANS-JOUR-FERIE` (déjà sur `origin/main` au départ de cette reprise).
+
+### Inventaire des points 1 à 6 de 9IA1
+
+Les 6 commits de la garde ont tous été reportés sans conflit bloquant (`git cherry-pick`, deux
+auto-merges propres sur `lib/i18n/fr.ts` et la page Équipe) :
+
+1. **Fait et commité** — `lib/auth/reinitialisation.ts:131-155` (défense en profondeur dans
+   `reinitialiserSecondFacteur`) et `app/api/equipe/bureau/[id]/reinitialiser-second-facteur/route.ts:67-74`
+   (contrôle séparé, refus nommé `equipe.bureau.refus.autre_societe_second_facteur`) appellent
+   `identiteExclusiveALaSociete` pour B seul, fail-closed, avant toute écriture. A inchangé.
+2. **Fait et commité** — `app/(back-office)/parametres/equipe/page.tsx:699-712` : le bouton
+   « Réinitialiser le second facteur » se masque pour B quand la cible n'est pas exclusive, en
+   réutilisant `exclusiviteBureau` déjà calculée (aucune requête de plus).
+3. **Fait et commité** — `tests/isolation/reinitialisation-second-facteur.test.ts` (describe « D226,
+   exclusivité », 22 scénarios du fichier, rejoué ici : verts) et
+   `tests/e2e/9ia1-second-facteur-autre-societe.spec.ts` (rejoué ici sous `CI=1 --workers=1` avec les
+   5 glisser-déposer : 10/10 verts).
+4. **Fait et commité** — `docs/propositions/9IA-REINITIALISER-SECOND-FACTEUR/captures/9ia1-exclusivite-second-facteur-{375,1280}.png`,
+   dimensions vérifiées (`file` : 375×1518 et 1280×1400), documentées dans `captures/README.md`.
+5. **Fait et commité** — complément D226 dans `docs/arbitrages.md` (section « COMPLÉMENT DU
+   03/11/2026 »), étendant l'exclusivité au geste B de 9IA.
+6. **Partiel** — la section « Reprise 9IA1 » de cette passation était écrite et commitée, mais la
+   seconde moitié du point (rejouer `CI=1 pnpm verify:full` en entier et le `tee` dans
+   `verify-final.txt`, puis `git fetch`/`rebase`/`verify` final, arbre propre) n'avait pas eu lieu
+   avant la coupure à 80 min — `verify-final.txt` ne portait toujours que la trace de 9IA lui-même
+   (commit `8384ace75`), jamais réécrite par 9IA1.
+
+### Ce que cette reprise a fini
+
+Aucun code neuf : tout le territoire du ticket (points 1 à 5) était déjà fait et commité par la garde.
+Seule la fin du point 6 restait : rejoué ici, ciblé plutôt qu'en entier (cette reprise ne joue pas
+`verify:full`, qui revient à la file juste après) —
+
+- `tests/isolation/reinitialisation-second-facteur.test.ts` seul : 22/22 verts.
+- `tests/e2e/9ia1-second-facteur-autre-societe.spec.ts` + `tests/e2e/glisser-deposer.spec.ts` sous
+  `CI=1 --workers=1` : 10/10 verts (les 5 glisser-déposer confirmés réparés par 9I000).
+- `CI=1 pnpm verify` (format:check, typecheck, lint, test, test:isolation, build) : vert, aucune
+  erreur ni avertissement.
+
+`verify:full` complet (feries:horizon, audit:partitions, test:e2e en entier) n'a pas été rejoué ici —
+hors périmètre de cette reprise, laissé à la file.
