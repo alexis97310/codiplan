@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { BoutonInstallerCodiplan } from "@/components/pwa/bouton-installer";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { obtenirSession } from "@/lib/auth/session";
 import { t } from "@/lib/i18n/fr";
@@ -72,6 +73,8 @@ export default async function PageProfilTerrain() {
           {ligneSociete(societe?.raison_sociale ?? null)}
         </p>
       </section>
+
+      <BoutonInstallerCodiplan />
 
       <form action="/api/session/deconnexion" method="post">
         <button

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 
 import { EnregistrementServiceWorker } from "@/components/pwa/enregistrement";
+import { FournisseurInstallationPwa } from "@/components/pwa/magasin-installation";
 import { EffacementCopieADeconnexion } from "@/components/terrain/effacement-copie-locale";
 import { t } from "@/lib/i18n/fr";
 import { chromeDeLaRequete } from "@/lib/navigation/chrome";
@@ -141,7 +142,14 @@ export default async function RootLayout({
         data-theme={theme.origine}
         style={variablesCss(theme)}
       >
-        {children}
+        {/*
+          LE CONTEXTE D'INSTALLATION EST POSÉ ICI, À LA RACINE (9I00) — même
+          raison que le service worker juste au-dessous : `beforeinstallprompt`
+          ne se déclenche qu'une fois par chargement de page, et un composant
+          posé sur `/terrain` seul le perdrait au passage vers
+          `/terrain/profil`.
+        */}
+        <FournisseurInstallationPwa>{children}</FournisseurInstallationPwa>
         {/*
           LE SERVICE WORKER S'ENREGISTRE ICI, à la racine (L3-06) : il sert la
           COQUILLE et non un écran, et le poser dans un segment l'attacherait à

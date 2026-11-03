@@ -7221,6 +7221,31 @@ export const fr = {
   // peuvent créer leur propre compte en même temps, et un nom partagé y
   // ferait apparaître deux lignes identiques dans l'écran Équipe.
   "captures9i9.e2e.nom": "9I9CAP — Compte de bureau pour les captures",
+
+  // ── INSTALLATION DE L'APPLICATION (9I00) — le bouton de la journée et du
+  // profil terrain, et son repli selon le téléphone détecté.
+  "pwa.installer.bouton": "Installer CODIPLAN",
+  "pwa.installer.ios.titre": "Installer CODIPLAN sur l'écran d'accueil",
+  "pwa.installer.ios.etape1": "Touchez l'icône Partager, en bas de l'écran.",
+  "pwa.installer.ios.etape2": "Choisissez « Sur l'écran d'accueil ».",
+  "pwa.installer.ios.fermer": "Fermer",
+  "pwa.installer.autre":
+    "Ouvrez CODIPLAN dans Safari (iPhone) ou Chrome (Android) pour l'installer.",
+
+  // ── PAGE PUBLIQUE D'INSTALLATION (9I00, `/installer`) — sans session, sans
+  // donnée de société.
+  "pwa.page_installer.titre": "Installer CODIPLAN",
+  "pwa.page_installer.accroche":
+    "Ajoutez CODIPLAN à l'écran d'accueil de votre téléphone pour l'ouvrir en un geste, comme une application.",
+  "pwa.page_installer.deja_installee":
+    "CODIPLAN est déjà installée sur cet appareil.",
+  "pwa.page_installer.android.titre": "Sur Android (Chrome)",
+  "pwa.page_installer.android.etape1":
+    "Touchez le menu ⋮ en haut à droite de Chrome.",
+  "pwa.page_installer.android.etape2":
+    "Choisissez « Installer l'application » (ou « Ajouter à l'écran d'accueil »).",
+  "pwa.page_installer.ios.titre": "Sur iPhone ou iPad (Safari)",
+  "pwa.page_installer.connexion": "Se connecter",
 } as const;
 
 export type CleTraduction = keyof typeof fr;

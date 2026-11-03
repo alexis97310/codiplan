@@ -19,49 +19,50 @@ _Les numéros de ligne du sommaire sont RECALCULÉS, jamais saisis à la main : 
 
 ### Sommaire
 
-- `app/` — ligne 69
-- `lib/` — ligne 74
-- `lib/db/` — ligne 75
-- `lib/auth/` — ligne 121
-- `lib/absences/` — ligne 156
-- `lib/clients/` — ligne 212
-- `lib/habilitations/` — ligne 215
-- `lib/contacts/` — ligne 223
-- `lib/demandes/` — ligne 233
-- `lib/agences/` — ligne 267
-- `lib/sites/` — ligne 282
-- `lib/machines/` — ligne 312
-- `lib/interventions/` — ligne 363
-- `lib/materiel/` — ligne 537
-- `lib/tarification/` — ligne 570
-- `lib/navigation/` — ligne 666
-- `lib/money/` — ligne 702
-- `lib/courriel/` — ligne 704
-- `lib/avertissements/` — ligne 736
-- `lib/compteurs/` — ligne 749
-- `lib/calendar/` — ligne 768
-- `lib/sync/` — ligne 794
-- `lib/documents/` — ligne 795
-- `lib/excel/` — ligne 821
-- `lib/imports/` — ligne 879
-- `lib/prestations/` — ligne 1031
-- `lib/portail/` — ligne 1050
-- `lib/pdf/` — ligne 1066
-- `lib/reporting/` — ligne 1067
-- `lib/vgp/` — ligne 1068
-- `lib/techniciens/` — ligne 1121
-- `lib/terrain/` — ligne 1126
-- `lib/theme/` — ligne 1135
-- `lib/i18n/` — ligne 1170
-- `lib/tri/` — ligne 1173
-- `lib/societes/` — ligne 1178
-- `lib/audit/` — ligne 1182
-- `lib/tableau-de-bord/` — ligne 1186
-- `lib/feuille-de-route/` — ligne 1190
-- `components/` — ligne 1196
-- `prisma/` — ligne 1197
-- `tests/` — ligne 1198
-- `docs/` — ligne 1217
+- `app/` — ligne 70
+- `lib/` — ligne 75
+- `lib/db/` — ligne 76
+- `lib/auth/` — ligne 122
+- `lib/absences/` — ligne 157
+- `lib/clients/` — ligne 213
+- `lib/habilitations/` — ligne 216
+- `lib/contacts/` — ligne 224
+- `lib/demandes/` — ligne 234
+- `lib/agences/` — ligne 268
+- `lib/sites/` — ligne 283
+- `lib/machines/` — ligne 313
+- `lib/interventions/` — ligne 364
+- `lib/materiel/` — ligne 538
+- `lib/tarification/` — ligne 571
+- `lib/navigation/` — ligne 667
+- `lib/money/` — ligne 703
+- `lib/courriel/` — ligne 705
+- `lib/avertissements/` — ligne 737
+- `lib/compteurs/` — ligne 750
+- `lib/calendar/` — ligne 769
+- `lib/sync/` — ligne 795
+- `lib/documents/` — ligne 796
+- `lib/excel/` — ligne 822
+- `lib/imports/` — ligne 880
+- `lib/prestations/` — ligne 1032
+- `lib/portail/` — ligne 1051
+- `lib/pdf/` — ligne 1067
+- `lib/reporting/` — ligne 1068
+- `lib/vgp/` — ligne 1069
+- `lib/techniciens/` — ligne 1122
+- `lib/terrain/` — ligne 1127
+- `lib/theme/` — ligne 1136
+- `lib/i18n/` — ligne 1171
+- `lib/tri/` — ligne 1174
+- `lib/societes/` — ligne 1179
+- `lib/audit/` — ligne 1183
+- `lib/tableau-de-bord/` — ligne 1187
+- `lib/feuille-de-route/` — ligne 1191
+- `lib/pwa/` — ligne 1197
+- `components/` — ligne 1201
+- `prisma/` — ligne 1202
+- `tests/` — ligne 1203
+- `docs/` — ligne 1222
 
 ---
 
@@ -1193,6 +1194,10 @@ lib/
               qui livrent ; acces.ts : la page et l'entrée de menu sont
               réservées à admin_societe et admin_plateforme, aucune case de
               la matrice des capacités ne tient exactement ces deux rôles
+  pwa/        INSTALLATION DE L'APPLICATION (9I00, demande d'Alexis du
+              31/10/2026) — la détection pure de l'état d'installation
+              (`installation.ts`), lue par `components/pwa/` ; aucun accès au
+              DOM ici, pour rester éprouvable sans navigateur
 components/
 prisma/       schema.prisma, migrations/, seed.ts
 tests/

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { BoutonInstallerCodiplan } from "@/components/pwa/bouton-installer";
 import { BandeauCompteurEnCours } from "@/components/terrain/bandeau-compteur";
 import { BandeauReseau } from "@/components/terrain/bandeau-reseau";
 import { BoutonEnvoyer } from "@/components/terrain/bouton-envoyer";
@@ -246,6 +247,7 @@ export default async function PageTerrain() {
       </header>
 
       <BandeauReseau genereLe={instant.instant.toISOString()} fuseau={fuseau} />
+      <BoutonInstallerCodiplan />
       <RafraichissementAutomatique />
       <BoutonEnvoyer
         utilisateurId={contexte.utilisateurId}

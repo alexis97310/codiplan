@@ -299,6 +299,12 @@ const EXCEPTIONS: readonly Exception[] = [
     raison: "la boîte <dialog> de confirmation de pose",
   },
   {
+    chemin: "components/pwa/bouton-installer.tsx",
+    categories: ["bouton"],
+    raison:
+      "le <button> « Installer CODIPLAN » en mode android_chrome — une action, jamais un regroupement à lire",
+  },
+  {
     chemin: "components/tableau-de-bord/select-priorites.tsx",
     categories: ["champ"],
     raison: "le <select> de priorités opérationnelles",
