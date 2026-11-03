@@ -190,4 +190,29 @@ l'outillage.
 
 ## `pnpm verify:full`, en entier
 
-Voir `verify-final.txt`, produit en fin de lot.
+Voir `verify-final.txt`, produit en fin de lot — **incomplet, et ce fichier le
+dit plutôt que de le cacher.** `CI=1 pnpm verify:full` a tourné au premier
+plan, en un seul appel, borné à 55 minutes par l'outillage de cette session ;
+dans cette fenêtre :
+
+- `pnpm verify` (format:check, typecheck, lint, `pnpm test` — 496 fichiers,
+  5466 épreuves —, `pnpm test:isolation` — 203 fichiers, 1795 épreuves —,
+  `pnpm build`) : **vert en entier**, build compilé en 11,2 s, 101 pages
+  générées.
+- `pnpm feries:horizon` : vert (deux territoires, douze mois d'avance
+  partout).
+- `pnpm audit:partitions` : vert (treize partitions couvertes, aucune ligne
+  dans la partition par défaut).
+- `pnpm test:e2e` (la suite ENTIÈRE, pas les deux fichiers de ce lot) : la
+  fenêtre s'est fermée pendant sa préparation (nouvelle base, migrations,
+  semis) — AVANT qu'un seul scénario n'ait pu s'exécuter. Rien n'a donc été
+  mesuré rouge ; rien n'a pu être mesuré du tout dans cette dernière étape.
+
+Les deux fichiers e2e de ce lot (`tests/e2e/9i00-installer-public.spec.ts`,
+`tests/e2e/9i00-installation-apres-premier-acces.spec.ts`) ont chacun été
+joués séparément pendant le lot (voir le message du commit du point 6) et
+sont verts. Ce qui reste dû, pour une reprise : rejouer `pnpm test:e2e` en
+entier, sans bornage de temps, pour confirmer qu'aucun autre fichier de la
+suite n'a été affecté par les changements de ce lot — en particulier
+`app/(sans-session)/connexion/page.tsx` et `app/api/session/connexion/
+route.ts`, touchés par le point 3.
