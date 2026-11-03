@@ -15,6 +15,11 @@ import {
 import { lundiDeLaSemaine } from "@/lib/calendar/semaine";
 import { avecSociete, avecSocieteEtRole } from "@/lib/db/rls";
 import { uuidv7 } from "@/lib/db/uuid";
+import {
+  anneesFeries,
+  feriesDuTerritoire,
+  TERRITOIRE_NOUVELLE_CALEDONIE,
+} from "@/prisma/seed-data";
 
 import { urlAdministration, urlApplicative } from "./base";
 
@@ -290,6 +295,69 @@ export function lundiSansJourPasse(
 }
 
 /**
+ * Les fériés du territoire de la scène (NC — CODIMA-NC, et donc chacune de
+ * ses trois agences, D46), pour l'horizon glissant que le semis amorce
+ * (`anneesFeries`, `prisma/seed-data.ts`) — JAMAIS une liste recopiée ici :
+ * un territoire qui gagne ou perd un férié le gagne ou le perd aussi pour
+ * la scène, sans rien à synchroniser.
+ */
+export function feriesDeLaSceneNc(anneeDeDepart: number): ReadonlySet<string> {
+  return new Set(
+    anneesFeries(anneeDeDepart).flatMap((annee) =>
+      feriesDuTerritoire(TERRITOIRE_NOUVELLE_CALEDONIE, annee).map(
+        (ferie) => ferie.date,
+      ),
+    ),
+  );
+}
+
+/**
+ * Le lundi À PARTIR DUQUEL MARDI, MERCREDI et SAMEDI ne tombent pas non plus
+ * sur un jour FÉRIÉ du territoire.
+ *
+ * *Mesuré le 04/11/2026 (9I000-SCENE-SANS-JOUR-FERIE) : la semaine du lundi
+ * 09/11/2026 porte MERCREDI (+2) le 11/11, l'Armistice — férié des deux
+ * territoires du jeu (`FERIES_FIXES`). Un dépôt sur un jour férié ouvre la
+ * confirmation « Poser hors des horaires d'ouverture ? » (D93,
+ * `components/planning/pose.tsx`) AVANT toute requête : un scénario qui
+ * glisse et attend directement le POST `…/deplacer` ne la joue jamais, et
+ * `page.waitForResponse` expire.*
+ *
+ * Fonction PURE, indépendante de `lundiSansJourPasse` : composée APRÈS elle
+ * aux points d'appel, jamais avant — avancer d'une semaine pour fuir un
+ * férié ne peut pas faire retomber sur un jour déjà passé, l'avenir ne
+ * recule pas.
+ *
+ * Bornée à 104 semaines (deux ans) : `feriesDeLaSceneNc` ne couvre que trois
+ * années, et aucun calendrier réel n'enchaîne deux ans de MARDI, MERCREDI et
+ * SAMEDI tous fériés — un dépassement est un défaut des données fériées,
+ * jamais une boucle infinie.
+ */
+export function lundiSansJourFerie(
+  lundiCourant: JourLocal,
+  feries: ReadonlySet<string>,
+): JourLocal {
+  let lundi = lundiCourant;
+  let semaines = 0;
+  while (
+    [MARDI, MERCREDI, SAMEDI].some((rang) =>
+      feries.has(cleDeJour(jourSuivant(lundi, rang))),
+    )
+  ) {
+    lundi = jourSuivant(lundi, 7);
+    semaines += 1;
+    if (semaines > 104) {
+      throw new Error(
+        "lundiSansJourFerie : plus de 104 semaines consécutives où MARDI, " +
+          "MERCREDI ou SAMEDI tombe un jour férié du territoire — données " +
+          "fériées suspectes plutôt qu'une boucle infinie.",
+      );
+    }
+  }
+  return lundi;
+}
+
+/**
  * LE LUNDI DE LA SCÈNE, PARTAGÉ PAR `process.env` (9G4D-EPREUVE-TRANSMETTRE-ET-MINUIT).
  *
  * *Mesuré (9G4A1-REPRISE-9G4C, 27/10/2026) : `ecrireLaScene` (préparation
@@ -379,7 +447,14 @@ export async function ecrireLaScene(): Promise<ReperesDeScene> {
     // le pose ci-dessous, pour que les deux processus ne puissent plus
     // diverger si minuit s'intercale entre les deux (9G4D-EPREUVE-TRANSMETTRE-ET-MINUIT).
     const aujourdhui = jourDe(maintenant(societe.fuseau_horaire).local);
-    const lundi = lundiSansJourPasse(lundiDeLaSemaine(aujourdhui), aujourdhui);
+    const lundiSansPasse = lundiSansJourPasse(
+      lundiDeLaSemaine(aujourdhui),
+      aujourdhui,
+    );
+    const lundi = lundiSansJourFerie(
+      lundiSansPasse,
+      feriesDeLaSceneNc(aujourdhui.annee),
+    );
     memoriserLundiScene(lundi);
     const kone = await agenceEtLieu(client, societe.id, "KONE");
     const ducos = await agenceEtLieu(client, societe.id, "DUCOS");

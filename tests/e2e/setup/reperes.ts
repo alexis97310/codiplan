@@ -5,7 +5,9 @@ import { lundiDeLaSemaine } from "@/lib/calendar/semaine";
 
 import { urlAdministration } from "./base";
 import {
+  feriesDeLaSceneNc,
   lundiDeLaSceneMemorise,
+  lundiSansJourFerie,
   lundiSansJourPasse,
   type ReperesDeScene,
 } from "./scene";
@@ -53,7 +55,10 @@ export async function reperesDeLaScene(): Promise<ReperesDeScene> {
         // date UTC est encore la veille et désignerait le lundi de la
         // semaine PRÉCÉDENTE (9D2-TESTS-DATES-NOUMEA).
         const aujourdhui = jourDe(maintenant(societe.fuseau_horaire).local);
-        return lundiSansJourPasse(lundiDeLaSemaine(aujourdhui), aujourdhui);
+        return lundiSansJourFerie(
+          lundiSansJourPasse(lundiDeLaSemaine(aujourdhui), aujourdhui),
+          feriesDeLaSceneNc(aujourdhui.annee),
+        );
       })();
     return {
       societeId: societe.id,
