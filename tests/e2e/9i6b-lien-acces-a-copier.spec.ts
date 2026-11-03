@@ -208,6 +208,10 @@ test("l'administrateur copie le lien, le technicien choisit son mot de passe ail
   await pageTechnicien
     .getByRole("button", { name: fr["connexion.valider"] })
     .click();
+  await expect(pageTechnicien).toHaveURL(/\/installation\?suite=%2Fterrain$/);
+  await pageTechnicien
+    .getByRole("link", { name: fr["pwa.etape.plus_tard"] })
+    .click();
   await expect(pageTechnicien).toHaveURL(/\/terrain$/);
 
   await pageTechnicien.close();
