@@ -7749,6 +7749,12 @@ Deux options posées (passation de 9I8D, POINT 2) : **1**, arbitrer l'exception,
 
 Portée : `prisma/migrations/20261101080000_identite_exclusive_a_la_societe_9i8d1`, `lib/db/migrations-attendues.ts`, `tests/unit/db/security-definer-sous-arbitrage.test.ts` (`AUTORISEES_PAR_ARBITRAGE`), `lib/auth/acces-bureau.ts`, `lib/auth/acces-technicien.ts`, `lib/auth/lien-d-acces.ts`, les routes `app/api/equipe/**/copier-nouveau-lien`, l'écran Équipe, `lib/i18n/fr.ts`.
 
+### COMPLÉMENT DU 03/11/2026 (9IA1-REPRISE-9IA) — ÉTENDUE À LA RÉINITIALISATION DU SECOND FACTEUR
+
+Revue de 9IA (téléphone perdu, décision d'Alexis du 28/10/2026, réponse « A et B ») : `reinitialiserSecondFacteur` et sa route n'appelaient `identiteExclusiveALaSociete` nulle part (mesuré : `git grep` ne trouvait ce symbole que dans `lib/auth/acces-bureau.ts` et `lib/auth/acces-technicien.ts`). Un admin_societe (B) pouvait donc réinitialiser le second facteur — `utilisateur.mfa_actif` et `second_facteur.verifie`, deux colonnes GLOBALES à l'identité, non cloisonnées par société — d'un compte aussi rattaché à une AUTRE société, alors que D226 le refuse déjà pour la copie d'un nouveau lien. D226 **s'applique donc aussi à ce geste**, pour B seul : `lib/auth/reinitialisation.ts` (`reinitialiserSecondFacteur`, défense en profondeur avant toute écriture) et `app/api/equipe/bureau/[id]/reinitialiser-second-facteur/route.ts` (contrôle séparé, refus nommé `equipe.bureau.refus.autre_societe_second_facteur`, distinct de `equipe.bureau.refus.introuvable`) appellent désormais `identiteExclusiveALaSociete`, après le droit (`peutReinitialiserSecondFacteur`) — même ordre, même garde fail-closed (9I8D2). A (`admin_plateforme`) reste inchangé : la décision du 28/10 ne l'exclut d'aucun compte, et cette reprise ne l'y ajoute pas.
+
+Portée ajoutée : `lib/auth/reinitialisation.ts`, `app/api/equipe/bureau/[id]/reinitialiser-second-facteur/route.ts`, `app/(back-office)/parametres/equipe/page.tsx` (bouton masqué pour un compte non exclusif), `lib/i18n/fr.ts`.
+
 ## D227 — L'ÉTAT DE LA MACHINE SE CHANGE DEPUIS LA FICHE MACHINE, ET AU MOMENT DE SAISIR LA DEMANDE OU L'INTERVENTION (décision d'Alexis du 31/10/2026, 9I8F-STATUT-MACHINE-MODIFIABLE)
 
 ### CE QUI A ÉTÉ MESURÉ
