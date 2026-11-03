@@ -13,3 +13,12 @@ rôle Direction, second facteur enrôlé pour de vrai) sert de cible. Aucune don
 - `equipe-bureau-confirmation-1280.png` / `equipe-bureau-confirmation-375.png` — le dialogue de
   confirmation ouvert, avec le message « Elle devra enregistrer son nouveau téléphone à sa prochaine
   connexion. »
+
+## 9IA1-REPRISE-9IA — D226, exclusivité
+
+- `9ia1-exclusivite-second-facteur-1280.png` / `9ia1-exclusivite-second-facteur-375.png` —
+  `/parametres/equipe?onglet=bureau`, DEUX cibles jetables en vis-à-vis sur le même écran :
+  « 9IA1 Capture Exclusif » (enrôlée pour de vrai, second facteur Actif) porte le bouton
+  « Réinitialiser le second facteur » ; « 9IA1 Capture Partagé » (second facteur Actif, rattachée
+  aussi à CODIMA Europe) ne le porte pas — un admin_societe ne contrôle pas entièrement cette
+  identité (D226).
