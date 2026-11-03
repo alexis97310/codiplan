@@ -4,7 +4,13 @@ import { join } from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { expect, test, type Page } from "@playwright/test";
 
-import { instantAMinutes } from "@/lib/calendar/fuseau";
+import {
+  instantAMinutes,
+  jourDe,
+  jourSuivant,
+  maintenant,
+} from "@/lib/calendar/fuseau";
+import { ecartEnJours, lundiDeLaSemaine } from "@/lib/calendar/semaine";
 import { Role } from "@/lib/auth/roles";
 import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
@@ -34,26 +40,33 @@ import { ouvrirUneSession } from "./setup/session";
  *
  * **UN JOUR PASSÉ, RELATIF À AUJOURD'HUI, JAMAIS UNE DATE FIXE** — `reperes.
  * lundi` (`reperesDeLaScene`) vaut toujours AUJOURD'HUI OU UN JOUR FUTUR
- * (`lundiSansJourPasse`, `setup/scene.ts`), au plus `aujourdhui + 6` : sept
- * jours plus tôt (`JOUR_PASSE`) tombe donc TOUJOURS strictement avant
- * aujourd'hui, quelle que soit la date d'exécution — et reste un LUNDI,
- * jour ouvert des deux agences, pour qu'aucun refus `hors_ouverture` ne se
- * mélange au seul motif éprouvé ici.
+ * (`lundiSansJourPasse`, `setup/scene.ts`), et PEUT être poussé plus loin
+ * encore par `lundiSansJourFerie` (9I000-SCENE-SANS-JOUR-FERIE, 04/11/2026) :
+ * un `JOUR_PASSE` fixe à `reperes.lundi - 7` cesserait d'être strictement
+ * passé dès que `lundiSansJourFerie` avance la scène d'une semaine
+ * supplémentaire. `JOUR_PASSE` se calcule donc en `beforeAll`, comme le
+ * LUNDI de la semaine qui précède celle d'AUJOURD'HUI (jamais celle de la
+ * scène) — TOUJOURS strictement passé, et toujours un LUNDI, jour ouvert
+ * des deux agences, pour qu'aucun refus `hors_ouverture` ne se mélange au
+ * seul motif éprouvé ici — exprimé comme le RANG depuis `reperes.lundi` que
+ * `jourDeLaScene` attend.
  */
 
 test.describe.configure({ mode: "serial" });
 
 let reperes: ReperesDeScene;
+let JOUR_PASSE: number;
 
 test.beforeAll(async () => {
   reperes = await reperesDeLaScene();
+  const aujourdhui = jourDe(maintenant(reperes.fuseau).local);
+  const lundiDeLaSemainePassee = jourSuivant(lundiDeLaSemaine(aujourdhui), -7);
+  JOUR_PASSE = ecartEnJours(reperes.lundi, lundiDeLaSemainePassee);
 });
 
 test.beforeEach(async ({ page }) => {
   await ouvrirUneSession(page);
 });
-
-const JOUR_PASSE = -7;
 
 function dialogueConfirmationDatePassee(page: Page) {
   return page.locator("[data-confirmation-date-passee]");
