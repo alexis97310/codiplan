@@ -6892,6 +6892,12 @@ export const fr = {
   "equipe.bureau.second_facteur.reinitialiser_revenir": "Annuler",
   "equipe.bureau.second_facteur.reinitialise":
     "Second facteur réinitialisé. La personne devra enregistrer son nouveau téléphone à sa prochaine connexion.",
+  // D226 (01/11/2026, 9I8D1), appliquée à 9IA par 9IA1-REPRISE-9IA : un
+  // administrateur de société ne contrôle pas entièrement une identité aussi
+  // rattachée à une autre société — même famille que
+  // `equipe.bureau.acces.refus.autre_societe`, pour ce geste-ci.
+  "equipe.bureau.refus.autre_societe_second_facteur":
+    "Ce compte appartient aussi à une autre société : son second facteur ne peut pas être réinitialisé ici.",
 
   // ── L'ÉCRAN « ÉQUIPE ET ACCÈS » (D196, 9ET-COMPTES-BUREAU-2) ─────────────
   //

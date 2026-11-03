@@ -5,6 +5,7 @@ import { avecContexteRls } from "@/lib/db/rls";
 import { uuidv7 } from "@/lib/db/uuid";
 
 import { avecDesignationAuth } from "./lecture-identite";
+import { identiteExclusiveALaSociete } from "./lien-d-acces";
 import { Role } from "./roles";
 
 /**
@@ -96,6 +97,12 @@ export function peutReinitialiserSecondFacteur(
  * Remet `second_facteur` (verrouillage et vérification) et `utilisateur.
  * mfa_actif` à l'état qui force le ré-enrôlement — sans jamais lire ni écrire
  * le secret ou les codes de secours.
+ *
+ * **EXCLUSIVITÉ (D226, 9IA1-REPRISE-9IA)** — pour B (`admin_societe`), un
+ * sujet aussi rattaché à une AUTRE société refuse, AVANT toute écriture :
+ * un administrateur de société n'agit pas sur une identité qu'il ne contrôle
+ * pas entièrement. A (`admin_plateforme`) n'est pas concerné — décision
+ * antérieure à D226, et cette reprise ne l'élargit pas à A.
  */
 export async function reinitialiserSecondFacteur(
   demande: DemandeReinitialisation,
@@ -118,6 +125,32 @@ export async function reinitialiserSecondFacteur(
             "l'administrateur de plateforme s'en charge."
         : `Le rôle « ${demande.role} » ne peut pas réinitialiser un second ` +
             "facteur.",
+    );
+  }
+
+  if (
+    demande.role === Role.admin_societe &&
+    !(await identiteExclusiveALaSociete(
+      // `identiteExclusiveALaSociete` ne lit que `societeId` (via
+      // `exigerSocieteActive`) : les autres champs du contexte sont neutres
+      // ici et n'ont pas leur place dans `DemandeReinitialisation`.
+      {
+        utilisateurId: demande.auteurId,
+        societeId: demande.societeId,
+        role: demande.role,
+        secondFacteurValide: true,
+        adresseIp: null,
+        clientId: null,
+      },
+      demande.sujetId,
+      client,
+    ))
+  ) {
+    throw new RefusReinitialisation(
+      `Le compte ${demande.sujetId} est aussi rattaché à une autre ` +
+        "société : un administrateur de société ne contrôle pas " +
+        "entièrement cette identité, et ne peut pas réinitialiser son " +
+        "second facteur (D226).",
     );
   }
 

@@ -1,10 +1,13 @@
 import { listerComptesDeBureau } from "@/lib/auth/acces-bureau";
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
+import { identiteExclusiveALaSociete } from "@/lib/auth/lien-d-acces";
 import { exigerSessionActive, motifDuRefus } from "@/lib/auth/porte";
 import {
   peutReinitialiserSecondFacteur,
   reinitialiserSecondFacteur,
 } from "@/lib/auth/reinitialisation";
+import { Role } from "@/lib/auth/roles";
+import { prisma } from "@/lib/db/client";
 
 import { versLEquipeBureau } from "../../saisie-recue";
 
@@ -28,6 +31,14 @@ import { versLEquipeBureau } from "../../saisie-recue";
  * Le refus est le MÊME, nommément, qu'un identifiant inconnu (D50) : rôle
  * sans droit, cible hors société, propre compte, ou compte sans second
  * facteur à réinitialiser rendent tous `equipe.bureau.refus.introuvable`.
+ *
+ * **EXCLUSIVITÉ (D226, 9IA1-REPRISE-9IA)** — contrôle SÉPARÉ, APRÈS les
+ * précédents : une cible aussi rattachée à une AUTRE société rend un refus
+ * NOMMÉ DIFFÉREMMENT, `equipe.bureau.refus.autre_societe_second_facteur` —
+ * ce n'est pas un identifiant inconnu, le texte le dit à l'administrateur.
+ * Seul B (`admin_societe`) est concerné ; A n'atteint pas cette route (voir
+ * plus haut). Même garde fail-closed que `identiteExclusiveALaSociete`
+ * (9I8D2) : une fonction en échec vaut refus, jamais une page 500.
  */
 export async function POST(
   _requete: Request,
@@ -51,6 +62,15 @@ async function traiter(params: Promise<{ id: string }>): Promise<Response> {
     !peutReinitialiserSecondFacteur(contexte.role, contexte.utilisateurId, id)
   ) {
     return versLEquipeBureau("equipe.bureau.refus.introuvable");
+  }
+
+  if (
+    contexte.role === Role.admin_societe &&
+    !(await identiteExclusiveALaSociete(contexte, id, prisma))
+  ) {
+    return versLEquipeBureau(
+      "equipe.bureau.refus.autre_societe_second_facteur",
+    );
   }
 
   await reinitialiserSecondFacteur({
