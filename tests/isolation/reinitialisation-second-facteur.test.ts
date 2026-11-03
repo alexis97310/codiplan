@@ -1,5 +1,6 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { creerCompteDeBureau } from "@/lib/auth/acces-bureau";
 import {
   reinitialiserSecondFacteur,
   RefusReinitialisation,
@@ -535,5 +536,186 @@ describe("ce que le MODULE refuse, lisiblement", () => {
         clientApp(),
       ),
     ).rejects.toBeInstanceOf(RefusReinitialisation);
+  });
+});
+
+/**
+ * D226 (01/11/2026, 9I8D1-REPRISE-9I8D), appliquée à 9IA par
+ * 9IA1-REPRISE-9IA — un admin_societe (B) n'agit pas sur une identité
+ * rattachée AUSSI à une autre société. Modèle :
+ * `tests/isolation/acces-bureau.test.ts`, describe
+ * « copierNouveauLienDAccesBureau — D226, exclusivité ».
+ */
+describe("D226, exclusivité — rejoué pour la réinitialisation du second facteur", () => {
+  const PREFIXE_9IA1 = "zz9ia1-";
+
+  const ADMIN_A_CONTEXTE = {
+    utilisateurId: ADMIN_B,
+    societeId: SOCIETE_A,
+    role: Role.admin_societe,
+    secondFacteurValide: true,
+    adresseIp: null,
+    clientId: null,
+  };
+
+  function courrielPartage(): string {
+    return `${PREFIXE_9IA1}${Math.floor(Math.random() * 1_000_000)}@codima.test`;
+  }
+
+  afterEach(async () => {
+    const motif = `${PREFIXE_9IA1}%`;
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "journal_acces" WHERE "utilisateur_id" IN (SELECT "id" FROM "utilisateur" WHERE "email" LIKE $1)`,
+      motif,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "second_facteur" WHERE "utilisateur_id" IN (SELECT "id" FROM "utilisateur" WHERE "email" LIKE $1)`,
+      motif,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "compte" WHERE "utilisateur_id" IN (SELECT "id" FROM "utilisateur" WHERE "email" LIKE $1)`,
+      motif,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "utilisateur_societe" WHERE "utilisateur_id" IN (SELECT "id" FROM "utilisateur" WHERE "email" LIKE $1)`,
+      motif,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "utilisateur" WHERE "email" LIKE $1`,
+      motif,
+    );
+  });
+
+  /** Un compte de bureau de A, actif, un second facteur posé — PUIS rattaché aussi à B. */
+  async function creerSujetPartage(): Promise<string> {
+    const cree = await creerCompteDeBureau(
+      ADMIN_A_CONTEXTE,
+      { nom: "9IA1 Partagé", courriel: courrielPartage(), role: Role.adv },
+      clientApp(),
+    );
+    expect(cree.accepte).toBe(true);
+    if (!cree.accepte) {
+      throw new Error("fixture 9IA1 non créée");
+    }
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "second_facteur" (id, utilisateur_id, secret, codes_secours, verifie)
+       VALUES ($1::uuid, $2::uuid, 'SECRET-PARTAGE-9IA1', 'CODES-PARTAGE-9IA1', true)`,
+      uuidv7(),
+      cree.utilisateurId,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "utilisateur" SET mfa_actif = true WHERE id = $1::uuid`,
+      cree.utilisateurId,
+    );
+    // LE RATTACHEMENT À LA SOCIÉTÉ B, QUI REND L'IDENTITÉ NON EXCLUSIVE.
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "utilisateur_societe" (id, utilisateur_id, societe_id, role)
+       VALUES ($1::uuid, $2::uuid, $3::uuid, $4::"Role")`,
+      uuidv7(),
+      cree.utilisateurId,
+      SOCIETE_B,
+      Role.adv,
+    );
+    return cree.utilisateurId;
+  }
+
+  async function etatPartage(
+    sujetId: string,
+  ): Promise<{ verifie: boolean; mfa_actif: boolean } | undefined> {
+    const [ligne] = await clientOwner().$queryRawUnsafe<
+      { verifie: boolean; mfa_actif: boolean }[]
+    >(
+      `SELECT sf.verifie, u.mfa_actif
+         FROM "second_facteur" sf
+         JOIN "utilisateur" u ON u.id = sf.utilisateur_id
+        WHERE sf.utilisateur_id = $1::uuid`,
+      sujetId,
+    );
+    return ligne;
+  }
+
+  it("refuse, chez A ET chez B, une identité aussi rattachée à l'autre société — rien n'est écrit", async () => {
+    const sujetId = await creerSujetPartage();
+
+    await expect(
+      reinitialiserSecondFacteur(
+        {
+          societeId: SOCIETE_A,
+          role: Role.admin_societe,
+          auteurId: ADMIN_B,
+          sujetId,
+        },
+        clientApp(),
+      ),
+    ).rejects.toBeInstanceOf(RefusReinitialisation);
+    expect(await etatPartage(sujetId)).toEqual({
+      verifie: true,
+      mfa_actif: true,
+    });
+
+    await expect(
+      reinitialiserSecondFacteur(
+        {
+          societeId: SOCIETE_B,
+          role: Role.admin_societe,
+          auteurId: ADMIN_B,
+          sujetId,
+        },
+        clientApp(),
+      ),
+    ).rejects.toBeInstanceOf(RefusReinitialisation);
+    expect(await etatPartage(sujetId)).toEqual({
+      verifie: true,
+      mfa_actif: true,
+    });
+  });
+
+  it("A (admin_plateforme) reste inchangé — une identité partagée se réinitialise quand même", async () => {
+    const sujetId = await creerSujetPartage();
+    const ADMIN_PLATEFORME_9IA1 = UTILISATEUR_PAR_ROLE[Role.admin_plateforme];
+
+    await reinitialiserSecondFacteur(
+      {
+        societeId: "",
+        role: Role.admin_plateforme,
+        auteurId: ADMIN_PLATEFORME_9IA1,
+        sujetId,
+      },
+      clientApp(),
+    );
+
+    expect(await etatPartage(sujetId)).toEqual({
+      verifie: false,
+      mfa_actif: false,
+    });
+  });
+
+  it("FAIL-CLOSED (9I8D2 rejoué) : refuse, jamais une exception, quand l'exclusivité ne peut pas être vérifiée", async () => {
+    const sujetId = await creerSujetPartage();
+
+    await clientOwner().$executeRawUnsafe(
+      `REVOKE EXECUTE ON FUNCTION "app_identite_exclusive_a_la_societe"(uuid) FROM "codiplan_app"`,
+    );
+    try {
+      await expect(
+        reinitialiserSecondFacteur(
+          {
+            societeId: SOCIETE_A,
+            role: Role.admin_societe,
+            auteurId: ADMIN_B,
+            sujetId,
+          },
+          clientApp(),
+        ),
+      ).rejects.toBeInstanceOf(RefusReinitialisation);
+      expect(await etatPartage(sujetId)).toEqual({
+        verifie: true,
+        mfa_actif: true,
+      });
+    } finally {
+      await clientOwner().$executeRawUnsafe(
+        `GRANT EXECUTE ON FUNCTION "app_identite_exclusive_a_la_societe"(uuid) TO "codiplan_app"`,
+      );
+    }
   });
 });
