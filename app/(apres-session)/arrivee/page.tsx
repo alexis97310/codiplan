@@ -76,7 +76,11 @@ export const metadata: Metadata = { title: t("arrivee.titre") };
  * presque toujours, et n'a jamais eu besoin d'un second chemin pour se
  * déconnecter avant même de choisir sa société.
  */
-export default async function PageArrivee() {
+export default async function PageArrivee({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const entetes = await headers();
   const etat = await etatArrivee(entetes);
 
@@ -115,6 +119,15 @@ export default async function PageArrivee() {
       perimetreDuPlanning(session.contexte),
     );
     if (destination !== null) {
+      // L'ÉTAPE D'INSTALLATION APRÈS LE PREMIER ACCÈS (9I00) — seulement
+      // vers `/terrain` (un compte à périmètre restreint, donc un
+      // technicien) ET seulement si `/connexion` a reporté le motif :
+      // un rôle de bureau, destiné à `/planning` ou `/portail`, ne la voit
+      // jamais.
+      const suite = (await searchParams).suite;
+      if (suite === "installation" && destination === "/terrain") {
+        redirect(`/installation?suite=${encodeURIComponent(destination)}`);
+      }
       redirect(destination);
     }
   }

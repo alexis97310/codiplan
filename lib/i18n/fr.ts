@@ -7246,6 +7246,13 @@ export const fr = {
     "Choisissez « Installer l'application » (ou « Ajouter à l'écran d'accueil »).",
   "pwa.page_installer.ios.titre": "Sur iPhone ou iPad (Safari)",
   "pwa.page_installer.connexion": "Se connecter",
+
+  // ── L'ÉTAPE D'INSTALLATION APRÈS LE PREMIER ACCÈS (9I00,
+  // `app/(apres-session)/installation/page.tsx`) — jamais bloquante.
+  "pwa.etape.titre": "Installez CODIPLAN",
+  "pwa.etape.accroche":
+    "Avant de commencer votre journée, ajoutez CODIPLAN à l'écran d'accueil de votre téléphone.",
+  "pwa.etape.plus_tard": "Plus tard",
 } as const;
 
 export type CleTraduction = keyof typeof fr;

@@ -45,6 +45,11 @@ export default async function PageConnexion({
   }
 
   const motif = (await searchParams).motif;
+  // L'ÉTAPE D'INSTALLATION APRÈS LE PREMIER ACCÈS (9I00) — le champ caché
+  // survit au POST de ce formulaire ; `/api/session/connexion` le reporte à
+  // son tour sur la redirection vers `/arrivee`, qui décide seule (selon le
+  // rôle) si l'étape a un sens.
+  const apresPremierAcces = motif === "premier_acces.abouti";
   return (
     <CadreAcces>
       {/* L'EFFACEMENT DE LA COPIE TERRAIN (point 6b) — cette page n'est
@@ -74,6 +79,9 @@ export default async function PageConnexion({
           method="post"
           className="flex flex-col gap-4"
         >
+          {apresPremierAcces ? (
+            <input type="hidden" name="suite" value="installation" />
+          ) : null}
           <label className="flex flex-col gap-1.5 text-sm font-medium">
             {libelleChampObligatoire(t("connexion.email"))}
             <input

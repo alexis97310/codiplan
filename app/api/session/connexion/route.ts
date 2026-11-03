@@ -64,7 +64,15 @@ async function traiter(requete: Request): Promise<Response> {
     });
   }
 
-  return redirection("/arrivee", resultat.cookies);
+  // LE CHAMP CACHÉ « suite » (9I00) — posé par `/connexion` pour un compte
+  // qui vient de choisir son mot de passe, reporté tel quel : c'est
+  // `/arrivee` qui décide, selon le rôle, si l'étape d'installation a un
+  // sens, jamais cette route-ci.
+  const suite = champ(formulaire, "suite");
+  return redirection(
+    suite === "installation" ? "/arrivee?suite=installation" : "/arrivee",
+    resultat.cookies,
+  );
 }
 
 /**
