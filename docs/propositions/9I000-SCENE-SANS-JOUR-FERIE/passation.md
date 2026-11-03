@@ -135,3 +135,100 @@ le budget de temps du lot).
 
 - Rien dans le territoire de ce lot. Le reste de la suite e2e sera couvert
   par `pnpm verify:full` (la file, juste après ce lot).
+
+---
+
+# Reprise 9I000A-REPRISE-9I000
+
+## FAIT, commité sur `9I000A-REPRISE-9I000` (partie d'`origin/main`, avec les
+trois commits de la garde `9I000-SCENE-SANS-JOUR-FERIE-garde` reportés en tête)
+
+## Ce que le pilote avait mesuré (04/11, ~04:50)
+
+9I000 a corrigé `9f5c-date-passee-planning.spec.ts` (point 3 ci-dessus :
+`JOUR_PASSE` calculé depuis AUJOURD'HUI, jamais depuis `reperes.lundi`), mais
+pas les deux autres fichiers qui supposent la même borne fausse
+(« `reperes.lundi − 7` est toujours strictement passé ») — écart que 9I000
+avait lui-même signalé sans le traiter, le ticket le bornant à ce seul
+fichier. Deux occurrences mesurées par le 1er passage de vérification
+indépendante : `tests/e2e/9f5b-date-passee.spec.ts:100` et `:152`, et par
+`git grep` : `tests/audit-fonctionnel/parcours-edge.spec.ts:143`. Les trois
+appelaient `jourSuivant(reperes.lundi, -7)`.
+
+## Le correctif
+
+**Une seule fonction partagée**, dans `tests/e2e/setup/scene.ts`, à côté de
+`lundiSansJourFerie` (même mécanisme, même borne de 104 semaines) :
+
+- `lundiDeLaSemainePasseeOuvert(aujourdhui, feries)` — fonction PURE : rend le
+  lundi de la semaine qui précède celle d'AUJOURD'HUI (jamais celle de la
+  scène), et recule d'une semaine supplémentaire tant qu'il tombe un jour
+  férié du territoire. Toujours un LUNDI, donc toujours ouvert pour Ducos et
+  Koné (`DEMO-NOUMEA`, `DEMO-KONE` ouvrent du lundi au vendredi), et toujours
+  strictement passé (au pire huit jours avant aujourd'hui, si aujourd'hui est
+  lui-même un lundi).
+- `lundiPasseDeLEpreuve(reperes)` — l'enveloppe que les trois fichiers
+  appellent : lit `aujourdhui` via `maintenant(reperes.fuseau)`, compose les
+  fériés via `feriesDeLaSceneNc(aujourdhui.annee - ANNEES_AU_DELA)` (reculer
+  de deux ans est nécessaire : `feriesDeLaSceneNc` ne couvre que l'année de
+  départ et les deux suivantes, et le recul peut franchir une bascule
+  d'année), puis appelle `lundiDeLaSemainePasseeOuvert`.
+
+Les trois fichiers (`9f5c-date-passee-planning.spec.ts`,
+`9f5b-date-passee.spec.ts`, `parcours-edge.spec.ts`) appellent désormais tous
+`lundiPasseDeLEpreuve(reperes)` — plus aucun `jourSuivant(reperes.lundi, -7)`
+dans `tests/` (vérifié par `git grep -n "reperes\.lundi, -\|jourDeLaScene
+(reperes, -"`, qui ne rend plus que le commentaire de `scene.ts` qui raconte
+l'ancienne forme). `9f5c` a été refactoré pour utiliser la même fonction que
+les deux autres plutôt que de garder son propre calcul en ligne — « même
+forme, jamais trois calculs divergents » (le ticket).
+
+Les imports devenus inutiles (`jourDe`, `jourSuivant`, `maintenant`,
+`lundiDeLaSemaine`, `ecartEnJours` composé différemment) ont été retirés ou
+ajustés aux trois points d'appel ; `parcours-edge.spec.ts` garde `jourSuivant`
+pour ses décalages FUTURS (`+91`, `+98`), hors territoire de ce lot.
+
+## Épreuve unitaire
+
+`tests/unit/e2e-lundi-passe-ouvert.test.ts`, même forme que
+`e2e-lundi-scene-sans-jour-ferie.test.ts` : exécutée un lundi, exécutée un
+mardi (rend le même lundi passé que depuis un lundi — jamais celui de la
+semaine courante), un lendemain de férié (02/01/2024, après le Jour de l'An
+du 01/01 — un LUNDI — qui recule vers le 25/12/2023, Noël, lui-même férié :
+deux fériés enchaînés de part et d'autre d'une bascule d'année), liste de
+fériés vide, et la borne à 104 semaines qui lève plutôt que boucler.
+
+## Ce que j'ai mesuré
+
+- `pnpm format`, `pnpm typecheck`, `pnpm lint`, `pnpm test` (497 fichiers,
+  5468 tests) : verts avant le commit du point 2.
+- `CI=1 pnpm exec playwright test tests/e2e/9f5b-date-passee.spec.ts
+  tests/e2e/9f5c-date-passee-planning.spec.ts tests/e2e/glisser-deposer.spec.ts
+  --workers=1` : **15 passed** (2 + 4 + 9 — les 9 scénarios de
+  `glisser-deposer.spec.ts`, surensemble des cinq cités par le ticket).
+- `tests/audit-fonctionnel/parcours-edge.spec.ts` : rejoué par
+  `pnpm typecheck` seulement (le territoire du point 3 le permet) — vert,
+  inclus dans le `CI=1 pnpm verify` global.
+- `CI=1 pnpm verify` (format:check, typecheck, lint, test, test:isolation,
+  build) : vert, EXIT=0.
+
+## Ce que je n'ai PAS fait
+
+- `pnpm verify:full` n'a pas été joué ici (consigne du lot) — la file le joue
+  juste après.
+- Les ~190 autres fichiers `tests/e2e/*.spec.ts` qui importent
+  `reperesDeLaScene` sans référencer le motif `reperes.lundi, -7` n'ont pas
+  été rejoués : `git grep` sur tout `tests/` ne trouve plus ce motif que dans
+  le commentaire explicatif de `scene.ts` — rien d'autre n'était dans le
+  territoire de ce lot.
+- Aucune migration, aucune donnée de production, aucune dépendance nouvelle.
+
+## Piège pour la session suivante
+
+- `feriesDeLaSceneNc(annee)` ne couvre que `[annee, annee+1, annee+2]` —
+  jamais les années AVANT `annee`. Tout calcul qui recule dans le temps (passé
+  strict) doit appeler `feriesDeLaSceneNc(aujourdhui.annee - ANNEES_AU_DELA)`,
+  jamais `feriesDeLaSceneNc(aujourdhui.annee)`, sous peine de chercher un
+  férié d'une année que le jeu ne couvre pas dès que le recul franchit une
+  bascule d'année (exactement le cas couvert par l'épreuve unitaire
+  « lendemain de férié » ci-dessus).
