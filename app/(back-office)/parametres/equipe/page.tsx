@@ -41,6 +41,7 @@ import {
 import { peut } from "@/lib/auth/habilitations";
 import { identitesExclusivesALaSociete } from "@/lib/auth/lien-d-acces";
 import { peutReinitialiserSecondFacteur } from "@/lib/auth/reinitialisation";
+import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import {
   dateCivile,
@@ -695,11 +696,19 @@ export default async function PageEquipe({
                   exclusif={
                     exclusiviteBureau.get(compte.utilisateurId) ?? false
                   }
-                  peutReinitialiser={peutReinitialiserSecondFacteur(
-                    role,
-                    session.contexte.utilisateurId,
-                    compte.utilisateurId,
-                  )}
+                  peutReinitialiser={
+                    peutReinitialiserSecondFacteur(
+                      role,
+                      session.contexte.utilisateurId,
+                      compte.utilisateurId,
+                    ) &&
+                    // D226, 9IA1-REPRISE-9IA : pour B SEUL, réutilise la
+                    // carte d'exclusivité déjà calculée pour « Copier un
+                    // nouveau lien » — aucune requête de plus. A
+                    // (`admin_plateforme`) est inchangé par cette reprise.
+                    (role !== Role.admin_societe ||
+                      (exclusiviteBureau.get(compte.utilisateurId) ?? false))
+                  }
                 />
               ))}
             </Tableau>
@@ -1374,6 +1383,9 @@ function BadgeAccesBureau({
  * s'affiche, puisque A n'a jamais de société active pour l'atteindre (voir
  * `docs/propositions/9IA-REINITIALISER-SECOND-FACTEUR/mesure.md`) — calculé
  * explicitement plutôt qu'en dur, même discipline que `peutEnvoyerTous`.
+ * Depuis 9IA1-REPRISE-9IA (D226), faux aussi pour B quand la cible n'est pas
+ * EXCLUSIVE à la société active — le serveur refuserait de toute façon ; le
+ * bouton ne se propose pas pour un geste que la route refuserait.
  */
 function SecondFacteurBureau({
   compte,
