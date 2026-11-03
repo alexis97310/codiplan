@@ -110,3 +110,89 @@ touche `mfa_actif`.
   épreuves, UN SEUL worker sous CI — n'a pas fini dans le budget de la session (interrompu après
   60 minutes, AUCUN échec constaté dans ce qui s'est joué). `pnpm verify` a ensuite été rejoué
   seul, en entier, et confirmé vert une seconde fois.
+
+## Reprise 9IA1 (03/11/2026) — exclusivité D226
+
+*Décisions d'Alexis déjà écrites : 31/10 ~08:20 (choix « A », D226) et 01/11 ~06:50 (« Oui,
+l'autoriser », D226 arbitrée) — aucune nouvelle règle ici, l'alignement du geste B de 9IA sur une
+décision antérieure à 9IA elle-même.*
+
+### Ce qui a été mesuré
+
+`git grep identiteExclusiveALaSociete` ne trouvait ce symbole que dans `lib/auth/acces-bureau.ts` et
+`lib/auth/acces-technicien.ts` : ni `lib/auth/reinitialisation.ts` ni sa route ne l'appelaient. Un
+admin_societe (B) pouvait donc réinitialiser `utilisateur.mfa_actif` et `second_facteur.verifie` —
+deux colonnes GLOBALES à l'identité, jamais cloisonnées par société — d'un compte aussi rattaché à
+une AUTRE société, alors que D226 refuse déjà ce même partage pour la copie d'un nouveau lien d'accès
+(`copierNouveauLienDAccesBureau`). Les deux épreuves existantes (isolation ~l.289, e2e ~l.186) ne
+testaient qu'un sujet ABSENT de la société de l'acteur, jamais un sujet rattaché aux DEUX.
+
+### Ce qui a été fait
+
+1. **`lib/auth/reinitialisation.ts`** (`reinitialiserSecondFacteur`) — appelle `identiteExclusiveALaSociete`
+   juste après le contrôle de droit (`peutReinitialiserSecondFacteur`), AVANT toute écriture, quand
+   l'acteur est `admin_societe` ; `false` (y compris sur erreur, fail-closed 9I8D2) lève
+   `RefusReinitialisation`, rien n'est écrit. `admin_plateforme` est inchangé — la condition ne porte
+   que sur B. L'appel construit un objet `ContexteSession` minimal depuis `DemandeReinitialisation`
+   (`identiteExclusiveALaSociete` n'en lit que `societeId`) plutôt que d'élargir la signature de
+   `DemandeReinitialisation` ou de toucher `lib/auth/lien-d-acces.ts`, hors territoire.
+2. **La route** — contrôle SÉPARÉ, après les contrôles déjà en place (cible/mfaActif/droit), avec un
+   refus NOMMÉ DISTINCT, `equipe.bureau.refus.autre_societe_second_facteur` : ce n'est pas un
+   identifiant inconnu, le texte le dit à l'administrateur (même esprit que
+   `equipe.bureau.acces.refus.autre_societe` pour la copie de lien, mais une clé à part — le geste
+   diffère). Elle porte sa propre vérification plutôt que de laisser l'exception du point 1 remonter
+   non interceptée : un POST forgé doit recevoir un refus lisible, pas une page 500.
+3. **L'écran** — le bouton « Réinitialiser le second facteur » ne se propose plus pour un compte
+   non exclusif : réutilise `exclusiviteBureau` (déjà calculée pour « Copier un nouveau lien »),
+   aucune requête de plus. Ne gate que B ; A reste inchangé par construction (`role !==
+   Role.admin_societe` court-circuite le test).
+
+### Épreuves
+
+- `tests/isolation/reinitialisation-second-facteur.test.ts`, describe « D226, exclusivité » —
+  modèle direct de `tests/isolation/acces-bureau.test.ts` (describe « copierNouveauLienDAccesBureau —
+  D226, exclusivité ») : un compte créé par `creerCompteDeBureau`, rattaché ensuite à SOCIETE_B,
+  refuse chez A ET chez B sans qu'aucune colonne ne bouge ; A reste inchangé sur la même identité
+  partagée ; `REVOKE EXECUTE` sur `app_identite_exclusive_a_la_societe` (9I8D2 rejoué) refuse aussi,
+  jamais une exception. 22 scénarios dans le fichier, tous verts ; suite `test:isolation` complète
+  rejouée (203 fichiers / 1798 tests) après l'ajout.
+- `tests/e2e/9ia1-second-facteur-autre-societe.spec.ts` — modèle direct de
+  `tests/e2e/9i8d1-copie-nouveau-lien-autre-societe.spec.ts` : requête POST forgée sur un compte
+  partagé entre deux sociétés → refus nommé `equipe.bureau.refus.autre_societe_second_facteur` ; le
+  bouton est absent de la ligne Équipe (le badge « Actif » reste visible — ce n'est que le geste qui
+  disparaît).
+- `tests/e2e/captures-9ia1-second-facteur-exclusivite.spec.ts` — deux cibles jetables en vis-à-vis
+  sur le MÊME écran, 375 et 1280 px : une identité exclusive (enrôlée pour de vrai) porte le bouton,
+  une identité partagée (second facteur posé par scène accélérée) ne le porte pas.
+
+### Ce que je n'ai PAS fait
+
+- **Aucun test « forme technicien »** (sujet d'épreuve technicien partagé entre A et B) : aucune
+  route n'existe pour cibler un technicien par ce geste à ce jour (seul `app/api/equipe/bureau/[id]/
+  reinitialiser-second-facteur` existe) — le territoire du ticket nomme cette forme comme
+  CONDITIONNELLE (« si un technicien peut être sujet ») ; signalé plutôt que supposé, question ouverte
+  pour un futur lot si une route technicien naît.
+- Rien touché à `prisma/` (aucune migration, conforme au territoire : la base reste celle que 9IA a
+  posée) ni à `lib/auth/lien-d-acces.ts` (réutilisé tel quel).
+- La règle des rôles protégés (D223) n'a pas été étendue à ce geste — question ouverte nommée dans le
+  ticket, non tranchée ici.
+
+### Solde connu — EN PRODUCTION
+
+Tant que `app_identite_exclusive_a_la_societe` lève (propriétaire hébergé non `BYPASSRLS`, solde 620
+déjà noté par 9I8D2), le fail-closed de ce lot refuse le geste B pour TOUT compte, exclusif ou non —
+même défaut que pour la copie d'un nouveau lien, déjà connu et non réparé ici (hors territoire). A
+reste possible dans tous les cas (aucune société active, donc aucun appel à cette fonction).
+
+### Commandes jouées
+
+- `pnpm format && pnpm typecheck && pnpm lint` verts après chaque point.
+- `pnpm test` — 495 fichiers / 5457-5458 tests, tous passés, rejoué après chaque point touchant du
+  code applicatif.
+- `tests/isolation/reinitialisation-second-facteur.test.ts` seul, puis `pnpm test:isolation` complet
+  (203 fichiers / 1798 tests) : verts.
+- `tests/e2e/9ia1-second-facteur-autre-societe.spec.ts` rejoué seul sous `CI=1` : vert (1 test,
+  ~1,5 min, migration + semis rejoués).
+- `tests/e2e/captures-9ia1-second-facteur-exclusivite.spec.ts` rejoué seul sous `CI=1` avec
+  `CAPTURES_9IA1` : vert (2 tests, ~1,6 min), deux captures produites (375/1280 px).
+- `CI=1 pnpm verify:full` : voir `verify-final.txt`.
