@@ -4,13 +4,8 @@ import { join } from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { expect, test, type Page } from "@playwright/test";
 
-import {
-  instantAMinutes,
-  jourDe,
-  jourSuivant,
-  maintenant,
-} from "@/lib/calendar/fuseau";
-import { ecartEnJours, lundiDeLaSemaine } from "@/lib/calendar/semaine";
+import { instantAMinutes } from "@/lib/calendar/fuseau";
+import { ecartEnJours } from "@/lib/calendar/semaine";
 import { Role } from "@/lib/auth/roles";
 import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
@@ -19,7 +14,12 @@ import { urlAdministration } from "./setup/base";
 import { glisser } from "./setup/glisser";
 import { reperesDeLaScene } from "./setup/reperes";
 import { dialogueOuvert } from "./setup/saisie-manuelle";
-import { cleDeJour, jourDeLaScene, type ReperesDeScene } from "./setup/scene";
+import {
+  cleDeJour,
+  jourDeLaScene,
+  lundiPasseDeLEpreuve,
+  type ReperesDeScene,
+} from "./setup/scene";
 import { ouvrirUneSession } from "./setup/session";
 
 /**
@@ -59,9 +59,7 @@ let JOUR_PASSE: number;
 
 test.beforeAll(async () => {
   reperes = await reperesDeLaScene();
-  const aujourdhui = jourDe(maintenant(reperes.fuseau).local);
-  const lundiDeLaSemainePassee = jourSuivant(lundiDeLaSemaine(aujourdhui), -7);
-  JOUR_PASSE = ecartEnJours(reperes.lundi, lundiDeLaSemainePassee);
+  JOUR_PASSE = ecartEnJours(reperes.lundi, lundiPasseDeLEpreuve(reperes));
 });
 
 test.beforeEach(async ({ page }) => {

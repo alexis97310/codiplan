@@ -16,6 +16,7 @@ import { lundiDeLaSemaine } from "@/lib/calendar/semaine";
 import { avecSociete, avecSocieteEtRole } from "@/lib/db/rls";
 import { uuidv7 } from "@/lib/db/uuid";
 import {
+  ANNEES_AU_DELA,
   anneesFeries,
   feriesDuTerritoire,
   TERRITOIRE_NOUVELLE_CALEDONIE,
@@ -355,6 +356,63 @@ export function lundiSansJourFerie(
     }
   }
   return lundi;
+}
+
+/**
+ * UN LUNDI STRICTEMENT PASSÉ PAR RAPPORT À AUJOURD'HUI — jamais à la semaine
+ * DE LA SCÈNE (9I000A-REPRISE-9I000, mesuré contre `9f5b-date-passee.spec.ts`
+ * et `tests/audit-fonctionnel/parcours-edge.spec.ts`, qui visaient tous deux
+ * `jourSuivant(reperes.lundi, -7)` : ce lundi cesse d'être passé dès que
+ * `lundiSansJourFerie` avance `reperes.lundi` au-delà de la semaine civile en
+ * cours — exactement ce que 9I000 a mesuré et corrigé pour
+ * `9f5c-date-passee-planning.spec.ts` seul).
+ *
+ * Toujours un LUNDI de semaine CIVILE révolue par rapport à `aujourdhui`
+ * (`jourSuivant(lundiDeLaSemaine(aujourdhui), -7)` est, au pire, le lundi
+ * d'il y a huit jours si `aujourdhui` est lui-même un lundi — jamais moins) :
+ * ouvert pour Ducos et Koné, dont les calendriers de démonstration ouvrent du
+ * LUNDI au VENDREDI (`DEMO-NOUMEA`, `DEMO-KONE`, `prisma/seed-data.ts`).
+ * Recule d'une semaine supplémentaire tant qu'il tombe un jour férié du
+ * territoire — jamais vers l'avenir, pour ne jamais perdre le « strictement
+ * passé » — même mécanisme que `lundiSansJourFerie`, bornée de la même façon.
+ */
+export function lundiDeLaSemainePasseeOuvert(
+  aujourdhui: JourLocal,
+  feries: ReadonlySet<string>,
+): JourLocal {
+  let lundi = jourSuivant(lundiDeLaSemaine(aujourdhui), -7);
+  let semaines = 0;
+  while (feries.has(cleDeJour(lundi))) {
+    lundi = jourSuivant(lundi, -7);
+    semaines += 1;
+    if (semaines > 104) {
+      throw new Error(
+        "lundiDeLaSemainePasseeOuvert : plus de 104 semaines consécutives où " +
+          "le lundi tombe un jour férié du territoire — données fériées " +
+          "suspectes plutôt qu'une boucle infinie.",
+      );
+    }
+  }
+  return lundi;
+}
+
+/**
+ * LE LUNDI PASSÉ DE L'ÉPREUVE, relu depuis `reperes` — la même forme aux
+ * trois points d'appel (`9f5b-date-passee.spec.ts`,
+ * `9f5c-date-passee-planning.spec.ts`, `parcours-edge.spec.ts`), jamais trois
+ * calculs divergents (9I000A-REPRISE-9I000).
+ *
+ * `feriesDeLaSceneNc` ne couvre que l'année de départ et les deux suivantes
+ * (`ANNEES_AU_DELA`) — en reculant jusqu'à 104 semaines dans le passé, il
+ * faut donc partir deux ans AVANT aujourd'hui, jamais d'aujourd'hui même, sous
+ * peine de chercher un férié d'une année que le jeu de fériés ne couvre pas.
+ */
+export function lundiPasseDeLEpreuve(reperes: ReperesDeScene): JourLocal {
+  const aujourdhui = jourDe(maintenant(reperes.fuseau).local);
+  return lundiDeLaSemainePasseeOuvert(
+    aujourdhui,
+    feriesDeLaSceneNc(aujourdhui.annee - ANNEES_AU_DELA),
+  );
 }
 
 /**

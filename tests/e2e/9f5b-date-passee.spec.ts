@@ -4,7 +4,6 @@ import { join } from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { expect, test, type Page } from "@playwright/test";
 
-import { jourSuivant } from "@/lib/calendar/fuseau";
 import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
 
@@ -15,7 +14,7 @@ import {
   formulaireDialogue,
   ouvrirSaisieManuelle,
 } from "./setup/saisie-manuelle";
-import { cleDeJour } from "./setup/scene";
+import { cleDeJour, lundiPasseDeLEpreuve } from "./setup/scene";
 import { ouvrirLaSessionSensible } from "./setup/session";
 
 /**
@@ -97,7 +96,7 @@ test("planifier à la main sur une date passée, SANS confirmation : refusé, ri
   const id = await creerInterventionDucos("pose sans confirmation");
   try {
     const reperes = await reperesDeLaScene();
-    const lundiPasse = jourSuivant(reperes.lundi, -7);
+    const lundiPasse = lundiPasseDeLEpreuve(reperes);
 
     await ouvrirLaSessionSensible(page, "adv@codima.test");
     await page.goto(`/interventions/${id}`);
@@ -149,7 +148,7 @@ test("planifier à la main sur une date passée, CONFIRMÉE : acceptée, avertis
   const id = await creerInterventionDucos("pose confirmée");
   try {
     const reperes = await reperesDeLaScene();
-    const lundiPasse = jourSuivant(reperes.lundi, -7);
+    const lundiPasse = lundiPasseDeLEpreuve(reperes);
 
     await ouvrirLaSessionSensible(page, "adv@codima.test");
     await page.goto(`/interventions/${id}`);

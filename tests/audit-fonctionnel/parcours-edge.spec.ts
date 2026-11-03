@@ -19,6 +19,7 @@ import {
 import {
   cleDeJour,
   COMPTE_TECHNICIEN_EPREUVE,
+  lundiPasseDeLEpreuve,
   SCENE,
 } from "../e2e/setup/scene";
 import { choisirResultatParTexte } from "../e2e/setup/selecteur-recherche";
@@ -140,7 +141,7 @@ test("planifier puis transmettre sur une date déjà passée n'est refusé ni à
     // Le lundi de la semaine DERNIÈRE — un jour normalement ouvert à Ducos
     // (lundi : 07:30–11:30 / 13:00–17:00), à l'écart de toute question de
     // jour fermé ou d'horaire.
-    const lundiPasse = jourSuivant(reperes.lundi, -7);
+    const lundiPasse = lundiPasseDeLEpreuve(reperes);
 
     await ouvrirLaSessionSensible(page, "adv@codima.test");
     await page.goto(`/interventions/${id}`);
