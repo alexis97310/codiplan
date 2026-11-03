@@ -29,33 +29,9 @@ export type SectionFeuilleDeRoute = {
 };
 
 /** La date affichée en sous-titre de la page. */
-export const DATE_ETAT_FEUILLE_DE_ROUTE = "02/11/2026";
+export const DATE_ETAT_FEUILLE_DE_ROUTE = "03/11/2026";
 
 export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
-  {
-    titre: "En cours",
-    elements: [
-      {
-        statut: "en_cours",
-        titre:
-          "9IC — Correctifs courts issus des revues (règle D127 en entier, écran Équipe par paquets de 5, preuves du scanner hors réseau…).",
-      },
-    ],
-  },
-  {
-    titre: "À la relance de mardi (après la démo), en premier",
-    elements: [
-      {
-        statut: "pret",
-        titre: "9I00 — Installer l'application sur le téléphone.",
-      },
-      {
-        statut: "pret",
-        titre:
-          "9IA1 — Interdire de réinitialiser le second facteur d'une personne qui a aussi accès à une autre société.",
-      },
-    ],
-  },
   {
     titre: "Déjà écrits, en attente",
     elements: [
@@ -122,6 +98,11 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
         statut: "a_ecrire",
         titre:
           "Import Excel : ne plus effacer l'année de fabrication saisie à la main.",
+      },
+      {
+        statut: "a_ecrire",
+        titre:
+          "Équipement de prêt — prêter un appareil au client pendant une réparation et suivre le parc de remplacement (prévu en Version 2 au cahier des charges) : besoin à cadrer avec Alexis.",
       },
     ],
   },
@@ -219,6 +200,24 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
           "Réinitialisation du second facteur par un administrateur ; écran d'arrivée hors du back-office.",
       },
       { statut: "livre", titre: "Refonte de la page Paramètres › Matériel." },
+      {
+        statut: "livre",
+        titre: "Installer l'application sur le téléphone.",
+      },
+      {
+        statut: "livre",
+        titre:
+          "Réinitialisation du second facteur interdite sur une personne qui a aussi accès à une autre société.",
+      },
+      {
+        statut: "livre",
+        titre:
+          "Correctifs courts issus des revues (règle D127 en entier, écran Équipe par paquets de 5, preuve du scanner hors réseau, bandeau au-dessus du planning).",
+      },
+      {
+        statut: "livre",
+        titre: "Page « Feuille de route » réservée aux administrateurs.",
+      },
     ],
   },
 ];
