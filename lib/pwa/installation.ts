@@ -33,3 +33,21 @@ export function estSafariIos(userAgent: string): boolean {
     /safari/i.test(userAgent) && !/crios|fxios|edgios/i.test(userAgent);
   return estAppareilIos && estSafari;
 }
+
+export type Plateforme = "ios" | "android" | "autre";
+
+/**
+ * LA PLATEFORME DE L'APPAREIL (page publique `/installer`) — distincte de
+ * `detecterEtatInstallation` : cette page EXPLIQUE un geste, elle ne le
+ * déclenche jamais, et n'a donc besoin d'aucun `beforeinstallprompt` capté
+ * pour savoir quelles deux étapes montrer.
+ */
+export function detecterPlateforme(userAgent: string): Plateforme {
+  if (/iphone|ipad|ipod/i.test(userAgent)) {
+    return "ios";
+  }
+  if (/android/i.test(userAgent)) {
+    return "android";
+  }
+  return "autre";
+}

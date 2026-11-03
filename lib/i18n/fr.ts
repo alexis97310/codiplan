@@ -7237,8 +7237,6 @@ export const fr = {
   "pwa.page_installer.titre": "Installer CODIPLAN",
   "pwa.page_installer.accroche":
     "Ajoutez CODIPLAN à l'écran d'accueil de votre téléphone pour l'ouvrir en un geste, comme une application.",
-  "pwa.page_installer.deja_installee":
-    "CODIPLAN est déjà installée sur cet appareil.",
   "pwa.page_installer.android.titre": "Sur Android (Chrome)",
   "pwa.page_installer.android.etape1":
     "Touchez le menu ⋮ en haut à droite de Chrome.",

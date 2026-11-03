@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { detecterEtatInstallation } from "@/lib/pwa/installation";
+import {
+  detecterEtatInstallation,
+  detecterPlateforme,
+} from "@/lib/pwa/installation";
 
 const IPHONE_SAFARI =
   "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1";
@@ -78,5 +81,20 @@ describe("detecterEtatInstallation", () => {
         userAgent: ANDROID_CHROME,
       }),
     ).toBe("autre");
+  });
+});
+
+describe("detecterPlateforme", () => {
+  it("rend « ios » sur iPhone ou iPad, quel que soit le navigateur", () => {
+    expect(detecterPlateforme(IPHONE_SAFARI)).toBe("ios");
+    expect(detecterPlateforme(IPHONE_CHROME)).toBe("ios");
+  });
+
+  it("rend « android » sur un appareil Android", () => {
+    expect(detecterPlateforme(ANDROID_CHROME)).toBe("android");
+  });
+
+  it("rend « autre » sur un navigateur de bureau", () => {
+    expect(detecterPlateforme(BUREAU_CHROME)).toBe("autre");
   });
 });
