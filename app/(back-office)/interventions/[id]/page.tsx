@@ -335,13 +335,16 @@ export default async function PageIntervention({
   // LA DÉCISION EST PRISE ICI, UNE FOIS, et le bloc plus bas ne fait que la
   // rendre — *une règle écrite dans le JSX ne s'éprouve qu'en montant un
   // rendu*, et c'est la raison pour laquelle ce critère vit dans un module.
-  const afficherMontants = await lireAfficherMontants(session.contexte);
+  //
+  // REGROUPÉES (9ID-PERFORMANCES, point 3) : ni l'une ni l'autre ne dépend du
+  // résultat de l'autre — `afficherMontants` pour le dialogue « Clôturer » et
+  // la RÈGLE COURANTE DE LA SOCIÉTÉ (9I8A1-REPRISE-9I8A, `lireFicheIntervention`
+  // ne rend encore aucune `ValorisationAffichee` avant clôture).
+  const [afficherMontants, regleArrondi] = await Promise.all([
+    lireAfficherMontants(session.contexte),
+    lireRegleArrondi(session.contexte),
+  ]);
   const montants = accesAuxMontants(session.contexte.role, afficherMontants);
-  // LA RÈGLE COURANTE DE LA SOCIÉTÉ (9I8A1-REPRISE-9I8A) — pour le dialogue
-  // « Clôturer », qui explique la règle qui s'appliquera SI la clôture a
-  // lieu maintenant (`lireFicheIntervention` ne rend encore aucune
-  // `ValorisationAffichee` avant clôture).
-  const regleArrondi = await lireRegleArrondi(session.contexte);
   // LE DROIT D'AFFECTER / DE DÉPLACER (extension de la revue Codex de la PR
   // #267, de ma propre initiative, 20/09/2026) — la remarque ne citait que
   // `/interventions/nouvelle`, mais le MÊME défaut existe ici : les deux
@@ -488,14 +491,36 @@ export default async function PageIntervention({
   // formulaire, et un suffixe « à cette date » y parlerait d'une date que
   // l'utilisateur est en train de changer — une affirmation sur un état
   // qu'on n'a pas observé (§9, 07/09).
-  const blocagesALaDate =
+  // LA FENÊTRE DE DISPONIBILITÉ (voir plus bas) NE DÉPEND QUE DE `fiche`/
+  // `peutModifierLePlanning`/`figee`, déjà connus : calculée ICI, AVANT les
+  // deux lectures d'absences, pour que les DEUX puissent partir de front
+  // (9ID-PERFORMANCES, point 3) — aucune ne dépend du résultat de l'autre.
+  const fenetreDisponibiliteTechnicien =
+    peutModifierLePlanning && !figee
+      ? {
+          du: instantDuJour(jourDe(maintenant(fiche.fuseau).local)),
+          au: instantDuJour(
+            jourDe(maintenant(fiche.fuseau).local),
+            JOURS_DISPONIBILITE_TECHNICIEN,
+          ),
+        }
+      : null;
+  const [blocagesALaDate, absencesFenetreDisponibilite] = await Promise.all([
     proposerUneListeDeTechniciens && ligne.date_planifiee !== null
-      ? await absencesDeLaPeriode(
+      ? absencesDeLaPeriode(
           session.contexte,
           ligne.date_planifiee,
           ligne.date_planifiee,
         )
-      : [];
+      : Promise.resolve([]),
+    fenetreDisponibiliteTechnicien === null
+      ? Promise.resolve([])
+      : absencesDeLaPeriode(
+          session.contexte,
+          fenetreDisponibiliteTechnicien.du,
+          fenetreDisponibiliteTechnicien.au,
+        ),
+  ]);
   const optionsAffectation = optionsDAffectation(
     techniciensActifs,
     annuaire,
@@ -555,24 +580,10 @@ export default async function PageIntervention({
   // Aucun sélecteur technicien à annoter sans `peutModifierLePlanning`, et
   // une fiche figée n'affiche plus aucun des deux formulaires : la lecture
   // serait un aller pour rien.
-  const fenetreDisponibiliteTechnicien =
-    peutModifierLePlanning && !figee
-      ? {
-          du: instantDuJour(jourDe(maintenant(fiche.fuseau).local)),
-          au: instantDuJour(
-            jourDe(maintenant(fiche.fuseau).local),
-            JOURS_DISPONIBILITE_TECHNICIEN,
-          ),
-        }
-      : null;
-  const absencesFenetreDisponibilite =
-    fenetreDisponibiliteTechnicien === null
-      ? []
-      : await absencesDeLaPeriode(
-          session.contexte,
-          fenetreDisponibiliteTechnicien.du,
-          fenetreDisponibiliteTechnicien.au,
-        );
+  //
+  // `fenetreDisponibiliteTechnicien` et `absencesFenetreDisponibilite` sont
+  // déjà résolues plus haut, avant `blocagesALaDate` (9ID-PERFORMANCES,
+  // point 3) : les deux lectures d'absences partent de front.
   const disponibiliteTechnicien =
     fenetreDisponibiliteTechnicien === null
       ? null
@@ -644,39 +655,60 @@ export default async function PageIntervention({
         ? t(verdictAffecter.cle)
         : "",
   };
-  // LES MACHINES DU SITE DE L'INTERVENTION (chantier INT-MACHINE 2.2) — connu
-  // côté serveur, aucun filtrage JS n'est nécessaire ici (à la différence du
-  // formulaire de création, où le site se choisit APRÈS le chargement de la
-  // page).
-  const machinesDuSite = await machinesDesSites(session.contexte, [
-    ligne.site_id,
+  // ── LES MACHINES DU SITE, LE MATÉRIEL DE LA FICHE ET LES DONNÉES RÉELLES
+  // (50-INTERVENTIONS-2, chantier INT-MACHINE 2.2, 9I8C) — HUIT lectures
+  // indépendantes, REGROUPÉES EN UN SEUL PALIER (9ID-PERFORMANCES, point 3) :
+  // aucune ne dépend du résultat d'une autre, chacune sous SON PROPRE
+  // contexte applicatif — même raisonnement que `lireBonIntervention`
+  // (`lib/interventions/bon.ts`), qui ouvre les siennes hors de la
+  // transaction de `lireFicheIntervention` pour la même raison —
+  // `avecContexteApplicatif` attend un `PrismaClient`, jamais un
+  // `Prisma.TransactionClient` déjà ouvert.
+  const [
+    machinesDuSite,
+    donneesMaterielFiche,
+    datesMachinesFiche,
+    segments,
+    pauses,
+    prestationsRealiseesFiche,
+    signatureFiche,
+    piecesRemplaceesFiche,
+  ] = await Promise.all([
+    // LES MACHINES DU SITE DE L'INTERVENTION — connu côté serveur, aucun
+    // filtrage JS n'est nécessaire ici (à la différence du formulaire de
+    // création, où le site se choisit APRÈS le chargement de la page).
+    machinesDesSites(session.contexte, [ligne.site_id]),
+    // LE OU LES MACHINES DE L'INTERVENTION (audit du 19/09/2026) — GAP
+    // COMBLÉ : cette fiche ne portait aucun champ machine, alors que
+    // `CHAMPS_LIGNE` lit déjà `ligne.machines`. **LA FAMILLE Y MANQUAIT
+    // ENCORE** (AFFICHAGE-MATERIEL-1, 23/09/2026) : *mesuré en production
+    // le 23/09/2026, « il manque la famille sur la page intervention »* —
+    // la fiche lisait `marque référence` (`libellesDesMachines`, la forme
+    // du registre et du bon imprimable), jamais la famille ni le numéro de
+    // série. `libelleMaterielComplet` (`lib/machines/presentation.ts`)
+    // compose désormais la même forme complète que la carte de planning —
+    // une seule écriture du critère, jamais une troisième forme (§9, 01/09).
+    donneesMaterielDesMachines(
+      session.contexte,
+      ligne.machines.map((m) => m.machine_id),
+    ),
+    // LES DATES ET L'ANNÉE DE FABRICATION (9I8C) — pour le détail de la
+    // tuile Machine, en plus du libellé ci-dessus.
+    datesDesMachines(
+      session.contexte,
+      ligne.machines.map((m) => m.machine_id),
+    ),
+    segmentsDeLIntervention(session.contexte, ligne.id),
+    pausesDeLIntervention(session.contexte, ligne.id),
+    prestationsRealisees(session.contexte, ligne.id),
+    derniereSignature(session.contexte, ligne.id),
+    piecesRemplacees(session.contexte, ligne.id),
   ]);
-  // LE OU LES MACHINES DE L'INTERVENTION (audit du 19/09/2026) — GAP COMBLÉ :
-  // cette fiche ne portait aucun champ machine, alors que `CHAMPS_LIGNE` lit
-  // déjà `ligne.machines`.
-  //
-  // **LA FAMILLE Y MANQUAIT ENCORE** (AFFICHAGE-MATERIEL-1, 23/09/2026) :
-  // *mesuré en production le 23/09/2026, « il manque la famille sur la page
-  // intervention »* — la fiche lisait `marque référence` (`libellesDesMachines`,
-  // la forme du registre et du bon imprimable), jamais la famille ni le
-  // numéro de série. `libelleMaterielComplet` (`lib/machines/presentation.ts`)
-  // compose désormais la même forme complète que la carte de planning — une
-  // seule écriture du critère, jamais une troisième forme (§9, 01/09).
-  const donneesMaterielFiche = await donneesMaterielDesMachines(
-    session.contexte,
-    ligne.machines.map((m) => m.machine_id),
-  );
   const libellesMachines = new Map(
     [...donneesMaterielFiche].map(([machineId, donnees]) => [
       machineId,
       libelleMaterielComplet(donnees),
     ]),
-  );
-  // LES DATES ET L'ANNÉE DE FABRICATION (9I8C) — pour le détail de la tuile
-  // Machine, en plus du libellé ci-dessus.
-  const datesMachinesFiche = await datesDesMachines(
-    session.contexte,
-    ligne.machines.map((m) => m.machine_id),
   );
   // LE JOUR DE RÉFÉRENCE DE LA GARANTIE (9I8C) — la clôture, plus proche du
   // travail réellement fait qu'une date planifiée qui a pu glisser depuis
@@ -701,26 +733,6 @@ export default async function PageIntervention({
   // l'onglet Résumé décide seule de son affichage, sans la répéter.
   const peutAjouterMachine =
     !figee && ligne.machines.length === 0 && peutQualifierAffecter;
-
-  // ── LES DONNÉES RÉELLES (50-INTERVENTIONS-2) — trois lectures indépendantes,
-  // chacune sous SON PROPRE contexte applicatif : même raisonnement que
-  // `lireBonIntervention` (`lib/interventions/bon.ts`), qui ouvre les siennes
-  // hors de la transaction de `lireFicheIntervention` pour la même raison —
-  // `avecContexteApplicatif` attend un `PrismaClient`, jamais un
-  // `Prisma.TransactionClient` déjà ouvert.
-  const [
-    segments,
-    pauses,
-    prestationsRealiseesFiche,
-    signatureFiche,
-    piecesRemplaceesFiche,
-  ] = await Promise.all([
-    segmentsDeLIntervention(session.contexte, ligne.id),
-    pausesDeLIntervention(session.contexte, ligne.id),
-    prestationsRealisees(session.contexte, ligne.id),
-    derniereSignature(session.contexte, ligne.id),
-    piecesRemplacees(session.contexte, ligne.id),
-  ]);
   const parametresReprise = {
     creeLe: fiche.creeLe,
     pauses: (pauses ?? []).map((p) => ({ debut: p.debut, fin: p.fin })),
@@ -768,53 +780,72 @@ export default async function PageIntervention({
   // (bloquantes ET avertissements). UN SEUL appel pour les deux usages,
   // jamais deux lectures d'un même critère (§9, 01/09).
   const ongletResume = onglet === "resume";
-  const exigencesSite =
+  // CES CINQ LECTURES NE DÉPENDENT D'AUCUNE AUTRE — REGROUPÉES EN UN SEUL
+  // PALIER (9ID-PERFORMANCES, point 3) plutôt qu'enchaînées une à une.
+  // « CRÉÉE DEPUIS » (origineDemande/observationOrigine) : une demande et une
+  // observation VGP ne portent jamais les deux à la fois sur une même fiche
+  // (`planifierLObservation`, `lib/vgp/observations.ts`, ne pose jamais
+  // `demande_id`) : la seconde lecture ne sert que si la première ne trouve
+  // rien à nommer — les deux branches restent mutuellement exclusives.
+  const [
+    exigencesSite,
+    siteDeLIntervention,
+    contactsClientPourDonneurOrdre,
+    photosFiche,
+    origineDemande,
+    observationOrigine,
+  ] = await Promise.all([
+    // « Habilitation <code> exigée sur le site » (Q8 du pilote, 08/10/2026,
+    // amendé R6 de l'addendum recalage 2 du 08/10/2026,
+    // 9EE-TP-UX4-1-FICHE-INTERVENTION-2) — la bande rouge du bandeau d'état
+    // n'a besoin que des exigences BLOQUANTES, sur une fiche encore
+    // `a_planifier` ; la carte « Sur place » de l'onglet Résumé a besoin de
+    // la liste ENTIÈRE (bloquantes ET avertissements). UN SEUL appel pour les
+    // deux usages, jamais deux lectures d'un même critère (§9, 01/09).
     statut === "a_planifier" || ongletResume
-      ? await exigencesDuSite(session.contexte, ligne.site_id)
-      : [];
+      ? exigencesDuSite(session.contexte, ligne.site_id)
+      : Promise.resolve([]),
+    // LA CARTE « SUR PLACE » (9EE-TP-UX4-1-FICHE-INTERVENTION-2) — lue
+    // SEULEMENT sur l'onglet Résumé, où elle s'affiche seule (R2 de
+    // l'addendum recalage 2) : une lecture qu'aucun onglet actif ne montre ne
+    // sert à rien.
+    ongletResume
+      ? lireSite(session.contexte, ligne.site_id)
+      : Promise.resolve(null),
+    // LE DONNEUR D'ORDRE — LA MÊME LECTURE que les courriels de planification
+    // et « Qui sera prévenu » (9DN, D165) : `destinataireClient`, site puis
+    // client, RÉUTILISÉE, jamais recopiée (§9, 01/09).
+    ongletResume
+      ? contactsDuClient(session.contexte, ligne.client_id)
+      : Promise.resolve([]),
+    // LA TUILE « COMMENTAIRES ET PHOTOS » (9I6-FICHE-INTERVENTION-EN-TUILES) —
+    // MÊME lecture que `lireBonIntervention` (`photosDeLIntervention`,
+    // `lib/documents/depot.ts`), jamais une seconde règle de visibilité.
+    // Onglet Résumé seulement, même garde que le reste de ce bloc.
+    ongletResume
+      ? photosDeLIntervention(session.contexte, ligne.id).then(
+          (photos) => photos ?? [],
+        )
+      : Promise.resolve([]),
+    ongletResume && ligne.demande_id !== null
+      ? numeroDeLaDemande(session.contexte, ligne.demande_id)
+      : Promise.resolve(null),
+    ongletResume && ligne.demande_id === null
+      ? observationLieeAIntervention(session.contexte, ligne.id)
+      : Promise.resolve(null),
+  ]);
   const exigencesBloquantes = exigencesSite.filter(
     (exigence) => exigence.bloquant,
   );
-  // ── LA CARTE « SUR PLACE » (9EE-TP-UX4-1-FICHE-INTERVENTION-2) — lue
-  // SEULEMENT sur l'onglet Résumé, où elle s'affiche seule (R2 de l'addendum
-  // recalage 2) : une lecture qu'aucun onglet actif ne montre ne sert à rien.
-  const siteDeLIntervention = ongletResume
-    ? await lireSite(session.contexte, ligne.site_id)
-    : null;
   const adresseSite = formatAdresseSite(
     siteDeLIntervention?.adresse ?? null,
     siteDeLIntervention?.commune ?? null,
   );
   const horairesSite = horairesAffiches(siteDeLIntervention?.horaires ?? null);
-  // LE DONNEUR D'ORDRE — LA MÊME LECTURE que les courriels de planification
-  // et « Qui sera prévenu » (9DN, D165) : `destinataireClient`, site puis
-  // client, RÉUTILISÉE, jamais recopiée (§9, 01/09).
-  const contactsClientPourDonneurOrdre = ongletResume
-    ? await contactsDuClient(session.contexte, ligne.client_id)
-    : [];
   const donneurDOrdre = destinataireClient(
     contactsClientPourDonneurOrdre,
     ligne.site_id,
   );
-  // LA TUILE « COMMENTAIRES ET PHOTOS » (9I6-FICHE-INTERVENTION-EN-TUILES) —
-  // MÊME lecture que `lireBonIntervention` (`photosDeLIntervention`,
-  // `lib/documents/depot.ts`), jamais une seconde règle de visibilité.
-  // Onglet Résumé seulement, même garde que le reste de ce bloc.
-  const photosFiche = ongletResume
-    ? ((await photosDeLIntervention(session.contexte, ligne.id)) ?? [])
-    : [];
-  // « CRÉÉE DEPUIS » — une demande et une observation VGP ne portent jamais
-  // les deux à la fois sur une même fiche (`planifierLObservation`,
-  // `lib/vgp/observations.ts`, ne pose jamais `demande_id`) : la seconde
-  // lecture ne sert que si la première ne trouve rien à nommer.
-  const origineDemande =
-    ongletResume && ligne.demande_id !== null
-      ? await numeroDeLaDemande(session.contexte, ligne.demande_id)
-      : null;
-  const observationOrigine =
-    ongletResume && ligne.demande_id === null
-      ? await observationLieeAIntervention(session.contexte, ligne.id)
-      : null;
   const origineDeLaFiche: React.ReactNode | null =
     ligne.demande_id !== null ? (
       <Link href={`/demandes/${ligne.demande_id}`} className={CLASSES_LIEN}>
