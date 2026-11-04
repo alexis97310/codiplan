@@ -130,3 +130,10 @@ existe déjà, vide, pour les recevoir.
    temps, jamais une perte de donnée côté base.
 4. **Captures non prises** — voir point 6 ci-dessus, bloqué par l'absence de
    9J02-PORTAIL-INVITATION-LIEN.
+
+## Point 7 — fin
+
+Livré : routes (point 2), écran (point 3), épreuves d'isolation neuves
+(point 4), traçabilité (point 5). Bloqué et nommé : captures (point 6).
+`CI=1 pnpm verify:full` journalisé dans `9J03-verify-final.txt` du même
+répertoire d'étude que ce ticket.
