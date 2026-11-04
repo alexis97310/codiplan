@@ -4,7 +4,12 @@ import { creerContact, modifierContact } from "@/lib/contacts/depot";
 import { Role } from "@/lib/auth/roles";
 import { avecContexteRls } from "@/lib/db/rls";
 
-import { clientApp, clientOwner, fermerClients } from "./setup/db";
+import {
+  clientApp,
+  clientOwner,
+  fermerClients,
+  observerSousProprietaire,
+} from "./setup/db";
 import {
   CLIENT_A1,
   CLIENT_A2,
@@ -188,5 +193,68 @@ describe("un compte portail écrit SUR SON CLIENT, par le dépôt", () => {
       CONTACT_A1_COMPTABLE,
     );
     expect(fiche[0]?.client_id).toBe(CLIENT_A1);
+  });
+});
+
+describe("l'audit couvre une écriture PORTAIL comme une écriture interne (I8, D55)", () => {
+  it("une création depuis le portail laisse une ligne au journal, avec le compte portail pour auteur", async () => {
+    const avant = await observerSousProprietaire(
+      "`journal_audit` est en ajout seul et cloisonné ; on l'observe ici " +
+        "pour compter, ce qu'une lecture applicative ne permettrait pas.",
+    ).$queryRawUnsafe<{ n: number }[]>(
+      `SELECT count(*)::int AS n FROM "journal_audit" WHERE "entite" = 'contact'`,
+    );
+
+    const creation = await creerContact(
+      SESSION_PORTAIL_A1,
+      {
+        client_id: CLIENT_A1,
+        site_id: SITE_A1_S1,
+        nom: "Audité depuis le portail (épreuve)",
+        fonction: null,
+        telephone: null,
+        mobile: null,
+        email: "audit-portail@iso.test",
+        roles: ["contact_technique"],
+        canaux: ["email"],
+      },
+      clientApp(),
+    );
+    expect(creation.accepte).toBe(true);
+    if (!creation.accepte) return;
+    contactIds.push(creation.fiche.id);
+
+    const apres = await observerSousProprietaire(
+      "même raison qu'au décompte précédent : c'est l'écart entre les deux " +
+        "qui prouve que le déclencheur a écrit pour une écriture PORTAIL.",
+    ).$queryRawUnsafe<{ n: number }[]>(
+      `SELECT count(*)::int AS n FROM "journal_audit" WHERE "entite" = 'contact'`,
+    );
+    expect(apres[0]!.n).toBeGreaterThan(avant[0]!.n);
+
+    const ligne = await observerSousProprietaire(
+      "même raison : vérifier QUI le déclencheur a journalisé comme auteur " +
+        "n'est pas une lecture que le rôle applicatif pourrait faire lui-même.",
+    ).$queryRawUnsafe<
+      {
+        action: string;
+        utilisateur_id: string | null;
+        valeurs_apres: { nom?: string } | null;
+      }[]
+    >(
+      `SELECT "action", "utilisateur_id", "valeurs_apres"
+         FROM "journal_audit"
+        WHERE "entite" = 'contact' AND "entite_id" = $1::uuid`,
+      creation.fiche.id,
+    );
+    expect(ligne).toHaveLength(1);
+    expect(ligne[0]?.action).toBe("creation");
+    // L'AUTEUR EST LE COMPTE PORTAIL — jamais `NULL` (réservé au seed, à une
+    // tâche planifiée), jamais un compte interne : `avecContexteApplicatif`
+    // pose `app.utilisateur_id` depuis LA session, quel que soit son rôle.
+    expect(ligne[0]?.utilisateur_id).toBe(PORTAIL_A_CLIENT);
+    expect(ligne[0]?.valeurs_apres?.nom).toBe(
+      "Audité depuis le portail (épreuve)",
+    );
   });
 });
