@@ -2,7 +2,7 @@ import { Prisma, type PrismaClient } from "@prisma/client";
 
 import type { Envoi } from "@/lib/courriel/message";
 import { envoyerLienPremierAcces } from "@/lib/courriel/premier-acces";
-import { prisma } from "@/lib/db/client";
+import { avecContexteApplicatif, prisma } from "@/lib/db/client";
 import { avecSociete } from "@/lib/db/rls";
 import { uuidv7 } from "@/lib/db/uuid";
 
@@ -472,4 +472,305 @@ export async function identitesExclusivesALaSociete(
       ] as const;
     }),
   );
+}
+
+/**
+ * L'INVITATION D'UN CLIENT AU PORTAIL (D96, D230, 9J02A-REPRISE-9J02).
+ *
+ * ## Une porte DISTINCTE (D96, §3) — et pourtant adossée au même module
+ *
+ * D96 pose quatre exigences tenues par la BASE : usage unique, durée limitée,
+ * révocable, tracé. Les deux premières viennent, comme pour un compte
+ * interne, du jeton de premier accès de Better Auth (`verification`, une
+ * heure, à usage unique). La troisième est `UtilisateurClient.actif`
+ * (`revoquerAccesPortailClient` ci-dessous). La quatrième est `journal_acces`,
+ * SEULEMENT quand une identité est ouverte — une simple réactivation
+ * (deuxième rattachement, ou ré-invitation après révocation) touche une
+ * table de la PREMIÈRE catégorie de I1, déjà auditée par déclencheur (I8) :
+ * y ajouter une trace manuelle serait une DOUBLE comptabilité.
+ *
+ * ## Capacité porteuse : `administrer_utilisateurs`, PAS `gerer_client_site`
+ *
+ * D230 (`docs/arbitrages.md`) : inviter au portail ouvre souvent une identité
+ * neuve, et `utilisateur_ouverture` ne l'accepte que de `app_peut_administrer_identites()`
+ * — admin_societe et direction (D37/D199), jamais l'ADV malgré D130. C'est la
+ * MÊME garde que `preparerLienDAcces` ci-dessus, par construction : les deux
+ * ouvrent une identité.
+ *
+ * ## `UtilisateurClient` est créé ACTIF, jamais en attente
+ *
+ * Il n'existe aucun autre point d'ancrage : la consommation du jeton de
+ * premier accès passe par l'écran GÉNÉRIQUE `/premier-acces` (D65), commun à
+ * tous les comptes, qui ne sait rien d'un client ni d'un site et n'écrit
+ * jamais `utilisateur_client`. Le périmètre est donc fixé ICI, à la
+ * génération — jamais choisi par qui consomme le lien (D96) — exactement
+ * comme l'amorçage (`ouvrirPremierCompte`) pose l'habilitation AVANT que la
+ * personne n'ait choisi un mot de passe. Le compte naît SANS mot de passe
+ * (voir plus bas, pourquoi jamais `signUpEmail`) et reste donc inutilisable
+ * tant qu'elle n'en a pas choisi un : « actif » dit le PÉRIMÈTRE accordé,
+ * pas la capacité de s'en servir.
+ *
+ * ## Le périmètre de sites — DÉFAUT « tous les sites du client »
+ *
+ * Aucune ligne `UtilisateurClientSite` n'est posée par ce geste : c'est la
+ * convention déjà écrite au schéma (« aucune ligne = tous les sites,
+ * jamais aucun »). Un sélecteur de sites à l'invitation reste à construire
+ * — passation de ce lot.
+ *
+ * ## Seconde identité, seconde invitation : RÉUTILISE, jamais ne duplique
+ *
+ * Si le courriel désigne une identité déjà ouverte (ailleurs dans CETTE
+ * société), elle n'est pas rouverte. Le rattachement est un `upsert` sur la
+ * clé unique `(utilisateur_id, client_id)` — un second appel pour le MÊME
+ * client réactive la ligne plutôt que d'échouer sur la contrainte.
+ *
+ * Si l'identité porte déjà un mot de passe (elle a déjà servi, pour un AUTRE
+ * client), aucun jeton n'est émis : l'accès est immédiat, il n'y a rien à
+ * transmettre (`url: null`, `dejaActif: true`).
+ */
+
+/** Ce qu'un refus NOMMÉ dit, et il n'en dit jamais plus (D50). */
+export type MotifRefusInvitationClient = "client_introuvable";
+
+export type ResultatInvitationClient =
+  | {
+      readonly accepte: true;
+      /**
+       * `null` quand l'identité portait déjà un mot de passe : l'accès au
+       * nouveau client est immédiat, aucun lien n'est à transmettre.
+       */
+      readonly url: string | null;
+      readonly dejaActif: boolean;
+    }
+  | { readonly accepte: false; readonly motif: MotifRefusInvitationClient };
+
+/** Ce que le geste refuse pour une raison qui n'est PAS un motif nommé. */
+export class RefusInvitationClient extends Error {}
+
+function exigerCapaciteInvitationClient(
+  contexteAdmin: ContexteSession,
+): NonNullable<ContexteSession["role"]> {
+  const role = contexteAdmin.role;
+  if (role === null || !peut(role, "administrer_utilisateurs")) {
+    throw new RefusInvitationClient(
+      `Le rôle « ${role ?? "aucun"} » ne peut pas administrer l'accès portail ` +
+        "d'un client : cette action est réservée à l'administrateur de la " +
+        "société ou à la direction (D37/D199, D230).",
+    );
+  }
+  return role;
+}
+
+/**
+ * Invite un client au portail — génère (ou réémet) le lien de premier accès
+ * de son compte, et accorde le rattachement.
+ *
+ * @param contexteAdmin la session de l'administrateur — `role` doit détenir
+ *   `administrer_utilisateurs`. Vérifié ICI, pas seulement à la porte de la
+ *   route (D230).
+ * @param clientId le client visé, dans la société active.
+ * @param email le courriel du contact invité — déjà validé par la route
+ *   (Zod, CLAUDE.md §5).
+ */
+export async function inviterClientAuPortail(
+  contexteAdmin: ContexteSession,
+  clientId: string,
+  email: string,
+  client: PrismaClient = prisma,
+): Promise<ResultatInvitationClient> {
+  const societeId = exigerSocieteActive(contexteAdmin);
+  const role = exigerCapaciteInvitationClient(contexteAdmin);
+
+  // ── LE CLIENT EXISTE-T-IL, DANS LA SOCIÉTÉ ACTIVE ? ──────────────────────
+  const fiche = await avecSociete(client, societeId, (tx) =>
+    tx.client.findUnique({ where: { id: clientId }, select: { id: true } }),
+  );
+  if (fiche === null) {
+    return { accepte: false, motif: "client_introuvable" };
+  }
+
+  // ── L'IDENTITÉ — DÉSIGNÉE PAR LE COURRIEL, OUVERTE SI ABSENTE ───────────
+  const administration: ContexteAdministratif = { societeId, role };
+  const existante = await avecDesignationAuth(
+    client,
+    administration,
+  ).utilisateur.findUnique({ where: { email }, select: { id: true } });
+
+  let utilisateurId: string;
+  let identiteNouvelle = false;
+  if (existante !== null) {
+    utilisateurId = existante.id;
+  } else {
+    // ── L'IDENTITÉ ET SON COMPTE AU REPOS, ÉCRITS DIRECTEMENT ───────────────
+    //
+    // JAMAIS `auth.api.signUpEmail` : `tests/unit/auth/amorcage-retrait.test.ts`
+    // exige le RETRAIT du geste d'amorçage (Q1 / D65) dès qu'un appel à cette
+    // fonction apparaît hors de `lib/auth/amorcage.ts` — c'est la signature
+    // même d'un « chemin administratif d'ouverture de compte », et ce lot n'a
+    // ni mandat ni migration pour retirer l'amorçage. Le gardien annonce
+    // lui-même sa limite : « un chemin […] sans passer par `signUpEmail` […]
+    // lui échapperait » — c'est exactement ce chemin-ci, et aucun mot de passe
+    // jetable n'est donc nécessaire : le compte naît SANS mot de passe, comme
+    // le fait déjà `preparerLienDAcces` ci-dessus pour une identité interne qui
+    // n'en a pas encore.
+    utilisateurId = uuidv7();
+    const designe = avecDesignationAuth(client, administration);
+    await designe.utilisateur.create({
+      data: { id: utilisateurId, nom: email, email },
+    });
+    await designe.compte.create({
+      data: {
+        id: uuidv7(),
+        utilisateur_id: utilisateurId,
+        emetteur: "local:credential",
+        compte_externe_id: utilisateurId,
+        fournisseur_id: "credential",
+        mot_de_passe: null,
+      },
+    });
+    identiteNouvelle = true;
+  }
+
+  // ── LE RATTACHEMENT — CRÉÉ OU RÉACTIVÉ, JAMAIS DE LIGNE utilisateur_societe
+  await avecContexteApplicatif(
+    contexteAdmin,
+    (tx) =>
+      tx.utilisateurClient.upsert({
+        where: {
+          utilisateur_id_client_id: {
+            utilisateur_id: utilisateurId,
+            client_id: clientId,
+          },
+        },
+        create: {
+          id: uuidv7(),
+          utilisateur_id: utilisateurId,
+          client_id: clientId,
+          societe_id: societeId,
+          actif: true,
+        },
+        update: { actif: true },
+      }),
+    client,
+  );
+
+  // ── LE JETON — SEULEMENT SI AUCUN MOT DE PASSE N'EXISTE ENCORE ──────────
+  const compteExistant = await avecDesignationAuth(client).compte.findFirst({
+    where: { utilisateur_id: utilisateurId },
+    select: { mot_de_passe: true },
+  });
+  const dejaActif =
+    compteExistant !== null && compteExistant.mot_de_passe !== null;
+
+  let url: string | null = null;
+  if (!dejaActif) {
+    const emetteur = creerAuth(
+      client,
+      { societeId, role: null },
+      async (remise) => {
+        url = remise.url;
+      },
+    );
+    await emetteur.api.requestPasswordReset({
+      body: { email, redirectTo: "/premier-acces" },
+    });
+    if (url === null || url === "") {
+      throw new RefusInvitationClient(
+        "Aucun jeton de premier accès n'a été émis : l'invitation échoue " +
+          "plutôt que de rendre un lien muet.",
+      );
+    }
+  }
+
+  // ── LA TRACE — SEULEMENT SI UNE IDENTITÉ A ÉTÉ OUVERTE (D162) ───────────
+  if (identiteNouvelle) {
+    await avecDesignationAuth(client).journalAcces.create({
+      data: {
+        id: uuidv7(),
+        utilisateur_id: contexteAdmin.utilisateurId,
+        evenement: "ouverture_identite",
+        societe_id_cible: societeId,
+        role,
+        detail:
+          `invitation au portail client, premier envoi ; lien copié par ` +
+          `l'administrateur ; ${MARQUEUR_CIBLE}${utilisateurId}`,
+      },
+    });
+  }
+
+  return { accepte: true, url, dejaActif };
+}
+
+/** Ce qu'un refus NOMMÉ dit — la ligne n'existait pas (D50). */
+export type ResultatRevocationAccesPortail =
+  | { readonly accepte: true }
+  | { readonly accepte: false; readonly motif: "introuvable" };
+
+/**
+ * Révoque l'accès portail d'un compte client — bascule `actif = false` sur sa
+ * ligne `UtilisateurClient`, jamais de suppression (I6). Même mécanisme que
+ * `basculerActiviteContact` (`lib/contacts/depot.ts`).
+ *
+ * @param contexteAdmin voir `inviterClientAuPortail` — même garde (D230).
+ * @param utilisateurClientId la ligne `UtilisateurClient` visée, jamais
+ *   l'identifiant du client ni celui du compte : une même personne peut être
+ *   rattachée à plusieurs clients, chacun révocable indépendamment.
+ */
+export async function revoquerAccesPortailClient(
+  contexteAdmin: ContexteSession,
+  utilisateurClientId: string,
+  client: PrismaClient = prisma,
+): Promise<ResultatRevocationAccesPortail> {
+  exigerCapaciteInvitationClient(contexteAdmin);
+  const touchees = await avecContexteApplicatif(
+    contexteAdmin,
+    (tx) =>
+      tx.utilisateurClient.updateMany({
+        where: { id: utilisateurClientId },
+        data: { actif: false },
+      }),
+    client,
+  );
+  return touchees.count === 0
+    ? { accepte: false, motif: "introuvable" }
+    : { accepte: true };
+}
+
+/** Un compte du portail, tel que la fiche client le montre. */
+export type CompteDuPortailClient = {
+  readonly id: string;
+  readonly email: string;
+  readonly actif: boolean;
+};
+
+/**
+ * Les comptes portail rattachés à CE client, dans la société active —
+ * lecture pour la fiche client back-office. `utilisateur_client` et
+ * `utilisateur` sont tous deux lisibles sous ce contexte par leur branche
+ * « rattachement » respective (migrations L1-02c et L1-02b) : aucune
+ * désignation n'est nécessaire ici, à la différence de l'ouverture d'identité
+ * ci-dessus.
+ */
+export async function comptesDuPortailDuClient(
+  contexteAdmin: ContexteSession,
+  clientId: string,
+  client: PrismaClient = prisma,
+): Promise<readonly CompteDuPortailClient[]> {
+  const societeId = exigerSocieteActive(contexteAdmin);
+  const lignes = await avecSociete(client, societeId, (tx) =>
+    tx.utilisateurClient.findMany({
+      where: { client_id: clientId },
+      select: {
+        id: true,
+        actif: true,
+        utilisateur: { select: { email: true } },
+      },
+      orderBy: { id: "asc" },
+    }),
+  );
+  return lignes.map((ligne) => ({
+    id: ligne.id,
+    email: ligne.utilisateur.email,
+    actif: ligne.actif,
+  }));
 }

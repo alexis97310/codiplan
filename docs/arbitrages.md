@@ -7843,3 +7843,21 @@ Elle ne décide d'aucun événement au-delà de `signature_absente_ou_refusee` (
 > Le jour où un événement doit notifier un compte de portail, la forme « interne » ne suffit plus et SE RETIRE — elle ne s'assouplit pas en cours de route (même discipline que D100) : une nouvelle table, ou une nouvelle politique sur `notification`, se pose alors pour ce besoin précis.
 
 **Règles amendées :** aucune.
+
+## D230 — L'INVITATION AU PORTAIL CLIENT RELÈVE D'`administrer_utilisateurs`, PAS DE `gerer_client_site` (décision d'Alexis, 05/11/2026, 9J02A-REPRISE-9J02)
+
+### CE QUI A ÉTÉ MESURÉ
+
+Le ticket 9J02 (04/11/2026) s'est arrêté avant d'écrire la moindre ligne de code, sur une contradiction mesurée : son point 2 adossait l'invitation d'un client au portail à `gerer_client_site` (D130 — ADV, direction, admin_societe), au motif qu'inviter est un acte sur la fiche client. Mais inviter un contact qui n'a encore aucun compte ouvre une identité `utilisateur` — et l'écriture sur cette table est gardée EN BASE par la politique `utilisateur_ouverture`, qui n'accepte que `app_peut_administrer_identites()` : **admin_societe et direction, et eux seuls** (D37/D199), jamais l'ADV. Un ADV franchirait la porte applicative (`gerer_client_site`) puis se heurterait à un refus RLS silencieux à la base, dès que le contact invité n'a pas encore de compte — le cas le plus fréquent. Les « actes voisins » que D130 couvre déjà (créer un client, un site, un contact) n'ouvrent jamais d'identité ; inviter au portail en ouvre une, et c'est une situation que D130 n'a pas traversée.
+
+### LA DÉCISION
+
+**L'invitation et la révocation d'un accès portail relèvent d'`administrer_utilisateurs`** (`lib/auth/habilitations.ts`), la même capacité qui garde déjà toute ouverture d'identité du dépôt — technicien, compte de bureau, amorçage. **D130 (`gerer_client_site`) ne les couvre pas** : un ADV garde la main sur la fiche client, les sites et les contacts, mais pas sur l'invitation au portail d'un contact — exactement la même restriction que le reste du dépôt applique déjà à l'ouverture d'une identité.
+
+Zéro migration, zéro politique RLS touchée : la garde applicative (`peut(role, "administrer_utilisateurs")`, vérifiée dans `lib/auth/lien-d-acces.ts`) et la garde de base (`utilisateur_ouverture`) disent désormais la MÊME chose, sans qu'aucune des deux n'ait bougé.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où Alexis demande que l'ADV puisse inviter un client au portail, cette décision se rouvre — elle suppose alors d'élargir `app_peut_administrer_identites()`, donc une migration sur une fonction partagée par trois autres politiques (déverrouillage d'escalade, réinitialisation du second facteur 9IA, ouverture d'identité elle-même), à traiter comme telle plutôt qu'en passant.
+
+**Règles amendées :** aucune.
