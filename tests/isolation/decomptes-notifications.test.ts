@@ -67,8 +67,8 @@ describe("decomptesDuMenu — « notifications », filtré par CAPACITÉ comme l
     // par un autre fichier, au même instant. Le DELTA que CETTE pose précise
     // produit reste vrai quel que soit ce qui se pose par ailleurs.
     const avantAdv =
-      (await decomptesDuMenu(INTERNE_ADV, clientApp()))?.notifications
-        .total ?? 0;
+      (await decomptesDuMenu(INTERNE_ADV, clientApp()))?.notifications.total ??
+      0;
     const avantTechnicien =
       (await decomptesDuMenu(INTERNE_TECHNICIEN, clientApp()))?.notifications
         .total ?? 0;
