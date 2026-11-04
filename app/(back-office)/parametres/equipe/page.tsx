@@ -174,9 +174,27 @@ export default async function PageEquipe({
       ? params.type
       : undefined;
 
-  const techniciens = await listerLesTechniciens(session.contexte);
-  const agences = await agencesDisponibles(session.contexte);
-  const comptesBureau = await listerComptesDeBureau(session.contexte);
+  // ── CE QUI NE DÉPEND DE RIEN D'AUTRE, DE FRONT (9ID-PERFORMANCES, point 3) ─
+  // Les cinq lectures ci-dessous ne dépendent du résultat d'AUCUNE autre :
+  // enchaînées, elles coûtaient cinq allers-retours RLS en séquence ; de
+  // front, elles n'en coûtent plus qu'un seul (le plus lent des cinq).
+  const [techniciens, agences, comptesBureau, habilitations, societe] =
+    await Promise.all([
+      listerLesTechniciens(session.contexte),
+      agencesDisponibles(session.contexte),
+      listerComptesDeBureau(session.contexte),
+      listerHabilitations(session.contexte),
+      // LE FUSEAU EST UNE DONNÉE, JAMAIS UN LITTÉRAL (L0-08) : le jugement
+      // « expirée » de `BlocHabilitations` compare à AUJOURD'HUI, et cette
+      // date ne se lit pas sans fuseau — celui de la société, comme `/vgp`
+      // et `/parc/[id]`.
+      avecContexteApplicatif(session.contexte, (tx) =>
+        tx.societe.findFirst({
+          where: { id: session.contexte.societeId as string },
+          select: { fuseau_horaire: true },
+        }),
+      ),
+    ]);
   // SOLDE 189 — « Triés par nom de famille. », pour de vrai : même règle que
   // `trierLesTechniciens` (`lib/techniciens/depot.ts`), voir `dernierMot`.
   const comptesBureauTries = trierAlphanumeriquement(
@@ -184,36 +202,36 @@ export default async function PageEquipe({
     (compte) => dernierMot(compte.nom),
     (compte) => `${compte.nom}\u0000${compte.utilisateurId}`,
   );
-  const etatsAccesBureau = await etatsAccesDesComptes(
-    session.contexte,
-    comptesBureau.map((compte) => compte.utilisateurId),
-  );
-  // L'EXCLUSIVITÉ (D226, 9I8D1) — seuls les comptes dont l'accès est ACTIF
-  // proposent le menu « … » qui porte « Copier un nouveau lien » : limiter
-  // l'appel à ceux-là, exactement comme `GesteAccesBureau` ne le rend que
-  // dans ce cas.
-  const exclusiviteBureau = await identitesExclusivesALaSociete(
-    session.contexte,
-    comptesBureau
-      .filter(
-        (compte) =>
-          (etatsAccesBureau.get(compte.utilisateurId)?.etat ?? "aucun") ===
-          "actif",
-      )
-      .map((compte) => compte.utilisateurId),
-  );
+  const habilitationsActives = habilitations.filter((h) => h.actif);
+  const fuseau = schemaFuseau.parse(societe?.fuseau_horaire);
+  // D-13 : `maintenant(fuseau).instant` est un `Date` que le fuseau n'a pas
+  // touché (`new Date(Date.now())`) — comparer son jour avec les accesseurs
+  // `getUTC*` compare le jour UTC, pas le jour à Nouméa. `.local`, lui, est
+  // déjà la lecture dans CE fuseau ; `jourDe` en retient le jour civil.
+  const aujourdHui = jourDe(maintenant(fuseau).local);
   const affiches = montrerInactifs
     ? techniciens
     : techniciens.filter((technicien) => technicien.actif);
 
+  // ── CE QUI NE DÉPEND QUE DE `comptesBureau`/`affiches`, DE FRONT ────────
   // LE MENU DE MODIFICATION DE CHAQUE TECHNICIEN, PAS LA LISTE PARTAGÉE
   // (AGENCE-ACTIVE, AA-3) — `agences` (ci-dessus) ne porte que les agences
   // ACTIVES : une fiche déjà rattachée à une agence désactivée après coup
   // perdrait son option, et « Enregistrer » un tout autre champ ferait
   // déraper le rattachement vers la première option du menu. Même piège,
   // même parade que `/sites/[id]`.
-  const agencesParTechnicien = new Map(
-    await Promise.all(
+  const [
+    etatsAccesBureau,
+    agencesParTechnicien,
+    comptesAVenir,
+    etatsAcces,
+    habilitationsParTechnicien,
+  ] = await Promise.all([
+    etatsAccesDesComptes(
+      session.contexte,
+      comptesBureau.map((compte) => compte.utilisateurId),
+    ),
+    Promise.all(
       affiches.map(
         async (technicien) =>
           [
@@ -224,13 +242,47 @@ export default async function PageEquipe({
             ),
           ] as const,
       ),
+    ).then((paires) => new Map(paires)),
+    compterInterventionsAVenirParTechnicien(
+      session.contexte,
+      affiches.map((technicien) => technicien.utilisateurId),
     ),
-  );
+    etatsAccesDesTechniciens(
+      session.contexte,
+      affiches.map((technicien) => technicien.utilisateurId),
+    ),
+    habilitationsDesTechniciens(
+      session.contexte,
+      affiches.map((technicien) => technicien.utilisateurId),
+    ),
+  ]);
 
-  const comptesAVenir = await compterInterventionsAVenirParTechnicien(
-    session.contexte,
-    affiches.map((technicien) => technicien.utilisateurId),
-  );
+  // L'EXCLUSIVITÉ (D226, 9I8D1) — seuls les comptes/techniciens dont l'accès
+  // est ACTIF proposent le menu « … » qui porte « Copier un nouveau lien » :
+  // limiter l'appel à ceux-là, exactement comme `GesteAccesBureau` ne le rend
+  // que dans ce cas (9I8D, point 1, pour les deux populations).
+  const [exclusiviteBureau, exclusiviteTechniciens] = await Promise.all([
+    identitesExclusivesALaSociete(
+      session.contexte,
+      comptesBureau
+        .filter(
+          (compte) =>
+            (etatsAccesBureau.get(compte.utilisateurId)?.etat ?? "aucun") ===
+            "actif",
+        )
+        .map((compte) => compte.utilisateurId),
+    ),
+    identitesExclusivesALaSociete(
+      session.contexte,
+      affiches
+        .filter(
+          (technicien) =>
+            (etatsAcces.get(technicien.utilisateurId)?.etat ?? "aucun") ===
+            "actif",
+        )
+        .map((technicien) => technicien.utilisateurId),
+    ),
+  ]);
 
   // L'AVERTISSEMENT POSÉ APRÈS UNE DÉSACTIVATION (SAV-24) — le motif seul ne
   // suffit pas à porter N et le lien : `technicien` et `n` l'accompagnent
@@ -297,24 +349,6 @@ export default async function PageEquipe({
     toutEnvoyeEchecsNombre >= 0;
   const toutEnvoyeAvecEchecs = toutEnvoye && (toutEnvoyeEchecsNombre ?? 0) > 0;
 
-  const etatsAcces = await etatsAccesDesTechniciens(
-    session.contexte,
-    affiches.map((technicien) => technicien.utilisateurId),
-  );
-  // L'EXCLUSIVITÉ (D226, 9I8D1) — même garde que `exclusiviteBureau`
-  // ci-dessus : un technicien peut lui aussi être membre de plusieurs
-  // sociétés (passation de 9I8D, point 1).
-  const exclusiviteTechniciens = await identitesExclusivesALaSociete(
-    session.contexte,
-    affiches
-      .filter(
-        (technicien) =>
-          (etatsAcces.get(technicien.utilisateurId)?.etat ?? "aucun") ===
-          "actif",
-      )
-      .map((technicien) => technicien.utilisateurId),
-  );
-
   // L'ALERTE « N PERSONNE(S) NE PEUVENT PAS ENCORE SE CONNECTER » (point 2) —
   // techniciens ACTIFS (indépendamment de `?etat=tous`, `affiches` en est
   // toujours un sur-ensemble) ET comptes de bureau dont l'accès n'est pas
@@ -359,28 +393,6 @@ export default async function PageEquipe({
     session.contexte.role,
     "administrer_utilisateurs",
   );
-
-  const habilitations = await listerHabilitations(session.contexte);
-  const habilitationsActives = habilitations.filter((h) => h.actif);
-  const habilitationsParTechnicien = await habilitationsDesTechniciens(
-    session.contexte,
-    affiches.map((technicien) => technicien.utilisateurId),
-  );
-  // LE FUSEAU EST UNE DONNÉE, JAMAIS UN LITTÉRAL (L0-08) : le jugement
-  // « expirée » de `BlocHabilitations` compare à AUJOURD'HUI, et cette date ne
-  // se lit pas sans fuseau — celui de la société, comme `/vgp` et `/parc/[id]`.
-  const societe = await avecContexteApplicatif(session.contexte, (tx) =>
-    tx.societe.findFirst({
-      where: { id: session.contexte.societeId as string },
-      select: { fuseau_horaire: true },
-    }),
-  );
-  const fuseau = schemaFuseau.parse(societe?.fuseau_horaire);
-  // D-13 : `maintenant(fuseau).instant` est un `Date` que le fuseau n'a pas
-  // touché (`new Date(Date.now())`) — comparer son jour avec les accesseurs
-  // `getUTC*` compare le jour UTC, pas le jour à Nouméa. `.local`, lui, est
-  // déjà la lecture dans CE fuseau ; `jourDe` en retient le jour civil.
-  const aujourdHui = jourDe(maintenant(fuseau).local);
 
   // `?acces=a-ouvrir` ET `?echeance=expiree|j60` (9EG-TP-UX6-TABLEAU-DE-
   // BORD-2) — les tuiles du tableau de bord ouvrent cet écran DÉJÀ FILTRÉ,
