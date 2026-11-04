@@ -452,6 +452,24 @@ const EXEMPTIONS: readonly Exemption[] = [
     motif:
       "marque lue une notification déjà filtrée par capacité au dépôt (listerNotifications, 9J09) — aucune capacité FIXE à exiger ici, chaque ligne porte la sienne.",
   },
+  // 9J03-PORTAIL-CONTACTS (CLI-3) — deux routes du PORTAIL CLIENT (D10, D70),
+  // jamais un rôle interne : la matrice de capacités ne juge QUE les rôles
+  // internes à une société, et un compte portail n'y figure jamais (D10).
+  // Gardées par `contextePortailContact` (app/api/portail/contacts/
+  // contexte.ts), qui exige le rôle du portail puis un rattachement désigné
+  // et validé en base par `app_poser_perimetre_client` (D70) — même posture
+  // que `app/(portail)/portail/page.tsx` en lecture, jamais une seconde
+  // matrice de rôles inventée pour l'écriture.
+  {
+    chemin: "app/api/portail/contacts/creer/route.ts",
+    motif:
+      "route du portail client (D10, D70) : aucune capacité de la matrice commune ne porte sur ce rôle, gardée par contextePortailContact plutôt que par exigerCapacite — voir app/api/portail/contacts/contexte.ts.",
+  },
+  {
+    chemin: "app/api/portail/contacts/[id]/modifier/route.ts",
+    motif:
+      "même motif que app/api/portail/contacts/creer/route.ts ci-dessus — route du portail client, gardée par contextePortailContact.",
+  },
 ];
 
 /** Chaque route mutante d'`app/api/`, chemin relatif à la racine. */

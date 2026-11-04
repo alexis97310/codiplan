@@ -183,6 +183,20 @@ export const fr = {
     "Sans information — CODIPLAN n'enregistre pas encore les contrôles de cette machine. Ce n'est ni « à jour », ni « en retard ».",
   "portail.reserve": "Cet écran est réservé aux comptes de portail client.",
 
+  // ── L'ÉCRAN DES INTERLOCUTEURS DU PORTAIL (9J03-PORTAIL-CONTACTS, CLI-3) ──
+  //
+  // Lecture LARGE retenue : « vos interlocuteurs » désigne l'annuaire du
+  // CLIENT, pas la seule fiche du compte connecté — M8 ne restreint pas à
+  // « soi-même », et un compte qui ne pourrait pas enregistrer le départ d'un
+  // collègue serait un manque (passation, à confirmer par Alexis).
+  "portail.contacts.titre": "Vos interlocuteurs",
+  // LE MOT IMPOSÉ NE S'ÉCRIT PAS ICI (L0-11, D5, D47) : `motDansUnePhrase
+  // ("agence")` compose la phrase autour de ce dictionnaire, comme
+  // `portail.interventions.a_venir_avant/apres` ci-dessus.
+  "portail.contacts.sous_titre_avant": "Les personnes que votre",
+  "portail.contacts.sous_titre_apres":
+    "peut joindre pour vos interventions — ajoutez-en, ou corrigez une fiche.",
+
   // ── LE BANDEAU ET LES CHIFFRES DU PORTAIL (R2-07, D95) ───────────────────
   //
   // La maquette porte QUATRE indicateurs ; le produit n'en sait mesurer que
@@ -5985,6 +5999,13 @@ export const fr = {
     "Aucun interlocuteur ne correspond à cette fiche.",
   "contacts.refus.courriel_requis_pour_canal_email":
     "Un contact notifié par courriel doit porter une adresse électronique : retirez le canal courriel avant de vider l'adresse.",
+  // MÊME TEXTE QUE `intervention.refus.erreur_serveur` ET
+  // `machine.refus.erreur_serveur` (9J03-PORTAIL-CONTACTS) — le filet du
+  // portail (`app/api/portail/contacts/filet.ts`) couvre le refus que la
+  // politique `WITH CHECK` de `contact` lève pour un `site_id` hors du
+  // périmètre du compte, que `motifDeLErreur` ne reconnaît pas.
+  "contacts.refus.erreur_serveur":
+    "Une erreur est survenue pendant l'enregistrement. Rien n'a été modifié : réessayez.",
 
   // Depuis la fiche d'un site (`/sites/[id]`).
   "sites.fiche.contacts": "Interlocuteurs",
