@@ -7795,3 +7795,29 @@ Revue de 9I8F (solde 619, avant le gel de la démo) : les quatre points ci-dessu
 **Écarts mesurés et non repris dans ce lot, par manque de temps (budget 110 min)** : pas d'épreuve de bout en bout nouvelle (le scénario « machine sortie choisie dans la nouvelle demande, aucun champ, état en lecture » reste à écrire dans `tests/e2e/9i8f-statut-machine-modifiable.spec.ts`) ; pas de capture AVANT/APRÈS. Les règles serveur sont éprouvées sur la vraie base (`tests/isolation/`) et en pur (`tests/unit/machines/garde-statut.test.ts`).
 
 Portée ajoutée : `lib/machines/garde-statut.ts` (nouveau), `lib/machines/saisie.ts` (`etatMachineEstProposable`), `app/api/machines/[id]/changer-statut/route.ts` (champ `confirmation`), `components/machines/changer-statut.tsx` (champ caché), `app/(back-office)/parc/presentation.ts` (confirmation dans les deux sens), `lib/demandes/depot.ts`, `lib/interventions/depot.ts`, `components/demandes/champs-nouvelle-demande.tsx`, `components/interventions/site-et-machines.tsx`, `app/(back-office)/interventions/[id]/page.tsx` (tuile Machine), `lib/i18n/fr.ts`.
+
+## D228 — PARCOURS-1 : une intervention ne porte qu'une machine au plus, et pourquoi ce texte manquait
+
+*À VALIDER PAR ALEXIS. Cette section ÉCRIT ce qui est déjà posé en base depuis le 23/09/2026 — elle ne redécide rien. « PARCOURS-1 » était cité comme un arbitrage de rang 1 à cinq endroits de ce document sans qu'aucune section `## Dxx` n'en porte le texte complet (ticket 9J01-DOC-PARCOURS-1, audit équipe du 29/10/2026, confirmé indépendamment par CATALOGUE, le chef, CONTRADICTEUR et l'ARCHITECTE). Alexis confirme que ce qui suit reflète bien sa décision du 23/09/2026, ou la corrige.*
+
+### CE QUE LE CHAPITRE 7/M3 ET D103 PERMETTAIENT AVANT
+
+Le chapitre 7/M3 du cahier des charges : *« Une visite peut couvrir plusieurs machines : plusieurs lignes machine, chacune avec sa checklist et son état de sortie, un seul déplacement, un seul rapport. »* D103 (11/09/2026, `docs/arbitrages.md:3436`) avait traduit ce principe dans la forme « filiation » : `intervention_machine` porte le rattachement, une ligne par machine traitée, chacune avec son diagnostic, ses travaux et son état de sortie propres.
+
+### CE QUE PARCOURS-1 REFERME
+
+L'arbitrage d'Alexis du 23/09/2026, posé par `prisma/migrations/20260923130000_parcours_1_creer_puis_planifier/migration.sql:118-122` : **une intervention ne porte qu'une machine au plus**, contrainte `UNIQUE ("intervention_id")` sur `intervention_machine`, posée **VALIDÉE** et non `NOT VALID` — la migration vérifie d'abord qu'aucune intervention existante n'en porte deux (`migration.sql:83-114`) et échoue en nommant les interventions concernées plutôt que de poser une règle qui ne vaudrait que pour demain. Aucune ligne n'est supprimée par la migration dans les deux cas.
+
+Le texte posé sur la contrainte elle-même (`COMMENT ON CONSTRAINT`, `migration.sql:121-122`) :
+
+> « PARCOURS-1, arbitrage Alexis du 23/09/2026 : une intervention ne porte qu'une machine au plus. Posée VALIDÉE — la migration a vérifié qu'aucune ligne existante ne l'enfreint avant de la poser, et échoue sinon plutôt que de laisser un trou. »
+
+### ÉCART MESURÉ, NOTÉ PLUTÔT QUE TRANCHÉ EN DOUCE
+
+Le chapitre 10, RG-INT-01, porte aujourd'hui, mot pour mot : *« Elle PEUT en porter une ou plusieurs (`intervention_machine`) »* *(amendée par D16, D120 — D120 du 15/09/2026, antérieure à PARCOURS-1)*. Ce texte contredit directement la contrainte posée le 23/09/2026 : la base refuse par construction ce que le chapitre 10 dit permettre. Cette section N'AMENDE PAS RG-INT-01 — `docs/cahier-des-charges.md` est hors du territoire de ce ticket (9J01-DOC-PARCOURS-1, limité à l'ajout d'une section à `docs/arbitrages.md`) — et aucun gardien existant (`cablage-arbitrages`, dont la liste `CABLAGE_ATTENDU` est fermée et écrite à la main) ne tenait cette paire jusqu'ici, puisque D228 n'existait pas. **La mise à jour de RG-INT-01 reste un point ouvert, posé explicitement à Alexis plutôt que résolu en douce.**
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où une visite doit à nouveau couvrir plusieurs machines, chacune avec sa propre checklist (CATALOGUE CAT-2.3, Question 3), cette page se rouvre : il faudra retirer la contrainte `intervention_machine_intervention_id_key` par une migration dédiée, et revoir RG-INT-01 dans le même geste plutôt que de laisser le chapitre 10 et la base diverger une seconde fois.
+
+**Règles amendées :** aucune — voir « Écart mesuré » ci-dessus.
