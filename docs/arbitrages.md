@@ -7821,3 +7821,25 @@ Le chapitre 10, RG-INT-01, porte aujourd'hui, mot pour mot : *« Elle PEUT en po
 > Le jour où une visite doit à nouveau couvrir plusieurs machines, chacune avec sa propre checklist (CATALOGUE CAT-2.3, Question 3), cette page se rouvre : il faudra retirer la contrainte `intervention_machine_intervention_id_key` par une migration dédiée, et revoir RG-INT-01 dans le même geste plutôt que de laisser le chapitre 10 et la base diverger une seconde fois.
 
 **Règles amendées :** aucune — voir « Écart mesuré » ci-dessus.
+
+## D229 — LA NOTIFICATION PREND LA FORME « INTERNE », PAS « PARC » (session, 9J09-NOTIFICATIONS-SCHEMA, 05/11/2026)
+
+### CE QUI A ÉTÉ MESURÉ
+
+Alexis a demandé, le 29/10/2026, verbatim : « que chaque intéressé soit prévenu (en interne ça peut être une page selon le niveau d'autorisation de son compte) ». Mesuré sur `origin/main` : aucune table `Notification` n'existe, aucune page, aucun canal interne — seuls quatre événements envoient aujourd'hui un courriel, tous synchrones et sans trace (étude FLUX, 9J09). Rien n'est tranché nulle part sur la forme RLS que porterait une telle table, et aucun écran de portail n'en a besoin en V1 : la demande d'Alexis ne nomme que l'interne.
+
+### LA DÉCISION
+
+**`notification` prend la forme « interne » (D94, D100) : société ET `app.client_id` absent.** *Un compte de portail n'en lit aucune, quel que soit son client.* C'est le même régime que `document_recu` et `import_lot`/`import_lot_ligne`, et pour le même motif que D100 l'a choisi à la naissance : *le seul moment où la question de cloisonnement se pose sans effort est celui où la table est créée.*
+
+**Pourquoi « interne » et non « parc »** (forme que `demande`, par exemple, porte — D102) : une notification n'est, pour ce ticket, adressée qu'à des comptes internes (`capacite_requise` ne désigne que des capacités de la matrice §5.2/§22.5, jamais une capacité de portail) et ne CIBLE jamais un client ni un site. Lui donner la forme « parc » exigerait `client_id`/`perimetre_sites` et un `WITH CHECK` explicite pour ouvrir un accès qu'aucun appelant ne réclame aujourd'hui — « interne » coûte UNE clause de moins et offre une protection strictement supérieure. En cas de doute entre montrer et cacher, on cache (`docs/doctrine-arbitrage.md` §2).
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+Elle ne décide d'aucun événement au-delà de `signature_absente_ou_refusee` (seule valeur posée par ce ticket), d'aucun écran, d'aucun producteur. Ce sont les tickets 9J10, 9J11 et 9J19.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où un événement doit notifier un compte de portail, la forme « interne » ne suffit plus et SE RETIRE — elle ne s'assouplit pas en cours de route (même discipline que D100) : une nouvelle table, ou une nouvelle politique sur `notification`, se pose alors pour ce besoin précis.
+
+**Règles amendées :** aucune.
