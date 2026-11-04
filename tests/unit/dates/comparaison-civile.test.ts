@@ -125,6 +125,14 @@ const EXEMPTIONS: readonly {
     fichier: "app/(back-office)/demandes/page.tsx",
     motif: "maintenant(fuseau).instant",
   },
+  {
+    // 9J08A-HISTORIQUE-DES-ETATS — `tempsParEtatAffiche` compare cet instant
+    // à `change_le`, un AUTRE instant (`timestamptz`, jamais une `@db.Date`) :
+    // un instant qui reste un instant jusqu'au bout, même famille que
+    // `instantDeLAgence` ci-dessus.
+    fichier: "app/(back-office)/interventions/[id]/page.tsx",
+    motif: "maintenant(fiche.fuseau).instant",
+  },
 ];
 
 /** L'idiome sûr : relire l'instant DANS son fuseau, exactement `.local`. */

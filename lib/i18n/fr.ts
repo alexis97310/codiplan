@@ -2552,6 +2552,8 @@ export const fr = {
   "intervention.chronologie.temps_par_etat.en_cours_suffixe": "en cours",
   "intervention.chronologie.temps_par_etat.indisponible_avant":
     "Temps par état disponible à partir du",
+  "intervention.chronologie.temps_par_etat.aucune":
+    "Aucun historique enregistré.",
 
   // LE BANDEAU D'UNE FICHE REPRISE D'UN IMPORT (IN-23, audit du 28/09/2026) —
   // même critère que `intervention.chronologie.enregistrement`

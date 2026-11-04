@@ -1874,7 +1874,7 @@ export default async function PageIntervention({
               <div className="px-4 py-3.5">
                 {tempsParEtat.lignes.length === 0 ? (
                   <p className="text-app-encre-faible text-[12px] font-bold">
-                    {TIRET}
+                    {t("intervention.chronologie.temps_par_etat.aucune")}
                   </p>
                 ) : (
                   <ul className="flex flex-col gap-1.5 text-13 font-bold">
@@ -1885,11 +1885,15 @@ export default async function PageIntervention({
                       >
                         <span>
                           {ligne.libelle}
-                          {!ligne.enCours
-                            ? null
-                            : ` (${t(
+                          {!ligne.enCours ? null : (
+                            <>
+                              {t("ponctuation.parenthese_ouvrante")}
+                              {t(
                                 "intervention.chronologie.temps_par_etat.en_cours_suffixe",
-                              )})`}
+                              )}
+                              {t("ponctuation.parenthese_fermante")}
+                            </>
+                          )}
                         </span>
                         <span className="text-app-encre-faible">
                           {ligne.duree}

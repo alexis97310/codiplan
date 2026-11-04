@@ -1325,8 +1325,8 @@ export function tempsParEtatAffiche(
   fuseau: Fuseau,
 ): TempsParEtatAffiche {
   const resultat = dureesParEtat(historique, statutActuel, maintenant);
-  const lignes: LigneTempsParEtat[] = STATUTS_INTERVENTION.filter(
-    (etat) => resultat.dureesCumuleesMs.has(etat),
+  const lignes: LigneTempsParEtat[] = STATUTS_INTERVENTION.filter((etat) =>
+    resultat.dureesCumuleesMs.has(etat),
   ).map((etat) => ({
     libelle: t(`statut.${etat}`),
     duree: enDuree(
