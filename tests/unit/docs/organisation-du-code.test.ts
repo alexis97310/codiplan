@@ -213,13 +213,10 @@ describe("le §6 du CLAUDE.md et le disque s'accordent, dans les deux sens", () 
   });
 
   it("ÉPREUVE : un module créé sans être déclaré est refusé", () => {
-    const ecarts = ecartsArborescence(enumeres, [
-      ...surDisque,
-      "notifications",
-    ]);
+    const ecarts = ecartsArborescence(enumeres, [...surDisque, "mirage"]);
 
     expect(ecarts).toHaveLength(1);
-    expect(ecarts[0]).toContain("lib/notifications/");
+    expect(ecarts[0]).toContain("lib/mirage/");
     expect(ecarts[0]).toContain("§6");
   });
 

@@ -1065,6 +1065,8 @@ dans la table `parite` ci-dessous.*
 
 **demande_statut_historique** — même forme qu'`intervention_statut_historique` ci-dessus, pour `demande` *(9J08A-HISTORIQUE-DES-ETATS)*.
 
+**notification** — `societe_id`, cible (intervention OU demande, `num_nonnulls` = 1), événement (énumération fermée, une seule valeur à ce jour : `signature_absente_ou_refusee`), capacité requise (doit correspondre à une entrée de la matrice §5.2/§22.5), destinataire (nullable — nul = tous les comptes qui tiennent la capacité), date de création, date de lecture (nullable, jamais un booléen), et le journal de son envoi — canal, date de tentative, issue *(9J09-NOTIFICATIONS-SCHEMA)*. Que chaque intéressé soit prévenu, en interne par une page selon son habilitation (demande d'Alexis du 29/10/2026). Forme « interne » (D229, même régime que `document_recu` et `import_lot`) : société ET `app.client_id` absent — aucun écran de portail n'en lit en V1, et c'est délibéré malgré la filiation à `intervention`/`demande` : une notification est une information interne sur le déroulement du dossier, pas une donnée du parc.
+
 ### 11.3 Volumétrie estimée à 3 ans
 
 Révisée à la baisse compte tenu de l'effectif réel.

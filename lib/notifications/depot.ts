@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
 
-import { type EvenementNotification, type PrismaClient } from "@prisma/client";
+import {
+  type EvenementNotification,
+  type Prisma,
+  type PrismaClient,
+} from "@prisma/client";
 
 import { type Capacite, niveau } from "@/lib/auth/habilitations";
 import {
@@ -8,6 +12,7 @@ import {
   exigerContexteActif,
   exigerSocieteActive,
 } from "@/lib/auth/contexte";
+import { lireFuseau, maintenant } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
 
 /**
@@ -142,6 +147,23 @@ export async function listerNotifications(
 }
 
 /**
+ * L'instant, daté dans le fuseau de la SOCIÉTÉ active (L0-08) — jamais
+ * `new Date()` : *c'est l'impossibilité d'écrire une heure sans avoir dit
+ * laquelle*, même pour un simple horodatage (même garde que
+ * `lib/imports/application.ts#instantDate`).
+ */
+async function instantDate(
+  tx: Prisma.TransactionClient,
+  societeId: string,
+): Promise<Date> {
+  const societe = await tx.societe.findUniqueOrThrow({
+    where: { id: societeId },
+    select: { fuseau_horaire: true },
+  });
+  return maintenant(lireFuseau(societe.fuseau_horaire)).instant;
+}
+
+/**
  * Marque une notification lue, à la première lecture seulement.
  *
  * `lue_le` ne se réécrit jamais : c'est la date de la PREMIÈRE lecture
@@ -154,13 +176,17 @@ export async function marquerLue(
   id: string,
   client?: PrismaClient,
 ): Promise<void> {
+  const societeId = exigerSocieteActive(contexte);
+
   await avecContexteApplicatif(
     contexte,
-    (tx) =>
-      tx.notification.updateMany({
+    async (tx) => {
+      const lueLe = await instantDate(tx, societeId);
+      await tx.notification.updateMany({
         where: { id, lue_le: null },
-        data: { lue_le: new Date() },
-      }),
+        data: { lue_le: lueLe },
+      });
+    },
     client,
   );
 }

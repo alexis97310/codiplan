@@ -82,6 +82,7 @@ function ligne(surcharge: Partial<LigneInventaire> = {}): LigneInventaire {
       vgp_campagne: 0,
       vgp_observation: 0,
       vgp_verification: 0,
+      notification: 0,
     },
     ...surcharge,
   };
@@ -136,6 +137,7 @@ function inventaire(surcharge: Partial<Inventaire> = {}): Inventaire {
         vgp_campagne: 0,
         vgp_observation: 0,
         vgp_verification: 0,
+        notification: 0,
       },
     }),
   ];
@@ -214,6 +216,7 @@ describe("inventaire à plat", () => {
       vgp_campagne: 0,
       vgp_observation: 0,
       vgp_verification: 0,
+      notification: 0,
     });
   });
 

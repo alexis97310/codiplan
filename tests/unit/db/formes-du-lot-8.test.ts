@@ -166,6 +166,7 @@ describe("la liste close de la TREIZIÈME forme — « interne »", () => {
       "import_lot",
       "import_lot_ligne",
       "segment_travail",
+      "notification",
     ]);
   });
 
@@ -176,6 +177,7 @@ describe("la liste close de la TREIZIÈME forme — « interne »", () => {
       "import_lot",
       "import_lot_ligne",
       "segment_travail",
+      "notification",
       "taux_horaire",
     ]);
     expect(ecarts).toHaveLength(1);
@@ -184,7 +186,7 @@ describe("la liste close de la TREIZIÈME forme — « interne »", () => {
 
   it("le RETRAIT — le sens SILENCIEUX — est refusé lui aussi, et CHACUN dit ce qu'il rouvre", () => {
     const ecarts = ecartsListeInterne([]);
-    expect(ecarts).toHaveLength(5);
+    expect(ecarts).toHaveLength(6);
     expect(ecarts[0]).toMatch(/NOMS DE FICHIERS/);
     // Et celui de `segment_travail` ne parle ni de fichier ni de santé : il
     // parle de MINUTES. *Trois motifs distincts sur cinq entrées est ce qui

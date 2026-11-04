@@ -230,7 +230,7 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
     );
   });
 
-  it("les quarante et une tables auditées aujourd'hui sont exactement celles attendues", () => {
+  it("les quarante-deux tables auditées aujourd'hui sont exactement celles attendues", () => {
     // Le décompte, écrit en toutes lettres, pour qu'un déclencheur posé
     // ailleurs — ou disparu — se voie. C'est la constitution confrontée aux
     // migrations, pas les migrations confrontées à elles-mêmes.
@@ -346,6 +346,12 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
       "intervention_statut_historique",
       "machine",
       "modele_materiel",
+      // `notification` s'y ajoute au ticket 9J09-NOTIFICATIONS-SCHEMA, et par
+      // le même chemin : première catégorie de I1, donc auditée à sa
+      // naissance. « Qui a été prévenu, de quoi, et a-t-il lu » est une
+      // question qui se pose le jour où un client découvre un litige que
+      // personne n'a vu venir.
+      "notification",
       // `prestation` s'y ajoute au ticket L1-12, et par le même chemin : elle
       // est de la première catégorie de I1, donc auditée à sa naissance. Elle
       // le mérite pour une raison qui lui est propre — *une durée standard est

@@ -2140,6 +2140,14 @@ export const TABLES_INTERNES = [
   // se lit sur l'intervention. Trancher à la création est le seul moment où
   // cela ne coûte rien (§9, 30/08).
   "segment_travail",
+  // D229 (9J09-NOTIFICATIONS-SCHEMA, 05/11/2026) — LA NOTIFICATION, et elle
+  // prend cette forme à sa NAISSANCE, comme `import_lot`/`import_lot_ligne` et
+  // `segment_travail` avant elle. **Et c'est la DEUXIÈME table de cette liste
+  // qui soit aussi fille d'une table du parc** (`intervention`, `demande`) :
+  // le critère de la filiation la réclamerait, et « interne » ferme davantage
+  // — même comparaison que pour `segment_travail`, écrite dans
+  // `ecartsTablesFilles`, pas supposée.
+  "notification",
 ] as const;
 
 /** Les entrées que l'arbitrage D94 autorise. Recopiées : c'est la doctrine. */
@@ -2191,6 +2199,14 @@ const INTERNES_ARBITREES: ReadonlyArray<{
       "un compte portail lirait QUI est absent et QUAND — « votre technicien " +
       "habituel est en arrêt du 14 au 28 » est une donnée de santé par " +
       "déduction, et ce n'est pas au client de la lire",
+  },
+  {
+    table: "notification",
+    ceQueLeRetraitRouvre:
+      "un compte portail lirait, via la filiation, les notifications de SON " +
+      "intervention ou de SA demande — par exemple qu'une signature a été " +
+      "jugée absente ou refusée, une information interne sur le déroulement " +
+      "du dossier, pas sur le parc",
   },
 ];
 

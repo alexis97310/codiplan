@@ -342,6 +342,11 @@ export const MODULES_SANS_CHEMIN: readonly {
     motif:
       "La consolidation est du lot 5, et elle n'a AUCUN appelant par décision : c'est la seule zone autorisée à convertir des devises (I2), et son rôle de base porte un secret distinct qui n'existe pas encore (D38).",
   },
+  {
+    module: "lib/notifications",
+    motif:
+      "9J09-NOTIFICATIONS-SCHEMA a posé la table, la forme « interne » (D229) et le dépôt ; l'écran (9J10) et les producteurs d'événement (9J11, 9J19) n'existent pas encore. Se retire le jour où l'un des trois l'appelle.",
+  },
 ];
 
 /**
@@ -660,5 +665,24 @@ export const FONCTIONS_SANS_CHEMIN: readonly SansChemin[] = [
     fonction: "nombreEquipementsActifsDuClient",
     motif:
       "La tuile « Machines » de la fiche client (`clients/[id]/page.tsx`) compte désormais par `compterLeParc` (vue `parc`, decision 52) pour que le chiffre soit EXACTEMENT ce que son lien ouvre (D140) — cette fonction comptait autre chose (le brut actif, sans le critère de la vue). Reste éprouvée par `tests/isolation/fiche-360-1.test.ts` et `tests/isolation/resume-cartes-clients.test.ts`. Se retire le jour où un écran recompte ce brut.",
+  },
+  // ── 9J09-NOTIFICATIONS-SCHEMA (05/11/2026) — LA TABLE ET SON DÉPÔT, SANS
+  // ÉCRAN NI PRODUCTEUR ────────────────────────────────────────────────────
+  {
+    module: "lib/notifications/depot.ts",
+    fonction: "poserNotification",
+    motif:
+      "9J09 pose la table (forme « interne », D229) et le dépôt ; aucun producteur d'événement n'existe encore (9J11, 9J19 les écriront). Se retire le jour où l'un d'eux l'appelle.",
+  },
+  {
+    module: "lib/notifications/depot.ts",
+    fonction: "listerNotifications",
+    motif:
+      "Même ticket : l'écran qui liste les notifications (9J10) n'existe pas encore. Se retire le jour où il l'appelle.",
+  },
+  {
+    module: "lib/notifications/depot.ts",
+    fonction: "marquerLue",
+    motif: "Même écran que `listerNotifications` (9J10).",
   },
 ];

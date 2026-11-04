@@ -19,50 +19,51 @@ _Les numéros de ligne du sommaire sont RECALCULÉS, jamais saisis à la main : 
 
 ### Sommaire
 
-- `app/` — ligne 70
-- `lib/` — ligne 75
-- `lib/db/` — ligne 76
-- `lib/auth/` — ligne 122
-- `lib/absences/` — ligne 157
-- `lib/clients/` — ligne 213
-- `lib/habilitations/` — ligne 216
-- `lib/contacts/` — ligne 224
-- `lib/demandes/` — ligne 234
-- `lib/agences/` — ligne 268
-- `lib/sites/` — ligne 283
-- `lib/machines/` — ligne 313
-- `lib/interventions/` — ligne 364
-- `lib/materiel/` — ligne 538
-- `lib/tarification/` — ligne 571
-- `lib/navigation/` — ligne 667
-- `lib/money/` — ligne 703
-- `lib/courriel/` — ligne 705
-- `lib/avertissements/` — ligne 737
-- `lib/compteurs/` — ligne 750
-- `lib/calendar/` — ligne 769
-- `lib/sync/` — ligne 795
-- `lib/documents/` — ligne 796
-- `lib/excel/` — ligne 822
-- `lib/imports/` — ligne 880
-- `lib/prestations/` — ligne 1032
-- `lib/portail/` — ligne 1051
-- `lib/pdf/` — ligne 1067
-- `lib/reporting/` — ligne 1068
-- `lib/vgp/` — ligne 1069
-- `lib/techniciens/` — ligne 1122
-- `lib/terrain/` — ligne 1127
-- `lib/theme/` — ligne 1136
-- `lib/i18n/` — ligne 1171
-- `lib/tri/` — ligne 1174
-- `lib/societes/` — ligne 1179
-- `lib/audit/` — ligne 1183
-- `lib/tableau-de-bord/` — ligne 1187
-- `lib/feuille-de-route/` — ligne 1191
-- `lib/pwa/` — ligne 1197
-- `components/` — ligne 1201
-- `prisma/` — ligne 1202
-- `tests/` — ligne 1203
-- `docs/` — ligne 1222
+- `app/` — ligne 71
+- `lib/` — ligne 76
+- `lib/db/` — ligne 77
+- `lib/auth/` — ligne 123
+- `lib/absences/` — ligne 158
+- `lib/clients/` — ligne 214
+- `lib/habilitations/` — ligne 217
+- `lib/contacts/` — ligne 225
+- `lib/demandes/` — ligne 235
+- `lib/agences/` — ligne 269
+- `lib/sites/` — ligne 284
+- `lib/machines/` — ligne 314
+- `lib/interventions/` — ligne 365
+- `lib/materiel/` — ligne 539
+- `lib/tarification/` — ligne 572
+- `lib/navigation/` — ligne 668
+- `lib/money/` — ligne 704
+- `lib/courriel/` — ligne 706
+- `lib/avertissements/` — ligne 738
+- `lib/compteurs/` — ligne 751
+- `lib/calendar/` — ligne 770
+- `lib/sync/` — ligne 796
+- `lib/documents/` — ligne 797
+- `lib/excel/` — ligne 823
+- `lib/imports/` — ligne 881
+- `lib/notifications/` — ligne 1033
+- `lib/prestations/` — ligne 1048
+- `lib/portail/` — ligne 1067
+- `lib/pdf/` — ligne 1083
+- `lib/reporting/` — ligne 1084
+- `lib/vgp/` — ligne 1085
+- `lib/techniciens/` — ligne 1138
+- `lib/terrain/` — ligne 1143
+- `lib/theme/` — ligne 1152
+- `lib/i18n/` — ligne 1187
+- `lib/tri/` — ligne 1190
+- `lib/societes/` — ligne 1195
+- `lib/audit/` — ligne 1199
+- `lib/tableau-de-bord/` — ligne 1203
+- `lib/feuille-de-route/` — ligne 1207
+- `lib/pwa/` — ligne 1213
+- `components/` — ligne 1217
+- `prisma/` — ligne 1218
+- `tests/` — ligne 1219
+- `docs/` — ligne 1238
 
 ---
 
@@ -1029,6 +1030,21 @@ lib/
               un lot ANNULÉ garde sa date d'application — un lot annulé a bel
               et bien été appliqué, et l'effacer perdrait la seule trace du
               moment où le parc a changé
+  notifications/ LA NOTIFICATION (9J09-NOTIFICATIONS-SCHEMA ; D229)
+              depot.ts : table, forme « interne » (D229, même régime que
+              document_recu/import_lot) — société ET app.client_id absent ;
+              aucun écran de portail n'en lit en V1
+              `capacite_requise` est typée `Capacite` (lib/auth/habilitations),
+              pas une chaîne libre : c'est le COMPILATEUR qui tient
+              « doit correspondre à CAPACITES », pas une validation rejouée
+              `listerNotifications` filtre par `niveau(role, capacite)` en
+              mémoire, après la lecture cloisonnée — jamais par rôle en dur,
+              jamais par un `where` qui redirait la matrice une seconde fois
+              `lue_le` ne se réécrit jamais : `marquerLue` est idempotente,
+              la date de la PREMIÈRE lecture, jamais la plus récente
+              aucun écran (9J10), aucun producteur d'événement (9J11, 9J19) —
+              le module existe sans appelant, nommé dans les deux gardiens
+              de chemins (`MODULES_SANS_CHEMIN`, `FONCTIONS_SANS_CHEMIN`)
   prestations/ LE CATALOGUE DES PRESTATIONS (L1-12 ; D109, D113)
               UNE PRESTATION PORTE UNE DURÉE, JAMAIS UN TAUX — aucune colonne
               de montant, et un gardien statique le refuse sur les COLONNES du
