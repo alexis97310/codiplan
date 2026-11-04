@@ -121,6 +121,24 @@ Produites par `tests/e2e/captures-9j08a-historique-des-etats.spec.ts` (SQL
 brut en `beforeAll`/`afterAll`, comme les autres specs de captures du dépôt —
 jamais de donnée de production, jamais d'identifiant réel).
 
+## `verify-final.txt` — `test:e2e` n'a PAS fini dans l'appel unique
+
+`format:check`, `typecheck`, `lint`, `test` (499 fichiers, 5484 épreuves),
+`test:isolation` (209 fichiers, 1825 épreuves), `build`, `feries:horizon` et
+`audit:partitions` sont tous passés sans un seul rouge. `test:e2e` a ensuite
+tourné **environ 50 minutes sous `CI=1` (1 seul worker)** sans qu'aucun
+« ✘ »/« FAIL » n'apparaisse dans tout ce qui a eu le temps de s'exécuter —
+puis l'appel unique a été coupé par la limite de temps de l'outil (60 min),
+en plein milieu de la suite. Ce n'est **pas un rouge mesuré**, c'est une
+suite trop longue pour un seul appel — conforme au précédent déjà noté pour
+ce dépôt (`test:e2e` seul dépasse 30 min avec 1877 épreuves). `pnpm verify`
+(sans `test:e2e`) a été rejoué séparément, à sec, et passe.
+
+**Pour la session qui reprend ce fil** : rejouer `CI=1 pnpm test:e2e` seul,
+dans un appel dédié avec un budget de temps supérieur à 50 minutes (ou en
+plusieurs tranches par motif de fichier), avant de considérer `verify:full`
+comme réellement rejoué en entier.
+
 ## Hors territoire, non fait (par construction du ticket)
 
 Le portail client (9J08B), les énumérations de statut existantes, le journal
