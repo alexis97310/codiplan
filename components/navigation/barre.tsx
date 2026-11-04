@@ -212,7 +212,10 @@ export function BarreDeNavigation({
    */
   readonly decomptes?: DecomptesMenu | null;
 }) {
-  const entreesVisibles = entreesAffichables(entrees, role);
+  const entreesVisibles = sansNotificationsVides(
+    entreesAffichables(entrees, role),
+    decomptes,
+  );
   const actif = entreeActive(usePathname() ?? "", entreesVisibles)?.cle ?? null;
   const { ouvert, fermer } = useNavigationMobile();
   const { repliee, basculer } = useColonneRepliable();
@@ -512,6 +515,9 @@ const ICONE_PAR_CHEMIN: Partial<Record<string, NomIcone>> = {
   "/imports": "upload",
   "/terrain": "phone",
   "/feuille-de-route": "route",
+  // « Notifications » (9J10-NOTIFICATIONS-ECRAN) — `bell` (:1644 de la
+  // planche `ICONS`, voir `components/ui/icone.tsx`).
+  "/notifications": "bell",
 };
 
 /** Voir le commentaire de `ICONE_PAR_CHEMIN` — l'exception par `cle`, réservée à `/portail`. */
@@ -530,6 +536,41 @@ const SUFFIXE_DECOMPTE_PAR_CHEMIN: Partial<Record<string, CleTraduction>> = {
   "/demandes": "nav.decompte_demandes_suffixe",
   "/interventions": "nav.decompte_interventions_suffixe",
 };
+
+/**
+ * RETIRE « NOTIFICATIONS » QUAND AUCUNE N'EST VISIBLE (9J10-NOTIFICATIONS-
+ * ECRAN) — même patron que D132 (« la barre ne montre que ce qu'on peut
+ * ouvrir »), mais ce que ce compte « peut ouvrir » dépend ici de données, pas
+ * d'une capacité fixe : `lib/navigation/entrees.ts` ne porte donc AUCUNE
+ * ligne pour `nav.notifications` dans `CAPACITE_REQUISE` (comme
+ * `nav.demandes`, visible à quiconque a un rôle) — c'est ce filtre, ICI
+ * SEULEMENT, qui retire l'entrée quand `decomptes.notifications.total` vaut
+ * zéro. `decomptes === null` (personne de connecté, ou l'une des trois
+ * lectures a échoué) laisse l'entrée en place, comme avant D171 : ce n'est
+ * jamais un second contrôle d'accès, seulement l'absence d'un signal.
+ */
+function sansNotificationsVides(
+  entrees: readonly EntreeDeBarre[],
+  decomptes: DecomptesMenu | null,
+): readonly EntreeDeBarre[] {
+  const visible = (entree: EntreeNavigation): boolean =>
+    entree.chemin !== "/notifications" ||
+    decomptes === null ||
+    decomptes.notifications.total > 0;
+
+  const resultat: EntreeDeBarre[] = [];
+  for (const entree of entrees) {
+    if (estGroupe(entree)) {
+      const enfants = entree.enfants.filter(visible);
+      if (enfants.length > 0) {
+        resultat.push({ cle: entree.cle, enfants });
+      }
+    } else if (visible(entree)) {
+      resultat.push(entree);
+    }
+  }
+  return resultat;
+}
 
 function decompteDeLEntree(
   entree: EntreeNavigation,

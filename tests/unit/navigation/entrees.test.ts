@@ -107,15 +107,16 @@ describe("la barre de navigation dit ce que la maquette dit (D121)", () => {
     // s'accordent parfaitement, et la comparaison porte sur rien.
     expect(destinationsDeLaMaquette().length).toBe(14);
     expect(domainesDeLaMaquette().length).toBe(3);
-    // TROIS domaines de premier niveau (D121) ; DIX-SEPT destinations une
-    // fois les groupes ouverts — QUATORZE de la maquette plus les TROIS
+    // TROIS domaines de premier niveau (D121) ; DIX-HUIT destinations une
+    // fois les groupes ouverts — QUATORZE de la maquette plus les QUATRE
     // écarts nommés (D133, « Demandes » ; D170, « Indicateurs du mois » ;
-    // 9IC5-FEUILLE-DE-ROUTE, « Feuille de route »).
+    // 9IC5-FEUILLE-DE-ROUTE, « Feuille de route » ; 9J10-NOTIFICATIONS-ECRAN,
+    // « Notifications »).
     expect(ENTREES.length).toBe(3);
-    expect(feuilles(ENTREES).length).toBe(17);
+    expect(feuilles(ENTREES).length).toBe(18);
   });
 
-  it("les écarts hors maquette sont nommés — « Demandes » (D133), « Indicateurs du mois » (D170) et « Feuille de route » (9IC5-FEUILLE-DE-ROUTE)", () => {
+  it("les écarts hors maquette sont nommés — « Demandes » (D133), « Indicateurs du mois » (D170), « Feuille de route » (9IC5-FEUILLE-DE-ROUTE) et « Notifications » (9J10-NOTIFICATIONS-ECRAN)", () => {
     // La forme close : un écart de plus, ou un écart différent, ferait
     // rougir CETTE assertion — jamais le test de liste et d'ordre ci-dessous,
     // qui se contenterait de retirer ce qu'on lui désigne.
@@ -123,6 +124,7 @@ describe("la barre de navigation dit ce que la maquette dit (D121)", () => {
       "nav.demandes",
       "nav.indicateurs_du_mois",
       "nav.feuille_de_route",
+      "nav.notifications",
     ]);
     for (const ecart of ECARTS_HORS_MAQUETTE) {
       expect(ecart.motif, ecart.cle).toBeTruthy();

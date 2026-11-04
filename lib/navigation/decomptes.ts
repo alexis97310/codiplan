@@ -4,14 +4,17 @@ import type { ContexteSession } from "@/lib/auth/contexte";
 import { demandesOuvertes } from "@/lib/demandes/depot";
 import { compterParVue, listerInterventions } from "@/lib/interventions/depot";
 import { schemaRechercheInterventions } from "@/lib/interventions/saisie";
+import { listerNotifications } from "@/lib/notifications/depot";
 
 /**
  * LES DÉCOMPTES DU MENU (QE-5, 9DU-TP-NAV3-RECHERCHE-RAIL, D171) — chaque
  * chiffre est celui de SA liste, jamais une sixième façon de compter :
  * « Demandes » réutilise `demandesOuvertes` (l'onglet « À traiter », 9DM),
  * « Interventions » réutilise `compterParVue` (le registre, champ
- * `a_planifier`) — les deux comptes DÉJÀ affichés ailleurs, jamais recalculés
- * ici d'une seconde manière qui pourrait diverger (§9, 01/09).
+ * `a_planifier`), « Notifications » (9J10-NOTIFICATIONS-ECRAN) réutilise
+ * `listerNotifications` (9J09) — les trois comptes DÉJÀ affichés ailleurs,
+ * jamais recalculés ici d'une seconde manière qui pourrait diverger (§9,
+ * 01/09).
  *
  * **Aucun décompte VGP** — MO-3 (la liste des réserves VGP) n'existe pas
  * encore : compter une liste qui n'existe pas inventerait un chiffre (§8).
@@ -24,6 +27,18 @@ export type DecompteMenu = {
 export type DecomptesMenu = {
   readonly demandes: DecompteMenu;
   readonly interventions: DecompteMenu;
+  /**
+   * « NOTIFICATIONS » (9J10-NOTIFICATIONS-ECRAN) — réutilise
+   * `listerNotifications` (9J09, `lib/notifications/depot.ts`), déjà filtrée
+   * par CAPACITÉ, jamais par rôle en dur. Ce total ne sert PAS de badge
+   * (aucune entrée pour `/notifications` dans `SUFFIXE_DECOMPTE_PAR_CHEMIN`,
+   * `components/navigation/barre.tsx`) : c'est `BarreDeNavigation` qui s'en
+   * sert pour RETIRER l'entrée de menu quand il vaut zéro — même patron que
+   * D132 (« la barre ne montre que ce qu'on peut ouvrir »), appliqué à une
+   * destination dont la capacité qui la gouverne n'est pas UNE ligne fixe
+   * mais celle, variable, de chaque notification posée.
+   */
+  readonly notifications: DecompteMenu;
 };
 
 const CRITERES_REGISTRE_VIDE = schemaRechercheInterventions.parse({});
@@ -65,6 +80,23 @@ async function decompteInterventionsAPlanifier(
 }
 
 /**
+ * LE DÉCOMPTE DES NOTIFICATIONS (9J10-NOTIFICATIONS-ECRAN) — le total de ce
+ * que `listerNotifications` rend pour ce compte, jamais recalculé par une
+ * seconde requête : la capacité qui filtre chaque ligne est déjà jugée là
+ * (9J09, `niveau()`), pas ici.
+ *
+ * `urgent` reste `false` — les notifications ne portent aucune priorité, à
+ * la différence des demandes et des interventions.
+ */
+async function decompteNotifications(
+  contexte: ContexteSession,
+  client?: PrismaClient,
+): Promise<DecompteMenu> {
+  const notifications = await listerNotifications(contexte, client);
+  return { total: notifications.length, urgent: false };
+}
+
+/**
  * **NE LÈVE JAMAIS** — même contrat que `lib/navigation/chrome.ts` : un
  * décompte manquant n'est pas une raison de faire échouer tout le rendu du
  * chrome. `null` en entrée (personne de connecté) comme en sortie (l'une des
@@ -78,11 +110,12 @@ export async function decomptesDuMenu(
     return null;
   }
   try {
-    const [demandes, interventions] = await Promise.all([
+    const [demandes, interventions, notifications] = await Promise.all([
       decompteDemandes(contexte, client),
       decompteInterventionsAPlanifier(contexte, client),
+      decompteNotifications(contexte, client),
     ]);
-    return { demandes, interventions };
+    return { demandes, interventions, notifications };
   } catch {
     return null;
   }

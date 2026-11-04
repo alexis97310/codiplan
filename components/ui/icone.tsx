@@ -42,7 +42,8 @@ import { cn } from "@/lib/utils";
  * « À traiter ») — :1627 de la planche.
  * Depuis 9EWD-PARAMETRES-HUB-MAQUETTE (décision n° 97 d'Alexis) : `briefcase`
  * (:1693, porte « Prestations ») et `layers` (:1687, porte « Référentiel
- * matériel ») — même planche.
+ * matériel ») — même planche. Depuis 9J10-NOTIFICATIONS-ECRAN : `bell`
+ * (:1644, l'entrée de menu « Notifications »).
  *
  * **Aucune licence n'est écrite pour elles** : la maquette ne nomme qu'une
  * licence, celle de la police Inter (:9) — les icônes elle-même sont un
@@ -115,7 +116,8 @@ export type NomIcone =
   | "calendar-plus"
   | "more"
   | "briefcase"
-  | "layers";
+  | "layers"
+  | "bell";
 
 /** La liste, à plat — pour un gardien qui itère « chaque icône », jamais une seconde énumération. */
 export const NOMS_ICONES: readonly NomIcone[] = [
@@ -172,6 +174,7 @@ export const NOMS_ICONES: readonly NomIcone[] = [
   "more",
   "briefcase",
   "layers",
+  "bell",
 ];
 
 export type TailleIcone = 16 | 18 | 22 | 28;
@@ -465,6 +468,14 @@ const FORMES: Record<NomIcone, React.ReactNode> = {
     <>
       <path d="m12 2 10 5-10 5L2 7z" />
       <path d="m2 17 10 5 10-5M2 12l10 5 10-5" />
+    </>
+  ),
+  // « Notifications » (9J10-NOTIFICATIONS-ECRAN) — `bell` de la planche
+  // `ICONS` (:1644).
+  bell: (
+    <>
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.7 21a2 2 0 0 1-3.4 0" />
     </>
   ),
 };

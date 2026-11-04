@@ -7275,6 +7275,29 @@ export const fr = {
   "pwa.etape.accroche":
     "Avant de commencer votre journée, ajoutez CODIPLAN à l'écran d'accueil de votre téléphone.",
   "pwa.etape.plus_tard": "Plus tard",
+
+  // ── 9J10-NOTIFICATIONS-ECRAN — /notifications et son entrée de menu, au-
+  // dessus de `lib/notifications/depot.ts` (9J09, D229) ────────────────────
+  // ÉCART NOMMÉ 9J10-NOTIFICATIONS-ECRAN — voir `lib/navigation/entrees.ts`,
+  // `ECARTS_HORS_MAQUETTE` : la maquette ne dessine pas cette entrée.
+  "nav.notifications": "Notifications",
+  "notifications.titre": "Notifications",
+  "notifications.sous_titre":
+    "Les événements qui concernent votre rôle, au titre de la capacité qui les gouverne.",
+  "notifications.vide_titre": "Rien à signaler",
+  "notifications.vide_texte":
+    "Aucune notification ne concerne votre rôle pour le moment.",
+  "notifications.marquer_lue": "Marquer comme lue",
+  "notifications.non_lue": "Non lue",
+  "notifications.toutes_lues": "Toutes lues",
+  "notifications.non_lues_suffixe_une": " notification non lue",
+  "notifications.non_lues_suffixe": " notifications non lues",
+  "notifications.recue_prefixe": "Reçue le",
+  // Le libellé de CHAQUE valeur de `EvenementNotification`
+  // (`prisma/schema.prisma`) — une ligne par membre de l'énumération, jamais
+  // un texte composé depuis son nom technique (L0-11).
+  "notifications.evenement.signature_absente_ou_refusee":
+    "Signature absente ou refusée",
 } as const;
 
 export type CleTraduction = keyof typeof fr;

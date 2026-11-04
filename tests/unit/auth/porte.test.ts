@@ -440,6 +440,18 @@ const EXEMPTIONS: readonly Exemption[] = [
     motif:
       "réinitialise le second facteur d'un compte de bureau — admin_societe (jamais lui-même) ou admin_plateforme, décision du 28/10/2026 : aucune capacité de la matrice commune ne porte cette portée précise (elle exclurait soit la direction, soit admin_plateforme), jugée par peutReinitialiserSecondFacteur plutôt que par la matrice.",
   },
+  // 9J10-NOTIFICATIONS-ECRAN — marque lue SA PROPRE notification, ouvert à
+  // tout compte d'une société active : `exigerSessionActive`
+  // (lib/auth/porte.ts) ne juge qu'une société et un rôle actifs, aucune
+  // capacité. C'est `listerNotifications` (9J09, `lib/notifications/
+  // depot.ts`) qui a déjà filtré LIGNE PAR LIGNE par la capacité que CHAQUE
+  // notification porte — une capacité FIXE ici n'aurait aucun sens à choisir,
+  // la ligne visée n'en portant jamais la même d'un appel à l'autre.
+  {
+    chemin: "app/api/notifications/marquer-lue/route.ts",
+    motif:
+      "marque lue une notification déjà filtrée par capacité au dépôt (listerNotifications, 9J09) — aucune capacité FIXE à exiger ici, chaque ligne porte la sienne.",
+  },
 ];
 
 /** Chaque route mutante d'`app/api/`, chemin relatif à la racine. */

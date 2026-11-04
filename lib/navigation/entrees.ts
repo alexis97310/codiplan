@@ -277,6 +277,15 @@ export const ECARTS_HORS_MAQUETTE: ReadonlyArray<{
       "réservé à admin_societe et admin_plateforme, jamais montré à un " +
       "client.",
   },
+  {
+    cle: "nav.notifications",
+    motif:
+      "ÉCART NOMMÉ 9J10-NOTIFICATIONS-ECRAN — la demande d'Alexis du " +
+      "29/10/2026 (« que chaque intéressé soit prévenu, en interne ça peut " +
+      "être une page selon le niveau d'autorisation de son compte », D229) " +
+      "n'a pas de destination dans la maquette : la table `notification` " +
+      "(9J09) et l'écran qui la lit sont nés après elle.",
+  },
 ];
 
 /**
@@ -334,6 +343,13 @@ export const ENTREES: readonly EntreeDeBarre[] = [
       { cle: "nav.demandes", chemin: "/demandes" },
       { cle: "nav.interventions", chemin: "/interventions" },
       { cle: "nav.absences", chemin: "/absences" },
+      // ÉCART NOMMÉ 9J10-NOTIFICATIONS-ECRAN — voir ECARTS_HORS_MAQUETTE
+      // ci-dessus pour le motif complet. Visible à quiconque a un rôle
+      // (aucune ligne dans CAPACITE_REQUISE, plus bas) : c'est
+      // `components/navigation/barre.tsx` qui la retire ensuite, SI AUCUNE
+      // notification n'est visible pour ce compte — un critère que cette
+      // table, statique par construction, ne peut pas porter elle-même.
+      { cle: "nav.notifications", chemin: "/notifications" },
     ],
   },
   {

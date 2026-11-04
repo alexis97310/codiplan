@@ -4,27 +4,30 @@ import { Role } from "@/lib/auth/roles";
 
 /**
  * LES DÉCOMPTES DU MENU (QE-5, 9DU-TP-NAV3-RECHERCHE-RAIL, D171) — chaque
- * chiffre est celui de SA liste (`demandesOuvertes`, `compterParVue`), jamais
- * une sixième façon de compter. Les deux fonctions sont déjà confrontées à la
+ * chiffre est celui de SA liste (`demandesOuvertes`, `compterParVue`,
+ * `listerNotifications` depuis 9J10-NOTIFICATIONS-ECRAN), jamais une
+ * sixième façon de compter. Les trois fonctions sont déjà confrontées à la
  * vraie base par leurs propres gardiens d'isolation
- * (`tests/isolation/demande.test.ts`, `tests/isolation/export-interventions.test.ts`)
- * : ce fichier n'y revient pas, il éprouve uniquement ce que
- * `lib/navigation/decomptes.ts` AJOUTE — la mise en forme `{ total, urgent }`
- * — avec des réponses simulées, jamais la vraie base (§9, 01/09 : deux
- * fichiers qui confrontent la même chose finissent par diverger).
+ * (`tests/isolation/demande.test.ts`, `tests/isolation/export-interventions.test.ts`,
+ * `tests/isolation/notification.test.ts`) : ce fichier n'y revient pas, il
+ * éprouve uniquement ce que `lib/navigation/decomptes.ts` AJOUTE — la mise en
+ * forme `{ total, urgent }` — avec des réponses simulées, jamais la vraie
+ * base (§9, 01/09 : deux fichiers qui confrontent la même chose finissent par
+ * diverger).
  *
  * **Pourquoi un mock plutôt qu'une épreuve d'isolation** — `urgent` agrège
  * TOUTES les demandes/interventions ouvertes d'une société PARTAGÉE entre
  * fichiers de test (`fullyParallel`) : une épreuve qui poserait un P1 réel ne
  * pourrait jamais prouver l'absence de P1 AVANT son geste, ni l'exclusivité
  * de sa cause après (le piège nommé par le ticket). La fonction testée ici
- * ne fait AUCUNE requête elle-même — elle ne fait que lire ce que les deux
+ * ne fait AUCUNE requête elle-même — elle ne fait que lire ce que les trois
  * dépôts rendent — donc la simuler ne perd aucune couverture réelle.
  */
 
 const demandesOuvertesSimulee = vi.fn();
 const compterParVueSimulee = vi.fn();
 const listerInterventionsSimulee = vi.fn();
+const listerNotificationsSimulee = vi.fn();
 
 vi.mock("@/lib/demandes/depot", () => ({
   demandesOuvertes: demandesOuvertesSimulee,
@@ -32,6 +35,9 @@ vi.mock("@/lib/demandes/depot", () => ({
 vi.mock("@/lib/interventions/depot", () => ({
   compterParVue: compterParVueSimulee,
   listerInterventions: listerInterventionsSimulee,
+}));
+vi.mock("@/lib/notifications/depot", () => ({
+  listerNotifications: listerNotificationsSimulee,
 }));
 
 const { decomptesDuMenu } = await import("@/lib/navigation/decomptes");
@@ -71,6 +77,7 @@ describe("decomptesDuMenu (QE-5, D171)", () => {
     ]);
     compterParVueSimulee.mockResolvedValueOnce(COMPTES_VIDE);
     listerInterventionsSimulee.mockResolvedValueOnce([]);
+    listerNotificationsSimulee.mockResolvedValueOnce([]);
 
     const resultat = await decomptesDuMenu(CONTEXTE);
 
@@ -84,6 +91,7 @@ describe("decomptesDuMenu (QE-5, D171)", () => {
     ]);
     compterParVueSimulee.mockResolvedValueOnce(COMPTES_VIDE);
     listerInterventionsSimulee.mockResolvedValueOnce([]);
+    listerNotificationsSimulee.mockResolvedValueOnce([]);
 
     const resultat = await decomptesDuMenu(CONTEXTE);
 
@@ -103,6 +111,7 @@ describe("decomptesDuMenu (QE-5, D171)", () => {
       { priorite: "p3" },
       { priorite: "p2" },
     ]);
+    listerNotificationsSimulee.mockResolvedValueOnce([]);
 
     const resultat = await decomptesDuMenu(CONTEXTE);
 
@@ -116,18 +125,34 @@ describe("decomptesDuMenu (QE-5, D171)", () => {
       a_planifier: 1,
     });
     listerInterventionsSimulee.mockResolvedValueOnce([{ priorite: "p1" }]);
+    listerNotificationsSimulee.mockResolvedValueOnce([]);
 
     const resultat = await decomptesDuMenu(CONTEXTE);
 
     expect(resultat?.interventions).toEqual({ total: 1, urgent: true });
   });
 
-  it("rend null si l'une des deux lectures échoue — ne lève jamais (même contrat que lib/navigation/chrome.ts)", async () => {
+  it("notifications.total est la longueur de listerNotifications, et urgent reste toujours faux — aucune notion de priorité", async () => {
+    demandesOuvertesSimulee.mockResolvedValueOnce([]);
+    compterParVueSimulee.mockResolvedValueOnce(COMPTES_VIDE);
+    listerInterventionsSimulee.mockResolvedValueOnce([]);
+    listerNotificationsSimulee.mockResolvedValueOnce([
+      { id: "a" },
+      { id: "b" },
+    ]);
+
+    const resultat = await decomptesDuMenu(CONTEXTE);
+
+    expect(resultat?.notifications).toEqual({ total: 2, urgent: false });
+  });
+
+  it("rend null si l'une des TROIS lectures échoue — ne lève jamais (même contrat que lib/navigation/chrome.ts)", async () => {
     demandesOuvertesSimulee.mockRejectedValueOnce(
       new Error("base injoignable"),
     );
     compterParVueSimulee.mockResolvedValueOnce(COMPTES_VIDE);
     listerInterventionsSimulee.mockResolvedValueOnce([]);
+    listerNotificationsSimulee.mockResolvedValueOnce([]);
 
     await expect(decomptesDuMenu(CONTEXTE)).resolves.toBeNull();
   });
