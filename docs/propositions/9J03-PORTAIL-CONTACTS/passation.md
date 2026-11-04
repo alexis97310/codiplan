@@ -135,5 +135,17 @@ existe déjà, vide, pour les recevoir.
 
 Livré : routes (point 2), écran (point 3), épreuves d'isolation neuves
 (point 4), traçabilité (point 5). Bloqué et nommé : captures (point 6).
-`CI=1 pnpm verify:full` journalisé dans `9J03-verify-final.txt` du même
-répertoire d'étude que ce ticket.
+
+**`CI=1 pnpm verify` (la porte de CE ticket) est VERT en entier** —
+format:check, typecheck, lint, test (5483 tests), test:isolation (1817
+tests), build — journalisé dans `9J03-verify-final.txt`.
+
+**`pnpm verify:full` n'a pas pu finir dans le budget de 150 min.**
+`feries:horizon` et `audit:partitions` sont verts. `test:e2e` (1877
+scénarios, 1 worker, ~40 min mesurées sur ce poste) a été lancé à 18:39 et
+coupé à 19:19 : environ 1450 scénarios étaient passés, sans échec visible
+qui nomme `contact` ou `portail`. Non rejoué faute de temps — à relancer en
+CI nocturne (c'est l'exécution prévue, CLAUDE.md §4) ou dans une session
+suivante avec son propre budget. `pnpm verify` étant vert, la définition de
+« terminé » du ticket (hors `verify:full` « en fin de LOT », pas de chaque
+ticket) est satisfaite.

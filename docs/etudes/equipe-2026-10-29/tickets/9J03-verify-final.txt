@@ -1,0 +1,367 @@
+=== pnpm verify (format:check + typecheck + lint + test + test:isolation + build) — EXIT 0 ===
+
+> codiplan@0.1.0 verify /home/aplou/codiplan-voie1
+> pnpm format:check && pnpm typecheck && pnpm lint && pnpm test && pnpm test:isolation && pnpm build
+
+
+> codiplan@0.1.0 format:check /home/aplou/codiplan-voie1
+> prettier --check .
+
+Checking formatting...
+All matched files use Prettier code style!
+
+> codiplan@0.1.0 typecheck /home/aplou/codiplan-voie1
+> NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=6144" tsc --noEmit
+
+
+> codiplan@0.1.0 lint /home/aplou/codiplan-voie1
+> eslint --max-warnings 0
+
+
+> codiplan@0.1.0 test /home/aplou/codiplan-voie1
+> vitest run --project unit
+
+
+ RUN  v4.1.11 /home/aplou/codiplan-voie1
+
+Not implemented: HTMLFormElement's requestSubmit() method
+Not implemented: navigation to another Document
+
+ Test Files  498 passed (498)
+      Tests  5483 passed (5483)
+   Start at  18:34:29
+   Duration  27.43s (transform 24.32s, setup 65.83s, import 91.95s, tests 33.53s, environment 308.78s)
+
+
+> codiplan@0.1.0 test:isolation /home/aplou/codiplan-voie1
+> vitest run --project isolation
+
+
+ RUN  v4.1.11 /home/aplou/codiplan-voie1
+
+Harnais d'isolation — « client » existe au schéma : la fixture s'efface devant la table réelle (L1-01).
+  Ce qui reste dû, et qu'aucune suppression de fixture ne dispense :
+  — la migration pose sur « client » la politique de FORME « parc » (société ET app.client_id ET app.perimetre_sites, D10/D22),
+    et non la « forme imposée » de L0-04, qui est la clause société seule ;
+  — les scénarios de L0-05 restent au moins aussi nombreux qu'avant (voir
+    EXIGENCES_L0_05 dans contrat.ts, et le gardien tests/unit/db/contrat-isolation.test.ts) ;
+  — l'amorçage ci-dessous doit être adapté aux colonnes réelles.
+Harnais d'isolation — « site » existe au schéma : la fixture s'efface devant la table réelle (L1-02).
+  Ce qui reste dû, et qu'aucune suppression de fixture ne dispense :
+  — la migration pose sur « site » la politique de FORME « parc » (société ET app.client_id ET app.perimetre_sites, D10/D22),
+    et non la « forme imposée » de L0-04, qui est la clause société seule ;
+  — les scénarios de L0-05 restent au moins aussi nombreux qu'avant (voir
+    EXIGENCES_L0_05 dans contrat.ts, et le gardien tests/unit/db/contrat-isolation.test.ts) ;
+  — l'amorçage ci-dessous doit être adapté aux colonnes réelles.
+Harnais d'isolation — « machine » existe au schéma : la fixture s'efface devant la table réelle (L2-01).
+  Ce qui reste dû, et qu'aucune suppression de fixture ne dispense :
+  — la migration pose sur « machine » la politique de FORME « parc » (société ET app.client_id ET app.perimetre_sites, D10/D22),
+    et non la « forme imposée » de L0-04, qui est la clause société seule ;
+  — les scénarios de L0-05 restent au moins aussi nombreux qu'avant (voir
+    EXIGENCES_L0_05 dans contrat.ts, et le gardien tests/unit/db/contrat-isolation.test.ts) ;
+  — l'amorçage ci-dessous doit être adapté aux colonnes réelles.
+Harnais d'isolation — « contact » existe au schéma : la fixture s'efface devant la table réelle (L1-03).
+  Ce qui reste dû, et qu'aucune suppression de fixture ne dispense :
+  — la migration pose sur « contact » la politique de FORME « parc » (société ET app.client_id ET app.perimetre_sites, D10/D22),
+    et non la « forme imposée » de L0-04, qui est la clause société seule ;
+  — les scénarios de L0-05 restent au moins aussi nombreux qu'avant (voir
+    EXIGENCES_L0_05 dans contrat.ts, et le gardien tests/unit/db/contrat-isolation.test.ts) ;
+  — l'amorçage ci-dessous doit être adapté aux colonnes réelles.
+Harnais d'isolation — « intervention » existe au schéma : la fixture s'efface devant la table réelle (L2-D84).
+  Ce qui reste dû, et qu'aucune suppression de fixture ne dispense :
+  — la migration pose sur « intervention » la politique de FORME « parc » (société ET app.client_id ET app.perimetre_sites, D10/D22),
+    et non la « forme imposée » de L0-04, qui est la clause société seule ;
+  — les scénarios de L0-05 restent au moins aussi nombreux qu'avant (voir
+    EXIGENCES_L0_05 dans contrat.ts, et le gardien tests/unit/db/contrat-isolation.test.ts) ;
+  — l'amorçage ci-dessous doit être adapté aux colonnes réelles.
+Harnais d'isolation — « demande » existe au schéma : la fixture s'efface devant la table réelle (L2-06).
+  Ce qui reste dû, et qu'aucune suppression de fixture ne dispense :
+  — la migration pose sur « demande » la politique de FORME « parc » (société ET app.client_id ET app.perimetre_sites, D10/D22),
+    et non la « forme imposée » de L0-04, qui est la clause société seule ;
+  — les scénarios de L0-05 restent au moins aussi nombreux qu'avant (voir
+    EXIGENCES_L0_05 dans contrat.ts, et le gardien tests/unit/db/contrat-isolation.test.ts) ;
+  — l'amorçage ci-dessous doit être adapté aux colonnes réelles.
+
+ Test Files  209 passed (209)
+      Tests  1817 passed (1817)
+   Start at  18:34:57
+   Duration  149.49s (transform 2.33s, setup 523ms, import 25.21s, tests 108.78s, environment 10ms)
+
+
+> codiplan@0.1.0 build /home/aplou/codiplan-voie1
+> NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=6144" next build
+
+   ▲ Next.js 15.5.23
+   - Environments: .env
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 7.1s
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/103) ...
+   Generating static pages (25/103) 
+   Generating static pages (51/103) 
+   Generating static pages (77/103) 
+ ✓ Generating static pages (103/103)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                                  Size  First Load JS
+┌ ƒ /                                                       416 B         103 kB
+├ ƒ /_not-found                                             416 B         103 kB
+├ ƒ /absences                                               831 B         121 kB
+├ ƒ /api/absences/declarer                                  416 B         103 kB
+├ ƒ /api/absences/ecourter                                  416 B         103 kB
+├ ƒ /api/absences/lever                                     416 B         103 kB
+├ ƒ /api/auth/[...all]                                      416 B         103 kB
+├ ƒ /api/clients/[id]/modifier                              416 B         103 kB
+├ ƒ /api/clients/creer                                      416 B         103 kB
+├ ƒ /api/clients/homonymes                                  416 B         103 kB
+├ ƒ /api/contacts/[id]/activite                             416 B         103 kB
+├ ƒ /api/contacts/[id]/modifier                             416 B         103 kB
+├ ƒ /api/contacts/creer                                     416 B         103 kB
+├ ƒ /api/demandes/[id]/accuser                              416 B         103 kB
+├ ƒ /api/demandes/[id]/clore                                416 B         103 kB
+├ ƒ /api/demandes/[id]/qualifier                            416 B         103 kB
+├ ƒ /api/demandes/[id]/transformer                          416 B         103 kB
+├ ƒ /api/demandes/creer                                     416 B         103 kB
+├ ƒ /api/documents/[id]/octets                              416 B         103 kB
+├ ƒ /api/equipe/[id]/copier-lien                            416 B         103 kB
+├ ƒ /api/equipe/[id]/copier-nouveau-lien                    416 B         103 kB
+├ ƒ /api/equipe/[id]/envoyer-acces                          416 B         103 kB
+├ ƒ /api/equipe/[id]/nouveau-lien                           416 B         103 kB
+├ ƒ /api/equipe/bureau/[id]/copier-lien                     416 B         103 kB
+├ ƒ /api/equipe/bureau/[id]/copier-nouveau-lien             416 B         103 kB
+├ ƒ /api/equipe/bureau/[id]/envoyer-acces                   416 B         103 kB
+├ ƒ /api/equipe/bureau/[id]/nouveau-lien                    416 B         103 kB
+├ ƒ /api/equipe/bureau/[id]/reinitialiser-second-facteur    416 B         103 kB
+├ ƒ /api/equipe/bureau/creer                                416 B         103 kB
+├ ƒ /api/equipe/envoyer-acces/tous                          416 B         103 kB
+├ ƒ /api/habilitations/[id]/activite                        416 B         103 kB
+├ ƒ /api/habilitations/[id]/modifier                        416 B         103 kB
+├ ƒ /api/habilitations/attributions/[id]/renouveler         416 B         103 kB
+├ ƒ /api/habilitations/attributions/[id]/retirer            416 B         103 kB
+├ ƒ /api/habilitations/attributions/creer                   416 B         103 kB
+├ ƒ /api/habilitations/creer                                416 B         103 kB
+├ ƒ /api/habilitations/exigences/[id]/retirer               416 B         103 kB
+├ ƒ /api/habilitations/exigences/creer                      416 B         103 kB
+├ ƒ /api/imports/[id]/annuler                               416 B         103 kB
+├ ƒ /api/imports/[id]/appliquer                             416 B         103 kB
+├ ƒ /api/imports/[id]/rejets                                416 B         103 kB
+├ ƒ /api/imports/controler                                  416 B         103 kB
+├ ƒ /api/interventions/[id]/affecter                        416 B         103 kB
+├ ƒ /api/interventions/[id]/annuler                         416 B         103 kB
+├ ƒ /api/interventions/[id]/cloturer                        416 B         103 kB
+├ ƒ /api/interventions/[id]/deplacer                        416 B         103 kB
+├ ƒ /api/interventions/[id]/machine                         416 B         103 kB
+├ ƒ /api/interventions/[id]/note-interne                    416 B         103 kB
+├ ƒ /api/interventions/[id]/reprendre                       416 B         103 kB
+├ ƒ /api/interventions/[id]/resume                          416 B         103 kB
+├ ƒ /api/interventions/[id]/suspendre                       416 B         103 kB
+├ ƒ /api/interventions/[id]/transmettre                     416 B         103 kB
+├ ƒ /api/interventions/[id]/valider-rapport                 416 B         103 kB
+├ ƒ /api/interventions/[id]/verdict-pose                    416 B         103 kB
+├ ƒ /api/interventions/creer                                416 B         103 kB
+├ ƒ /api/interventions/exporter                             416 B         103 kB
+├ ƒ /api/interventions/transmettre                          416 B         103 kB
+├ ƒ /api/machines/[id]/changer-statut                       416 B         103 kB
+├ ƒ /api/machines/[id]/modifier                             416 B         103 kB
+├ ƒ /api/machines/creer                                     416 B         103 kB
+├ ƒ /api/machines/qr/[jeton]                                416 B         103 kB
+├ ƒ /api/parametres/agences/[id]/modifier                   416 B         103 kB
+├ ƒ /api/parametres/agences/creer                           416 B         103 kB
+├ ƒ /api/parametres/forfaits/[id]/activite                  416 B         103 kB
+├ ƒ /api/parametres/forfaits/[id]/modifier                  416 B         103 kB
+├ ƒ /api/parametres/forfaits/creer                          416 B         103 kB
+├ ƒ /api/parametres/materiel/familles/[id]/activite         416 B         103 kB
+├ ƒ /api/parametres/materiel/familles/[id]/modifier         416 B         103 kB
+├ ƒ /api/parametres/materiel/familles/creer                 416 B         103 kB
+├ ƒ /api/parametres/materiel/modeles/[id]/activite          416 B         103 kB
+├ ƒ /api/parametres/materiel/modeles/[id]/modifier          416 B         103 kB
+├ ƒ /api/parametres/materiel/modeles/creer                  416 B         103 kB
+├ ƒ /api/parametres/pas-creneau                             416 B         103 kB
+├ ƒ /api/parametres/plages/[id]/modifier                    416 B         103 kB
+├ ƒ /api/parametres/plages/[id]/supprimer                   416 B         103 kB
+├ ƒ /api/parametres/plages/ajouter                          416 B         103 kB
+├ ƒ /api/parametres/prestations/[id]/activite               416 B         103 kB
+├ ƒ /api/parametres/prestations/[id]/modifier               416 B         103 kB
+├ ƒ /api/parametres/prestations/creer                       416 B         103 kB
+├ ƒ /api/parametres/societe/afficher-montants               416 B         103 kB
+├ ƒ /api/parametres/societe/logo                            416 B         103 kB
+├ ƒ /api/parametres/societe/logo/retirer                    416 B         103 kB
+├ ƒ /api/parametres/societe/mentions-legales                416 B         103 kB
+├ ƒ /api/parametres/tarifs/regle-facturation                416 B         103 kB
+├ ƒ /api/parametres/taux-horaire/creer                      416 B         103 kB
+├ ƒ /api/parametres/trajet-zone                             416 B         103 kB
+├ ƒ /api/parc/exporter                                      416 B         103 kB
+├ ƒ /api/portail/contacts/[id]/modifier                     416 B         103 kB
+├ ƒ /api/portail/contacts/creer                             416 B         103 kB
+├ ƒ /api/recherche                                          416 B         103 kB
+├ ƒ /api/recherche/clients                                  416 B         103 kB
+├ ƒ /api/recherche/modeles                                  416 B         103 kB
+├ ƒ /api/recherche/site/[id]                                416 B         103 kB
+├ ƒ /api/recherche/sites                                    416 B         103 kB
+├ ƒ /api/sante                                              416 B         103 kB
+├ ƒ /api/session/code                                       416 B         103 kB
+├ ƒ /api/session/code-secours                               416 B         103 kB
+├ ƒ /api/session/connexion                                  416 B         103 kB
+├ ƒ /api/session/deconnexion                                416 B         103 kB
+├ ƒ /api/session/enrolement                                 416 B         103 kB
+├ ƒ /api/session/mon-compte/mot-de-passe                    416 B         103 kB
+├ ƒ /api/session/premier-acces                              416 B         103 kB
+├ ƒ /api/session/societe                                    416 B         103 kB
+├ ƒ /api/sites/[id]/modifier                                416 B         103 kB
+├ ƒ /api/sites/creer                                        416 B         103 kB
+├ ƒ /api/societe/logo                                       416 B         103 kB
+├ ƒ /api/techniciens/[id]/modifier                          416 B         103 kB
+├ ƒ /api/techniciens/creer                                  416 B         103 kB
+├ ƒ /api/terrain/[id]/compteur                              416 B         103 kB
+├ ƒ /api/terrain/[id]/photos                                416 B         103 kB
+├ ƒ /api/terrain/[id]/prestations                           416 B         103 kB
+├ ƒ /api/terrain/[id]/rapport                               416 B         103 kB
+├ ƒ /api/terrain/[id]/signature                             416 B         103 kB
+├ ƒ /api/terrain/[id]/terminer                              416 B         103 kB
+├ ƒ /api/terrain/instantane                                 416 B         103 kB
+├ ƒ /api/vgp/enregistrer/[id]                               416 B         103 kB
+├ ƒ /api/vgp/exporter                                       416 B         103 kB
+├ ○ /apple-icon.png                                           0 B            0 B
+├ ƒ /arrivee                                                208 B         106 kB
+├ ƒ /clients                                                208 B         106 kB
+├ ƒ /clients/[id]                                           842 B         118 kB
+├ ƒ /clients/nouveau                                      4.79 kB         193 kB
+├ ƒ /connexion                                              644 B         174 kB
+├ ƒ /connexion/code                                         642 B         106 kB
+├ ƒ /demandes                                             1.93 kB         193 kB
+├ ƒ /demandes/[id]                                        1.12 kB         171 kB
+├ ƒ /enrolement                                             178 B         106 kB
+├ ƒ /feuille-de-route                                       208 B         106 kB
+├ ○ /icon.png                                                 0 B            0 B
+├ ƒ /imports                                               1.2 kB         171 kB
+├ ƒ /imports/[id]                                           831 B         121 kB
+├ ƒ /indicateurs                                            208 B         106 kB
+├ ƒ /installation                                         1.82 kB         171 kB
+├ ƒ /installer                                              178 B         106 kB
+├ ƒ /interventions                                        2.35 kB         199 kB
+├ ƒ /interventions/[id]                                   5.33 kB         205 kB
+├ ƒ /interventions/[id]/bon                                 524 B         159 kB
+├ ƒ /interventions/a-facturer                               208 B         106 kB
+├ ƒ /interventions/nouvelle                               5.07 kB         197 kB
+├ ○ /manifest.webmanifest                                   416 B         103 kB
+├ ƒ /mon-compte                                             735 B         118 kB
+├ ƒ /mot-de-passe-oublie                                    208 B         106 kB
+├ ƒ /parametres                                           3.17 kB         170 kB
+├ ƒ /parametres/agences                                     842 B         118 kB
+├ ƒ /parametres/agences/[agenceId]                          208 B         106 kB
+├ ƒ /parametres/agences/calendrier/[id]                     208 B         106 kB
+├ ƒ /parametres/agences/nouvelle                            208 B         106 kB
+├ ƒ /parametres/donnees                                     208 B         106 kB
+├ ƒ /parametres/equipe                                    5.13 kB         196 kB
+├ ƒ /parametres/equipe/affiche                              519 B         159 kB
+├ ƒ /parametres/forfaits/[id]                               208 B         106 kB
+├ ƒ /parametres/habilitations                               842 B         118 kB
+├ ƒ /parametres/materiel                                    937 B         118 kB
+├ ƒ /parametres/prestations                                 842 B         118 kB
+├ ƒ /parametres/societe                                     900 B         171 kB
+├ ƒ /parametres/tarifs                                    3.92 kB         192 kB
+├ ƒ /parametres/trajets                                     842 B         118 kB
+├ ƒ /parc                                                   208 B         106 kB
+├ ƒ /parc/[id]                                            1.62 kB         174 kB
+├ ƒ /parc/[id]/modifier                                     195 B         198 kB
+├ ƒ /parc/nouvelle                                          194 B         198 kB
+├ ƒ /parc/scanner                                           190 B         218 kB
+├ ƒ /planning                                             4.61 kB         204 kB
+├ ƒ /portail                                                178 B         106 kB
+├ ƒ /portail/contacts                                       178 B         106 kB
+├ ƒ /premier-acces                                          735 B         118 kB
+├ ƒ /sante                                                  416 B         103 kB
+├ ƒ /scanner                                                189 B         218 kB
+├ ƒ /scanner-hors-reseau                                    178 B         106 kB
+├ ƒ /sites                                                  208 B         106 kB
+├ ƒ /sites/[id]                                             842 B         118 kB
+├ ƒ /sites/nouveau                                        4.31 kB         171 kB
+├ ƒ /tableau-de-bord                                        480 B         106 kB
+├ ƒ /terrain                                              4.29 kB         201 kB
+├ ƒ /terrain-hors-reseau                                  5.25 kB         206 kB
+├ ƒ /terrain/[id]                                           233 B         204 kB
+├ ƒ /terrain/profil                                       1.81 kB         171 kB
+├ ƒ /vgp                                                  1.17 kB         170 kB
+├ ƒ /vgp/a-determiner                                       842 B         118 kB
+└ ƒ /vgp/enregistrer/[id]                                   208 B         106 kB
++ First Load JS shared by all                              102 kB
+  ├ chunks/0c86f1d0-e396209ab64996d1.js                   54.2 kB
+  ├ chunks/8817-050d255d41a76bbe.js                         46 kB
+  └ other shared chunks (total)                           1.94 kB
+
+
+ƒ Middleware                                              33.9 kB
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+
+=== pnpm feries:horizon && pnpm audit:partitions — EXIT 0 ===
+
+> codiplan@0.1.0 feries:horizon /home/aplou/codiplan-voie1
+> tsx scripts/horizon-feries.mts
+
+── Horizon des jours fériés ──────────────
+  XA      1 agence(s)   dernier férié : 2028-12-04
+  ZZ      1 agence(s)   dernier férié : 2028-12-04
+2 territoire(s) contrôlé(s) — au moins douze mois d'avance partout.
+
+> codiplan@0.1.0 audit:partitions /home/aplou/codiplan-voie1
+> tsx scripts/audit-partitions.mts
+
+── Partitions du journal d'audit ─────────
+  mois courant (UTC)   : 2026-11
+  partitions couvertes : 13, jusqu'à 2027-11
+  partition par défaut : présente, 0 ligne(s)
+  préventif (horizon ≥ 12 mois) : vert
+  détectif  (partition par défaut vide)  : vert
+Partitions vérifiées : l'horizon tient, et rien n'est jamais tombé dans la partition par défaut.
+
+=== pnpm test:e2e — TRONQUÉ PAR LE BUDGET DE TEMPS DE LA SESSION (40 min, timeout 124) ===
+Lancé à 18:39, coupé à 19:19 (40 min) faute de budget restant dans la session (limite 150 min).
+~1450+ scénarios sur 1877 étaient passés au moment de la coupure (points = succès, 2 'x' et quelques '°' observés, SANS LIEN APPARENT avec ce ticket — aucun ne nomme contact/portail).
+Non rejoué faute de temps : à relancer en CI nocturne (verify:full y est l'exécution prévue, CLAUDE.md §4) ou dans une session suivante avec le budget dédié.
+--- dernières lignes du journal brut ---
+2026-11-04T07:40:23.961Z WARN [Better Auth]: [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+
+Running 1877 tests using 1 worker
+···········×°··±·····························[2m2026-11-04T07:42:22.828Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+··········[WebServer] [2m2026-11-04T07:42:39.978Z[0m [33mWARN[0m [1m[Better Auth]:[0m Invalid password
+·························
+·······································[2m2026-11-04T07:44:38.403Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+·········································
+·········[2m2026-11-04T07:46:49.521Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+·······································································
+·····[2m2026-11-04T07:49:52.704Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+[2m2026-11-04T07:49:52.718Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+···········································································
+························································[WebServer] [2m2026-11-04T07:54:53.928Z[0m [33mWARN[0m [1m[Better Auth]:[0m Invalid password
+·[WebServer] [2m2026-11-04T07:54:58.263Z[0m [33mWARN[0m [1m[Better Auth]:[0m Invalid password
+·········[2m2026-11-04T07:55:23.947Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+··[2m2026-11-04T07:55:38.295Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+············
+·······································································[2m2026-11-04T07:58:33.532Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+·········
+················································································
+···················°°·········« En retard » ne vaut pas 0 au moment de l'épreuve (5) — capture non prise, voir le README.
+·······················[2m2026-11-04T08:04:02.573Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+·[2m2026-11-04T08:04:06.183Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+·[2m2026-11-04T08:04:11.054Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+·[2m2026-11-04T08:04:14.645Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+·[2m2026-11-04T08:04:19.560Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+·[2m2026-11-04T08:04:22.518Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+······················
+··········[WebServer] [Error: aborted] { code: [32m'ECONNRESET'[39m }
+································°°°°°°°°°°°°[2m2026-11-04T08:06:41.176Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+··························
+················································································
+················································································
+·································································[2m2026-11-04T08:15:59.944Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+··[2m2026-11-04T08:16:15.154Z[0m [33mWARN[0m [1m[Better Auth]:[0m [better-auth] Base URL is not set. Set the baseURL option or BETTER_AUTH_URL env, or use a dynamic baseURL with allowedHosts for multi-host setups. Without it the origin is derived from the incoming request, and callbacks and redirects may not work correctly.
+·············
+······························································ ELIFECYCLE  Command failed.
+×°F°×°F°×°F°×°°F°°
+×°F°×°F°×°F°
