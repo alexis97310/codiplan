@@ -151,7 +151,9 @@ for (const largeur of [375, 1280] as const) {
     ).toBeVisible();
     await expect(
       page.getByText(
-        `${fr["statut.en_cours"]} (${fr["intervention.chronologie.temps_par_etat.en_cours_suffixe"]})`,
+        `${fr["statut.en_cours"]}${fr["ponctuation.parenthese_ouvrante"]}${
+          fr["intervention.chronologie.temps_par_etat.en_cours_suffixe"]
+        }${fr["ponctuation.parenthese_fermante"]}`,
       ),
     ).toBeVisible();
     await capturer(page, "temps-par-etat-complet", largeur);
