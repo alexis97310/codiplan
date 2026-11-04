@@ -6,6 +6,7 @@ import { notFound, redirect } from "next/navigation";
 import { cache, type ReactNode } from "react";
 import { z } from "zod";
 
+import { FormulaireInvitationPortail } from "@/components/clients/formulaire-invitation-portail";
 import { Page } from "@/components/mise-en-page/page";
 import {
   ActionPrimaire,
@@ -27,6 +28,10 @@ import { Kpi } from "@/components/ui/kpi";
 import { RefusAcces } from "@/components/ui/refus-acces";
 import { Cellule, LignePleine, Tableau } from "@/components/ui/tableau";
 import { peut } from "@/lib/auth/habilitations";
+import {
+  comptesDuPortailDuClient,
+  type CompteDuPortailClient,
+} from "@/lib/auth/lien-d-acces";
 import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import {
@@ -265,6 +270,12 @@ export default async function PageClient({
   const peutCreerIntervention =
     session.contexte.role !== null &&
     peut(session.contexte.role, "creer_demande");
+  // L'ACCÈS PORTAIL (D230, 9J02A-REPRISE-9J02) — capacité DISTINCTE de
+  // `gerer_client_site` : inviter ouvre souvent une identité, et la base ne
+  // l'accepte que de l'administrateur de société ou de la direction.
+  const peutAdministrerAccesPortail =
+    session.contexte.role !== null &&
+    peut(session.contexte.role, "administrer_utilisateurs");
 
   const onglet = ongletDuClient(paramsResolus.onglet, peutGererSite);
   const etatInterventions = etatInterventionsDuClient(paramsResolus.etat);
@@ -303,6 +314,13 @@ export default async function PageClient({
     (site) => site.id,
   );
   const contacts = await contactsDuClient(session.contexte, client.id);
+  // L'ACCÈS PORTAIL (D230) — lu seulement pour qui peut l'administrer :
+  // `comptesDuPortailDuClient` est un acte d'administration, pas une
+  // information que CS6/D153 ouvre à RM/RS.
+  const comptesPortail: readonly CompteDuPortailClient[] =
+    peutAdministrerAccesPortail
+      ? await comptesDuPortailDuClient(session.contexte, client.id)
+      : [];
   // LE DESTINATAIRE DES COURRIELS DE PLANIFICATION (CS45, QT-16, D165) — le
   // donneur d'ordre du CLIENT LUI-MÊME, jamais celui d'un de ses sites :
   // `siteId: null` fait retomber `destinataireClient` sur cette seule
@@ -1203,6 +1221,54 @@ export default async function PageClient({
               </Link>
             </div>
           </form>
+        </Carte>
+      ) : null}
+
+      {/* L'ACCÈS PORTAIL (D96, D230, 9J02A-REPRISE-9J02) — capacité DISTINCTE
+          de `gerer_client_site` : jamais offert à l'ADV, malgré D130. */}
+      {onglet === "identite" && peutAdministrerAccesPortail ? (
+        <Carte titre={t("clients.acces.titre")}>
+          <div className="flex flex-col gap-4 px-4 py-4">
+            {comptesPortail.length === 0 ? (
+              <p className="text-app-encre-faible text-13 font-bold">
+                {t("clients.acces.aucun_compte")}
+              </p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {comptesPortail.map((compte) => (
+                  <li
+                    key={compte.id}
+                    className="flex flex-wrap items-center justify-between gap-2 border-app-bord border-b pb-2"
+                  >
+                    <div className="flex flex-col">
+                      <span className="text-13 font-bold">{compte.email}</span>
+                      <span className="text-app-encre-faible text-12 font-bold">
+                        {compte.actif
+                          ? t("clients.acces.etat.actif")
+                          : t("clients.acces.etat.revoque")}
+                      </span>
+                    </div>
+                    {compte.actif ? (
+                      <form
+                        method="post"
+                        action={`/api/clients/${compte.id}/revoquer-acces`}
+                      >
+                        <input
+                          type="hidden"
+                          name="retour"
+                          value={`/clients/${client.id}?onglet=identite`}
+                        />
+                        <Button type="submit" variant="outline" size="sm">
+                          {t("clients.acces.revoquer")}
+                        </Button>
+                      </form>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <FormulaireInvitationPortail clientId={client.id} />
+          </div>
         </Carte>
       ) : null}
     </Page>

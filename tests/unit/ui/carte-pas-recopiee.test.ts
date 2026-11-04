@@ -229,6 +229,12 @@ const EXCEPTIONS: readonly Exception[] = [
       "deux <select> de filtre (client, site) — le tableau du registre et le groupe par client imprimable passent par Carte depuis 9G9E",
   },
   {
+    chemin: "components/clients/formulaire-invitation-portail.tsx",
+    categories: ["champ"],
+    raison:
+      "le <input> de courriel et son repli presse-papiers en lecture seule — même motif que bouton-copier-lien.tsx (9J02A-REPRISE-9J02)",
+  },
+  {
     chemin: "components/demandes/champs-nouvelle-demande.tsx",
     categories: ["champ"],
     raison: "un <select> de site et un <textarea> de description",

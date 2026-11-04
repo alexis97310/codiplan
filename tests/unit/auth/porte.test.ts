@@ -92,6 +92,11 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   // capacité que la création elle-même : une lecture dédiée, pas un
   // sélecteur partagé.
   "app/api/clients/homonymes/route.ts": "gerer_client_site",
+  // D230 (05/11/2026, 9J02A-REPRISE-9J02) — inviter un client au portail ouvre
+  // souvent une identité : même capacité que toute ouverture d'identité
+  // (technicien, compte de bureau), PAS `gerer_client_site` malgré D130.
+  "app/api/clients/[id]/inviter/route.ts": "administrer_utilisateurs",
+  "app/api/clients/[id]/revoquer-acces/route.ts": "administrer_utilisateurs",
   "app/api/sites/creer/route.ts": "gerer_client_site",
   "app/api/sites/[id]/modifier/route.ts": "gerer_client_site",
   // Un interlocuteur est un attribut du client, pas un objet à part
@@ -586,7 +591,10 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
     // `app/api/parametres/tarifs/regle-facturation/route.ts`.
     // 94 depuis 9I8F-STATUT-MACHINE-MODIFIABLE — la route neuve
     // `app/api/machines/[id]/changer-statut/route.ts`.
-    expect(Object.keys(ROUTE_CAPACITE).length).toBe(94);
+    // 96 depuis 9J02A-REPRISE-9J02 — les deux routes neuves de l'invitation
+    // au portail client, `app/api/clients/[id]/inviter/route.ts` et
+    // `app/api/clients/[id]/revoquer-acces/route.ts`.
+    expect(Object.keys(ROUTE_CAPACITE).length).toBe(96);
   });
 
   it("aucune exemption ne survit à son objet — adossement dans les deux sens", () => {

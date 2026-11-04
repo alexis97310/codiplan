@@ -6855,6 +6855,31 @@ export const fr = {
   "clients.fiche.ouvrir_dans_le_parc": "Ouvrir dans le parc",
   "clients.fiche.modifier": "Modifier",
   "clients.fiche.annuler": "Annuler",
+  // L'ACCÈS AU PORTAIL (9J02A-REPRISE-9J02, D96, D230) — invitation par un
+  // lien à copier, et révocation. Réservé à `administrer_utilisateurs`
+  // (admin_societe, direction) : jamais l'ADV, malgré D130.
+  "clients.acces.titre": "Accès portail",
+  "clients.acces.aucun_compte": "Aucun compte portail pour ce client.",
+  "clients.acces.email_libelle": "Courriel du contact à inviter",
+  "clients.acces.inviter": "Inviter au portail",
+  "clients.acces.copier_lien": "Copier le lien d'accès",
+  "clients.acces.lien_copie":
+    "Lien copié — valable une heure. Transmettez-le vous-même au contact, il choisira son mot de passe.",
+  "clients.acces.deja_actif":
+    "Ce compte a déjà un mot de passe — l'accès à ce client est immédiat, aucun lien à transmettre.",
+  "clients.acces.copier_lien_erreur": "Le lien n'a pas pu être copié.",
+  "clients.acces.copier_lien_presse_papiers_indisponible":
+    "Presse-papiers indisponible — copiez ce lien :",
+  "clients.acces.revoquer": "Révoquer l'accès",
+  "clients.acces.revoque": "Accès révoqué.",
+  "clients.acces.etat.actif": "Accès actif",
+  "clients.acces.etat.revoque": "Accès révoqué",
+  "clients.acces.refus.client_introuvable": "Ce client n'existe pas.",
+  "clients.acces.refus.email_invalide": "Ce courriel n'est pas valide.",
+  "clients.acces.refus.acces_refuse":
+    "Réservé à l'administrateur de la société ou à la direction.",
+  "clients.acces.refus.introuvable": "Cet accès n'existe pas.",
+  "clients.acces.refus.erreur": "Une erreur est survenue.",
   // LES CONSIGNES D'ACCÈS, EN BANDEAU (9EF-1) — le même champ que le
   // formulaire, affiché en lecture sur la fiche site.
   "sites.fiche.consignes_titre": "Consignes pour le technicien.",
