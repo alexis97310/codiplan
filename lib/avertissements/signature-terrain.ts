@@ -2,12 +2,14 @@ import type { PrismaClient } from "@prisma/client";
 
 import { exigerSocieteActive, type ContexteSession } from "@/lib/auth/contexte";
 import { Role } from "@/lib/auth/roles";
+import { lireFuseau, maintenant } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
-import { envoyerCourrielMetier } from "@/lib/courriel";
+import { envoyerCourrielMetier, type Envoi } from "@/lib/courriel";
 import { construireCourrielMetier } from "@/lib/courriel/gabarit-metier";
 import { t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import type { IssueSignature } from "@/lib/interventions/saisie";
+import { poserNotification } from "@/lib/notifications/depot";
 import {
   lireLogoEtRaisonSocialePourCourriel,
   type LogoEtRaisonSociale,
@@ -124,16 +126,62 @@ async function planerAlerteResponsables(
   );
 }
 
+/**
+ * POSE LA NOTIFICATION INTERNE ET SON JOURNAL D'ENVOI (9J11), au même point
+ * que le courriel qu'elle accompagne — jamais avant de savoir ce qu'il est
+ * devenu. `capacite_requise: "valider_rapport"` (ADMS, DIR, RM, RS au ●) :
+ * les mêmes rôles qui valident un rapport terrain, pas un ensemble plus
+ * large comme `consulter_parc_complet`, qui ouvrirait au technicien restreint.
+ *
+ * `partie` dit si TOUS les envois sont partis — un seul motif de refus suffit
+ * à dire que l'alerte n'a PAS pleinement atteint le SAV, jamais une moyenne.
+ */
+async function journaliserEnvoi(
+  contexte: ContexteSession,
+  interventionId: string,
+  envois: readonly Envoi[],
+  connexion?: PrismaClient,
+): Promise<void> {
+  const societeId = exigerSocieteActive(contexte);
+  const id = await poserNotification(
+    contexte,
+    "signature_absente_ou_refusee",
+    { cible: "intervention", intervention_id: interventionId },
+    "valider_rapport",
+    undefined,
+    connexion,
+  );
+  const partie = envois.every((envoi) => envoi.parti);
+  await avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const societe = await tx.societe.findUniqueOrThrow({
+        where: { id: societeId },
+        select: { fuseau_horaire: true },
+      });
+      const tenteeLe = maintenant(lireFuseau(societe.fuseau_horaire)).instant;
+      await tx.notification.update({
+        where: { id },
+        data: { canal: "courriel", tentee_le: tenteeLe, partie },
+      });
+    },
+    connexion,
+  );
+}
+
 /** ENVOIE UN PLAN, HORS TRANSACTION — un courriel PAR destinataire. */
 async function envoyerAlerte(
+  contexte: ContexteSession,
+  interventionId: string,
   plan: PlanAlerte,
   societe: LogoEtRaisonSociale,
   environnement: Record<string, string | undefined>,
+  connexion?: PrismaClient,
 ): Promise<EtatAlerteResponsables> {
   if (plan.type === "sans_destinataire") {
     return { type: "sans_destinataire" };
   }
-  await Promise.all(
+  const envois = await Promise.all(
     plan.destinataires.map((destinataire) =>
       envoyerCourrielMetier(
         construireCourrielMetier(destinataire, plan.sujet, plan.texte, societe),
@@ -141,6 +189,7 @@ async function envoyerAlerte(
       ),
     ),
   );
+  await journaliserEnvoi(contexte, interventionId, envois, connexion);
   return { type: "envoyee", nombre: plan.destinataires.length };
 }
 
@@ -176,5 +225,12 @@ export async function alerterResponsablesSAV(
     societeId,
     connexion,
   );
-  return envoyerAlerte(plan, societe, environnement);
+  return envoyerAlerte(
+    contexte,
+    interventionId,
+    plan,
+    societe,
+    environnement,
+    connexion,
+  );
 }

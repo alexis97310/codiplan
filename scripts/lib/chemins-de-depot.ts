@@ -661,12 +661,4 @@ export const FONCTIONS_SANS_CHEMIN: readonly SansChemin[] = [
     motif:
       "La tuile « Machines » de la fiche client (`clients/[id]/page.tsx`) compte désormais par `compterLeParc` (vue `parc`, decision 52) pour que le chiffre soit EXACTEMENT ce que son lien ouvre (D140) — cette fonction comptait autre chose (le brut actif, sans le critère de la vue). Reste éprouvée par `tests/isolation/fiche-360-1.test.ts` et `tests/isolation/resume-cartes-clients.test.ts`. Se retire le jour où un écran recompte ce brut.",
   },
-  // ── 9J09-NOTIFICATIONS-SCHEMA (05/11/2026) — LA TABLE ET SON DÉPÔT, SANS
-  // ÉCRAN NI PRODUCTEUR ────────────────────────────────────────────────────
-  {
-    module: "lib/notifications/depot.ts",
-    fonction: "poserNotification",
-    motif:
-      "9J09 pose la table (forme « interne », D229) et le dépôt ; aucun producteur d'événement n'existe encore (9J11, 9J19 les écriront). Se retire le jour où l'un d'eux l'appelle.",
-  },
 ];
