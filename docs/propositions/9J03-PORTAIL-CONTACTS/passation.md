@@ -81,6 +81,41 @@ atteignable que par son URL directe. Ajouter une entrée au menu plat du
 portail est la décision que D97/D121 réservent, pas un réflexe de ticket — à
 confirmer par Alexis.
 
+## Point 6 — captures : BLOQUÉ, nommé plutôt que contourné
+
+**Aucune capture n'a été prise.** La clause d'arrêt du ticket l'avait
+anticipé : `git log origin/main` ne porte `9J02-PORTAIL-INVITATION-LIEN` sur
+aucune branche (vérifié aussi en local, `git log --all`). Construire quand
+même était explicitement demandé — fait, points 1 à 5 — mais les captures
+exigent une VRAIE session de navigateur, et la vérification a établi que
+**rien, aujourd'hui, ne peut poser un mot de passe sur un compte portail par
+le chemin de production** :
+
+- `tests/e2e/setup/scene.ts` (`ouvrirLeCompteDeLEpreuve`) pose le mot de
+  passe d'un compte de l'épreuve par `reemettreJetonPremierAcces`
+  (`lib/auth/amorcage.ts`), qui EXIGE une ligne dans `utilisateur_societe`
+  (`etat.habilitations === 0` → `RefusReemission`). Un compte portail n'en a
+  structurellement AUCUNE (D10) : ce chemin refuse toute identité portail par
+  construction, pas par un oubli de ce ticket.
+- Aucun autre chemin de production n'existe : c'est précisément ce que
+  9J02-PORTAIL-INVITATION-LIEN doit poser, et qui n'est pas mergé.
+- Aucun e2e du dépôt ne pose jamais un cookie ou une empreinte de mot de
+  passe fabriquée pour contourner `/connexion` (mesuré : aucune occurrence de
+  `setCookie`/`addCookies`/empreinte posée à la main dans
+  `tests/e2e/setup/*.ts`) — **ouvrir ce précédent pour ce seul ticket aurait
+  été le raccourci que la doctrine du dépôt refuse déjà** (« un harnais qui
+  poserait un cookie fabriqué mesurerait le planning et rien d'autre »,
+  `tests/e2e/setup/session.ts`).
+
+**Décision prise ici : ne pas contourner.** Capturer l'écran aurait exigé
+soit de fabriquer une session, soit de réimplémenter à la hâte une moitié du
+flux d'invitation que 9J02 doit poser correctement — les deux auraient été
+une dette plus coûteuse que l'absence de capture. À rouvrir dès
+9J02-PORTAIL-INVITATION-LIEN mergé : les captures (375/1280, liste et
+formulaire de création, avant/après une création) deviennent alors possibles
+par le chemin normal, et `docs/etudes/equipe-2026-10-29/tickets/9J03-captures/`
+existe déjà, vide, pour les recevoir.
+
 ## Points ouverts (non bloquants)
 
 1. **Pas de bascule d'activité depuis le portail.** Le ticket ne liste que
@@ -93,3 +128,5 @@ confirmer par Alexis.
 3. **Pas de reprise de saisie après un refus** (CS46, back-office) : un
    formulaire refusé se vide — simplification délibérée sous le budget de
    temps, jamais une perte de donnée côté base.
+4. **Captures non prises** — voir point 6 ci-dessus, bloqué par l'absence de
+   9J02-PORTAIL-INVITATION-LIEN.
