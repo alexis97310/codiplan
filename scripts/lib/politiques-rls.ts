@@ -2376,6 +2376,22 @@ export const TABLES_FILIATION = [
     parent: "intervention",
     cle: "intervention_id",
   },
+  // `intervention_statut_historique` et `demande_statut_historique` REJOIGNENT
+  // LA FILIATION au ticket 9J08A-HISTORIQUE-DES-ETATS, option A retenue par
+  // Alexis le 29/10/2026. Même raisonnement qu'`intervention_pause` : un
+  // historique posé par déclencheur est visible si son intervention/demande
+  // l'est, et aucune clause de société n'y est ajoutée — la clé étrangère
+  // composite l'empêche déjà de dériver.
+  {
+    table: "intervention_statut_historique",
+    parent: "intervention",
+    cle: "intervention_id",
+  },
+  {
+    table: "demande_statut_historique",
+    parent: "demande",
+    cle: "demande_id",
+  },
 ] as const;
 
 /** Les entrées que l'arbitrage autorise. Recopiées : c'est la doctrine. */
@@ -2392,6 +2408,9 @@ const FILIATION_ARBITREE = [
   "intervention_pause",
   // Ticket 9I7B, 29/10/2026 — les pièces remplacées, saisie libre.
   "intervention_piece_remplacee",
+  // Ticket 9J08A-HISTORIQUE-DES-ETATS, 04/11/2026 — l'historique des statuts.
+  "intervention_statut_historique",
+  "demande_statut_historique",
 ];
 
 /** Écarts de la liste « filiation » — additions comme retraits. */

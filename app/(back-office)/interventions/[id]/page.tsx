@@ -68,6 +68,7 @@ import {
 import { caseDepuisParametres } from "@/lib/interventions/creer-ici";
 import { estUuid } from "@/lib/identifiant";
 import {
+  historiqueStatutDeLIntervention,
   lireFicheIntervention,
   pausesDeLIntervention,
   segmentsDeLIntervention,
@@ -144,6 +145,7 @@ import {
   retourFiche,
   surtitreDeLaFiche,
   technicienAfficheSurLaFiche,
+  tempsParEtatAffiche,
   texteBandeauReprise,
   texteSansSegment,
   titreDeLaFiche,
@@ -673,6 +675,7 @@ export default async function PageIntervention({
     prestationsRealiseesFiche,
     signatureFiche,
     piecesRemplaceesFiche,
+    historiqueStatut,
   ] = await Promise.all([
     // LES MACHINES DU SITE DE L'INTERVENTION — connu côté serveur, aucun
     // filtrage JS n'est nécessaire ici (à la différence du formulaire de
@@ -703,6 +706,9 @@ export default async function PageIntervention({
     prestationsRealisees(session.contexte, ligne.id),
     derniereSignature(session.contexte, ligne.id),
     piecesRemplacees(session.contexte, ligne.id),
+    // LE TEMPS PAR ÉTAT (9J08A-HISTORIQUE-DES-ETATS) — triée par change_le
+    // croissant, c'est l'ordre que `dureesParEtat` exige.
+    historiqueStatutDeLIntervention(session.contexte, ligne.id),
   ]);
   const libellesMachines = new Map(
     [...donneesMaterielFiche].map(([machineId, donnees]) => [
@@ -740,6 +746,15 @@ export default async function PageIntervention({
     annuleeLe: fiche.annuleeLe,
   };
   const chronologie = chronologieDeLaFiche(parametresReprise);
+  // LE TEMPS PAR ÉTAT (9J08A-HISTORIQUE-DES-ETATS) — « maintenant » posé UNE
+  // fois ici, jamais relu dans la fonction de présentation (même discipline
+  // que `maintenant(fiche.fuseau)` ailleurs sur cette fiche).
+  const tempsParEtat = tempsParEtatAffiche(
+    historiqueStatut ?? [],
+    ligne.statut,
+    maintenant(fiche.fuseau).instant,
+    fiche.fuseau,
+  );
   // FICHE REPRISE D'UN IMPORT (IN-23, audit du 28/09/2026) — même critère
   // que `chronologie` ci-dessus, jamais un second calcul (§9, 01/09).
   const estReprise = estRepriseDunImport(parametresReprise);
@@ -1847,13 +1862,50 @@ export default async function PageIntervention({
         )}
 
         {onglet !== "historique" ? null : (
-          <Chronologie
-            titre={t("intervention.chronologie.titre")}
-            evenements={chronologie.map((evenement) => ({
-              instant: dateHeureLocale(evenement.instant, fiche.fuseau),
-              libelle: t(evenement.cle),
-            }))}
-          />
+          <>
+            <Chronologie
+              titre={t("intervention.chronologie.titre")}
+              evenements={chronologie.map((evenement) => ({
+                instant: dateHeureLocale(evenement.instant, fiche.fuseau),
+                libelle: t(evenement.cle),
+              }))}
+            />
+            <Carte titre={t("intervention.chronologie.temps_par_etat.titre")}>
+              <div className="px-4 py-3.5">
+                {tempsParEtat.lignes.length === 0 ? (
+                  <p className="text-app-encre-faible text-[12px] font-bold">
+                    {TIRET}
+                  </p>
+                ) : (
+                  <ul className="flex flex-col gap-1.5 text-13 font-bold">
+                    {tempsParEtat.lignes.map((ligne) => (
+                      <li
+                        key={ligne.libelle}
+                        className="flex justify-between gap-3"
+                      >
+                        <span>
+                          {ligne.libelle}
+                          {!ligne.enCours
+                            ? null
+                            : ` (${t(
+                                "intervention.chronologie.temps_par_etat.en_cours_suffixe",
+                              )})`}
+                        </span>
+                        <span className="text-app-encre-faible">
+                          {ligne.duree}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {tempsParEtat.indisponibleAvant === null ? null : (
+                  <p className="text-app-encre-faible mt-2 text-[12px] font-bold">
+                    {tempsParEtat.indisponibleAvant}
+                  </p>
+                )}
+              </div>
+            </Carte>
+          </>
         )}
       </div>
     </Page>

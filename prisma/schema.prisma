@@ -183,36 +183,38 @@ model Societe {
   /// un réglage possible parmi d'autres, jamais recalculé pour les
   /// interventions déjà closes (non rétroactif — `valorisation_figee` sur
   /// `Intervention`).
-  facturation_plancher_min      Int     @default(60)
-  facturation_palier_min        Int     @default(30)
-  facturation_seuil_palier_min  Int     @default(5)
+  facturation_plancher_min     Int @default(60)
+  facturation_palier_min       Int @default(30)
+  facturation_seuil_palier_min Int @default(5)
 
-  devise                  Devise                    @relation(fields: [devise_code], references: [code])
-  agences                 Agence[]
-  calendriers             Calendrier[]
-  utilisateur_societes    UtilisateurSociete[]
-  utilisateur_clients     UtilisateurClient[]
-  perimetres_portail      UtilisateurClientSite[]
-  contacts                Contact[]
-  habilitations           Habilitation[]
-  techniciens_habilites   TechnicienHabilitation[]
-  sites_habilitations     SiteHabilitationRequise[]
-  clients                 Client[]
-  sessions_actives        Session[]
-  sites                   Site[]
-  familles_materiel       FamilleMateriel[]
-  modeles_materiel        ModeleMateriel[]
-  taux_horaires           TauxHoraire[]
-  forfaits                Forfait[]
-  machines                Machine[]
-  prestations             Prestation[]
-  verifications_vgp       VgpVerification[]
-  observations_vgp        VgpObservation[]
-  campagnes_vgp           VgpCampagne[]
-  interventionPrestations InterventionPrestation[]
-  interventionSignatures  InterventionSignature[]
-  interventionPauses      InterventionPause[]
-  piecesRemplacees        InterventionPieceRemplacee[]
+  devise                       Devise                         @relation(fields: [devise_code], references: [code])
+  agences                      Agence[]
+  calendriers                  Calendrier[]
+  utilisateur_societes         UtilisateurSociete[]
+  utilisateur_clients          UtilisateurClient[]
+  perimetres_portail           UtilisateurClientSite[]
+  contacts                     Contact[]
+  habilitations                Habilitation[]
+  techniciens_habilites        TechnicienHabilitation[]
+  sites_habilitations          SiteHabilitationRequise[]
+  clients                      Client[]
+  sessions_actives             Session[]
+  sites                        Site[]
+  familles_materiel            FamilleMateriel[]
+  modeles_materiel             ModeleMateriel[]
+  taux_horaires                TauxHoraire[]
+  forfaits                     Forfait[]
+  machines                     Machine[]
+  prestations                  Prestation[]
+  verifications_vgp            VgpVerification[]
+  observations_vgp             VgpObservation[]
+  campagnes_vgp                VgpCampagne[]
+  interventionPrestations      InterventionPrestation[]
+  interventionSignatures       InterventionSignature[]
+  interventionPauses           InterventionPause[]
+  piecesRemplacees             InterventionPieceRemplacee[]
+  interventionStatutHistorique InterventionStatutHistorique[]
+  demandeStatutHistorique      DemandeStatutHistorique[]
 
   @@map("societe")
 }
@@ -1680,6 +1682,12 @@ model Intervention {
   /// `suspendue_le` ci-dessous, qui restent l'ÉTAT COURANT lu par d'autres
   /// écrans (le terrain, notamment).
   pauses                InterventionPause[]
+  /// L'HISTORIQUE DES CHANGEMENTS DE STATUT (9J08A-HISTORIQUE-DES-ETATS) —
+  /// alimenté par déclencheur, jamais écrit par le dépôt. Sans reprise du
+  /// passé (option A retenue par Alexis le 29/10/2026, `etude-equipe/synthese.md`
+  /// question 2) : une ligne n'existe qu'à compter du déploiement de cette
+  /// migration.
+  statut_historique     InterventionStatutHistorique[]
 
   id         String @id @db.Uuid
   societe_id String @db.Uuid
@@ -2163,23 +2171,27 @@ model Demande {
   cree_le    DateTime @default(now())
   modifie_le DateTime @updatedAt
 
-  societe Societe  @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  client  Client   @relation(fields: [societe_id, client_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
-  site    Site     @relation(fields: [societe_id, site_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
-  machine Machine? @relation(fields: [societe_id, machine_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
-  agence  Agence   @relation(fields: [societe_id, agence_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  societe           Societe                   @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  client            Client                    @relation(fields: [societe_id, client_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  site              Site                      @relation(fields: [societe_id, site_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  machine           Machine?                  @relation(fields: [societe_id, machine_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  agence            Agence                    @relation(fields: [societe_id, agence_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
   /// Le contact est chaîné sur le CLIENT, pas seulement sur la société : un
   /// contact d'un autre client ne peut pas être désigné. `contact_id` étant
   /// nullable, PostgreSQL ne contrôle pas la clé quand il vaut NULL
   /// (`MATCH SIMPLE`, §9 du 23/08) — et c'est ici le comportement VOULU, les
   /// deux autres colonnes étant NOT NULL : « pas de contact » est le seul état
   /// que la nullité produit, jamais une ligne à moitié vérifiée.
-  contact Contact? @relation(fields: [societe_id, client_id, contact_id], references: [societe_id, client_id, id], onDelete: Restrict, onUpdate: Restrict)
+  contact           Contact?                  @relation(fields: [societe_id, client_id, contact_id], references: [societe_id, client_id, id], onDelete: Restrict, onUpdate: Restrict)
   /// Les interventions NÉES de cette demande (68-DEMANDES-2) — zéro, une, ou
   /// plusieurs : une demande peut donner plusieurs interventions (décision 4,
   /// une intervention = une machine). Le lien vit sur `intervention.demande_id`
   /// ; ce champ n'est que sa face inverse, jamais une seconde écriture.
-  interventions Intervention[]
+  interventions     Intervention[]
+  /// L'HISTORIQUE DES CHANGEMENTS DE STATUT (9J08A-HISTORIQUE-DES-ETATS) —
+  /// même régime que `Intervention.statut_historique` : alimenté par
+  /// déclencheur, sans reprise du passé.
+  statut_historique DemandeStatutHistorique[]
 
   @@unique([societe_id, id])
   @@unique([societe_id, annee, numero])
@@ -2424,10 +2436,10 @@ model InterventionPause {
 
   /// L'instant d'OUVERTURE — daté dans le fuseau de l'agence (L0-08), comme
   /// `intervention.suspendue_le`, jamais saisi.
-  debut DateTime @db.Timestamptz(3)
+  debut DateTime  @db.Timestamptz(3)
   /// `NULL` = la pause est en cours. Jamais « on ne sait pas » : la base
   /// n'autorise qu'UNE pause ouverte par intervention (index partiel).
-  fin DateTime? @db.Timestamptz(3)
+  fin   DateTime? @db.Timestamptz(3)
 
   motif String
 
@@ -2450,6 +2462,60 @@ model InterventionPause {
   @@unique([societe_id, id])
   @@index([societe_id, intervention_id, debut])
   @@map("intervention_pause")
+}
+
+/// L'HISTORIQUE DES CHANGEMENTS DE STATUT D'UNE INTERVENTION
+/// (9J08A-HISTORIQUE-DES-ETATS) — forme « filiation » (D103), sur le modèle
+/// exact d'`InterventionPause` : une fille est visible si son parent l'est.
+///
+/// **Alimentée EXCLUSIVEMENT par déclencheur** (AFTER INSERT OR UPDATE OF
+/// statut sur `intervention`) — aucune écriture directe n'est accordée au
+/// rôle applicatif (`SELECT`, `INSERT` seulement, et l'`INSERT` n'est en
+/// pratique jamais exercé que par le déclencheur). **Sans reprise du passé** :
+/// une intervention créée avant le déploiement de cette migration n'a
+/// d'historique qu'à partir de son premier changement de statut POST-
+/// migration — voir `lib/interventions/durees-par-etat.ts`, qui le signale.
+model InterventionStatutHistorique {
+  id         String @id @db.Uuid
+  societe_id String @db.Uuid
+
+  intervention_id String @db.Uuid
+
+  /// NULL seulement à la création de l'intervention (le déclencheur AFTER
+  /// INSERT ne connaît aucun statut antérieur).
+  statut_avant StatutIntervention?
+  statut_apres StatutIntervention
+
+  change_le DateTime @default(now()) @db.Timestamptz(3)
+
+  societe      Societe      @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  intervention Intervention @relation(fields: [societe_id, intervention_id], references: [societe_id, id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@unique([societe_id, id])
+  @@index([societe_id, intervention_id, change_le])
+  @@map("intervention_statut_historique")
+}
+
+/// L'HISTORIQUE DES CHANGEMENTS DE STATUT D'UNE DEMANDE
+/// (9J08A-HISTORIQUE-DES-ETATS) — même régime, même forme « filiation », que
+/// `InterventionStatutHistorique` ci-dessus.
+model DemandeStatutHistorique {
+  id         String @id @db.Uuid
+  societe_id String @db.Uuid
+
+  demande_id String @db.Uuid
+
+  statut_avant StatutDemande?
+  statut_apres StatutDemande
+
+  change_le DateTime @default(now()) @db.Timestamptz(3)
+
+  societe Societe @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  demande Demande @relation(fields: [societe_id, demande_id], references: [societe_id, id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@unique([societe_id, id])
+  @@index([societe_id, demande_id, change_le])
+  @@map("demande_statut_historique")
 }
 
 /// D'où vient la demande (chapitre 7/M3). Six sources, et elles ne se

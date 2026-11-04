@@ -1061,6 +1061,10 @@ dans la table `parite` ci-dessous.*
 
 **intervention_piece_remplacee** — `societe_id`, intervention, désignation (≤ 200 caractères), référence (nullable, ≤ 80), quantité (entier ≥ 1), rang (ordre de saisie) *(9I7B, D222)*. Les pièces remplacées, SAISIE LIBRE sur le rapport terrain, pour les interventions de type curatif, garantie ou reprise : un RELEVÉ DÉCLARATIF, sans prix et sans lien avec le catalogue d'articles — distinct de l'arbitrage 3.7 (`intervention_piece.prix_unitaire`), qui reste inchangé et non réalisé. L'écriture REMPLACE L'ENSEMBLE des lignes à chaque enregistrement du rapport, dans la même transaction. Forme « filiation » (D103), sur le modèle exact d'`intervention_prestation`.
 
+**intervention_statut_historique** — `societe_id`, intervention, statut avant (nullable), statut après, instant du changement *(9J08A-HISTORIQUE-DES-ETATS)*. Le temps passé dans chaque état d'une intervention, pour la fiche du bureau et, demain, le portail client (option A retenue par Alexis le 29/10/2026, `etude-equipe/synthese.md` question 2). Alimentée EXCLUSIVEMENT par un déclencheur AFTER INSERT OR UPDATE OF statut sur `intervention` — aucune écriture directe pour le rôle applicatif, `UPDATE` et `DELETE` fermés comme sur `journal_audit` (I8). SANS REPRISE DU PASSÉ : une intervention déjà en base à la migration n'a d'historique qu'à partir de son premier changement de statut postérieur. Forme « filiation » (D103), sur le modèle exact d'`intervention_pause`.
+
+**demande_statut_historique** — même forme qu'`intervention_statut_historique` ci-dessus, pour `demande` *(9J08A-HISTORIQUE-DES-ETATS)*.
+
 ### 11.3 Volumétrie estimée à 3 ans
 
 Révisée à la baisse compte tenu de l'effectif réel.

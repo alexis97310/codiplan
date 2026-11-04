@@ -14,6 +14,10 @@ import { enDuree } from "@/lib/calendar/duree";
 import { ancienneteEnJours } from "@/lib/interventions/affichage";
 import { peutCloturer, type Verdict } from "@/lib/interventions/cycle-de-vie";
 import {
+  dureesParEtat,
+  type LigneHistoriqueEtat,
+} from "@/lib/interventions/durees-par-etat";
+import {
   jourEtDateAbregee,
   jourMois,
   machinesAffichees,
@@ -1282,6 +1286,69 @@ export function chronologieDeLaFiche(
   return [...evenements].sort(
     (a, b) => a.instant.getTime() - b.instant.getTime(),
   );
+}
+
+/** Une ligne affichée de la tuile « Temps par état ». */
+export type LigneTempsParEtat = {
+  readonly libelle: string;
+  readonly duree: string;
+  readonly enCours: boolean;
+};
+
+export type TempsParEtatAffiche = {
+  readonly lignes: readonly LigneTempsParEtat[];
+  /** Le message « disponible à partir du JJ/MM/AAAA » — `null` si complet. */
+  readonly indisponibleAvant: string | null;
+};
+
+/**
+ * LA TUILE « TEMPS PAR ÉTAT » (9J08A-HISTORIQUE-DES-ETATS), dans le gabarit
+ * de la tuile Chronologie (9I6) — depuis `intervention_statut_historique`,
+ * jamais le journal d'audit (même motif que `chronologieDeLaFiche`
+ * ci-dessus : sa politique de lecture n'ouvre qu'à deux rôles).
+ *
+ * `historique` doit déjà être triée par `change_le` croissant — c'est ce que
+ * `historiqueStatutDeLIntervention` (`lib/interventions/depot.ts`) rend.
+ * `dureesParEtat` fait le calcul pur ; cette fonction ne fait que le mettre
+ * en FORME — même partage des rôles que `chronologieDeLaFiche`/
+ * `estRepriseDunImport`.
+ *
+ * L'ORDRE affiché est l'ordre CANONIQUE de `STATUTS_INTERVENTION`, pas
+ * l'ordre de traversée : un état traversé deux fois (suspension puis reprise)
+ * n'apparaîtrait sinon qu'une fois, à la place de son dernier passage — et
+ * perdrait le total cumulé qu'il représente.
+ */
+export function tempsParEtatAffiche(
+  historique: readonly LigneHistoriqueEtat<StatutIntervention>[],
+  statutActuel: StatutIntervention,
+  maintenant: Date,
+  fuseau: Fuseau,
+): TempsParEtatAffiche {
+  const resultat = dureesParEtat(historique, statutActuel, maintenant);
+  const lignes: LigneTempsParEtat[] = STATUTS_INTERVENTION.filter(
+    (etat) => resultat.dureesCumuleesMs.has(etat),
+  ).map((etat) => ({
+    libelle: t(`statut.${etat}`),
+    duree: enDuree(
+      Math.round((resultat.dureesCumuleesMs.get(etat) ?? 0) / 60_000),
+    ),
+    enCours: etat === resultat.etatCourant,
+  }));
+  return {
+    lignes,
+    indisponibleAvant:
+      resultat.depuisLe === null
+        ? `${t("intervention.chronologie.temps_par_etat.indisponible_avant")} ${dateLocale(
+            maintenant,
+            fuseau,
+          )}`
+        : resultat.historiqueIncomplet
+          ? `${t("intervention.chronologie.temps_par_etat.indisponible_avant")} ${dateLocale(
+              resultat.depuisLe,
+              fuseau,
+            )}`
+          : null,
+  };
 }
 
 /**

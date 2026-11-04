@@ -69,7 +69,9 @@ function ligne(surcharge: Partial<LigneInventaire> = {}): LigneInventaire {
       intervention_signature: 0,
       intervention_pause: 0,
       intervention_piece_remplacee: 0,
+      intervention_statut_historique: 0,
       demande: 0,
+      demande_statut_historique: 0,
       compteur_numerotation: 0,
       absence: 0,
       technicien: 0,
@@ -121,7 +123,9 @@ function inventaire(surcharge: Partial<Inventaire> = {}): Inventaire {
         intervention_signature: 0,
         intervention_pause: 0,
         intervention_piece_remplacee: 0,
+        intervention_statut_historique: 0,
         demande: 0,
+        demande_statut_historique: 0,
         compteur_numerotation: 0,
         absence: 0,
         technicien: 0,
@@ -193,8 +197,11 @@ describe("inventaire à plat", () => {
       intervention_pause: 0,
       // 9I7B — même chemin : les pièces remplacées, saisie libre.
       intervention_piece_remplacee: 0,
+      // 9J08A-HISTORIQUE-DES-ETATS — même chemin, les deux tables d'historique.
+      intervention_statut_historique: 0,
       // L2-06 — même chemin : `demande` est entrée le jour où la table est née.
       demande: 0,
+      demande_statut_historique: 0,
       // 9H2-NUMEROTATION-INTERVENTIONS — même chemin.
       compteur_numerotation: 0,
       // L3-01a — et c'est la table que trois `(prévu)` attendaient.

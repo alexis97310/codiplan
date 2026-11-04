@@ -2546,6 +2546,13 @@ export const fr = {
   "intervention.chronologie.cloture": "Clôturée",
   "intervention.chronologie.annulation": "Annulée",
 
+  // LE TEMPS PAR ÉTAT (9J08A-HISTORIQUE-DES-ETATS) — alimenté par
+  // `intervention_statut_historique`, sans reprise du passé.
+  "intervention.chronologie.temps_par_etat.titre": "Temps par état",
+  "intervention.chronologie.temps_par_etat.en_cours_suffixe": "en cours",
+  "intervention.chronologie.temps_par_etat.indisponible_avant":
+    "Temps par état disponible à partir du",
+
   // LE BANDEAU D'UNE FICHE REPRISE D'UN IMPORT (IN-23, audit du 28/09/2026) —
   // même critère que `intervention.chronologie.enregistrement`
   // (`estRepriseDunImport`, ../presentation.ts) : un fait daté précède la

@@ -72,6 +72,7 @@ import {
   type MotifNonTransmissible,
   type Verdict,
 } from "./cycle-de-vie";
+import { type LigneHistoriqueEtat } from "./durees-par-etat";
 import { anneeDeNumerotation, prochainNumero } from "./numerotation";
 import { ordreDuRegistre } from "./ordre-registre";
 import {
@@ -3750,6 +3751,45 @@ export async function pausesDeLIntervention(
         dateDispoPrevue: p.date_dispo_prevue,
         ouvertPar: nomDeLaPersonne(p.ouvert_par, annuaire),
         fermeePar: nomDeLaPersonne(p.fermee_par, annuaire),
+      }));
+    },
+    client,
+  );
+}
+
+/**
+ * L'HISTORIQUE DES CHANGEMENTS DE STATUT D'UNE INTERVENTION
+ * (9J08A-HISTORIQUE-DES-ETATS), triée par `change_le` croissant — l'ordre que
+ * `dureesParEtat` (`lib/interventions/durees-par-etat.ts`) exige.
+ *
+ * Alimentée EXCLUSIVEMENT par le déclencheur posé en migration : cette
+ * fonction ne fait que LIRE, jamais écrire — aucune fonction de ce dépôt
+ * n'insère dans `intervention_statut_historique`.
+ */
+export async function historiqueStatutDeLIntervention(
+  contexte: ContexteSession,
+  interventionId: string,
+  client?: PrismaClient,
+): Promise<readonly LigneHistoriqueEtat<StatutIntervention>[] | null> {
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const intervention = await tx.intervention.findFirst({
+        where: { id: interventionId },
+        select: { id: true },
+      });
+      if (intervention === null) {
+        return null;
+      }
+      const lignes = await tx.interventionStatutHistorique.findMany({
+        where: { intervention_id: interventionId },
+        select: { statut_avant: true, statut_apres: true, change_le: true },
+        orderBy: { change_le: "asc" },
+      });
+      return lignes.map((ligne) => ({
+        statutAvant: ligne.statut_avant,
+        statutApres: ligne.statut_apres,
+        changeLe: ligne.change_le,
       }));
     },
     client,

@@ -230,7 +230,7 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
     );
   });
 
-  it("les trente-neuf tables auditées aujourd'hui sont exactement celles attendues", () => {
+  it("les quarante et une tables auditées aujourd'hui sont exactement celles attendues", () => {
     // Le décompte, écrit en toutes lettres, pour qu'un déclencheur posé
     // ailleurs — ou disparu — se voie. C'est la constitution confrontée aux
     // migrations, pas les migrations confrontées à elles-mêmes.
@@ -304,6 +304,10 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
       // de CLIENT* (chapitre 9, P5), et « qui a déposé cela, quand, et qui l'a
       // close sans suite » est la question même d'un litige de service.
       "demande",
+      // `demande_statut_historique` s'y ajoute au ticket
+      // 9J08A-HISTORIQUE-DES-ETATS, et par le même chemin : première catégorie
+      // de I1, donc auditée à sa naissance.
+      "demande_statut_historique",
       "document",
       "document_recu",
       "famille_materiel",
@@ -335,6 +339,11 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
       // l'audit n'en journalise donc que l'AJOUT, jamais une correction.
       "intervention_prestation",
       "intervention_signature",
+      // `intervention_statut_historique` s'y ajoute au ticket
+      // 9J08A-HISTORIQUE-DES-ETATS, et par le même chemin : première catégorie
+      // de I1, donc auditée à sa naissance. « Qui a changé ce statut, quand, et
+      // depuis quel statut » est exactement la question du temps par état.
+      "intervention_statut_historique",
       "machine",
       "modele_materiel",
       // `prestation` s'y ajoute au ticket L1-12, et par le même chemin : elle
