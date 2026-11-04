@@ -269,14 +269,23 @@ describe("mesure de /parametres/equipe (9ID, points 2 et 3)", () => {
         `après: ${nouveau.compteur.transactions} transactions, ${nouveau.compteur.requetes} requêtes, ${dureeNouvelle}ms, profondeur≈${profondeurNouvelle}`,
     );
 
-    expect(profondeurNouvelle).toBeLessThan(profondeurAncienne);
-    // LE GARDE-FOU (point 4) : mesuré à 17 sur ce semis (six techniciens,
-    // deux comptes de bureau) — les trois paliers restent, mais certaines
-    // des branches qu'ils regroupent (`etatsAccesDesComptes`,
-    // `etatsAccesDesTechniciens`) enchaînent elles-mêmes plusieurs requêtes
-    // en interne (tranches de 5, D226). Plafond posé à 20 : une régression
-    // qui réintroduit un `await` isolé entre deux paliers, ou qui retire le
-    // plafonnement par tranches, fait rougir cette borne.
-    expect(profondeurNouvelle).toBeLessThanOrEqual(20);
+    // LE GARDE-FOU (point 4) — EN PROPORTION DE L'ANCIEN, PAS EN VALEUR
+    // ABSOLUE : `etatsAccesDesComptes`/`etatsAccesDesTechniciens` lisent en
+    // interne le journal de CHAQUE administrateur `administrer_utilisateurs`
+    // de la société A par un `Promise.all` sans plafond (hors territoire de
+    // ce lot) — sous `pnpm test:isolation` complet, d'autres fichiers en
+    // accumulent plusieurs dizaines, et la profondeur mesurée ICI en porte
+    // la trace (35 à 66 selon ce qui tourne par ailleurs, contre 17 à 47 sur
+    // ce fichier seul). **Même instabilité, même raison, que
+    // `tests/isolation/9ic-equipe-par-tranches.test.ts`** : mesurer un
+    // plafond absolu confondrait cette pollution partagée avec une
+    // régression du lot. Le NOUVEAU doit rester sous 60 % de l'ANCIEN —
+    // ratio stable sous la pollution (elle pèse pareillement sur les deux
+    // ordres, mesurés sur le même état de la base) — une régression qui
+    // réintroduit un `await` isolé entre deux paliers le fait remonter vers
+    // 100 %.
+    expect(profondeurNouvelle).toBeLessThanOrEqual(
+      Math.ceil(profondeurAncienne * 0.6),
+    );
   });
 });
