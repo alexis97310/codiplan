@@ -986,64 +986,73 @@ export default async function PagePlanning({
     );
     await avecContexteApplicatif(contexte, async (tx) => {
       const cacheAgence: CacheCalendrierAgence = new Map();
-      for (const technicien of techniciensSansCharge) {
-        const calendrier =
-          (await chargerCalendrierDuTechnicien(tx, {
-            societeId,
-            utilisateurId: technicien.utilisateur_id,
-            fenetre: jourMinuit,
-            cache: cacheAgence,
-          })) ??
-          (await chargerCalendrierAgence(
-            tx,
-            {
+      // DE FRONT, PAS UN PAR UN (9ID-PERFORMANCES, point 3) : un technicien ne
+      // dépend du résultat d'aucun autre, et `cacheAgence` reste correct sous
+      // cette parallélisation — au pire, deux techniciens de la MÊME agence
+      // dont aucun résultat n'est encore en cache déclenchent chacun une
+      // lecture de cette agence (le cache ne fait jamais la course avec
+      // lui-même pour autre chose qu'une agence déjà vue), jamais une valeur
+      // fausse.
+      await Promise.all(
+        techniciensSansCharge.map(async (technicien) => {
+          const calendrier =
+            (await chargerCalendrierDuTechnicien(tx, {
               societeId,
-              agenceId: technicien.agence_id,
+              utilisateurId: technicien.utilisateur_id,
               fenetre: jourMinuit,
-            },
-            cacheAgence,
-          ));
-        const debut =
-          calendrier === null
-            ? null
-            : versInstant(jourMinuit.du, calendrier.fuseau);
-        const fin =
-          calendrier === null
-            ? null
-            : versInstant(jourMinuit.au, calendrier.fuseau);
-        const brut =
-          calendrier === null || debut === null || fin === null
-            ? 0
-            : minutesOuvrees(calendrier, debut, fin);
-        const absentes =
-          calendrier === null || debut === null || fin === null
-            ? 0
-            : periodesBloquees(
-                absences,
+              cache: cacheAgence,
+            })) ??
+            (await chargerCalendrierAgence(
+              tx,
+              {
+                societeId,
+                agenceId: technicien.agence_id,
+                fenetre: jourMinuit,
+              },
+              cacheAgence,
+            ));
+          const debut =
+            calendrier === null
+              ? null
+              : versInstant(jourMinuit.du, calendrier.fuseau);
+          const fin =
+            calendrier === null
+              ? null
+              : versInstant(jourMinuit.au, calendrier.fuseau);
+          const brut =
+            calendrier === null || debut === null || fin === null
+              ? 0
+              : minutesOuvrees(calendrier, debut, fin);
+          const absentes =
+            calendrier === null || debut === null || fin === null
+              ? 0
+              : periodesBloquees(
+                  absences,
+                  technicien.utilisateur_id,
+                  { du: debut, au: fin },
+                  calendrier.fuseau,
+                ).reduce(
+                  (total, periode) =>
+                    total + minutesOuvrees(calendrier, periode.du, periode.au),
+                  0,
+                );
+          const ouvrables = Math.max(0, brut - absentes);
+          chargeParTechnicien.set(technicien.utilisateur_id, [
+            {
+              technicienId: technicien.utilisateur_id,
+              agenceId: technicien.agence_id,
+              agenceLibelle:
+                libelleAgence.get(technicien.agence_id) ?? technicien.agence_id,
+              occupation: occupationTechnicien(
                 technicien.utilisateur_id,
-                { du: debut, au: fin },
-                calendrier.fuseau,
-              ).reduce(
-                (total, periode) =>
-                  total + minutesOuvrees(calendrier, periode.du, periode.au),
-                0,
-              );
-        const ouvrables = Math.max(0, brut - absentes);
-        chargeParTechnicien.set(technicien.utilisateur_id, [
-          {
-            technicienId: technicien.utilisateur_id,
-            agenceId: technicien.agence_id,
-            agenceLibelle:
-              libelleAgence.get(technicien.agence_id) ?? technicien.agence_id,
-            occupation: occupationTechnicien(
-              technicien.utilisateur_id,
-              [],
-              ouvrables,
-              SANS_TRAJET,
-            ),
-          },
-        ]);
-      }
+                [],
+                ouvrables,
+                SANS_TRAJET,
+              ),
+            },
+          ]);
+        }),
+      );
     });
   }
 
@@ -1068,25 +1077,29 @@ export default async function PagePlanning({
     };
     await avecContexteApplicatif(contexte, async (tx) => {
       const cacheAgence: CacheCalendrierAgence = new Map();
-      for (const technicien of cadre.techniciens) {
-        const calendrier =
-          (await chargerCalendrierDuTechnicien(tx, {
-            societeId,
-            utilisateurId: technicien.utilisateur_id,
-            fenetre: jourMinuit,
-            cache: cacheAgence,
-          })) ??
-          (await chargerCalendrierAgence(
-            tx,
-            {
+      // DE FRONT, PAS UN PAR UN — même raisonnement que le bloc précédent
+      // (9ID-PERFORMANCES, point 3).
+      await Promise.all(
+        cadre.techniciens.map(async (technicien) => {
+          const calendrier =
+            (await chargerCalendrierDuTechnicien(tx, {
               societeId,
-              agenceId: technicien.agence_id,
+              utilisateurId: technicien.utilisateur_id,
               fenetre: jourMinuit,
-            },
-            cacheAgence,
-          ));
-        calendrierDuTechnicien.set(technicien.utilisateur_id, calendrier);
-      }
+              cache: cacheAgence,
+            })) ??
+            (await chargerCalendrierAgence(
+              tx,
+              {
+                societeId,
+                agenceId: technicien.agence_id,
+                fenetre: jourMinuit,
+              },
+              cacheAgence,
+            ));
+          calendrierDuTechnicien.set(technicien.utilisateur_id, calendrier);
+        }),
+      );
     });
   }
 
