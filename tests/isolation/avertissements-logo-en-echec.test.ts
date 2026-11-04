@@ -152,6 +152,13 @@ async function creerLigne(
 }
 
 async function supprimerLigne(id: string): Promise<void> {
+  // 9J11 : `alerterResponsablesSAV` pose désormais aussi une `Notification`,
+  // qui référence l'intervention en `RESTRICT` — à effacer d'abord, sinon
+  // elle retient la ligne que ce nettoyage efface.
+  await clientOwner().$executeRawUnsafe(
+    `DELETE FROM "notification" WHERE "intervention_id" = $1::uuid`,
+    id,
+  );
   await clientOwner().$executeRawUnsafe(
     `DELETE FROM "intervention" WHERE "id" = $1::uuid`,
     id,
