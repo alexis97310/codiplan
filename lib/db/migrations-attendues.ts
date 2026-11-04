@@ -146,4 +146,5 @@ export const MIGRATIONS_ATTENDUES: readonly string[] = [
   "20261101080000_identite_exclusive_a_la_societe_9i8d1",
   "20261102010000_reinitialisation_second_facteur_9ia",
   "20261104100000_historique_des_etats_9j08a",
+  "20261105010000_notification_interne_9j09",
 ];

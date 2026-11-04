@@ -115,6 +115,8 @@ model Societe {
   import_lots       ImportLot[]
   import_lot_lignes ImportLotLigne[]
 
+  notifications Notification[]
+
   id                            String  @id @db.Uuid
   code                          String  @unique // préfixe de numérotation
   raison_sociale                String
@@ -1665,6 +1667,8 @@ model Intervention {
   /// Les photos de l'intervention (BON-2) — des `Document` classe `client` ou
   /// `interne` comme les autres, jamais une seconde table de fichiers.
   documents             Document[]
+  /// Les notifications dont cette intervention est la cible (9J09-NOTIFICATIONS-SCHEMA).
+  notifications         Notification[]
   /// Les prestations RÉALISÉES sur cette intervention (BON-2), distinctes du
   /// catalogue `Prestation` qu'elles référencent.
   prestations_realisees InterventionPrestation[]
@@ -2192,6 +2196,8 @@ model Demande {
   /// même régime que `Intervention.statut_historique` : alimenté par
   /// déclencheur, sans reprise du passé.
   statut_historique DemandeStatutHistorique[]
+  /// Les notifications dont cette demande est la cible (9J09-NOTIFICATIONS-SCHEMA).
+  notifications     Notification[]
 
   @@unique([societe_id, id])
   @@unique([societe_id, annee, numero])
@@ -3618,4 +3624,84 @@ model ImportLotLigne {
   @@unique([import_lot_id, rang])
   @@index([societe_id, import_lot_id])
   @@map("import_lot_ligne")
+}
+
+// ── LA NOTIFICATION (9J09-NOTIFICATIONS-SCHEMA, D229) ───────────────────────
+//
+// Alexis a demandé que chaque intéressé soit prévenu, « en interne ça peut
+// être une page selon le niveau d'autorisation de son compte » (29/10/2026).
+// Rien n'existait : ni table, ni page, ni canal interne.
+
+/// Ce qui déclenche une notification. **UNE SEULE VALEUR aujourd'hui** — les
+/// producteurs des autres événements viendront avec 9J11 et 9J19, chacun avec
+/// la sienne ajoutée à cette énumération à ce moment-là, jamais avant.
+enum EvenementNotification {
+  signature_absente_ou_refusee
+}
+
+/// LA NOTIFICATION (D229). Table métier de la PREMIÈRE catégorie de I1, de
+/// forme « interne » — société ET `app.client_id` absent, le même régime que
+/// `DocumentRecu` (D94) et `ImportLot`/`ImportLotLigne` (D100). **Aucun écran
+/// de portail n'en lit en V1** : le jour où un événement doit atteindre un
+/// compte portail, cette forme SE RETIRE, elle ne s'assouplit pas (condition
+/// de réouverture de D229).
+model Notification {
+  id         String @id @db.Uuid
+  societe_id String @db.Uuid
+
+  /// ── LA CIBLE : L'INTERVENTION **OU** LA DEMANDE, JAMAIS DEUX ────────────
+  /// Même patron que `Document.document_cible_unique` — c'est le SCHÉMA qui
+  /// l'interdit, pas une validation applicative. `suite_a_donner_id`
+  /// s'ajoutera au ticket 9J19, pas ici : une troisième colonne nullable, pas
+  /// une colonne `entite_id` texte libre.
+  intervention_id String? @db.Uuid
+  demande_id      String? @db.Uuid
+
+  evenement EvenementNotification
+
+  /// Doit correspondre à une entrée de `CAPACITES` (`lib/auth/habilitations.ts`)
+  /// — vérifié par l'application (`poserNotification`), jamais par un type
+  /// PostgreSQL : la matrice grandit au fil des arbitrages, et fermer cette
+  /// colonne par une énumération en base coulerait une migration à chaque
+  /// capacité ajoutée.
+  capacite_requise String
+
+  /// `NULL` = tous ceux qui ont la capacité ci-dessus. **Aucune relation
+  /// Prisma déclarée vers `Utilisateur`** — même choix que
+  /// `ImportLot.utilisateur_id` (D39) : une relation ferait naître son
+  /// INVERSE sur `utilisateur`, que le gardien de D39 refuserait à bon droit.
+  /// La clé étrangère existe en base (`ON DELETE RESTRICT`, `ON UPDATE
+  /// RESTRICT`).
+  destinataire_id String? @db.Uuid
+
+  cree_le DateTime @default(now())
+
+  /// NULLABLE, jamais un booléen (doctrine §3) : la DATE de lecture porte
+  /// plus que « lu/non lu », et une future liste « non lues depuis le
+  /// DD/MM » la lirait directement, sans recalcul.
+  lue_le DateTime?
+
+  /// ── LE JOURNAL DE SON ENVOI (FLX-12) ────────────────────────────────────
+  /// Le canal tenté. `NULL` tant qu'aucun envoi n'a été tenté — une
+  /// notification interne existe dès sa pose, avant toute tentative de
+  /// l'acheminer par un canal.
+  canal String?
+  /// Quand la tentative a eu lieu. Suit `canal` dans les deux sens : l'un sans
+  /// l'autre mentirait sur ce qui s'est passé.
+  tentee_le DateTime?
+  /// Booléen TYPÉ, et c'est volontaire malgré `lue_le` ci-dessus : ce n'est
+  /// pas la date d'un fait qui se produit une fois pour toutes, c'est l'ISSUE
+  /// d'une tentative déjà datée par `tentee_le` — la tentative et son issue
+  /// sont deux faits distincts, pas un seul.
+  partie Boolean @default(false)
+
+  societe      Societe       @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  intervention Intervention? @relation(fields: [societe_id, intervention_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  demande      Demande?      @relation(fields: [societe_id, demande_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([societe_id, destinataire_id])
+  @@index([societe_id, evenement])
+  @@index([societe_id, intervention_id])
+  @@index([societe_id, demande_id])
+  @@map("notification")
 }
