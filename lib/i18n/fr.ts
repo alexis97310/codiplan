@@ -224,6 +224,26 @@ export const fr = {
   "portail.interventions.a_venir_avant":
     "Sans information : l'historique de vos interventions et leurs rapports ne sont pas encore lisibles ici. Votre",
   "portail.interventions.a_venir_apres": "vous les transmet.",
+
+  // ── L'ÉCRAN DES INTERVENTIONS DU PORTAIL (9J07-PORTAIL-INTERVENTION-ETAT,
+  // CLI-2.5, CLI-2.7) — L'ÉTAT COURANT SEUL, JAMAIS LA DURÉE PAR ÉTAT (CLI-2.4,
+  // repoussé). Même discipline de mot imposé que ci-dessus : « agence » se
+  // compose depuis `motDansUnePhrase`, jamais écrit ici.
+  "portail.interventions.titre": "Vos interventions",
+  "portail.interventions.sous_titre_avant":
+    "L'état de vos interventions, telles que votre",
+  "portail.interventions.sous_titre_apres": "les suit.",
+  "portail.interventions.bloc.titre": "Interventions suivies",
+  "portail.interventions.vide":
+    "Aucune intervention n'est enregistrée pour l'instant.",
+  "portail.interventions.sans_date": "Date à confirmer",
+  "portail.interventions.fiche.sous_titre":
+    "Le suivi de cette intervention. Cette page est en consultation seule.",
+  "portail.interventions.commentaire_technicien": "Commentaire du technicien",
+  "portail.interventions.suite_a_donner": "Suite à donner",
+  "portail.interventions.sans_commentaire":
+    "Aucun commentaire n'a encore été saisi pour cette intervention.",
+
   "portail.demande": "Demander une intervention",
   "portail.demande.a_venir_avant":
     "Ce formulaire n'est pas ouvert : appelez votre",
