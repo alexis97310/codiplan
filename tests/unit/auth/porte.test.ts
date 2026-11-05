@@ -475,6 +475,14 @@ const EXEMPTIONS: readonly Exemption[] = [
     motif:
       "même motif que app/api/portail/contacts/creer/route.ts ci-dessus — route du portail client, gardée par contextePortailContact.",
   },
+  // 9J04-PORTAIL-DEMANDES (CLI-4) — même motif que les deux routes de contacts
+  // ci-dessus : route du portail client, gardée par `contextePortailDemande`
+  // (app/api/portail/demandes/contexte.ts), jamais par exigerCapacite.
+  {
+    chemin: "app/api/portail/demandes/creer/route.ts",
+    motif:
+      "route du portail client (D10, D70) : aucune capacité de la matrice commune ne porte sur ce rôle, gardée par contextePortailDemande plutôt que par exigerCapacite — voir app/api/portail/demandes/contexte.ts.",
+  },
 ];
 
 /** Chaque route mutante d'`app/api/`, chemin relatif à la racine. */

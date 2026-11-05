@@ -7344,6 +7344,31 @@ export const fr = {
   // un texte composé depuis son nom technique (L0-11).
   "notifications.evenement.signature_absente_ou_refusee":
     "Signature absente ou refusée",
+
+  // ── 9J04-PORTAIL-DEMANDES — le client dépose une demande (CLI-4) ────────
+  "portail.demandes.titre": "Vos demandes",
+  "portail.demandes.bloc.titre": "Demandes déposées",
+  // LE MOT IMPOSÉ NE S'ÉCRIT PAS ICI (L0-11, D5, D47) — même forme que
+  // `portail.contacts.sous_titre_avant/apres`.
+  "portail.demandes.sous_titre_avant":
+    "Les demandes que vous transmettez à votre",
+  "portail.demandes.sous_titre_apres": "et la suite qu'elle leur donne.",
+  "portail.demandes.vide": "Aucune demande n'a été déposée pour l'instant.",
+  "portail.demandes.action.deposer": "Déposer une demande",
+  "portail.demandes.champ.machine": "Machine concernée",
+  "portail.demandes.champ.machine.aucune":
+    "Je ne sais pas, ou aucune machine n'est concernée",
+  "portail.demandes.champ.site": "Lieu (si vous ne connaissez pas la machine)",
+  "portail.demandes.champ.site.choisir": "Choisir un lieu",
+  "portail.demandes.champ.description": "Décrivez ce que vous constatez",
+  "portail.demandes.ligne.sans_machine": "Sans machine identifiée",
+  "portail.demandes.cree": "Votre demande est enregistrée.",
+  "portail.demandes.refus.saisie":
+    "Vérifiez les champs : choisissez une machine ou un lieu, et décrivez ce que vous constatez.",
+  "portail.demandes.refus.machine_inconnue":
+    "Cette machine n'est pas dans votre périmètre.",
+  "portail.demandes.refus.erreur_serveur":
+    "Une erreur est survenue : votre demande n'a pas été enregistrée.",
 } as const;
 
 export type CleTraduction = keyof typeof fr;

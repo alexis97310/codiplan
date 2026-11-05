@@ -16,6 +16,8 @@ const CLES_REUSSITE: ReadonlySet<string> = new Set([
   "clients.modifie",
   "contacts.cree",
   "contacts.modifie",
+  // 9J04-PORTAIL-DEMANDES — le dépôt d'une demande depuis le portail.
+  "portail.demandes.cree",
   "sites.cree",
   "sites.modifie",
   "agence.creee",
