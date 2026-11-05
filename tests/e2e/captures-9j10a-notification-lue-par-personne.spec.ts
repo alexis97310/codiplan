@@ -50,7 +50,15 @@ async function capturer(
   });
 }
 
-async function poserLaNotificationCollectiveDeLEpreuve(): Promise<void> {
+/**
+ * Retourne l'identifiant posé — `annuler_intervention` est aussi tenue par
+ * `admin_societe` (`lib/auth/habilitations.ts`), donc visible de
+ * `captures-9j10-notifications.spec.ts` (même société NC, même base
+ * partagée) si elle restait en base : la ligne est donc retirée par
+ * `nettoyerLaNotificationDeLEpreuve` une fois le test fini, pour qu'aucune
+ * trace ne pollue un fichier voisin exécuté dans la même suite.
+ */
+async function poserLaNotificationCollectiveDeLEpreuve(): Promise<string> {
   const client = new PrismaClient({
     datasources: { db: { url: urlAdministration() } },
   });
@@ -69,24 +77,32 @@ async function poserLaNotificationCollectiveDeLEpreuve(): Promise<void> {
       where: { societe_id: utilisateurSociete.societe_id },
       select: { id: true },
     });
+    const id = uuidv7();
     await client.notification.create({
       data: {
-        id: uuidv7(),
+        id,
         societe_id: utilisateurSociete.societe_id,
         intervention_id: intervention.id,
         evenement: "signature_absente_ou_refusee",
         capacite_requise: "annuler_intervention",
       },
     });
+    return id;
   } finally {
     await client.$disconnect();
   }
 }
 
-test.beforeAll(async () => {
-  if (DOSSIER === "") return;
-  await poserLaNotificationCollectiveDeLEpreuve();
-});
+async function nettoyerLaNotificationDeLEpreuve(id: string): Promise<void> {
+  const client = new PrismaClient({
+    datasources: { db: { url: urlAdministration() } },
+  });
+  try {
+    await client.notification.delete({ where: { id } });
+  } finally {
+    await client.$disconnect();
+  }
+}
 
 /** `COMPTE_MULTI_SOCIETE_EPREUVE` — même patron que `arrivee.spec.ts`. */
 async function entrerSurLaSocieteNc(page: Page): Promise<void> {
@@ -109,6 +125,18 @@ async function entrerSurLaSocieteNc(page: Page): Promise<void> {
 
 for (const largeur of [1280, 375] as const) {
   test.describe(`à ${largeur}px`, () => {
+    // UNE NOTIFICATION FRAÎCHE PAR LARGEUR — la précédente est marquée lue
+    // par A pendant le test ; `beforeAll` posé ICI (et non une fois pour tout
+    // le fichier) en pose une nouvelle à chaque largeur. Retirée par
+    // `afterAll` : voir le commentaire de `poserLaNotificationCollectiveDeLEpreuve`.
+    let notificationId = "";
+    test.beforeAll(async () => {
+      notificationId = await poserLaNotificationCollectiveDeLEpreuve();
+    });
+    test.afterAll(async () => {
+      await nettoyerLaNotificationDeLEpreuve(notificationId);
+    });
+
     test(`capture — A lit SA notification, B ne l'a pas encore lue, à ${largeur}px`, async ({
       browser,
     }) => {
