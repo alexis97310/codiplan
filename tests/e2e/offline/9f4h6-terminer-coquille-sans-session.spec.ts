@@ -150,6 +150,10 @@ test.afterAll(async () => {
       `DELETE FROM "segment_travail" WHERE "intervention_id" = $1::uuid`,
       INTERVENTION_9F4H6,
     );
+    await client.$executeRawUnsafe(
+      `DELETE FROM "notification" WHERE "intervention_id" = $1::uuid`,
+      INTERVENTION_9F4H6,
+    );
     await client.intervention.deleteMany({
       where: { id: INTERVENTION_9F4H6 },
     });

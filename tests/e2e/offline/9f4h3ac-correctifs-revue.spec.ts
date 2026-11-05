@@ -124,6 +124,10 @@ test.afterAll(async () => {
       [INTERVENTION_9F4H3AC, INTERVENTION_ECHEC_GARDE_9F4H3AC],
     );
     await client.$executeRawUnsafe(
+      `DELETE FROM "notification" WHERE "intervention_id" IN (SELECT "id" FROM "intervention" WHERE "client_id" = $1::uuid)`,
+      CLIENT_9F4H3AC,
+    );
+    await client.$executeRawUnsafe(
       `DELETE FROM "intervention" WHERE "client_id" = $1::uuid`,
       CLIENT_9F4H3AC,
     );
