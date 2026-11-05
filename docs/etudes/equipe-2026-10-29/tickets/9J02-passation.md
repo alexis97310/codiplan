@@ -90,3 +90,56 @@ puis `.compte.create`, `mot_de_passe: null`) — le gardien nomme lui-même cett
 
 `CI=1 pnpm verify` (pas `verify:full` — la file de nuit la joue). `pnpm test:isolation` intégral joué une
 fois séparément (1843/1843) après les écritures touchant `utilisateur`/`utilisateur_client`/`compte`.
+
+---
+
+## Reprise 9J02B, et ce qu'elle a trouvé
+
+Repris de `9J02A-REPRISE-9J02-garde` (7 commits, cherry-pickés tels quels sur `origin/main` à `86131f57c`,
+aucun conflit). Seul échec mesuré par 9J02A, deux fois : `tests/e2e/captures-9j02a-acces-portail.spec.ts:141`
+— « à 1280px › capture […] (admin_societe) » — `getByRole('heading', { name: 'Accès portail' })`
+introuvable ; la même capture à 375px passait.
+
+**Mesure** : `CI=1 pnpm exec playwright test tests/e2e/captures-9j02a-acces-portail.spec.ts --workers=1`
+reproduit l'échec exactement — mais `error-context.md` de l'échec montre la page `/clients` (la LISTE), pas
+`/clients/{id}`. La fiche client n'était jamais ouverte.
+
+**Cause, pas celle devinée au ticket** (ni état partagé entre épreuves, ni carte absente à 1280px, ni ordre
+`serial` en cause) : le `beforeAll` du spec posait `clientId` **seulement si `CAPTURES_9J02A` était défini** —
+exactement la même garde que l'écriture des fichiers PNG eux-mêmes :
+
+```ts
+test.beforeAll(async () => {
+  if (DOSSIER === "") return;        // ← la fixture entière derrière la garde
+  clientId = await clientDeLEpreuve();
+});
+```
+
+`pnpm test:e2e` et `verify:full` ne positionnent jamais `CAPTURES_9J02A` (cette variable ne sert qu'aux
+lancements manuels qui produisent de vraies captures). `clientId` reste donc `""`, et
+`page.goto('/clients/?onglet=identite')` atterrit sur la liste des clients — la carte n'y a jamais existé. Le
+mode `serial` du fichier arrête la suite au premier rouge : c'est pour ça que les deux mesures de 9J02A
+comptaient « 1 failed, 3 did not run » (jamais exécutées, donc jamais vues comme un deuxième échec) plutôt que
+quatre échecs distincts — la phrase « la même capture à 375px passe » du ticket de reprise venait en réalité
+du lancement MANUEL antérieur (point 6, avec `CAPTURES_9J02A` posé), pas de `verify:full`.
+
+**Tous les autres fichiers de capture du dépôt posent leur fixture sans condition** et ne gardent que
+l'écriture du PNG derrière la variable (vérifié sur `captures-9ah-gr14-prestations-sites.spec.ts` : le
+`beforeAll` qui crée client/site/prestation n'a aucune garde `DOSSIER`). Ce spec s'en écartait seul — un
+défaut de l'ÉPREUVE, pas de l'écran. Les captures déjà commitées par 9J02A
+(`docs/etudes/equipe-2026-10-29/tickets/9J02-captures/apres/admin-acces-portail-{1280,375}.png`) le confirment :
+la carte « Accès portail » s'affiche correctement aux deux largeurs, avec un compte actif et un compte révoqué
+visibles — l'écran n'a jamais eu de défaut.
+
+**Correction** : `clientDeLEpreuve()` s'exécute désormais sans condition dans `beforeAll`, alignée sur le
+patron du reste du dépôt. Rejoué `--repeat-each=2` : 8/8 vert (deux passages complets, idempotent — la
+fonction supprime déjà les lignes des deux courriels d'épreuve avant de les recréer).
+
+**Vérification jouée** : fichier seul (×1 puis `--repeat-each=2`, 8/8) ; `pnpm test:isolation` intégral,
+213 fichiers / 1849 tests, vert ; `pnpm test`, 499 fichiers / 5497 tests, vert ; `CI=1 pnpm verify`
+(format:check + typecheck + lint + test + test:isolation + build), vert de bout en bout. Aucune autre épreuve
+e2e ne touche `inviterClientAuPortail`/`revoquerAccesPortailClient` (recherche confirmée, un seul fichier de
+capture les exerce). `pnpm verify:full` n'a pas été rejoué ici — la file de nuit le fait.
+
+**Portée** : un seul fichier modifié (`tests/e2e/captures-9j02a-acces-portail.spec.ts`, une ligne retirée),
+aucune ligne de production touchée, aucune migration, rien hors territoire de la reprise.
