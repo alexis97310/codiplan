@@ -217,6 +217,7 @@ model Societe {
   piecesRemplacees             InterventionPieceRemplacee[]
   interventionStatutHistorique InterventionStatutHistorique[]
   demandeStatutHistorique      DemandeStatutHistorique[]
+  notificationLectures         NotificationLecture[]
 
   @@map("societe")
 }
@@ -3698,10 +3699,60 @@ model Notification {
   societe      Societe       @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
   intervention Intervention? @relation(fields: [societe_id, intervention_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
   demande      Demande?      @relation(fields: [societe_id, demande_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  lectures     NotificationLecture[]
 
+  // `@@unique([societe_id, id])` — AJOUTÉ au ticket 9J10A-NOTIFICATION-LUE-PAR-
+  // PERSONNE, 05/11/2026 : c'est la cible de la clé étrangère composite de sa
+  // première fille, `NotificationLecture`. Même patron qu'`Intervention` et
+  // `Demande`, qui la portent pour la même raison.
+  @@unique([societe_id, id])
   @@index([societe_id, destinataire_id])
   @@index([societe_id, evenement])
   @@index([societe_id, intervention_id])
   @@index([societe_id, demande_id])
   @@map("notification")
+}
+
+/// LA LECTURE D'UNE NOTIFICATION, PAR PERSONNE (9J10A-NOTIFICATION-LUE-PAR-
+/// PERSONNE, décision d'Alexis du 05/11/2026) : « lu par personne » — chacun
+/// garde la sienne jusqu'à ce qu'il la lise, même sur une notification
+/// COLLECTIVE (`destinataire_id` NULL).
+///
+/// Table FILLE de `Notification` au sens de la forme « filiation » (D103) :
+/// une lecture est visible si la notification qu'elle lit l'est. Aucune
+/// clause de société n'est ajoutée à sa politique de lecture — ce serait une
+/// seconde source du même fait que la clé étrangère composite porte déjà.
+/// Sa politique d'ÉCRITURE ajoute, elle, « la ligne est à MOI » — ancrée sur
+/// `app.utilisateur_id` — pour qu'un compte ne puisse jamais poser la lecture
+/// d'un collègue : c'est le défaut mesuré sur l'ancienne colonne unique
+/// `notification.lue_le` (M1 : une notification collective lue par une
+/// personne l'était pour TOUTES ; M2 : `marquerLue` n'était gardée par aucun
+/// filtre `destinataire_id`).
+///
+/// `notification.lue_le` est CONSERVÉE (I6, aucune suppression) mais n'est
+/// plus ni lue ni écrite par l'application depuis ce ticket.
+model NotificationLecture {
+  id         String @id @db.Uuid
+  societe_id String @db.Uuid
+
+  notification_id String @db.Uuid
+
+  /// Aucune relation Prisma déclarée vers `Utilisateur` — même choix que
+  /// `Notification.destinataire_id` (D39) : une relation ferait naître son
+  /// INVERSE sur `utilisateur`, que le gardien de D39 refuserait à bon droit.
+  /// La clé étrangère existe en base (`ON DELETE RESTRICT`).
+  utilisateur_id String @db.Uuid
+
+  /// La date de la PREMIÈRE lecture, jamais réécrite : la clé unique sur le
+  /// couple ci-dessous empêche une seconde ligne, et aucun `UPDATE` n'est
+  /// accordé à `codiplan_app`.
+  lue_le DateTime @db.Timestamptz(3)
+
+  societe      Societe      @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  notification Notification @relation(fields: [societe_id, notification_id], references: [societe_id, id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@unique([societe_id, id])
+  @@unique([notification_id, utilisateur_id])
+  @@index([societe_id, notification_id])
+  @@map("notification_lecture")
 }
