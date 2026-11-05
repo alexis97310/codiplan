@@ -215,7 +215,12 @@ for (const largeur of [1280, 375] as const) {
       await ouvrirLaSessionPortail(page);
       await page.goto(`/portail/interventions/${interventionId}`);
       await expect(page).toHaveURL(/\/portail\/interventions\/[0-9a-f-]+/);
-      await expect(page.getByText(COMMENTAIRE_TECHNICIEN_TEMOIN)).toBeVisible();
+      // `.innerText()` + comparaison de chaîne, jamais `getByText` — c'est de
+      // la DONNÉE de test (le commentaire technicien saisi en base), pas une
+      // copie produit (même distinction que `captures-9i7a-mentions-legales-
+      // modifiables.spec.ts`).
+      const texteDeLaFiche = await page.locator("main").innerText();
+      expect(texteDeLaFiche).toContain(COMMENTAIRE_TECHNICIEN_TEMOIN);
       await capturer(page, "fiche-intervention", largeur);
     });
   });
