@@ -59,8 +59,18 @@ porte depuis D84 — ce fichier éprouve l'appelant, la politique elle-même est
 ## État des portes
 
 `pnpm format` / `pnpm typecheck` / `pnpm lint` : verts. `pnpm test` : 500 fichiers, 5505 tests, vert.
-`pnpm test:isolation` : 216 fichiers, 1872 tests, vert (dont les 6 nouveaux). Sortie complète de
-`pnpm verify:full` : `9J05-verify-final.txt`, dans ce même dossier.
+`pnpm test:isolation` : 216 fichiers, 1872 tests, vert (dont les 6 nouveaux). `pnpm build`,
+`pnpm feries:horizon`, `pnpm audit:partitions` : verts (voir `9J05-verify-final.txt`).
+
+**`CI=1 pnpm verify:full` INTERROMPU au bout de 60 minutes, en plein `test:e2e`** — même issue que
+9J04 point 7. Tout ce qui précède `test:e2e` dans la chaîne est passé (`format:check`, `typecheck`, `lint`,
+`test`, `test:isolation`, `build`, `feries:horizon`, `audit:partitions`) ; `test:e2e` avait démarré depuis
+~34 minutes (1898 tests, 1 worker — voir la note mémoire sur sa durée) et n'affichait AUCUN échec au moment
+de l'interruption, seulement des points de progression et des mesures d'accessibilité déjà connues du
+dépôt. Ce ticket ne touche à AUCUN écran ni route (territoire : `lib/portail/interventions.ts` et deux
+fichiers de test, aucun appelant e2e) — rien dans `test:e2e` ne peut dépendre de ce changement. Sortie
+complète (interrompue) : `9J05-verify-final.txt`, dans ce même dossier. `pnpm verify` (sans `:full`) a été
+rejoué séparément pour la porte de sortie du ticket, et il est vert.
 
 ## Hors territoire, rappelé
 
