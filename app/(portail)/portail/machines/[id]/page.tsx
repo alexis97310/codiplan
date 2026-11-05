@@ -48,8 +48,6 @@ import {
  * suit (données internes à CODIMA, hors de la forme « parc » que ce compte
  * lit).
  */
-export const metadata: Metadata = { title: t("portail.titre") };
-
 const sessionCache = cache(async () => obtenirSession(await headers()));
 
 export async function generateMetadata({
