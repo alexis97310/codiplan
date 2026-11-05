@@ -128,7 +128,6 @@ async function clientDeLEpreuve(): Promise<string> {
 let clientId = "";
 
 test.beforeAll(async () => {
-  if (DOSSIER === "") return;
   clientId = await clientDeLEpreuve();
 });
 
