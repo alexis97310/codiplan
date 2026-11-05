@@ -46,9 +46,9 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
           "9J01 — Documentation : écrire la règle « PARCOURS-1 » dans le registre des décisions.",
       },
       {
-        statut: "pret",
+        statut: "en_cours",
         titre:
-          "Portail client (9J02 à 9J08, 9J20) — Inviter un client par lien, ses contacts, déposer une demande, fiche machine, état de ses interventions, bon téléchargeable après clôture, barème sans montant d'intervention.",
+          "Portail client (9J02 à 9J08, 9J20) — Inviter un client par lien (livré, 9J02A), ses contacts, déposer une demande, fiche machine, état de ses interventions, bon téléchargeable après clôture, barème sans montant d'intervention.",
       },
       {
         statut: "pret",
