@@ -158,3 +158,42 @@ après la migration : **212 fichiers, 1843 épreuves, tout vert** — y compris
 le rejeu sur base âgée avec l'amorce du point 2. `CI=1 pnpm verify` est le
 dernier geste de cette session, joué à sec juste avant de rendre la main (voir
 le message de ce commit pour son issue).
+
+## Reprise 9J10B — la capture à 1280px
+
+Les deux vérifications de 9J10A (`traces/…-verify-1.txt`, `-verify-2.txt`) montraient un seul échec,
+deux fois : la capture 1280px ne trouvait pas le lien « Notifications » dans la barre (`toBeVisible`
+→ timeout), alors que la même capture à 375px passait.
+
+**Mesure** : `CI=1 pnpm exec playwright test tests/e2e/captures-9j10a-notification-lue-par-personne.spec.ts
+--workers=1` reproduit l'échec à l'identique. Le message précis est « element(s) not found », pas
+« hidden » : le lien n'existe pas du tout dans le DOM, aux deux largeurs — ce n'est donc pas un défaut
+propre à 1280px. `sansNotificationsVides` (`components/navigation/barre.tsx`) retire l'entrée
+« Notifications » de la barre quand `decomptes.notifications.total` vaut zéro pour le compte connecté,
+aux deux largeurs pareillement. Le `beforeAll` du spec ne posait la notification collective de
+l'épreuve que si `CAPTURES_9J10A` était défini (même garde que l'écriture des PNG) — exactement le
+défaut déjà mesuré et corrigé sur 9J02A par 9J02B (« l'épreuve ne posait pas son client sans
+CAPTURES_9J02A ») : `pnpm test:e2e` / `verify:full` ne positionnent jamais cette variable, donc aucune
+notification n'existait pour les deux comptes, et la barre n'avait rien à faux — l'écran est correct.
+
+**Correction**, en trois temps (le premier reprend le patron 9J02B, les deux autres sont propres à ce
+spec parce que, contrairement au client de 9J02A, la notification est MUTÉE par le test — marquée lue
+par A) :
+
+1. `poserLaNotificationCollectiveDeLEpreuve()` s'exécute désormais sans condition.
+2. Le `beforeAll` est posé DANS chaque bloc `describe` par largeur (et non une fois pour tout le
+   fichier) : sans ça, la notification posée une seule fois aurait été déjà lue par A quand le test à
+   375px s'exécute, qui aurait alors échoué à son tour sur « A voit son propre « non lue » ».
+3. Un `afterAll` neuf (`nettoyerLaNotificationDeLEpreuve`) retire la ligne posée. Mesuré nécessaire en
+   rejouant `captures-9j10-notifications.spec.ts` et ce fichier ensemble avec `--repeat-each=2` : la
+   capacité choisie, `annuler_intervention`, est aussi tenue par `admin_societe`
+   (`lib/auth/habilitations.ts`, forme `complet`) — sans nettoyage, la ligne restait en base entre les
+   fichiers (base de test partagée, I9) et cassait la capture « vide (admin_societe, sans la capacité
+   posée) » du fichier voisin dès la deuxième répétition. Aucun autre fichier de capture du dépôt ne
+   nettoie après lui (patron 9J02A/9J02B/9J10 observés) parce qu'aucun n'utilise une capacité partagée
+   avec un autre — propre à ce ticket, pas une règle générale à poser ailleurs.
+
+Rejoué `tests/e2e/captures-9j10-notifications.spec.ts tests/e2e/captures-9j10a-notification-lue-par-personne.spec.ts
+--workers=1 --repeat-each=2` : 12/12 vert (c'est cette combinaison qui avait révélé la pollution
+ci-dessus — chaque fichier seul, même répété, restait vert). `pnpm format`, `pnpm typecheck`,
+`pnpm lint`, `pnpm test` (499 fichiers, 5497 épreuves) verts.
