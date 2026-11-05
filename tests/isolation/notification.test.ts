@@ -16,6 +16,7 @@ import {
   SOCIETE_A,
   SOCIETE_B,
   UTILISATEUR_INTERNE_A,
+  UTILISATEUR_INTERNE_B,
   UTILISATEUR_PAR_ROLE,
 } from "./setup/fixtures";
 
@@ -65,6 +66,23 @@ const PORTAIL_A1 = session(
   Role.client,
   CLIENT_A1,
 );
+
+/**
+ * LE SECOND ADV DE LA SOCIÉTÉ A — un compte DIFFÉRENT d'`INTERNE_ADV`, même
+ * rôle, même capacité (`UTILISATEUR_PAR_ROLE[Role.adv]` est habilité sur
+ * SOCIETE_A, comme `UTILISATEUR_INTERNE_A` ; voir `setup/fixtures.ts`).
+ * Indispensable au témoin de non-vacuité de « lu par personne » (9J10A) :
+ * sans un second ACTEUR réel sur la MÊME société, rien ne distingue « lu par
+ * tous » de « lu par UNE personne ».
+ */
+const INTERNE_ADV_2 = session(
+  UTILISATEUR_PAR_ROLE[Role.adv],
+  SOCIETE_A,
+  Role.adv,
+);
+
+/** Un compte interne de l'AUTRE société — `UTILISATEUR_INTERNE_B` (adv, B). */
+const INTERNE_B = session(UTILISATEUR_INTERNE_B, SOCIETE_B, Role.adv);
 
 async function poserUnePourA1(): Promise<string> {
   return poserNotification(
@@ -150,13 +168,18 @@ describe("listerNotifications — filtre par CAPACITÉ, jamais par rôle en dur"
 });
 
 describe("marquerLue — la date de la PREMIÈRE lecture, jamais réécrite", () => {
-  it("pose la date une fois, et la seconde marque ne la déplace pas", async () => {
+  it("pose la date une fois, dans notification_lecture, et la seconde marque ne la déplace pas", async () => {
     const id = await poserUnePourA1();
 
     await marquerLue(INTERNE_ADV, id, clientApp());
     const premiere = await sousSociete(SOCIETE_A, (tx) =>
-      tx.notification.findUniqueOrThrow({
-        where: { id },
+      tx.notificationLecture.findUniqueOrThrow({
+        where: {
+          notification_id_utilisateur_id: {
+            notification_id: id,
+            utilisateur_id: UTILISATEUR_INTERNE_A,
+          },
+        },
         select: { lue_le: true },
       }),
     );
@@ -164,11 +187,99 @@ describe("marquerLue — la date de la PREMIÈRE lecture, jamais réécrite", ()
 
     await marquerLue(INTERNE_ADV, id, clientApp());
     const seconde = await sousSociete(SOCIETE_A, (tx) =>
-      tx.notification.findUniqueOrThrow({
-        where: { id },
+      tx.notificationLecture.findUniqueOrThrow({
+        where: {
+          notification_id_utilisateur_id: {
+            notification_id: id,
+            utilisateur_id: UTILISATEUR_INTERNE_A,
+          },
+        },
         select: { lue_le: true },
       }),
     );
     expect(seconde.lue_le).toEqual(premiere.lue_le);
+  });
+});
+
+/**
+ * « LU PAR PERSONNE » (9J10A-NOTIFICATION-LUE-PAR-PERSONNE) — décision
+ * d'Alexis du 05/11/2026 : chacun garde la sienne jusqu'à ce qu'il la lise
+ * lui-même, même sur une notification COLLECTIVE.
+ */
+describe("marquerLue — lu par personne, jamais par tous", () => {
+  it("une notification COLLECTIVE lue par A reste NON LUE pour B, sur la même société", async () => {
+    const id = await poserUnePourA1();
+
+    await marquerLue(INTERNE_ADV, id, clientApp());
+
+    const vueParA = await listerNotifications(INTERNE_ADV, clientApp());
+    expect(vueParA.find((n) => n.id === id)?.lueLe).not.toBeNull();
+
+    const vueParB = await listerNotifications(INTERNE_ADV_2, clientApp());
+    expect(vueParB.find((n) => n.id === id)?.lueLe).toBeNull();
+  });
+
+  it("A ne peut PAS marquer lue la notification PERSONNELLE de B — rien n'est écrit (M2)", async () => {
+    const id = await poserNotification(
+      INTERNE_ADV,
+      "signature_absente_ou_refusee",
+      { cible: "intervention", intervention_id: INTERVENTION_A1 },
+      "annuler_intervention",
+      UTILISATEUR_PAR_ROLE[Role.adv],
+      clientApp(),
+    );
+
+    // A (`INTERNE_ADV`) tente de marquer lue la notification de B.
+    await marquerLue(INTERNE_ADV, id, clientApp());
+
+    const ligneDeA = await sousSociete(SOCIETE_A, (tx) =>
+      tx.notificationLecture.findUnique({
+        where: {
+          notification_id_utilisateur_id: {
+            notification_id: id,
+            utilisateur_id: UTILISATEUR_INTERNE_A,
+          },
+        },
+      }),
+    );
+    expect(ligneDeA).toBeNull();
+
+    // Et la notification reste bien visible et lisible par B, SON
+    // destinataire — ce n'est pas la ligne qui est fermée, c'est l'accès
+    // d'A qui l'est.
+    await marquerLue(INTERNE_ADV_2, id, clientApp());
+    const ligneDeB = await sousSociete(SOCIETE_A, (tx) =>
+      tx.notificationLecture.findUnique({
+        where: {
+          notification_id_utilisateur_id: {
+            notification_id: id,
+            utilisateur_id: UTILISATEUR_PAR_ROLE[Role.adv],
+          },
+        },
+      }),
+    );
+    expect(ligneDeB?.lue_le).not.toBeNull();
+  });
+
+  it("une AUTRE société ne lit ni n'écrit aucune ligne de lecture", async () => {
+    const id = await poserUnePourA1();
+    await marquerLue(INTERNE_ADV, id, clientApp());
+
+    // Lecture : la société B ne voit AUCUNE ligne de lecture de la société A
+    // — la filiation échoue, faute de notification visible sous son contexte.
+    const vuesParB = await sousSociete(SOCIETE_B, (tx) =>
+      tx.notificationLecture.findMany({ where: { notification_id: id } }),
+    );
+    expect(vuesParB).toEqual([]);
+
+    // Écriture : la société B ne peut pas y poser de ligne non plus —
+    // `marquerLue` sous son propre contexte ne trouve même pas la
+    // notification (RLS de `notification`, forme « interne »), donc
+    // n'écrit rien, sans erreur bavarde.
+    await marquerLue(INTERNE_B, id, clientApp());
+    const toujoursAucune = await sousSociete(SOCIETE_B, (tx) =>
+      tx.notificationLecture.findMany({ where: { notification_id: id } }),
+    );
+    expect(toujoursAucune).toEqual([]);
   });
 });
