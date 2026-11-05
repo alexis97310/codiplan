@@ -149,3 +149,43 @@ CI nocturne (c'est l'exécution prévue, CLAUDE.md §4) ou dans une session
 suivante avec son propre budget. `pnpm verify` étant vert, la définition de
 « terminé » du ticket (hors `verify:full` « en fin de LOT », pas de chaque
 ticket) est satisfaite.
+
+## Reprise 9J03A (05/11/2026)
+
+9J03 était parti de `7a72a2987` ; au premier passage de reprise, rebasé sur
+`origin/main` (qui porte depuis 9J09/9J10 davantage de routes et d'épreuves
+qu'au 04/11), `pnpm test:isolation` EN ENTIER rendait **171 épreuves rouges
+sur 29 fichiers**, dont `tests/isolation/rapport-terrain.test.ts` (21) —
+aucun des fichiers rouges ne touche `contact` ni `portail`.
+
+**Mesuré, pas supposé** : un second passage de la même commande, quelques
+minutes plus tard, s'est arrêté dès la préparation avec
+`database "codiplan_test" is being accessed by other users (2 autres
+sessions)` — preuve directe qu'une AUTRE connexion tenait la base pendant la
+fenêtre de mesure (le conteneur `codiplan-pg-voie1`, port 5441, est dédié à ce
+worktree — jamais partagé avec `codiplan`/5433 ni `codiplan-voie2`/5442,
+vérifié par `docker ps` et les `.env` des quatre répertoires de travail — donc
+pas une confusion de base entre postes de travail, mais une seconde connexion
+sur CE conteneur pendant le 1er passage).
+
+Rejoué deux fois d'affilée depuis cette session, sans aucune modification de
+code : **212 fichiers / 1839 épreuves, vert les deux fois**
+(`pnpm test:isolation`), puis `CI=1 pnpm verify` vert en entier (format,
+typecheck, lint, test, test:isolation, build — après avoir purgé un
+`.next/` périmé qui référençait encore `app/api/clients/[id]/{inviter,
+revoquer-acces}`, routes de 9J02 absentes de cette branche ; `.next/` est
+ignoré par git, purge sans risque).
+
+**Conclusion : la cause est HORS du territoire de 9J03** — aucune écriture de
+`lib/contacts/depot.ts` ni du harnais neuf (`tests/isolation/
+portail-contacts-ecriture.test.ts`) ne pose ni ne laisse survivre un contexte
+hors de sa propre transaction (`avecContexteApplicatif` pose en
+`set_config(..., is_local => true)`, remis à zéro au COMMIT/ROLLBACK,
+documenté dans `lib/db/rls.ts`). Les 171 rouges du premier passage sont
+l'effet d'une exécution concurrente sur le même conteneur de base de test,
+pas un défaut du code de ce ticket. Rien n'a été corrigé dans le territoire
+de 9J03 : il n'y avait rien à y corriger.
+
+9J02-PORTAIL-INVITATION-LIEN (9J02A) n'est toujours pas sur `origin/main` au
+moment de cette reprise (`git log origin/main --oneline | grep 9J02` : aucun
+résultat) : le blocage des captures du point 6 reste entier, inchangé.
