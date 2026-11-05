@@ -182,6 +182,8 @@ export const fr = {
   "portail.vgp.sans_information":
     "Sans information — CODIPLAN n'enregistre pas encore les contrôles de cette machine. Ce n'est ni « à jour », ni « en retard ».",
   "portail.reserve": "Cet écran est réservé aux comptes de portail client.",
+  "portail.machine.sous_titre":
+    "Le détail de cette machine de votre parc. Cette page est en consultation seule.",
 
   // ── L'ÉCRAN DES INTERLOCUTEURS DU PORTAIL (9J03-PORTAIL-CONTACTS, CLI-3) ──
   //

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { headers } from "next/headers";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { Page } from "@/components/mise-en-page/page";
@@ -244,31 +245,37 @@ export default async function PagePortail() {
         ) : (
           <ul className="flex flex-col gap-2">
             {parc.machines.map((machine) => (
-              <li
-                key={machine.id}
-                className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3 text-[13px] font-bold"
-              >
-                <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-                  <span className="font-bold">
-                    {t("portail.machine.serie")} {machine.numeroSerie}
-                  </span>
-                  <span className="text-app-encre-faible">
-                    {siteDeLaMachine(machine, siteParId)}
-                  </span>
-                  {machine.localisation === null ? null : (
-                    <span className="text-app-encre-faible">
-                      {emplacementDeLaMachine(machine)}
+              <li key={machine.id}>
+                {/* CHAQUE LIGNE MÈNE À SA FICHE (9J06-PORTAIL-FICHE-MACHINE,
+                    CLI-2.3a) — D98 retire « Fiche machine » de la barre, ça
+                    n'empêche pas une fiche ATTEINTE depuis une liste. */}
+                <Link
+                  href={`/portail/machines/${machine.id}`}
+                  className="bg-app-surface border-app-bord hover:border-app-marque flex flex-col gap-2 rounded-lg border px-4 py-3 text-[13px] font-bold"
+                >
+                  <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                    <span className="font-bold">
+                      {t("portail.machine.serie")} {machine.numeroSerie}
                     </span>
-                  )}
-                </div>
-                {/* LES DEUX PLACES RÉSERVÉES. Elles disent qu'elles sont vides ;
-                    elles n'affichent NI un compte de documents à zéro, NI un
-                    état VGP « à jour ». Les deux se liraient comme des mesures
-                    (§9, 06/09), et le second serait faux au sens de D88. */}
-                <div className="text-app-encre-faible flex flex-col gap-1 text-12 font-bold">
-                  <span>{placeDesDocuments()}</span>
-                  <span>{placeDuVgp()}</span>
-                </div>
+                    <span className="text-app-encre-faible">
+                      {siteDeLaMachine(machine, siteParId)}
+                    </span>
+                    {machine.localisation === null ? null : (
+                      <span className="text-app-encre-faible">
+                        {emplacementDeLaMachine(machine)}
+                      </span>
+                    )}
+                  </div>
+                  {/* LES DEUX PLACES RÉSERVÉES. Elles disent qu'elles sont
+                      vides ; elles n'affichent NI un compte de documents à
+                      zéro, NI un état VGP « à jour ». Les deux se liraient
+                      comme des mesures (§9, 06/09), et le second serait faux
+                      au sens de D88. */}
+                  <div className="text-app-encre-faible flex flex-col gap-1 text-12 font-bold">
+                    <span>{placeDesDocuments()}</span>
+                    <span>{placeDuVgp()}</span>
+                  </div>
+                </Link>
               </li>
             ))}
           </ul>

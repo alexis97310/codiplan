@@ -3,7 +3,7 @@ import { avecIdentite } from "@/lib/db/rls";
 import { prisma as clientParDefaut } from "@/lib/db/client";
 import { type ContexteSession } from "@/lib/auth/contexte";
 
-import { type PrismaClient } from "@prisma/client";
+import { type PrismaClient, type StatutMachine } from "@prisma/client";
 
 /**
  * LE PORTAIL CLIENT — CONSULTATION SEULE (ticket L2-12, D92).
@@ -86,7 +86,7 @@ export type MachineDuPortail = {
   readonly numeroSerie: string;
   readonly referenceInterne: string | null;
   readonly localisation: string | null;
-  readonly statut: string;
+  readonly statut: StatutMachine;
   readonly siteId: string;
   readonly dateMiseEnService: Date | null;
 };
@@ -97,6 +97,83 @@ export type ParcDuClient = {
   readonly sites: readonly SiteDuPortail[];
   readonly machines: readonly MachineDuPortail[];
 };
+
+/** Une fiche machine telle que le portail la montre : la machine, et son site. */
+export type FicheMachineDuPortail = {
+  readonly raisonSociale: string | null;
+  readonly machine: MachineDuPortail;
+  readonly site: SiteDuPortail;
+};
+
+/**
+ * Une machine du parc, par son identifiant (9J06-PORTAIL-FICHE-MACHINE).
+ *
+ * MÊME politique « parc » que `parcDuClient` — aucune politique neuve, le
+ * cloisonnement est celui que `machine` et `site` portent déjà (société,
+ * client, périmètre de sites). `null` si la machine n'existe pas OU si elle
+ * est hors du périmètre de ce compte : la politique RLS ne distingue pas les
+ * deux cas (D35, D50), et cette fonction ne les distingue pas non plus — même
+ * discipline que `commentairesVisiblesClient` (`lib/portail/interventions.ts`).
+ *
+ * Une lecture par id, jamais une boucle sur `parcDuClient` : aucun risque de
+ * N+1.
+ */
+export async function ficheMachineDuParc(
+  contexte: ContexteSession,
+  machineId: string,
+  client?: PrismaClient,
+): Promise<FicheMachineDuPortail | null> {
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const [fiche, machine] = await Promise.all([
+        tx.client.findFirst({ select: { raison_sociale: true } }),
+        tx.machine.findFirst({
+          where: { id: machineId },
+          select: {
+            id: true,
+            numero_serie: true,
+            reference_interne: true,
+            localisation: true,
+            statut: true,
+            site_id: true,
+            date_mise_en_service: true,
+            site: {
+              select: {
+                id: true,
+                libelle: true,
+                commune: true,
+                zone_geo: true,
+              },
+            },
+          },
+        }),
+      ]);
+      if (machine === null || machine.site === null) {
+        return null;
+      }
+      return {
+        raisonSociale: fiche?.raison_sociale ?? null,
+        machine: {
+          id: machine.id,
+          numeroSerie: machine.numero_serie,
+          referenceInterne: machine.reference_interne,
+          localisation: machine.localisation,
+          statut: machine.statut,
+          siteId: machine.site_id,
+          dateMiseEnService: machine.date_mise_en_service,
+        },
+        site: {
+          id: machine.site.id,
+          libelle: machine.site.libelle,
+          commune: machine.site.commune,
+          zoneGeo: machine.site.zone_geo,
+        },
+      };
+    },
+    client,
+  );
+}
 
 /**
  * Le parc visible d'un compte portail, sous SON contexte.
