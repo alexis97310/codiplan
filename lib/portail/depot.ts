@@ -106,6 +106,25 @@ export type FicheMachineDuPortail = {
 };
 
 /**
+ * LA LISTE CLOSE des colonnes de `machine` que la fiche du portail s'autorise
+ * à sélectionner — même discipline que `SELECTION_COMMENTAIRES_CLIENT`
+ * (`lib/portail/interventions.ts`) : `machine` porte aussi des colonnes
+ * réservées au back-office (`facture_origine`, `garantie_fin`, `qr_token`,
+ * `vgp_exception*`, `criticite`, `source_creation`, `machine_remplacee_id`),
+ * et un `select` composé à la main pourrait un jour en recopier une.
+ * `tests/unit/portail/machine-colonnes-fermees.test.ts` lit ces clés RÉELLES.
+ */
+export const SELECTION_FICHE_MACHINE_PORTAIL = {
+  id: true,
+  numero_serie: true,
+  reference_interne: true,
+  localisation: true,
+  statut: true,
+  site_id: true,
+  date_mise_en_service: true,
+} as const;
+
+/**
  * Une machine du parc, par son identifiant (9J06-PORTAIL-FICHE-MACHINE).
  *
  * MÊME politique « parc » que `parcDuClient` — aucune politique neuve, le
@@ -131,13 +150,7 @@ export async function ficheMachineDuParc(
         tx.machine.findFirst({
           where: { id: machineId },
           select: {
-            id: true,
-            numero_serie: true,
-            reference_interne: true,
-            localisation: true,
-            statut: true,
-            site_id: true,
-            date_mise_en_service: true,
+            ...SELECTION_FICHE_MACHINE_PORTAIL,
             site: {
               select: {
                 id: true,
