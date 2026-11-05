@@ -73,6 +73,16 @@ async function clientDeLEpreuve(): Promise<string> {
       select: { id: true },
     });
 
+    // IDEMPOTENT — un relancement cible (`-g`, après une première série
+    // interrompue par un rouge « rouge attendu ») retrouve la même identité
+    // plutôt que de buter sur l'unicité du courriel.
+    await client.utilisateurClient.deleteMany({
+      where: { utilisateur: { email: { in: [EMAIL_ACTIF, EMAIL_REVOQUE] } } },
+    });
+    await client.utilisateur.deleteMany({
+      where: { email: { in: [EMAIL_ACTIF, EMAIL_REVOQUE] } },
+    });
+
     const identiteId = uuidv7();
     await client.utilisateur.create({
       data: {
@@ -140,14 +150,16 @@ for (const largeur of [1280, 375] as const) {
         }),
       ).toBeVisible();
       await expect(
-        page.getByText(
-          (fr as Record<string, string>)["clients.acces.etat.actif"],
-        ),
+        page
+          .getByText((fr as Record<string, string>)["clients.acces.etat.actif"])
+          .first(),
       ).toBeVisible();
       await expect(
-        page.getByText(
-          (fr as Record<string, string>)["clients.acces.etat.revoque"],
-        ),
+        page
+          .getByText(
+            (fr as Record<string, string>)["clients.acces.etat.revoque"],
+          )
+          .first(),
       ).toBeVisible();
     });
 
