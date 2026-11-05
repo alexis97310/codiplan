@@ -30,6 +30,14 @@ import { avecContexteApplicatif } from "@/lib/db/client";
  * appelle `niveau(role, capacite)` (`lib/auth/habilitations.ts`), la même
  * fonction que la porte. Une capacité qui change de rôles un jour n'a donc
  * qu'un seul endroit à changer.
+ *
+ * ## L'état de lecture est PAR PERSONNE (9J10A-NOTIFICATION-LUE-PAR-PERSONNE)
+ *
+ * `notification.lue_le` existe toujours en base (I6) mais n'est plus ni lue
+ * ni écrite ici : l'état « lu » vit dans `notification_lecture`, une ligne
+ * par couple (notification, utilisateur) — voir sa migration pour la forme
+ * RLS. Une notification COLLECTIVE (`destinataire_id` NULL) lue par une
+ * personne reste donc non lue pour les autres.
  */
 
 /** La cible d'une notification — l'intervention OU la demande, jamais deux. */
@@ -112,6 +120,10 @@ export const PLAFOND_LISTE = 50;
  * jamais par un `where` sur `capacite_requise` qui redirait la matrice des
  * rôles une seconde fois (§9, 01/09) : `niveau()` est la seule source, la
  * porte en use déjà.
+ *
+ * `lueLe` vient de `notification_lecture`, filtrée à SA propre ligne
+ * (9J10A-NOTIFICATION-LUE-PAR-PERSONNE) — jamais de `notification.lue_le`,
+ * qui ne porte plus qu'un état par notification, pas un par personne.
  */
 export async function listerNotifications(
   contexte: ContexteSession,
@@ -119,17 +131,30 @@ export async function listerNotifications(
 ): Promise<readonly NotificationEnListe[]> {
   const { role, utilisateurId } = exigerContexteActif(contexte);
 
-  const lignes = await avecContexteApplicatif(
+  const { lignes, lectures } = await avecContexteApplicatif(
     contexte,
-    (tx) =>
-      tx.notification.findMany({
+    async (tx) => {
+      const lignes = await tx.notification.findMany({
         where: {
           OR: [{ destinataire_id: null }, { destinataire_id: utilisateurId }],
         },
         orderBy: { cree_le: "desc" },
         take: PLAFOND_LISTE,
-      }),
+      });
+      const lectures = await tx.notificationLecture.findMany({
+        where: {
+          utilisateur_id: utilisateurId,
+          notification_id: { in: lignes.map((ligne) => ligne.id) },
+        },
+        select: { notification_id: true, lue_le: true },
+      });
+      return { lignes, lectures };
+    },
     client,
+  );
+
+  const lueLeParNotification = new Map(
+    lectures.map((lecture) => [lecture.notification_id, lecture.lue_le]),
   );
 
   return lignes
@@ -142,7 +167,7 @@ export async function listerNotifications(
       interventionId: ligne.intervention_id,
       demandeId: ligne.demande_id,
       creeLe: ligne.cree_le,
-      lueLe: ligne.lue_le,
+      lueLe: lueLeParNotification.get(ligne.id) ?? null,
     }));
 }
 
@@ -164,12 +189,25 @@ async function instantDate(
 }
 
 /**
- * Marque une notification lue, à la première lecture seulement.
+ * Marque une notification lue, à la première lecture seulement, POUR
+ * L'ACTEUR SEUL (9J10A-NOTIFICATION-LUE-PAR-PERSONNE, décision d'Alexis du
+ * 05/11/2026) : « lu par personne » — une notification COLLECTIVE lue par une
+ * personne reste non lue pour les autres.
  *
- * `lue_le` ne se réécrit jamais : c'est la date de la PREMIÈRE lecture
- * (doctrine §3), et une notification déjà lue reste muette sur cet appel —
- * `updateMany` avec `lue_le: null` en clause, jamais un `update`
- * inconditionnel qui écraserait la date d'origine.
+ * Pose une ligne dans `notification_lecture`, jamais dans
+ * `notification.lue_le` (conservée, I6, mais plus lue ni écrite). La clé
+ * unique sur le couple (notification, utilisateur) tient la date de la
+ * PREMIÈRE lecture sans `UPDATE` : `skipDuplicates` absorbe un second appel.
+ *
+ * N'écrit RIEN, et sans erreur bavarde, si la notification n'est pas visible
+ * pour cet acteur — introuvable (forgée, ou d'une autre société, la politique
+ * RLS de `notification` la cache déjà), destinée nommément à quelqu'un
+ * d'autre, ou hors de la capacité que son rôle tient aujourd'hui. **C'est ce
+ * qui ferme M2** : sans ce contrôle, un compte connaissant l'identifiant de
+ * la notification PERSONNELLE d'un collègue pourrait y poser sa propre
+ * lecture — la politique RLS de `notification_lecture` l'empêcherait déjà
+ * d'écrire la lecture AU NOM du collègue, mais pas d'écrire la SIENNE sur une
+ * notification qui ne lui est pas destinée.
  */
 export async function marquerLue(
   contexte: ContexteSession,
@@ -177,14 +215,38 @@ export async function marquerLue(
   client?: PrismaClient,
 ): Promise<void> {
   const societeId = exigerSocieteActive(contexte);
+  const { role, utilisateurId } = exigerContexteActif(contexte);
 
   await avecContexteApplicatif(
     contexte,
     async (tx) => {
+      const notification = await tx.notification.findUnique({
+        where: { id },
+        select: { destinataire_id: true, capacite_requise: true },
+      });
+      if (notification === null) {
+        return;
+      }
+      const visible =
+        (notification.destinataire_id === null ||
+          notification.destinataire_id === utilisateurId) &&
+        niveau(role, notification.capacite_requise as Capacite) !== "aucun";
+      if (!visible) {
+        return;
+      }
+
       const lueLe = await instantDate(tx, societeId);
-      await tx.notification.updateMany({
-        where: { id, lue_le: null },
-        data: { lue_le: lueLe },
+      await tx.notificationLecture.createMany({
+        data: [
+          {
+            id: randomUUID(),
+            societe_id: societeId,
+            notification_id: id,
+            utilisateur_id: utilisateurId,
+            lue_le: lueLe,
+          },
+        ],
+        skipDuplicates: true,
       });
     },
     client,

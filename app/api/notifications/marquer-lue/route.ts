@@ -8,12 +8,12 @@ import { champ } from "../../interventions/actions";
  * MARQUER UNE NOTIFICATION LUE (9J10-NOTIFICATIONS-ECRAN).
  *
  * **Aucune capacité dédiée** — `exigerSessionActive` suffit, même porte que
- * l'écran (`app/(back-office)/notifications/page.tsx`) : c'est
- * `listerNotifications` qui a déjà décidé, au dépôt, quelles lignes CE
- * compte peut voir (9J09) ; `marquerLue` (`updateMany` sous le contexte
- * cloisonné, `where: { id, lue_le: null }`) ne touche de toute façon aucune
- * ligne hors de ce que la politique RLS de la société active laisse
- * atteindre — un `id` forgé ou d'une autre société ne fait rien.
+ * l'écran (`app/(back-office)/notifications/page.tsx`) : `marquerLue`
+ * (9J10A) revérifie elle-même, sous le contexte cloisonné, que la
+ * notification est visible pour CET acteur (destinataire nommé ou collectif,
+ * capacité tenue aujourd'hui) avant de poser sa propre ligne dans
+ * `notification_lecture` — un `id` forgé, d'une autre société, ou visant la
+ * notification personnelle d'un collègue, n'écrit rien.
  */
 export async function POST(requete: Request): Promise<Response> {
   return dansUnEchangeAuth(() => traiter(requete));

@@ -2408,6 +2408,20 @@ export const TABLES_FILIATION = [
     parent: "demande",
     cle: "demande_id",
   },
+  // `notification_lecture` REJOINT LA FILIATION au ticket
+  // 9J10A-NOTIFICATION-LUE-PAR-PERSONNE, décision d'Alexis du 05/11/2026 :
+  // une lecture est visible si la notification qu'elle lit l'est. Sa
+  // politique d'ÉCRITURE, elle, ajoute « la ligne est à MOI » (ancrée sur
+  // `app.utilisateur_id`) — une AUGMENTATION de la clause, jamais une 14e
+  // forme : `ecartsFiliation` ne juge que la présence de l'adossement au
+  // parent, et une clause plus étroite que l'exigence minimale la satisfait
+  // toujours. Sans cette branche, un compte connaissant l'identifiant d'une
+  // notification visible pourrait poser la lecture d'un AUTRE utilisateur.
+  {
+    table: "notification_lecture",
+    parent: "notification",
+    cle: "notification_id",
+  },
 ] as const;
 
 /** Les entrées que l'arbitrage autorise. Recopiées : c'est la doctrine. */
@@ -2427,6 +2441,9 @@ const FILIATION_ARBITREE = [
   // Ticket 9J08A-HISTORIQUE-DES-ETATS, 04/11/2026 — l'historique des statuts.
   "intervention_statut_historique",
   "demande_statut_historique",
+  // Ticket 9J10A-NOTIFICATION-LUE-PAR-PERSONNE, 05/11/2026 — la lecture par
+  // personne d'une notification.
+  "notification_lecture",
 ];
 
 /** Écarts de la liste « filiation » — additions comme retraits. */

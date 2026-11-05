@@ -352,6 +352,12 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
       // question qui se pose le jour où un client découvre un litige que
       // personne n'a vu venir.
       "notification",
+      // `notification_lecture` s'y ajoute au ticket
+      // 9J10A-NOTIFICATION-LUE-PAR-PERSONNE, et par le même chemin : première
+      // catégorie de I1, donc auditée à sa naissance. « Qui a lu cette
+      // notification, et quand » devient une question par PERSONNE plutôt
+      // qu'un état unique pour tous.
+      "notification_lecture",
       // `prestation` s'y ajoute au ticket L1-12, et par le même chemin : elle
       // est de la première catégorie de I1, donc auditée à sa naissance. Elle
       // le mérite pour une raison qui lui est propre — *une durée standard est
