@@ -189,6 +189,14 @@ model Societe {
   facturation_palier_min       Int @default(30)
   facturation_seuil_palier_min Int @default(5)
 
+  /// LE DÉLAI DE RELANCE DES SUITES À DONNER, EN JOURS (FLX-2/FLX-3,
+  /// 9J19-SUITE-A-DONNER-NOTIFICATIONS). NULLABLE, SANS DÉFAUT (CLAUDE.md §8 —
+  /// aucune valeur de délai ne s'invente) : `NULL` tant que personne ne l'a
+  /// réglé, et dans cet état `devisEnRetard`/`accordAttenduEnRetard`
+  /// (`lib/suite-a-donner/depot.ts`) ne posent AUCUNE notification — une
+  /// absence de réglage n'est pas un réglage à zéro jour.
+  delai_relance_suite_jours Int?
+
   devise                       Devise                         @relation(fields: [devise_code], references: [code])
   agences                      Agence[]
   calendriers                  Calendrier[]
@@ -1663,43 +1671,43 @@ enum SourceCreationMachine {
 /// clause de société seule — un compte portail lirait les interventions des
 /// autres clients de sa propre société.
 model Intervention {
-  machines              InterventionMachine[]
+  machines                InterventionMachine[]
   /// Ce que le compteur du technicien a mesuré (R5-02, D119).
-  segments              SegmentTravail[]
+  segments                SegmentTravail[]
   /// Les photos de l'intervention (BON-2) — des `Document` classe `client` ou
   /// `interne` comme les autres, jamais une seconde table de fichiers.
-  documents             Document[]
+  documents               Document[]
   /// Les notifications dont cette intervention est la cible (9J09-NOTIFICATIONS-SCHEMA).
-  notifications         Notification[]
+  notifications           Notification[]
   /// Les prestations RÉALISÉES sur cette intervention (BON-2), distinctes du
   /// catalogue `Prestation` qu'elles référencent.
-  prestations_realisees InterventionPrestation[]
+  prestations_realisees   InterventionPrestation[]
   /// LES PIÈCES REMPLACÉES, SAISIE LIBRE (9I7B) — un relevé déclaratif sans
   /// prix, distinct de l'arbitrage 3.7 (`intervention_piece.prix_unitaire`
   /// issu du catalogue), qui reste à faire. Jamais liée au catalogue
   /// d'articles.
-  pieces_remplacees     InterventionPieceRemplacee[]
+  pieces_remplacees       InterventionPieceRemplacee[]
   /// La ou les signatures client (BON-2) — HISTORISÉES : une re-signature
   /// AJOUTE une ligne, elle n'en réécrit jamais une.
-  signatures            InterventionSignature[]
+  signatures              InterventionSignature[]
   /// L'HISTORIQUE DES PAUSES (50-INTERVENTIONS-2, SAV-09) — voir
   /// `InterventionPause` : une ligne par suspension, jamais réécrite. Distinct
   /// des colonnes `motif_suspension`/`piece_attendue_ref`/`date_dispo_prevue`/
   /// `suspendue_le` ci-dessous, qui restent l'ÉTAT COURANT lu par d'autres
   /// écrans (le terrain, notamment).
-  pauses                InterventionPause[]
+  pauses                  InterventionPause[]
   /// L'HISTORIQUE DES CHANGEMENTS DE STATUT (9J08A-HISTORIQUE-DES-ETATS) —
   /// alimenté par déclencheur, jamais écrit par le dépôt. Sans reprise du
   /// passé (option A retenue par Alexis le 29/10/2026, `etude-equipe/synthese.md`
   /// question 2) : une ligne n'existe qu'à compter du déploiement de cette
   /// migration.
-  statut_historique     InterventionStatutHistorique[]
+  statut_historique       InterventionStatutHistorique[]
   /// LES SUITES À DONNER NÉES DE CETTE INTERVENTION (9J17-SUITE-A-DONNER-
   /// SCHEMA, D231) — forme « filiation », celle-ci décide qui les voit.
-  suites_a_donner_origine SuiteADonner[] @relation("SuiteADonnerOrigine")
+  suites_a_donner_origine SuiteADonner[]                 @relation("SuiteADonnerOrigine")
   /// LES SUITES À DONNER qui NOMMENT cette intervention comme sa reprise —
   /// relation inverse de pure comptabilité, jamais un parent RLS (D231).
-  suites_a_donner_reprise SuiteADonner[] @relation("SuiteADonnerReprise")
+  suites_a_donner_reprise SuiteADonner[]                 @relation("SuiteADonnerReprise")
 
   id         String @id @db.Uuid
   societe_id String @db.Uuid
@@ -2597,14 +2605,22 @@ model SuiteADonner {
   cree_le    DateTime @default(now())
   modifie_le DateTime @updatedAt
 
-  societe              Societe      @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  societe              Societe        @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
   /// `ON DELETE CASCADE`, comme les autres filiations d'`intervention` : une
   /// suite à donner n'a aucun sens sans son intervention d'origine.
-  intervention_origine Intervention @relation("SuiteADonnerOrigine", fields: [societe_id, intervention_origine_id], references: [societe_id, id], onDelete: Cascade, onUpdate: Restrict)
+  intervention_origine Intervention   @relation("SuiteADonnerOrigine", fields: [societe_id, intervention_origine_id], references: [societe_id, id], onDelete: Cascade, onUpdate: Restrict)
   /// `RESTRICT` : une intervention nommée comme reprise ne se supprime pas
   /// tant qu'une suite à donner la désigne.
-  intervention_reprise Intervention? @relation("SuiteADonnerReprise", fields: [societe_id, intervention_reprise_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  intervention_reprise Intervention?  @relation("SuiteADonnerReprise", fields: [societe_id, intervention_reprise_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  /// Les notifications dont cette suite à donner est la cible
+  /// (9J19-SUITE-A-DONNER-NOTIFICATIONS).
+  notifications        Notification[]
 
+  // `@@unique([societe_id, id])` — AJOUTÉ au ticket 9J19-SUITE-A-DONNER-
+  // NOTIFICATIONS : c'est la cible de la clé étrangère composite que
+  // `Notification.suite_a_donner_id` porte désormais. Même patron
+  // qu'`Intervention`, `Demande` et `Notification` elle-même (9J10A).
+  @@unique([societe_id, id])
   @@index([societe_id, intervention_origine_id])
   @@map("suite_a_donner")
 }
@@ -3717,11 +3733,25 @@ model ImportLotLigne {
 // être une page selon le niveau d'autorisation de son compte » (29/10/2026).
 // Rien n'existait : ni table, ni page, ni canal interne.
 
-/// Ce qui déclenche une notification. **UNE SEULE VALEUR aujourd'hui** — les
-/// producteurs des autres événements viendront avec 9J11 et 9J19, chacun avec
-/// la sienne ajoutée à cette énumération à ce moment-là, jamais avant.
+/// Ce qui déclenche une notification. 9J11 a ajouté sa valeur avant ce
+/// ticket ; 9J19 ajoute les trois siennes ci-dessous — FLX-2, FLX-3, FLX-8.
 enum EvenementNotification {
   signature_absente_ou_refusee
+  /// FLX-2 (9J19-SUITE-A-DONNER-NOTIFICATIONS) : une `SuiteADonner`
+  /// `qualifiee` (devis en cours) sans réponse depuis plus de
+  /// `Societe.delai_relance_suite_jours` jours. Posé par `devisEnRetard`
+  /// (`lib/suite-a-donner/depot.ts`) — une LECTURE calculée à la visite d'un
+  /// écran, jamais une tâche planifiée (même patron que `enRetard`,
+  /// `lib/interventions/retard.ts`).
+  devis_en_retard
+  /// FLX-3 (9J19) : même mécanique sur `accord_attendu`. Son libellé dit
+  /// « en attente de réponse », jamais « refusé » — une absence de réponse
+  /// n'est pas une réponse négative (doctrine d'arbitrage §3).
+  accord_attendu_en_retard
+  /// FLX-8 (9J19) : la pièce attendue arrive. Posé par `marquerPieceRecue`
+  /// (`lib/suite-a-donner/depot.ts`) dans la MÊME transaction que le passage
+  /// du statut à `a_replanifier`.
+  piece_recue
 }
 
 /// LA NOTIFICATION (D229). Table métier de la PREMIÈRE catégorie de I1, de
@@ -3734,13 +3764,15 @@ model Notification {
   id         String @id @db.Uuid
   societe_id String @db.Uuid
 
-  /// ── LA CIBLE : L'INTERVENTION **OU** LA DEMANDE, JAMAIS DEUX ────────────
+  /// ── LA CIBLE : L'INTERVENTION, LA DEMANDE **OU** LA SUITE À DONNER,
+  /// JAMAIS DEUX ────────────────────────────────────────────────────────
   /// Même patron que `Document.document_cible_unique` — c'est le SCHÉMA qui
-  /// l'interdit, pas une validation applicative. `suite_a_donner_id`
-  /// s'ajoutera au ticket 9J19, pas ici : une troisième colonne nullable, pas
-  /// une colonne `entite_id` texte libre.
-  intervention_id String? @db.Uuid
-  demande_id      String? @db.Uuid
+  /// l'interdit, pas une validation applicative. `suite_a_donner_id` ajoutée
+  /// au ticket 9J19 : une troisième colonne nullable, pas une colonne
+  /// `entite_id` texte libre.
+  intervention_id   String? @db.Uuid
+  demande_id        String? @db.Uuid
+  suite_a_donner_id String? @db.Uuid
 
   evenement EvenementNotification
 
@@ -3770,7 +3802,7 @@ model Notification {
   /// Le canal tenté. `NULL` tant qu'aucun envoi n'a été tenté — une
   /// notification interne existe dès sa pose, avant toute tentative de
   /// l'acheminer par un canal.
-  canal String?
+  canal     String?
   /// Quand la tentative a eu lieu. Suit `canal` dans les deux sens : l'un sans
   /// l'autre mentirait sur ce qui s'est passé.
   tentee_le DateTime?
@@ -3778,12 +3810,13 @@ model Notification {
   /// pas la date d'un fait qui se produit une fois pour toutes, c'est l'ISSUE
   /// d'une tentative déjà datée par `tentee_le` — la tentative et son issue
   /// sont deux faits distincts, pas un seul.
-  partie Boolean @default(false)
+  partie    Boolean   @default(false)
 
-  societe      Societe       @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  intervention Intervention? @relation(fields: [societe_id, intervention_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
-  demande      Demande?      @relation(fields: [societe_id, demande_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
-  lectures     NotificationLecture[]
+  societe        Societe               @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  intervention   Intervention?         @relation(fields: [societe_id, intervention_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  demande        Demande?              @relation(fields: [societe_id, demande_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  suite_a_donner SuiteADonner?         @relation(fields: [societe_id, suite_a_donner_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  lectures       NotificationLecture[]
 
   // `@@unique([societe_id, id])` — AJOUTÉ au ticket 9J10A-NOTIFICATION-LUE-PAR-
   // PERSONNE, 05/11/2026 : c'est la cible de la clé étrangère composite de sa
@@ -3794,6 +3827,7 @@ model Notification {
   @@index([societe_id, evenement])
   @@index([societe_id, intervention_id])
   @@index([societe_id, demande_id])
+  @@index([societe_id, suite_a_donner_id])
   @@map("notification")
 }
 
