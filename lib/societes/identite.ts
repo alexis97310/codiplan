@@ -263,3 +263,57 @@ export async function enregistrerRegleArrondi(
   );
   return { ok: true };
 }
+
+export type RefusDelaiRelanceSuite = "delai_relance_suite.refus.droit";
+
+export type ResultatDelaiRelanceSuite =
+  | { readonly ok: true }
+  | { readonly ok: false; readonly motif: RefusDelaiRelanceSuite };
+
+/**
+ * Lit `societe.delai_relance_suite_jours` (FLX-2/FLX-3,
+ * 9J19-SUITE-A-DONNER-NOTIFICATIONS) — `null` si aucune société active n'est
+ * posée sur la session, OU si personne ne l'a réglé. Les deux absences se
+ * confondent volontairement ici : aucune des deux n'autorise `devisEnRetard`/
+ * `accordAttenduEnRetard` (`lib/suite-a-donner/depot.ts`) à poser quoi que ce
+ * soit — jamais une valeur inventée à la place (CLAUDE.md §8).
+ */
+export async function lireDelaiRelanceSuite(
+  contexte: ContexteSession,
+): Promise<number | null> {
+  if (contexte.societeId === null) {
+    return null;
+  }
+  const societeId = contexte.societeId;
+  const ligne = await avecContexteApplicatif(contexte, (tx) =>
+    tx.societe.findFirst({
+      where: { id: societeId },
+      select: { delai_relance_suite_jours: true },
+    }),
+  );
+  return ligne?.delai_relance_suite_jours ?? null;
+}
+
+/**
+ * Enregistre `societe.delai_relance_suite_jours` — `valeur` est DÉJÀ validée
+ * par l'appelant (entier strictement positif, ou `null` pour désactiver les
+ * deux relances ; `schemaDelaiRelanceSuite`,
+ * `lib/suite-a-donner/depot.ts`). Même doctrine que
+ * `enregistrerAfficherMontants` : la capacité se vérifie ICI, pas seulement à
+ * la porte de la route.
+ */
+export async function enregistrerDelaiRelanceSuite(
+  contexte: ContexteActif,
+  valeur: number | null,
+): Promise<ResultatDelaiRelanceSuite> {
+  if (!peutPleinement(contexte.role, "parametrer_societe")) {
+    return { ok: false, motif: "delai_relance_suite.refus.droit" };
+  }
+  await avecContexteApplicatif(contexte, (tx) =>
+    tx.societe.update({
+      where: { id: contexte.societeId },
+      data: { delai_relance_suite_jours: valeur },
+    }),
+  );
+  return { ok: true };
+}

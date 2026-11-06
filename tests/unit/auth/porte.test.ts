@@ -217,6 +217,10 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   // 9I8A1-REPRISE-9I8A — même capacité et même porte complète : ADMS/DIR
   // seuls, aucune garde supplémentaire.
   "app/api/parametres/tarifs/regle-facturation/route.ts": "parametrer_societe",
+  // 9J19-SUITE-A-DONNER-NOTIFICATIONS — même capacité et même porte
+  // complète que le logo et les montants : ADMS/DIR seuls.
+  "app/api/parametres/societe/delai-relance-suite/route.ts":
+    "parametrer_societe",
   // D153 (03/10/2026, TP-S3, choix du pilote) — plages, pas et agences
   // relèvent d'« Administrer les agences », jamais de « Paramétrer une
   // société » : ADMS, et depuis D199 la direction au même ● qu'ADMS.
@@ -298,6 +302,8 @@ const PORTE_COMPLETE: readonly string[] = [
   "app/api/parametres/societe/afficher-montants/route.ts",
   // 9I8A1-REPRISE-9I8A — même doctrine : ADMS/DIR seuls, aucun ○.
   "app/api/parametres/tarifs/regle-facturation/route.ts",
+  // 9J19-SUITE-A-DONNER-NOTIFICATIONS — même doctrine : ADMS/DIR seuls.
+  "app/api/parametres/societe/delai-relance-suite/route.ts",
   // 9DKA-REPRISE-9DK, TR-5/D136 — le ○ du technicien sur `modifier_planning`
   // n'ouvre que la déclaration de SA PROPRE absence ; ces sept routes ferment
   // désormais le ○ pour que « Déplacer », « Transmettre », la note interne et
@@ -619,7 +625,9 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
     // 98 depuis 9J18-SUITE-A-DONNER-ECRAN — les deux routes neuves,
     // `app/api/interventions/suites-a-donner/qualifier/route.ts` et
     // `app/api/interventions/suites-a-donner/[id]/replanifier/route.ts`.
-    expect(Object.keys(ROUTE_CAPACITE).length).toBe(98);
+    // 99 depuis 9J19-SUITE-A-DONNER-NOTIFICATIONS — la route neuve
+    // `app/api/parametres/societe/delai-relance-suite/route.ts`.
+    expect(Object.keys(ROUTE_CAPACITE).length).toBe(99);
   });
 
   it("aucune exemption ne survit à son objet — adossement dans les deux sens", () => {

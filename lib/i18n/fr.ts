@@ -4680,6 +4680,17 @@ export const fr = {
     "Décochée, aucun montant d'intervention ne s'affiche plus à l'écran, pour aucun rôle (fiche, bon). Le calcul et la facturation ne changent pas.",
   "societe.montants_enregistrer": "Enregistrer",
   "afficher_montants.refus.droit": "Votre rôle ne permet pas cette action.",
+  // LE DÉLAI DE RELANCE DES SUITES À DONNER (FLX-2/FLX-3,
+  // 9J19-SUITE-A-DONNER-NOTIFICATIONS) — même carte que le logo et les
+  // montants, `/parametres/societe`.
+  "societe.delai_relance_titre": "Relances des suites à donner",
+  "societe.delai_relance_champ": "Délai avant relance (jours)",
+  "societe.delai_relance_aide":
+    "Nombre de jours sans réponse du client avant qu'une notification interne signale un devis ou un accord en attente. Champ vide : aucune notification de retard n'est posée.",
+  "societe.delai_relance_enregistrer": "Enregistrer",
+  "societe.delai_relance_refus_saisie":
+    "Le délai doit être un nombre entier de jours, supérieur à zéro, ou vide.",
+  "delai_relance_suite.refus.droit": "Votre rôle ne permet pas cette action.",
   // LES MENTIONS LÉGALES DEVIENNENT MODIFIABLES (9I7A-MENTIONS-LEGALES-
   // MODIFIABLES) — à côté de la ligne « Mentions légales » de la carte
   // « Identité », même modèle que le logo (9EZ-LOGO-SOCIETE-1).
