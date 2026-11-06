@@ -105,6 +105,13 @@ async function effacerIntervention(id: string): Promise<void> {
 }
 
 async function effacerSuite(id: string): Promise<void> {
+  // LA NOTIFICATION S'EFFACE AVANT LA SUITE (9J19-SUITE-A-DONNER-
+  // NOTIFICATIONS) : `suiteAReplanifier` appelle `marquerPieceRecue`, qui
+  // pose désormais une notification « piece_recue » référençant cette ligne
+  // (clé étrangère RESTRICT) — la supprimer dans l'autre ordre échoue.
+  await clientOwner().$executeRawUnsafe(
+    `DELETE FROM "notification" WHERE "suite_a_donner_id" = '${id}'`,
+  );
   await clientOwner().$executeRawUnsafe(
     `DELETE FROM "suite_a_donner" WHERE "id" = '${id}'`,
   );

@@ -298,6 +298,12 @@ describe("marquerPieceRecue — nulle l'attente, passe à a_replanifier", () => 
       expect(ligne?.piece_attendue_ref).toBeNull();
       expect(ligne?.date_dispo_prevue).toBeNull();
 
+      // LA NOTIFICATION S'EFFACE AVANT LA SUITE (9J19-SUITE-A-DONNER-
+      // NOTIFICATIONS) : `marquerPieceRecue` pose désormais une notification
+      // « piece_recue » référençant cette ligne (clé étrangère RESTRICT).
+      await clientOwner().$executeRawUnsafe(
+        `DELETE FROM "notification" WHERE "suite_a_donner_id" = '${id}'`,
+      );
       await clientOwner().$executeRawUnsafe(
         `DELETE FROM "suite_a_donner" WHERE "id" = '${id}'`,
       );
