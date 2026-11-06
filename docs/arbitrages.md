@@ -7861,3 +7861,31 @@ Zéro migration, zéro politique RLS touchée : la garde applicative (`peut(role
 > Le jour où Alexis demande que l'ADV puisse inviter un client au portail, cette décision se rouvre — elle suppose alors d'élargir `app_peut_administrer_identites()`, donc une migration sur une fonction partagée par trois autres politiques (déverrouillage d'escalade, réinitialisation du second facteur 9IA, ouverture d'identité elle-même), à traiter comme telle plutôt qu'en passant.
 
 **Règles amendées :** aucune.
+
+## D231 — LA SUITE À DONNER : SEPT ÉTATS, PAS HUIT, ET LA FORME « FILIATION » S'ÉTEND UNE SEPTIÈME FOIS (session, 9J17-SUITE-A-DONNER-SCHEMA, 06/11/2026)
+
+*Tranché par la session construisant 9J17. **Ce n'est pas un arbitrage d'Alexis** (§1 de la doctrine) : la taille d'une énumération interne et le choix d'une forme RLS déjà construite ne touchent ni l'argent facturé, ni une obligation légale, ni ce qu'un client voit, ni rien d'irréversible dans une relation client. La décision porte sa condition de réouverture, et la session continue.*
+
+### CE QUI A ÉTÉ MESURÉ
+
+`Intervention.suite_a_donner` (`prisma/schema.prisma`) est un texte libre saisi par le technicien sur le terrain — « ce qu'il reste à faire, ou à surveiller, entre deux visites » — et rien ne le lit ni ne le qualifie côté back-office : aucune table, aucun écran. L'étude FLX-1 proposait une énumération de HUIT états pour porter ce suivi en back-office. Le contradicteur de session, puis le chef, mesurent que huit états à apprendre, pour un effectif réduit et un portefeuille de contrats encore vide, sont un menu disproportionné pour un geste qui n'arrive pas tous les jours — et que trois des huit n'ont aujourd'hui aucun déclencheur qui les produirait ou les lirait (FLX-2, FLX-3 et FLX-8 sont les seules relances qui restent au périmètre V1 ; FLX-5, qui en aurait requis un quatrième, est repoussée faute de fournisseur structuré).
+
+### LA DÉCISION
+
+**La liste close retenue pour ce ticket porte SEPT valeurs**, juste ce dont FLX-2/FLX-3/FLX-8 ont besoin pour fonctionner :
+
+`a_qualifier` → `qualifiee` (devis en cours, cible de FLX-2) → `accord_attendu` (cible de FLX-3) → `accord_recu` | `sans_suite` → `a_replanifier` (cible de FLX-8, à la réception de la pièce) → `cloturee`.
+
+**`piece_attendue` n'est PAS une huitième valeur.** L'attente de pièce est portée par deux colonnes nullables, `piece_attendue_ref` et `date_dispo_prevue` — même patron que `Intervention.piece_attendue_ref`/`date_dispo_prevue` (RG-INT-06, D117) : leur présence dit que le dossier attend une pièce, leur nullité dit le contraire, et aucun état fermé de plus n'est créé pour le dire une seconde fois (§9, 20/08 — fermer une énumération avant d'avoir tranché à qui l'on vend est une erreur que ce dépôt a déjà faite). `FLX-8` (réception de la pièce) nulle les deux colonnes et fait passer le statut à `a_replanifier` dans la même transaction.
+
+**La table `SuiteADonner` prend la forme « filiation » (D103), pas « parc ».** Aucune des deux lectures proposées par FLX-1 ne nommait de forme. La table n'a besoin d'aucun `client_id` ni `perimetre_sites` propre : sa visibilité se déduit entièrement de l'intervention d'origine qu'elle porte (`intervention_origine_id`, clé étrangère composite, non nullable) — les recopier serait une seconde lecture du même critère que celui que `intervention` porte déjà, exactement le raisonnement que D103 a tenu pour `intervention_machine`. `TABLES_FILIATION` (`scripts/lib/politiques-rls.ts`) gagne une septième entrée : `{ table: "suite_a_donner", parent: "intervention", cle: "intervention_origine_id" }`.
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+Elle ne décide d'aucun écran (9J18), d'aucune notification (9J19), et ne touche pas `Intervention.suite_a_donner`, qui reste la trace terrain brute, inchangée. Elle ne construit pas non plus `intervention_reprise_id` : la colonne existe, nullable, et reste vide jusqu'à ce qu'un ticket ultérieur crée l'intervention de reprise.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où FLX-5 (la relance fournisseur structurée) entre au périmètre V1, cette liste se rouvre : elle ajoutera l'état qu'elle réclame, avec son propre déclencheur, plutôt que d'anticiper aujourd'hui une forme que personne ne sert encore. Et le jour où un compte de portail doit lire une ligne de `suite_a_donner`, la forme « filiation » le lui donnerait déjà — ce n'est pas tranché ici, exactement comme D103 l'avait laissé ouvert pour `intervention_machine`.
+
+**Règles amendées :** aucune — le chapitre 10 ne pose aucune règle sur la suite à donner ; cette table rend vérifiable un suivi qui n'existait dans aucun écran.
