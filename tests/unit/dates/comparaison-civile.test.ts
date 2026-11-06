@@ -133,6 +133,16 @@ const EXEMPTIONS: readonly {
     fichier: "app/(back-office)/interventions/[id]/page.tsx",
     motif: "maintenant(fiche.fuseau).instant",
   },
+  {
+    // 9J18-SUITE-A-DONNER-ECRAN — même famille que la route `verdict-pose`
+    // (`app/api/interventions/[id]/verdict-pose/route.ts`, hors de ce
+    // périmètre, sous `app/api`) : l'instant est passé à
+    // `creneauxDisponibles`, qui le compare à d'autres INSTANTS (les débuts
+    // de créneaux candidats), jamais à une `@db.Date`.
+    fichier:
+      "app/(back-office)/interventions/suites-a-donner/[id]/replanifier/page.tsx",
+    motif: "const { instant } = maintenant(calendrier.fuseau);",
+  },
 ];
 
 /** L'idiome sûr : relire l'instant DANS son fuseau, exactement `.local`. */

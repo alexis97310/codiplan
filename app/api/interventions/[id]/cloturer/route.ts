@@ -2,6 +2,7 @@ import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 import { cloturerIntervention } from "@/lib/interventions/depot";
 import { schemaCloture } from "@/lib/interventions/saisie";
+import { cloturerSuiteSiReprise } from "@/lib/suite-a-donner/reprise";
 
 import { avecFilet, champ, versLaFiche } from "../../actions";
 
@@ -18,6 +19,15 @@ import { avecFilet, champ, versLaFiche } from "../../actions";
  * plus `cloturerIntervention` du tout. Le ○ du technicien passe la porte ;
  * c'est `cloturerIntervention` qui juge s'IL est le technicien affecté (la
  * porte ne juge jamais la PORTÉE, voir `lib/auth/porte.ts`).
+ *
+ * **LA CLÔTURE AUTOMATIQUE DE LA SUITE À DONNER** (9J18-SUITE-A-DONNER-
+ * ECRAN, point 6, I5) — `cloturerSuiteSiReprise` (`lib/suite-a-donner/
+ * reprise.ts`), appelée APRÈS que CETTE clôture a été acceptée, dans une
+ * SECONDE transaction : c'est le SEUL endroit où une intervention se
+ * clôture, quelle que soit son origine (terrain ou back-office — une seule
+ * fonction, `cloturerIntervention`, l'écrit), donc le seul endroit où ce
+ * déclencheur APPLICATIF (jamais PostgreSQL : c'est une règle métier) a
+ * besoin de s'accrocher.
  */
 export async function POST(
   requete: Request,
@@ -51,6 +61,9 @@ async function traiter(
       return versLaFiche(id, "intervention.refus.temps_invalide");
     }
     const resultat = await cloturerIntervention(contexte, saisie.data);
+    if (resultat.accepte) {
+      await cloturerSuiteSiReprise(contexte, id);
+    }
     return versLaFiche(id, resultat.accepte ? undefined : resultat.cle);
   });
 }

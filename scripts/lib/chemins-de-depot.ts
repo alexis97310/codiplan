@@ -665,14 +665,15 @@ export const FONCTIONS_SANS_CHEMIN: readonly SansChemin[] = [
   },
   // ── 9J17-SUITE-A-DONNER-SCHEMA (06/11/2026, D231) — LA SCHÉMA SANS ÉCRAN ──
   //
-  // `qualifierSuite` s'est retirée de cette liste le 9J18-SUITE-A-DONNER-
-  // ECRAN : la route `app/api/interventions/suites-a-donner/qualifier/
-  // route.ts` l'appelle désormais. `cloturer` la rejoindra (point 6 de ce
-  // même ticket, clôture automatique au rattachement). `enregistrerAccord`
-  // et `marquerPieceRecue` restent ICI : 9J18 n'ouvre que la qualification
-  // manuelle et la clôture automatique — les relances FLX-2/FLX-3/FLX-8
-  // (devis, accord, réception de pièce) restent de vraies relances futures,
-  // jamais le même écran.
+  // `qualifierSuite` et `cloturer` se sont retirées de cette liste au
+  // 9J18-SUITE-A-DONNER-ECRAN : la première est appelée par la route de
+  // qualification, la seconde par `cloturerSuiteSiReprise` (`lib/suite-a-
+  // donner/reprise.ts`), elle-même appelée depuis `app/api/interventions/
+  // [id]/cloturer/route.ts` après toute clôture acceptée (point 6). `enregis
+  // trerAccord` et `marquerPieceRecue` restent ICI : 9J18 n'ouvre que la
+  // qualification manuelle et la clôture automatique — les relances
+  // FLX-2/FLX-3/FLX-8 (devis, accord, réception de pièce) restent de
+  // vraies relances futures, jamais le même écran.
   {
     module: "lib/suite-a-donner/depot.ts",
     fonction: "enregistrerAccord",
@@ -684,11 +685,5 @@ export const FONCTIONS_SANS_CHEMIN: readonly SansChemin[] = [
     fonction: "marquerPieceRecue",
     motif:
       "Cible de FLX-8 (relance à la réception de pièce, future) : aucun déclencheur ne l'appelle encore. Ouvert par FLX-8.",
-  },
-  {
-    module: "lib/suite-a-donner/depot.ts",
-    fonction: "cloturer",
-    motif:
-      "Ouverte par la clôture automatique au rattachement (9J18-SUITE-A-DONNER-ECRAN, point 6) — pas encore câblée à ce point du ticket.",
   },
 ];

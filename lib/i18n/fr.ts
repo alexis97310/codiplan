@@ -1574,6 +1574,7 @@ export const fr = {
   "suites_a_donner.refus.deja_replanifiee":
     "Cette suite à donner a déjà été déplacée.",
   "suites_a_donner.qualifiee": "Suite à donner qualifiée.",
+  "suites_a_donner.reprise_creee": "Intervention de reprise créée.",
 
   // ── LE DÉPLACEMENT DE LA REPRISE (9J18-SUITE-A-DONNER-ECRAN, FLX-6/7/11) ─
   // `app/(back-office)/interventions/suites-a-donner/[id]/replanifier/` —
