@@ -226,8 +226,9 @@ export const fr = {
   "portail.interventions.a_venir_apres": "vous les transmet.",
 
   // ── L'ÉCRAN DES INTERVENTIONS DU PORTAIL (9J07-PORTAIL-INTERVENTION-ETAT,
-  // CLI-2.5, CLI-2.7) — L'ÉTAT COURANT SEUL, JAMAIS LA DURÉE PAR ÉTAT (CLI-2.4,
-  // repoussé). Même discipline de mot imposé que ci-dessus : « agence » se
+  // CLI-2.5, CLI-2.7) — L'ÉTAT COURANT SEUL. CLI-2.4 (la durée par état),
+  // repoussé par 9J07, est livré par 9J08B-PORTAIL-TEMPS-PAR-ETAT ci-dessous.
+  // Même discipline de mot imposé que ci-dessus : « agence » se
   // compose depuis `motDansUnePhrase`, jamais écrit ici.
   "portail.interventions.titre": "Vos interventions",
   "portail.interventions.sous_titre_avant":
@@ -243,6 +244,14 @@ export const fr = {
   "portail.interventions.suite_a_donner": "Suite à donner",
   "portail.interventions.sans_commentaire":
     "Aucun commentaire n'a encore été saisi pour cette intervention.",
+
+  // ── LE TEMPS PAR ÉTAT DE LA FICHE INTERVENTION DU PORTAIL
+  // (9J08B-PORTAIL-TEMPS-PAR-ETAT, CLI-2.4).
+  "portail.interventions.temps_par_etat.titre": "Temps par état",
+  "portail.interventions.temps_par_etat.en_cours_suffixe": "en cours",
+  "portail.interventions.temps_par_etat.indisponible_avant":
+    "Temps par état disponible à partir du",
+  "portail.interventions.temps_par_etat.aucune": "Aucun historique enregistré.",
 
   // ── LE BON D'INTERVENTION TÉLÉCHARGEABLE DU PORTAIL (9J08A-REPRISE-9J08,
   // CLI-2.6) — SANS AUCUN MONTANT (3.8, D37, 9I8B) : la tuile de valorisation
@@ -7395,6 +7404,17 @@ export const fr = {
   "portail.demandes.champ.site.choisir": "Choisir un lieu",
   "portail.demandes.champ.description": "Décrivez ce que vous constatez",
   "portail.demandes.ligne.sans_machine": "Sans machine identifiée",
+
+  // ── LE TEMPS PAR ÉTAT DE CHAQUE DEMANDE DU PORTAIL
+  // (9J08B-PORTAIL-TEMPS-PAR-ETAT, CLI-2.4) — même texte que
+  // `portail.interventions.temps_par_etat.*`, sous ses propres clés (§6,
+  // chaque domaine porte la sienne).
+  "portail.demandes.temps_par_etat.titre": "Temps par état",
+  "portail.demandes.temps_par_etat.en_cours_suffixe": "en cours",
+  "portail.demandes.temps_par_etat.indisponible_avant":
+    "Temps par état disponible à partir du",
+  "portail.demandes.temps_par_etat.aucune": "Aucun historique enregistré.",
+
   "portail.demandes.cree": "Votre demande est enregistrée.",
   "portail.demandes.refus.saisie":
     "Vérifiez les champs : choisissez une machine ou un lieu, et décrivez ce que vous constatez.",

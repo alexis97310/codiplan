@@ -8,10 +8,13 @@ import { cache } from "react";
 import { Page } from "@/components/mise-en-page/page";
 import { estRolePortail } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
+import { maintenant, lireFuseau } from "@/lib/calendar/fuseau";
+import { avecContexteApplicatif } from "@/lib/db/client";
 import { estUuid } from "@/lib/identifiant";
 import { t } from "@/lib/i18n/fr";
 import { ENTREES_PORTAIL } from "@/lib/navigation/entrees";
 import { parcDuClient, rattachementsDuCompte } from "@/lib/portail/depot";
+import { historiqueInterventionDuClient } from "@/lib/portail/historique-etats";
 import { commentairesVisiblesClient } from "@/lib/portail/interventions";
 
 import { ficheInterventionDuParc } from "../depot";
@@ -19,6 +22,7 @@ import {
   dateDeLIntervention,
   identifiantDeLIntervention,
   siteDeLIntervention,
+  tempsParEtatDeLIntervention,
   titreDeLaFicheIntervention,
 } from "../presentation";
 
@@ -123,20 +127,36 @@ export default async function PageFicheInterventionPortail({
   }
 
   const contexte = { ...session.contexte, clientId: premier.clientId };
-  const [fiche, commentaires, parc] = await Promise.all([
+  const [fiche, commentaires, parc, historique, societe] = await Promise.all([
     ficheInterventionDuParc(contexte, id),
     commentairesVisiblesClient(contexte, id),
     parcDuClient(contexte),
+    historiqueInterventionDuClient(contexte, id),
+    avecContexteApplicatif(contexte, (tx) =>
+      tx.societe.findFirst({
+        where: { id: contexte.societeId as string },
+        select: { fuseau_horaire: true },
+      }),
+    ),
   ]);
   if (fiche === null || commentaires === null) {
     notFound();
   }
   const siteParId = new Map(parc.sites.map((site) => [site.id, site.libelle]));
+  const fuseau = lireFuseau(societe?.fuseau_horaire);
 
   const titreFiche = titreDeLaFicheIntervention(fiche);
   const sansCommentaire =
     commentaires.commentaireTechnicien === null &&
     commentaires.suiteADonner === null;
+  // LE TEMPS PAR ÉTAT (9J08B-PORTAIL-TEMPS-PAR-ETAT) — « maintenant » posé UNE
+  // fois ici, jamais relu dans la fonction de présentation.
+  const tempsParEtat = tempsParEtatDeLIntervention(
+    historique,
+    fiche.statut,
+    maintenant(fuseau).instant,
+    fuseau,
+  );
 
   return (
     <Page
@@ -184,6 +204,43 @@ export default async function PageFicheInterventionPortail({
               </p>
             )}
           </>
+        )}
+      </section>
+
+      <section className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5 text-[13px] font-bold">
+        <p className="text-app-encre-faible text-13 font-bold">
+          {t("portail.interventions.temps_par_etat.titre")}
+        </p>
+        {tempsParEtat.lignes.length === 0 ? (
+          <p className="text-app-encre-faible text-[12px] font-bold">
+            {t("portail.interventions.temps_par_etat.aucune")}
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-1.5">
+            {tempsParEtat.lignes.map((ligne) => (
+              <li key={ligne.libelle} className="flex justify-between gap-3">
+                <span>
+                  {ligne.libelle}
+                  {!ligne.enCours ? null : (
+                    <>
+                      {" "}
+                      {t("ponctuation.parenthese_ouvrante")}
+                      {t(
+                        "portail.interventions.temps_par_etat.en_cours_suffixe",
+                      )}
+                      {t("ponctuation.parenthese_fermante")}
+                    </>
+                  )}
+                </span>
+                <span className="text-app-encre-faible">{ligne.duree}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        {tempsParEtat.indisponibleAvant === null ? null : (
+          <p className="text-app-encre-faible text-[12px] font-bold">
+            {tempsParEtat.indisponibleAvant}
+          </p>
         )}
       </section>
 

@@ -5,7 +5,11 @@ import { t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import type { MachineDuPortail, SiteDuPortail } from "@/lib/portail/depot";
 
-import { dateCourteLocale, identifiantDeLaDemande } from "./presentation";
+import {
+  dateCourteLocale,
+  identifiantDeLaDemande,
+  type TempsParEtatPortail,
+} from "./presentation";
 
 /**
  * L'ÉCRAN DES DEMANDES DU PORTAIL (9J04-PORTAIL-DEMANDES, CLI-4).
@@ -33,12 +37,14 @@ export function ListeDemandes({
   machines,
   fuseau,
   idNouvelleDemande,
+  tempsParEtatParDemande,
 }: {
   readonly demandes: readonly LigneDemande[];
   readonly sites: readonly SiteDuPortail[];
   readonly machines: readonly MachineDuPortail[];
   readonly fuseau: Fuseau;
   readonly idNouvelleDemande: string;
+  readonly tempsParEtatParDemande: ReadonlyMap<string, TempsParEtatPortail>;
 }) {
   const siteParId = new Map(sites.map((site) => [site.id, site.libelle]));
   const machineParId = new Map(
@@ -64,6 +70,7 @@ export function ListeDemandes({
               siteParId={siteParId}
               machineParId={machineParId}
               fuseau={fuseau}
+              tempsParEtat={tempsParEtatParDemande.get(demande.id)}
             />
           ))}
         </ul>
@@ -90,11 +97,13 @@ function LigneDemandeVue({
   siteParId,
   machineParId,
   fuseau,
+  tempsParEtat,
 }: {
   readonly demande: LigneDemande;
   readonly siteParId: ReadonlyMap<string, string>;
   readonly machineParId: ReadonlyMap<string, MachineDuPortail>;
   readonly fuseau: Fuseau;
+  readonly tempsParEtat: TempsParEtatPortail | undefined;
 }) {
   const machine =
     demande.machine_id === null
@@ -129,6 +138,41 @@ function LigneDemandeVue({
         </span>
       </div>
       <p>{demande.description}</p>
+      <div className="border-app-bord flex flex-col gap-1.5 border-t pt-2 text-12 font-bold">
+        <span className="text-app-encre-faible">
+          {t("portail.demandes.temps_par_etat.titre")}
+        </span>
+        {tempsParEtat === undefined || tempsParEtat.lignes.length === 0 ? (
+          <span className="text-app-encre-faible">
+            {t("portail.demandes.temps_par_etat.aucune")}
+          </span>
+        ) : (
+          <ul className="flex flex-col gap-1">
+            {tempsParEtat.lignes.map((ligne) => (
+              <li key={ligne.libelle} className="flex justify-between gap-3">
+                <span>
+                  {ligne.libelle}
+                  {!ligne.enCours ? null : (
+                    <>
+                      {" "}
+                      {t("ponctuation.parenthese_ouvrante")}
+                      {t("portail.demandes.temps_par_etat.en_cours_suffixe")}
+                      {t("ponctuation.parenthese_fermante")}
+                    </>
+                  )}
+                </span>
+                <span className="text-app-encre-faible">{ligne.duree}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        {tempsParEtat?.indisponibleAvant === undefined ||
+        tempsParEtat.indisponibleAvant === null ? null : (
+          <span className="text-app-encre-faible">
+            {tempsParEtat.indisponibleAvant}
+          </span>
+        )}
+      </div>
     </li>
   );
 }

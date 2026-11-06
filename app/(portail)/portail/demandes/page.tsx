@@ -7,7 +7,7 @@ import { Page } from "@/components/mise-en-page/page";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
 import { estRolePortail } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
-import { lireFuseau } from "@/lib/calendar/fuseau";
+import { lireFuseau, maintenant } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
 import {
@@ -18,8 +18,9 @@ import {
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { ENTREES_PORTAIL } from "@/lib/navigation/entrees";
 import { parcDuClient, rattachementsDuCompte } from "@/lib/portail/depot";
+import { historiquesDemandesDuClient } from "@/lib/portail/historique-etats";
 
-import { sousTitreDesDemandes } from "./presentation";
+import { sousTitreDesDemandes, tempsParEtatDeLaDemande } from "./presentation";
 import { ListeDemandes } from "./vue";
 
 export const metadata: Metadata = { title: t("portail.demandes.titre") };
@@ -103,6 +104,26 @@ export default async function PageDemandesPortail({
     (a, b) => b.depose_le.getTime() - a.depose_le.getTime(),
   );
 
+  // LE TEMPS PAR ÉTAT DE CHAQUE DEMANDE (9J08B-PORTAIL-TEMPS-PAR-ETAT) — UN
+  // SEUL aller pour toutes les demandes de la liste (`historiquesDemandesDu
+  // Client`), « maintenant » posé UNE fois ici.
+  const historiques = await historiquesDemandesDuClient(
+    contexte,
+    demandes.map((d) => d.id),
+  );
+  const maintenantInstant = maintenant(fuseau).instant;
+  const tempsParEtatParDemande = new Map(
+    demandes.map((demande) => [
+      demande.id,
+      tempsParEtatDeLaDemande(
+        historiques.get(demande.id) ?? [],
+        demande.statut,
+        maintenantInstant,
+        fuseau,
+      ),
+    ]),
+  );
+
   const paramsResolus = await searchParams;
   const motif = paramsResolus.motif;
 
@@ -122,6 +143,7 @@ export default async function PageDemandesPortail({
         machines={parc.machines}
         fuseau={fuseau}
         idNouvelleDemande={uuidv7()}
+        tempsParEtatParDemande={tempsParEtatParDemande}
       />
     </Page>
   );
