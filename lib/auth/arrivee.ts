@@ -1,7 +1,8 @@
 import { type PrismaClient } from "@prisma/client";
 
-import { estContexteActif } from "@/lib/auth/contexte";
-import { avecContexteApplicatif } from "@/lib/db/client";
+import { societeEtRoleEtablis } from "@/lib/auth/contexte";
+import { prisma as clientParDefaut } from "@/lib/db/client";
+import { avecIdentite } from "@/lib/db/rls";
 
 import { auth, type Auth } from "./config";
 import { exigeSecondFacteur, type Role } from "./roles";
@@ -183,22 +184,28 @@ export async function etatArrivee(
     return { issue: "enrolement_requis", role: aEnroler };
   }
 
-  if (!estContexteActif(contexte)) {
+  if (!societeEtRoleEtablis(contexte)) {
     return {
       issue: "sans_societe",
       arrivee: { ...socle, societe: null, role: null },
     };
   }
 
+  // LA FORME « ADHÉSION » (D67), PAS `avecContexteApplicatif` (9J21) —
+  // celle-ci exige l'appariement rôle ↔ client (D70) que `societeEtRoleEtablis`
+  // vient précisément de ne PAS exiger : un compte portail qui vient de
+  // basculer (`clientId: null`) la ferait lever, pour une lecture qui ne
+  // touche ni `app.client_id` ni la forme « parc ». Même lecture que
+  // `societesDuCompte` (`societe-active.ts`), bornée par la même politique.
   const societeId = contexte.societeId;
-  const societe = await avecContexteApplicatif(
-    contexte,
+  const societe = await avecIdentite(
+    client ?? clientParDefaut,
+    contexte.utilisateurId,
     (tx) =>
       tx.societe.findFirst({
         where: { id: societeId },
         select: { raison_sociale: true },
       }),
-    client,
   );
 
   return {

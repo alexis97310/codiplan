@@ -7,7 +7,7 @@ import { headers } from "next/headers";
 
 import { Page } from "@/components/mise-en-page/page";
 import { etatArrivee, type Arrivee } from "@/lib/auth/arrivee";
-import { estContexteActif } from "@/lib/auth/contexte";
+import { estContexteActif, societeEtRoleEtablis } from "@/lib/auth/contexte";
 import { type Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import { societesDuCompte } from "@/lib/auth/societe-active";
@@ -18,11 +18,7 @@ import {
 } from "@/lib/interventions/perimetre-technicien";
 
 import { Choix } from "./composants";
-import {
-  destinationSiSocieteUnique,
-  pointEntreeRole,
-  pretAChoisirUneDestination,
-} from "./decision";
+import { destinationSiSocieteUnique, pointEntreeRole } from "./decision";
 
 export const metadata: Metadata = { title: t("arrivee.titre") };
 
@@ -115,7 +111,7 @@ export default async function PageArrivee({
   if (
     etat.issue === "arrivee" &&
     session !== null &&
-    pretAChoisirUneDestination(session.contexte)
+    societeEtRoleEtablis(session.contexte)
   ) {
     const destination = destinationSiSocieteUnique(
       societes.length,

@@ -189,6 +189,35 @@ export function estContexteActif(
   return motifRefusContexte(contexte) === null;
 }
 
+/**
+ * ASSEZ POUR SAVOIR QU'UNE SOCIÉTÉ EST ACTIVE — délibérément plus FAIBLE que
+ * `estContexteActif` (9J21, symptôme 4 d'Alexis le 06/11).
+ *
+ * `basculerSociete` pose TOUJOURS `clientId: null` pour un compte portail
+ * (D70, `societe-active.ts`) : désigner le client n'est pas le rôle de la
+ * bascule, c'est celui de `/portail`, au moment de la requête.
+ * `estContexteActif` refuse donc SYSTÉMATIQUEMENT ce contexte, pas seulement
+ * parfois — et `etatArrivee` (`lib/auth/arrivee.ts`) le prenait pour
+ * « aucune société active » : un compte client qui venait de choisir SA
+ * société retombait sur l'écran « sans société », bouton de bascule
+ * compris, qui le renvoyait inlassablement au même état sans jamais mener au
+ * portail.
+ *
+ * Société et rôle établis, second facteur satisfait s'il est exigé : rien de
+ * plus. Savoir qu'une société est active n'ouvre aucune transaction
+ * cloisonnée — ni `app.client_id` ni la forme « parc » n'y jouent un rôle —,
+ * donc rien n'exige ici l'appariement rôle ↔ client que `estContexteActif`
+ * impose pour LIRE.
+ */
+export function societeEtRoleEtablis(
+  contexte: ContexteSession,
+): contexte is ContexteActif {
+  if (contexte.societeId === null || contexte.role === null) {
+    return false;
+  }
+  return !exigeSecondFacteur(contexte.role) || contexte.secondFacteurValide;
+}
+
 /** Renvoie le contexte actif, ou lève avec le motif du refus. */
 export function exigerContexteActif(contexte: ContexteSession): ContexteActif {
   const motif = motifRefusContexte(contexte);

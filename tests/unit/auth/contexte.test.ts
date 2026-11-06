@@ -5,6 +5,7 @@ import {
   exigerContexteActif,
   motifRefusContexte,
   schemaContexteSession,
+  societeEtRoleEtablis,
   type ContexteSession,
 } from "@/lib/auth/contexte";
 import { ROLES, Role } from "@/lib/auth/roles";
@@ -178,5 +179,39 @@ describe("contexte de session", () => {
     ).toBe(false);
 
     expect(schemaContexteSession.safeParse(contexte()).success).toBe(true);
+  });
+});
+
+describe("societeEtRoleEtablis — assez pour router, pas pour lire (9J21)", () => {
+  it("un compte PORTAIL juste basculé (clientId null, D70) est ÉTABLI malgré tout", () => {
+    expect(
+      societeEtRoleEtablis(
+        contexte({ role: Role.client, clientId: null }),
+      ),
+    ).toBe(true);
+  });
+
+  it("aucune société active : jamais établi", () => {
+    expect(societeEtRoleEtablis(contexte({ societeId: null }))).toBe(false);
+  });
+
+  it("aucun rôle sur la société active : jamais établi", () => {
+    expect(societeEtRoleEtablis(contexte({ role: null }))).toBe(false);
+  });
+
+  it("un rôle qui exige le second facteur, absent : pas établi", () => {
+    expect(
+      societeEtRoleEtablis(
+        contexte({ role: Role.direction, secondFacteurValide: false }),
+      ),
+    ).toBe(false);
+  });
+
+  it("un rôle qui exige le second facteur, validé : établi", () => {
+    expect(
+      societeEtRoleEtablis(
+        contexte({ role: Role.direction, secondFacteurValide: true }),
+      ),
+    ).toBe(true);
   });
 });

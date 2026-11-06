@@ -1,5 +1,4 @@
-import type { ContexteActif, ContexteSession } from "@/lib/auth/contexte";
-import { estRolePortail, exigeSecondFacteur, type Role } from "@/lib/auth/roles";
+import { estRolePortail, type Role } from "@/lib/auth/roles";
 import { type PerimetrePlanning } from "@/lib/interventions/perimetre-technicien";
 
 /**
@@ -42,31 +41,4 @@ export function destinationSiSocieteUnique(
   perimetre: PerimetrePlanning | null,
 ): PointEntree | null {
   return nombreSocietes === 1 ? pointEntreeRole(role, perimetre) : null;
-}
-
-/**
- * ASSEZ POUR CHOISIR UNE DESTINATION — délibérément plus FAIBLE que
- * `estContexteActif` (9J21, symptôme 4 d'Alexis le 06/11).
- *
- * `basculerSociete` pose TOUJOURS `clientId: null` (D70, `societe-active.ts`) :
- * désigner le client n'est pas le rôle de la bascule, c'est celui de
- * `/portail`, au moment de la requête. `estContexteActif` refuse donc
- * SYSTÉMATIQUEMENT le contexte d'un compte portail qui vient d'arriver — pas
- * seulement parfois — et bloquait la redirection automatique vers `/portail`
- * pour ce seul rôle : Alexis cliquait « Travailler sur cette société », la
- * page se rendait de nouveau, et rien ne menait plus loin.
- *
- * Choisir une destination n'ouvre aucune transaction cloisonnée — ni
- * `app.client_id` ni la forme « parc » n'interviennent ici — donc rien n'exige
- * l'appariement rôle ↔ client que `estContexteActif` impose pour LIRE. Société
- * et rôle établis, second facteur satisfait s'il est exigé : c'est tout ce que
- * `pointEntreeRole` lit.
- */
-export function pretAChoisirUneDestination(
-  contexte: ContexteSession,
-): contexte is ContexteActif {
-  if (contexte.societeId === null || contexte.role === null) {
-    return false;
-  }
-  return !exigeSecondFacteur(contexte.role) || contexte.secondFacteurValide;
 }
