@@ -113,3 +113,40 @@ comme demandé.
    hors territoire depuis 9J17) — et, avec elle, la question de savoir si
    `accord_attendu_en_retard` doit alors migrer vers une colonne dédiée
    plutôt que `modifie_le`.
+
+## Reprise 9J19A (07/11, T0 04:44 Pacific/Noumea)
+
+Premier passage de la vérification complète (`-verify-1.txt`) rendait deux
+échecs en e2e, les deux hors du nettoyage déjà corrigé par 9J19 lui-même
+ci-dessus.
+
+1. **Inventaire mesuré** de tout ce qui efface des lignes `suite_a_donner`
+   (épreuves d'isolation ET e2e, assistants de scène compris) :
+   `tests/isolation/suite-a-donner.test.ts`,
+   `tests/isolation/suite-a-donner-reprise.test.ts` et
+   `tests/isolation/suite-a-donner-notifications.test.ts` effacent déjà la
+   notification avant la suite. `assurerUneSuiteAReplanifier`
+   (`tests/e2e/tous-les-ecrans-rendent.spec.ts`, posée par 9J18A) ne supprime
+   jamais sa ligne — hors de cause. **Un seul oubli** :
+   `effacerLaScene` de `tests/e2e/captures-9j18-suite-a-donner.spec.ts`
+   (l.151) appelle `marquerPieceRecue` dans `preparerLaScene` mais effaçait
+   la suite sans effacer d'abord la notification `piece_recue` qu'elle pose
+   désormais — même cause exacte que les deux corrections déjà faites par
+   9J19, juste un troisième endroit non vu à l'époque (ce fichier n'existait
+   pas encore quand 9J19 a cherché ses appelants).
+2. **Corrigé** : `DELETE FROM "notification" WHERE "suite_a_donner_id"`
+   avant `DELETE FROM "suite_a_donner"`, même motif en commentaire que
+   `suite-a-donner-reprise.test.ts`.
+3. **Second échec** (`planning-survol-cases.spec.ts`) : rejoué seul après la
+   correction — vert. Rejoué juste après
+   `captures-9j18-suite-a-donner.spec.ts` corrigé, en `CI=1 --workers=1` —
+   vert aussi (4 passed). Cause confirmée : la scène non effacée de 9J18
+   encombrait le planning vu par l'épreuve suivante ; pas une cause propre
+   à `planning-survol-cases.spec.ts`.
+4. **Vérification** : `tous-les-ecrans-rendent.spec.ts` (59 passed, 3
+   skipped), `pnpm test` (5533), `pnpm test:isolation` (1928), puis
+   `CI=1 pnpm verify` — tout vert, rejoué deux fois. `verify:full` laissé à
+   la file, comme demandé.
+
+Aucun code de production touché : seul le nettoyage d'une scène e2e était en
+cause, la clé étrangère de 9J19 reste `RESTRICT`.
