@@ -41,7 +41,7 @@ function libelleDuLien(lien: HTMLElement): string {
 }
 
 describe("OngletsRegistre", () => {
-  it("l'ordre exact — À planifier, Aujourd'hui, En retard, En cours, Suspendues, À contrôler, Toutes (sans « À facturer »)", () => {
+  it("l'ordre exact — À planifier, Aujourd'hui, En retard, En cours, Suspendues, À contrôler, Suites à donner, Toutes (sans « À facturer »)", () => {
     render(
       <OngletsRegistre
         vueActive="toutes"
@@ -49,6 +49,7 @@ describe("OngletsRegistre", () => {
         peutFacturer={false}
         hrefOnglet={hrefOnglet}
         hrefAFacturer="/interventions/a-facturer"
+        hrefSuitesADonner="/interventions/suites-a-donner"
       />,
     );
     const liens = screen.getAllByRole("link").map(libelleDuLien);
@@ -59,11 +60,12 @@ describe("OngletsRegistre", () => {
       fr["interventions.vue.en_cours"],
       fr["interventions.vue.bloquees"],
       fr["interventions.vue.a_controler"],
+      fr["interventions.vue.suites_a_donner"],
       fr["interventions.vue.toutes"],
     ]);
   });
 
-  it("« À facturer » s'intercale entre « À contrôler » et « Toutes » quand `peutFacturer`", () => {
+  it("« À facturer » s'intercale entre « À contrôler » et « Suites à donner » quand `peutFacturer`", () => {
     render(
       <OngletsRegistre
         vueActive="toutes"
@@ -71,6 +73,7 @@ describe("OngletsRegistre", () => {
         peutFacturer
         hrefOnglet={hrefOnglet}
         hrefAFacturer="/interventions/a-facturer"
+        hrefSuitesADonner="/interventions/suites-a-donner"
       />,
     );
     const liens = screen.getAllByRole("link").map(libelleDuLien);
@@ -82,11 +85,30 @@ describe("OngletsRegistre", () => {
       fr["interventions.vue.bloquees"],
       fr["interventions.vue.a_controler"],
       fr["interventions.vue.a_facturer"],
+      fr["interventions.vue.suites_a_donner"],
       fr["interventions.vue.toutes"],
     ]);
     expect(
       screen.getByRole("link", { name: fr["interventions.vue.a_facturer"] }),
     ).toHaveAttribute("href", "/interventions/a-facturer");
+  });
+
+  it("« Suites à donner » est toujours présente, même sans `peutFacturer`", () => {
+    render(
+      <OngletsRegistre
+        vueActive="suites_a_donner"
+        comptes={COMPTES_VIDES}
+        peutFacturer={false}
+        hrefOnglet={hrefOnglet}
+        hrefAFacturer="/interventions/a-facturer"
+        hrefSuitesADonner="/interventions/suites-a-donner"
+      />,
+    );
+    expect(
+      screen.getByRole("link", {
+        name: fr["interventions.vue.suites_a_donner"],
+      }),
+    ).toHaveAttribute("href", "/interventions/suites-a-donner");
   });
 
   it("« Toutes » ne porte AUCUN compteur, même quand `toutes` > 0", () => {
@@ -97,6 +119,7 @@ describe("OngletsRegistre", () => {
         peutFacturer={false}
         hrefOnglet={hrefOnglet}
         hrefAFacturer="/interventions/a-facturer"
+        hrefSuitesADonner="/interventions/suites-a-donner"
       />,
     );
     const toutes = screen.getByRole("link", {
@@ -113,6 +136,7 @@ describe("OngletsRegistre", () => {
         peutFacturer={false}
         hrefOnglet={hrefOnglet}
         hrefAFacturer="/interventions/a-facturer"
+        hrefSuitesADonner="/interventions/suites-a-donner"
       />,
     );
     const aPlanifier = screen.getByRole("link", {
@@ -139,6 +163,7 @@ describe("OngletsRegistre", () => {
         peutFacturer={false}
         hrefOnglet={hrefOnglet}
         hrefAFacturer="/interventions/a-facturer"
+        hrefSuitesADonner="/interventions/suites-a-donner"
       />,
     );
     expect(
@@ -166,6 +191,7 @@ describe("OngletsRegistre", () => {
         peutFacturer={false}
         hrefOnglet={hrefOnglet}
         hrefAFacturer="/interventions/a-facturer"
+        hrefSuitesADonner="/interventions/suites-a-donner"
       />,
     );
     const alerteDe = (libelle: string) =>
@@ -194,6 +220,7 @@ describe("OngletsRegistre", () => {
         peutFacturer={false}
         hrefOnglet={hrefOnglet}
         hrefAFacturer="/interventions/a-facturer"
+        hrefSuitesADonner="/interventions/suites-a-donner"
       />,
     );
     const compteur = screen

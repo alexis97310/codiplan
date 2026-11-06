@@ -41,6 +41,16 @@ import type { VueRegistre } from "@/lib/interventions/saisie";
  * sans `preparer_facturation` ne la voit pas, comme la page elle-même la lui
  * refuse.
  *
+ * ## « SUITES À DONNER » NON PLUS (9J18-SUITE-A-DONNER-ECRAN, FLX-10)
+ *
+ * Même raison que « À facturer » juste au-dessus : la ligne qu'il montre
+ * n'est pas une `Intervention` filtrée par `criteresVue` — c'est, pour
+ * partie, une lecture de `SuiteADonner`, une table voisine (9J17, D231). Une
+ * route à part, `app/(back-office)/interventions/suites-a-donner/page.tsx`,
+ * visible à qui voit déjà le registre — `consulter_planning` suffit, aucune
+ * capacité de plus : écrire (qualifier, replanifier) reste gardé par
+ * `modifier_planning`, à l'intérieur de cette route, jamais ici.
+ *
  * ## Les deux alertes rouges
  *
  * « À planifier » s'allume si `comptes.a_planifier_p1` — une P1 attend.
@@ -63,13 +73,21 @@ export function OngletsRegistre({
   peutFacturer,
   hrefOnglet,
   hrefAFacturer,
+  hrefSuitesADonner,
+  compteSuitesADonner,
 }: Readonly<{
-  /** `a_facturer` quand cette rangée est rendue sur `/interventions/a-facturer`. */
-  vueActive: VueRegistre | "toutes" | "a_facturer";
+  /**
+   * `a_facturer`/`suites_a_donner` quand cette rangée est rendue sur la
+   * route du même nom.
+   */
+  vueActive: VueRegistre | "toutes" | "a_facturer" | "suites_a_donner";
   comptes: ComptesRegistre;
   peutFacturer: boolean;
   hrefOnglet: (vue: VueRegistre | null) => string;
   hrefAFacturer: string;
+  hrefSuitesADonner: string;
+  /** Absent, aucun compteur ne s'affiche — même contrat que `EtatOnglet.compte`. */
+  compteSuitesADonner?: number;
 }>) {
   const elements: EtatOnglet[] = ONGLETS_PRINCIPAUX.map((vue) => ({
     libelle: t(`interventions.vue.${vue}`),
@@ -87,6 +105,12 @@ export function OngletsRegistre({
       actif: vueActive === "a_facturer",
     });
   }
+  elements.push({
+    libelle: t("interventions.vue.suites_a_donner"),
+    href: hrefSuitesADonner,
+    compte: compteSuitesADonner,
+    actif: vueActive === "suites_a_donner",
+  });
   elements.push({
     libelle: t("interventions.vue.toutes"),
     href: hrefOnglet(null),

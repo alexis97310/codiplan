@@ -591,6 +591,7 @@ export default async function PageInterventions({
         peutFacturer={peut(contexte.role, "preparer_facturation")}
         hrefOnglet={(vue) => hrefOnglet(parametresActifs, vue)}
         hrefAFacturer="/interventions/a-facturer"
+        hrefSuitesADonner="/interventions/suites-a-donner"
       />
 
       {/* LA BARRE DE FILTRES COMPACTE (TP-UX3-1-REGISTRE-1, QE-10 : les

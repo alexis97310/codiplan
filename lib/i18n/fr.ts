@@ -1502,6 +1502,10 @@ export const fr = {
   // avec FACTURE-1. Visible seulement aux rôles qui portent
   // `preparer_facturation`.
   "interventions.vue.a_facturer": "À facturer",
+  // L'ONGLET « SUITES À DONNER » (9J18-SUITE-A-DONNER-ECRAN, FLX-10) — même
+  // régime que « À facturer » juste au-dessus : un EMPLACEMENT, jamais une
+  // vue de `criteresVue`.
+  "interventions.vue.suites_a_donner": "Suites à donner",
   "interventions.vue.aria": "Vues du registre",
   // ── L'ORDRE DU REGISTRE, PAR ONGLET (TP-UX3-1-REGISTRE-1) ────────────────
   // Composé par `ordreDuRegistre` (`lib/interventions/ordre-registre.ts`),
@@ -1526,6 +1530,68 @@ export const fr = {
   "interventions.a_facturer.titre": "À facturer",
   "interventions.a_facturer.vide":
     "La liste à facturer arrive avec la préparation de la facturation (FACTURE-1).",
+
+  // ── « SUITES À DONNER » (9J18-SUITE-A-DONNER-ECRAN, FLX-10) ──────────────
+  // `app/(back-office)/interventions/suites-a-donner/`. Deux FORMES de ligne
+  // (`lib/suite-a-donner/lecture.ts`) : une intervention clôturée pas encore
+  // qualifiée, ou une ligne `suite_a_donner` à un des sept statuts (D231).
+  "suites_a_donner.titre": "Suites à donner",
+  "suites_a_donner.sous_titre":
+    "Ce qu'un technicien a signalé à revoir, depuis la clôture jusqu'à la reprise.",
+  "suites_a_donner.colonne.intervention": "Intervention d'origine",
+  "suites_a_donner.colonne.motif": "Suite à donner",
+  "suites_a_donner.colonne.statut": "Statut",
+  "suites_a_donner.colonne.reprise": "Reprise",
+  "suites_a_donner.colonne.action": "Action",
+  "suites_a_donner.vide":
+    "Aucune suite à donner, ni intervention en attente de qualification.",
+  "suites_a_donner.aucune_reprise": "—",
+  // LES SEPT STATUTS DU SCHÉMA (D231), PLUS LA LIGNE VIRTUELLE
+  // « à_qualifier » (`lecture.ts` — jamais une colonne, voir son docblock).
+  "suites_a_donner.statut.a_qualifier": "À qualifier",
+  "suites_a_donner.statut.qualifiee": "Qualifiée",
+  "suites_a_donner.statut.accord_attendu": "Accord attendu",
+  "suites_a_donner.statut.accord_recu": "Accord reçu",
+  "suites_a_donner.statut.sans_suite": "Sans suite",
+  // « À DÉPLACER », JAMAIS « À REPLANIFIER » (§8 du glossaire, D172) — le
+  // gardien `tests/unit/i18n/vocabulaire-impose.test.ts` ferme ce synonyme
+  // sans exemption : le mot imposé pour CE geste, partout dans le produit,
+  // est « Déplacer… » (`intervention.action.deplacer`,
+  // `interventions.colonne.deplacer`). Seul l'IDENTIFIANT technique — la clé
+  // `StatutSuiteADonner.a_replanifier` du schéma, le nom de fonction
+  // `creerReprise`, le segment de route `/replanifier` — porte encore ce
+  // mot : L0-11 ne l'interdit que dans ce qu'un humain LIT, jamais dans ce
+  // qu'un développeur ou une machine lit.
+  "suites_a_donner.statut.a_replanifier": "À déplacer",
+  "suites_a_donner.statut.cloturee": "Clôturée",
+  "suites_a_donner.action.qualifier": "Qualifier",
+  "suites_a_donner.action.replanifier": "Déplacer…",
+  "suites_a_donner.refus.inconnue": "Cette suite à donner n'existe pas.",
+  "suites_a_donner.refus.deja_qualifiee":
+    "Cette intervention porte déjà une suite à donner.",
+  "suites_a_donner.refus.statut_invalide":
+    "Cette suite à donner n'est pas au statut « À déplacer ».",
+  "suites_a_donner.refus.deja_replanifiee":
+    "Cette suite à donner a déjà été déplacée.",
+  "suites_a_donner.qualifiee": "Suite à donner qualifiée.",
+
+  // ── LE DÉPLACEMENT DE LA REPRISE (9J18-SUITE-A-DONNER-ECRAN, FLX-6/7/11) ─
+  // `app/(back-office)/interventions/suites-a-donner/[id]/replanifier/` —
+  // l'URL seule porte encore le mot fermé (identifiant technique, L0-11).
+  "suites_a_donner.replanifier.titre": "Déplacer…",
+  "suites_a_donner.replanifier.sous_titre":
+    "Un créneau pour l'intervention de reprise — les mêmes refus qu'une pose ordinaire.",
+  "suites_a_donner.replanifier.technicien": "Technicien",
+  "suites_a_donner.replanifier.date": "Date",
+  "suites_a_donner.replanifier.duree": "Durée (minutes)",
+  "suites_a_donner.replanifier.voir_creneaux": "Voir les créneaux",
+  "suites_a_donner.replanifier.creneaux_titre": "Créneaux disponibles",
+  "suites_a_donner.replanifier.aucun_creneau":
+    "Aucun créneau disponible pour ce technicien, cette date et cette durée — choisissez-en d'autres.",
+  "suites_a_donner.replanifier.technicien_absent":
+    "Ce technicien est absent ce jour-là — choisissez-en un autre.",
+  "suites_a_donner.replanifier.confirmer": "Confirmer le déplacement",
+  "suites_a_donner.replanifier.retour": "Retour aux suites à donner",
 
   // ── LES COLONNES DU REGISTRE, PAR ONGLET (TP-UX3-1-REGISTRE-2, QE-8 (a))
   // ─────────────────────────────────────────────────────────────────────

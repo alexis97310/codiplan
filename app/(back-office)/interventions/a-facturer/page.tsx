@@ -79,6 +79,7 @@ export default async function PageInterventionsAFacturer() {
         peutFacturer
         hrefOnglet={(vue) => hrefOnglet({}, vue)}
         hrefAFacturer="/interventions/a-facturer"
+        hrefSuitesADonner="/interventions/suites-a-donner"
       />
       <EtatVide>{t("interventions.a_facturer.vide")}</EtatVide>
     </Page>
