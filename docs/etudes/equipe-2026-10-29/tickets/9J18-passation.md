@@ -111,3 +111,38 @@ jamais `a_qualifier` (qui reste un état théorique du schéma, jamais atteint e
 point. `pnpm test` (5525), `pnpm test:isolation` (1909) rejoués en entier plusieurs fois pendant le
 ticket, verts à la fin. `test:e2e` : le seul spec neuf a été joué isolément (3/3 verts, captures prises) ;
 `verify:full` (qui inclut tout `test:e2e`) est laissé à la file, comme demandé.
+
+## Reprise 9J18A (06/11/2026, T0 23:16 Pacific/Noumea)
+
+Le premier passage de `verify:full` sur la garde (`9J18-SUITE-A-DONNER-ECRAN-garde`, partie de
+`62aea6493`) portait deux gardiens e2e laissés en retard sur le nouvel onglet :
+
+1. **`tests/e2e/registre-ux3-1.spec.ts:453`** — le compte de liens de `nav[data-nav="onglets-registre"]`
+   n'avait pas suivi l'ajout de l'onglet « Suites à donner ». Mesuré, pas deviné
+   (`lib/auth/habilitations.ts:133` : `consulter_planning` porte `[ADMS, DIR, RM, RS, ADV]` — le nouvel
+   onglet, posé sans capacité de plus dans `OngletsRegistre`, ligne 99+, est donc visible à `admin_societe`
+   COMME à l'ADV) : `admin_societe` passe de 7 à **8** liens (6 principaux + suites_a_donner + toutes, pas
+   de « à facturer », `preparer_facturation` ligne 200 ne le porte pas) ; l'ADV passe de 8 à **9** (+ à
+   facturer). Les deux comptes corrigés, test rejoué seul : vert.
+2. **`tests/e2e/tous-les-ecrans-rendent.spec.ts`** — aucun résolveur pour
+   `/interventions/suites-a-donner/[id]/replanifier`, route dynamique neuve de 9J18. La page refuse
+   (redirection) toute suite dont le statut n'est pas `a_replanifier` ; ni `prisma/seed.ts` ni
+   `tests/e2e/setup/scene.ts` n'en posent. Ajout de `assurerUneSuiteAReplanifier` dans le `beforeAll`
+   (même motif qu'`assurerUneInterventionNumerotee`, déjà dans ce fichier) : idempotente (relit d'abord),
+   sinon fait traverser une suite jusqu'à `a_replanifier` par les MÊMES fonctions de production que
+   l'écran (`qualifierSuite` → `enregistrerAccord` → `marquerPieceRecue`, `lib/suite-a-donner/depot.ts`),
+   jamais une ligne posée à la main — même motif que `captures-9j18-suite-a-donner.spec.ts`. Le résolveur
+   lit la ligne ainsi garantie. Vérifié séparément (`--reporter=list`) que la route s'ouvre réellement (pas
+   de skip).
+
+Rejoué `CI=1 --workers=1` : `registre-ux3-1.spec.ts` + `tous-les-ecrans-rendent.spec.ts` +
+`captures-9j18-suite-a-donner.spec.ts` — 73 passés, 3 skip (`/parametres/forfaits/[id]`, `/imports/[id]`,
+`/demandes/[id]`, inchangés, sans ligne au semis). `pnpm test` (5532) et `pnpm test:isolation` (1915)
+rejoués en entier, verts (un timeout isolé de `atteignabilite-ecrans.test.ts` à la première passe,
+confirmé flake de machine chargée : vert seul en 1.57 s, vert aussi à la repasse complète). `CI=1 pnpm
+verify` vert de bout en bout (exit 0), build compris — la route `/interventions/suites-a-donner/[id]/
+replanifier` apparaît dans la sortie du build. Les captures PNG de `9EA-TP-UX3-1-REGISTRE-1`
+régénérées par effet de bord du passage de `registre-ux3-1.spec.ts` ont été restaurées (`git checkout`) :
+hors périmètre de cette reprise. Branche travaillée : `9J18A-REPRISE-9J18`, partie d'`origin/main`
+(`da14229f7`), commits de la garde rapportés par `git cherry-pick 62aea6493..589813456` (aucun conflit).
+`verify:full` laissé à la file, comme demandé.
