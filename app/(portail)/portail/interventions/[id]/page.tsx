@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { headers } from "next/headers";
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 
@@ -185,6 +186,21 @@ export default async function PageFicheInterventionPortail({
           </>
         )}
       </section>
+
+      {/*
+        LE LIEN VERS LE BON (9J08A-REPRISE-9J08, CLI-2.6) — SEULEMENT une fois
+        l'intervention CLÔTURÉE : `bonInterventionDuParc` refuse nommément un
+        bon demandé plus tôt (point 2 du ticket), ce lien évite simplement de
+        le proposer avant ce palier.
+      */}
+      {fiche.statut === "cloturee" ? (
+        <Link
+          href={`/portail/interventions/${id}/bon`}
+          className="text-app-marque text-[13px] font-bold"
+        >
+          {t("portail.interventions.bon.lien")}
+        </Link>
+      ) : null}
     </Page>
   );
 }

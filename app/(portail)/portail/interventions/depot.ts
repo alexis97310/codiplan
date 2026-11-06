@@ -6,6 +6,7 @@ import {
 
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { type ContexteSession } from "@/lib/auth/contexte";
+import { lireBonDuParc, type BonIntervention } from "@/lib/interventions/bon";
 
 /**
  * LA LECTURE DE `intervention` CÔTÉ PORTAIL (9J07-PORTAIL-INTERVENTION-ETAT,
@@ -126,4 +127,47 @@ export async function ficheInterventionDuParc(
     },
     client,
   );
+}
+
+/**
+ * LE RÉSULTAT DE LA LECTURE DU BON PAR LE PORTAIL (9J08A-REPRISE-9J08,
+ * CLI-2.6) — TROIS ÉTATS, parce que « introuvable » (D35, D50 : hors
+ * périmètre ou inexistante, qui ne se nomme JAMAIS) et « pas encore
+ * clôturée » (qui DOIT se nommer, §5 point 5 du ticket) ne peuvent pas se
+ * confondre dans un seul `null` comme le fait le reste de ce module.
+ */
+export type BonDuParc =
+  | { readonly etat: "introuvable" }
+  | { readonly etat: "non_cloturee" }
+  | { readonly etat: "disponible"; readonly bon: BonIntervention };
+
+/**
+ * LE BON D'UNE INTERVENTION DU PARC (9J08A-REPRISE-9J08, CLI-2.6) — MÊME
+ * COMPOSITION que le back-office (`lireBonDuParc`, `lib/interventions/
+ * bon.ts`), sous la seule politique RLS « parc » (D84) : jamais
+ * `restrictionParPersonne`, étrangère au compte client (voir l'en-tête de
+ * `lireBonDuParc`).
+ *
+ * **La condition de clôture, elle, est NOUVELLE et PROPRE AU PORTAIL** : le
+ * back-office continue de voir le bon dès `terminee` (`peutGenererLeBon`,
+ * `lib/interventions/cycle-de-vie.ts`), inchangé par ce ticket. Un compte
+ * portail, lui, n'en voit un qu'une fois l'intervention CLÔTURÉE — un
+ * rapport `terminee` peut encore être renvoyé au technicien (M5), et un bon
+ * déjà remis au client deviendrait obsolète si le renvoi en changeait le
+ * contenu (cohérent avec I5 : le travail terrain prime, mais le client ne
+ * doit lire qu'un état définitif).
+ */
+export async function bonInterventionDuParc(
+  contexte: ContexteSession,
+  interventionId: string,
+  client?: PrismaClient,
+): Promise<BonDuParc> {
+  const bon = await lireBonDuParc(contexte, interventionId, client);
+  if (bon === null) {
+    return { etat: "introuvable" };
+  }
+  if (bon.clotureeLe === null) {
+    return { etat: "non_cloturee" };
+  }
+  return { etat: "disponible", bon };
 }

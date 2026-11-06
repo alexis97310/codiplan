@@ -244,6 +244,17 @@ export const fr = {
   "portail.interventions.sans_commentaire":
     "Aucun commentaire n'a encore été saisi pour cette intervention.",
 
+  // ── LE BON D'INTERVENTION TÉLÉCHARGEABLE DU PORTAIL (9J08A-REPRISE-9J08,
+  // CLI-2.6) — SANS AUCUN MONTANT (3.8, D37, 9I8B) : la tuile de valorisation
+  // du back-office n'a ici aucun équivalent, et ces clés ne la nomment jamais.
+  // Le refus de clôture est NOMMÉ (§5 point 5) — il ne se confond ni avec
+  // « introuvable » (D35, D50, qui ne se nomme jamais) ni avec le refus du
+  // back-office (`intervention.bon.refus.non_terminee`), qui autorise déjà
+  // `terminee` : le portail attend la CLÔTURE, un palier de plus (9J08).
+  "portail.interventions.bon.lien": "Télécharger le bon",
+  "portail.interventions.bon.refus_non_cloturee":
+    "Le bon sera disponible une fois l'intervention clôturée.",
+
   "portail.demande": "Demander une intervention",
   "portail.demande.a_venir_avant":
     "Ce formulaire n'est pas ouvert : appelez votre",
