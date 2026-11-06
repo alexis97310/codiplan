@@ -18,7 +18,11 @@ import {
 } from "@/lib/interventions/perimetre-technicien";
 
 import { Choix } from "./composants";
-import { destinationSiSocieteUnique, pointEntreeRole } from "./decision";
+import {
+  destinationSiSocieteUnique,
+  pointEntreeRole,
+  pretAChoisirUneDestination,
+} from "./decision";
 
 export const metadata: Metadata = { title: t("arrivee.titre") };
 
@@ -111,7 +115,7 @@ export default async function PageArrivee({
   if (
     etat.issue === "arrivee" &&
     session !== null &&
-    estContexteActif(session.contexte)
+    pretAChoisirUneDestination(session.contexte)
   ) {
     const destination = destinationSiSocieteUnique(
       societes.length,

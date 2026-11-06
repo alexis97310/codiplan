@@ -3,8 +3,19 @@ import { describe, expect, it } from "vitest";
 import {
   destinationSiSocieteUnique,
   pointEntreeRole,
+  pretAChoisirUneDestination,
 } from "@/app/(apres-session)/arrivee/decision";
+import type { ContexteSession } from "@/lib/auth/contexte";
 import { Role } from "@/lib/auth/roles";
+
+const CONTEXTE: ContexteSession = {
+  utilisateurId: "un-compte",
+  societeId: "une-societe",
+  role: Role.adv,
+  secondFacteurValide: false,
+  adresseIp: null,
+  clientId: null,
+};
 
 /**
  * PAR OÙ UN RÔLE ENTRE, ET QUAND (99A-ARRIVEE).
@@ -71,5 +82,49 @@ describe("destinationSiSocieteUnique — la redirection d'une société unique",
         technicienId: "un-technicien",
       }),
     ).toBe(null);
+  });
+});
+
+describe("pretAChoisirUneDestination — assez pour router, pas pour lire (9J21)", () => {
+  it("un compte PORTAIL juste basculé (clientId null, D70) est PRÊT malgré tout", () => {
+    expect(
+      pretAChoisirUneDestination({
+        ...CONTEXTE,
+        role: Role.client,
+        clientId: null,
+      }),
+    ).toBe(true);
+  });
+
+  it("aucune société active : jamais prêt", () => {
+    expect(
+      pretAChoisirUneDestination({ ...CONTEXTE, societeId: null }),
+    ).toBe(false);
+  });
+
+  it("aucun rôle sur la société active : jamais prêt", () => {
+    expect(pretAChoisirUneDestination({ ...CONTEXTE, role: null })).toBe(
+      false,
+    );
+  });
+
+  it("un rôle qui exige le second facteur, absent : pas prêt", () => {
+    expect(
+      pretAChoisirUneDestination({
+        ...CONTEXTE,
+        role: Role.direction,
+        secondFacteurValide: false,
+      }),
+    ).toBe(false);
+  });
+
+  it("un rôle qui exige le second facteur, validé : prêt", () => {
+    expect(
+      pretAChoisirUneDestination({
+        ...CONTEXTE,
+        role: Role.direction,
+        secondFacteurValide: true,
+      }),
+    ).toBe(true);
   });
 });
