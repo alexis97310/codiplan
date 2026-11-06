@@ -19,6 +19,7 @@ import {
   type InterventionAQualifier,
   type LigneSuiteADonner,
 } from "@/lib/suite-a-donner/lecture";
+import { CLASSES_TON } from "@/lib/theme/statuts";
 
 import { hrefOnglet, referenceAffichee } from "../presentation";
 
@@ -88,7 +89,9 @@ export default async function PageSuitesADonner({
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
-          className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13 font-bold"
+          className={`rounded-md border px-3.5 py-2.5 text-13 font-bold ${
+            motif.includes(".refus.") ? CLASSES_TON.refus : CLASSES_TON.succes
+          }`}
         >
           {t(motif)}
         </p>
