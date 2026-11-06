@@ -223,7 +223,6 @@ export default async function PageFicheInterventionPortail({
                   {ligne.libelle}
                   {!ligne.enCours ? null : (
                     <>
-                      {" "}
                       {t("ponctuation.parenthese_ouvrante")}
                       {t(
                         "portail.interventions.temps_par_etat.en_cours_suffixe",

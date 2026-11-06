@@ -154,7 +154,6 @@ function LigneDemandeVue({
                   {ligne.libelle}
                   {!ligne.enCours ? null : (
                     <>
-                      {" "}
                       {t("ponctuation.parenthese_ouvrante")}
                       {t("portail.demandes.temps_par_etat.en_cours_suffixe")}
                       {t("ponctuation.parenthese_fermante")}
