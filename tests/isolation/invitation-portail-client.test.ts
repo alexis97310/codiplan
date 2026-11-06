@@ -60,6 +60,10 @@ afterEach(async () => {
     motif,
   );
   await clientOwner().$executeRawUnsafe(
+    `DELETE FROM "utilisateur_societe" WHERE "utilisateur_id" IN (SELECT "id" FROM "utilisateur" WHERE "email" LIKE $1)`,
+    motif,
+  );
+  await clientOwner().$executeRawUnsafe(
     `DELETE FROM "utilisateur_client_site" WHERE "utilisateur_client_id" IN (
        SELECT "id" FROM "utilisateur_client" WHERE "utilisateur_id" IN (
          SELECT "id" FROM "utilisateur" WHERE "email" LIKE $1))`,
@@ -193,6 +197,37 @@ describe("inviterClientAuPortail — l'invitation", () => {
       email,
     );
     expect(identite).toBeUndefined();
+  });
+
+  it("une adresse qui est DÉJÀ un compte interne de la société active est refusée NOMMÉMENT (9J21)", async () => {
+    const email = courriel();
+    const utilisateurId = uuidv7();
+    await clientOwner().utilisateur.create({
+      data: { id: utilisateurId, nom: "Compte interne", email },
+    });
+    await clientOwner().utilisateurSociete.create({
+      data: {
+        id: uuidv7(),
+        utilisateur_id: utilisateurId,
+        societe_id: SOCIETE_A,
+        role: Role.adv,
+      },
+    });
+
+    const resultat = await inviterClientAuPortail(
+      ADMIN_A,
+      CLIENT_A1,
+      email,
+      clientApp(),
+    );
+    expect(resultat).toEqual({ accepte: false, motif: "compte_interne" });
+
+    // AUCUN RATTACHEMENT CLIENT N'A ÉTÉ POSÉ sur ce compte interne.
+    const rattachement = await clientOwner().$queryRawUnsafe<unknown[]>(
+      `SELECT 1 FROM "utilisateur_client" WHERE utilisateur_id = $1::uuid`,
+      utilisateurId,
+    );
+    expect(rattachement).toHaveLength(0);
   });
 
   it("une seconde invitation POUR LE MÊME client RÉACTIVE la ligne, jamais ne la duplique", async () => {

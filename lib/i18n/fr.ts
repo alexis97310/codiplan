@@ -7004,17 +7004,17 @@ export const fr = {
   "clients.acces.inviter": "Inviter au portail",
   "clients.acces.copier_lien": "Copier le lien d'accès",
   "clients.acces.lien_copie":
-    "Lien copié — valable une heure. Transmettez-le vous-même au contact, il choisira son mot de passe.",
+    "Lien valable une heure. Copiez-le et transmettez-le vous-même au contact, il choisira son mot de passe.",
   "clients.acces.deja_actif":
     "Ce compte a déjà un mot de passe — l'accès à ce client est immédiat, aucun lien à transmettre.",
   "clients.acces.copier_lien_erreur": "Le lien n'a pas pu être copié.",
-  "clients.acces.copier_lien_presse_papiers_indisponible":
-    "Presse-papiers indisponible — copiez ce lien :",
   "clients.acces.revoquer": "Révoquer l'accès",
   "clients.acces.revoque": "Accès révoqué.",
   "clients.acces.etat.actif": "Accès actif",
   "clients.acces.etat.revoque": "Accès révoqué",
   "clients.acces.refus.client_introuvable": "Ce client n'existe pas.",
+  "clients.acces.refus.compte_interne":
+    "Cette adresse est un compte interne : elle ne peut pas recevoir un accès portail.",
   "clients.acces.refus.email_invalide": "Ce courriel n'est pas valide.",
   "clients.acces.refus.acces_refuse":
     "Réservé à l'administrateur de la société ou à la direction.",

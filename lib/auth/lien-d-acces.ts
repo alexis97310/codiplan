@@ -530,7 +530,9 @@ export async function identitesExclusivesALaSociete(
  */
 
 /** Ce qu'un refus NOMMÉ dit, et il n'en dit jamais plus (D50). */
-export type MotifRefusInvitationClient = "client_introuvable";
+export type MotifRefusInvitationClient =
+  | "client_introuvable"
+  | "compte_interne";
 
 export type ResultatInvitationClient =
   | {
@@ -599,6 +601,23 @@ export async function inviterClientAuPortail(
   let utilisateurId: string;
   let identiteNouvelle = false;
   if (existante !== null) {
+    // ── UN COMPTE INTERNE NE PEUT PAS DEVENIR UN COMPTE CLIENT ──────────────
+    //
+    // `utilisateur_societe` et `utilisateur_client` sont censées être
+    // exclusives (commentaire du schéma), mais rien en base ne l'impose : sans
+    // ce contrôle, une adresse d'administrateur recevrait un rattachement
+    // `utilisateur_client` tout en gardant son rôle interne, et `lireRole`
+    // (qui regarde `utilisateur_societe` AVANT `utilisateur_client`) ferait
+    // toujours gagner le rôle interne — l'invitation semblerait réussie sans
+    // jamais ouvrir le portail promis.
+    const roleInterne = await roleDansLaSocieteActive(
+      contexteAdmin,
+      existante.id,
+      client,
+    );
+    if (roleInterne !== null) {
+      return { accepte: false, motif: "compte_interne" };
+    }
     utilisateurId = existante.id;
   } else {
     // ── L'IDENTITÉ ET SON COMPTE AU REPOS, ÉCRITS DIRECTEMENT ───────────────
