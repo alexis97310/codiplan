@@ -66,9 +66,10 @@ async function preparerLaScene(): Promise<void> {
       where: { email: COMPTE_ADMIN_SOCIETE_EPREUVE },
       select: { id: true },
     });
-    const utilisateurSociete = await admin.utilisateurSociete.findFirstOrThrow(
-      { where: { utilisateur_id: utilisateur.id }, select: { societe_id: true } },
-    );
+    const utilisateurSociete = await admin.utilisateurSociete.findFirstOrThrow({
+      where: { utilisateur_id: utilisateur.id },
+      select: { societe_id: true },
+    });
     const societeId = utilisateurSociete.societe_id;
     const client = await admin.client.findFirstOrThrow({
       where: { societe_id: societeId },
@@ -168,7 +169,10 @@ for (const largeur of [1280, 375] as const) {
       await page.getByText(fr["portail.tarifs"]).click();
       await expect(page).toHaveURL(/\/portail\/tarifs/);
       await expect(
-        page.getByRole("heading", { level: 1, name: fr["portail.tarifs.titre"] }),
+        page.getByRole("heading", {
+          level: 1,
+          name: fr["portail.tarifs.titre"],
+        }),
       ).toBeVisible();
       await capturer(page, "apres-tarifs", largeur);
     });
