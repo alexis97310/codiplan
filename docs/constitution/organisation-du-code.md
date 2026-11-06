@@ -19,51 +19,52 @@ _Les numéros de ligne du sommaire sont RECALCULÉS, jamais saisis à la main : 
 
 ### Sommaire
 
-- `app/` — ligne 71
-- `lib/` — ligne 76
-- `lib/db/` — ligne 77
-- `lib/auth/` — ligne 123
-- `lib/absences/` — ligne 158
-- `lib/clients/` — ligne 214
-- `lib/habilitations/` — ligne 217
-- `lib/contacts/` — ligne 225
-- `lib/demandes/` — ligne 235
-- `lib/agences/` — ligne 269
-- `lib/sites/` — ligne 284
-- `lib/machines/` — ligne 314
-- `lib/interventions/` — ligne 365
-- `lib/materiel/` — ligne 539
-- `lib/tarification/` — ligne 572
-- `lib/navigation/` — ligne 668
-- `lib/money/` — ligne 704
-- `lib/courriel/` — ligne 706
-- `lib/avertissements/` — ligne 738
-- `lib/compteurs/` — ligne 751
-- `lib/calendar/` — ligne 770
-- `lib/sync/` — ligne 796
-- `lib/documents/` — ligne 797
-- `lib/excel/` — ligne 823
-- `lib/imports/` — ligne 881
-- `lib/notifications/` — ligne 1033
-- `lib/prestations/` — ligne 1048
-- `lib/portail/` — ligne 1067
-- `lib/pdf/` — ligne 1083
-- `lib/reporting/` — ligne 1084
-- `lib/vgp/` — ligne 1085
-- `lib/techniciens/` — ligne 1138
-- `lib/terrain/` — ligne 1143
-- `lib/theme/` — ligne 1152
-- `lib/i18n/` — ligne 1187
-- `lib/tri/` — ligne 1190
-- `lib/societes/` — ligne 1195
-- `lib/audit/` — ligne 1199
-- `lib/tableau-de-bord/` — ligne 1203
-- `lib/feuille-de-route/` — ligne 1207
-- `lib/pwa/` — ligne 1213
-- `components/` — ligne 1217
-- `prisma/` — ligne 1218
-- `tests/` — ligne 1219
-- `docs/` — ligne 1238
+- `app/` — ligne 72
+- `lib/` — ligne 77
+- `lib/db/` — ligne 78
+- `lib/auth/` — ligne 124
+- `lib/absences/` — ligne 159
+- `lib/clients/` — ligne 215
+- `lib/habilitations/` — ligne 218
+- `lib/contacts/` — ligne 226
+- `lib/demandes/` — ligne 236
+- `lib/agences/` — ligne 270
+- `lib/sites/` — ligne 285
+- `lib/machines/` — ligne 315
+- `lib/interventions/` — ligne 366
+- `lib/materiel/` — ligne 540
+- `lib/tarification/` — ligne 573
+- `lib/navigation/` — ligne 669
+- `lib/money/` — ligne 705
+- `lib/courriel/` — ligne 707
+- `lib/avertissements/` — ligne 739
+- `lib/compteurs/` — ligne 752
+- `lib/calendar/` — ligne 771
+- `lib/sync/` — ligne 797
+- `lib/documents/` — ligne 798
+- `lib/excel/` — ligne 824
+- `lib/imports/` — ligne 882
+- `lib/notifications/` — ligne 1034
+- `lib/prestations/` — ligne 1049
+- `lib/portail/` — ligne 1068
+- `lib/pdf/` — ligne 1084
+- `lib/reporting/` — ligne 1085
+- `lib/vgp/` — ligne 1086
+- `lib/techniciens/` — ligne 1139
+- `lib/terrain/` — ligne 1144
+- `lib/theme/` — ligne 1153
+- `lib/i18n/` — ligne 1188
+- `lib/tri/` — ligne 1191
+- `lib/societes/` — ligne 1196
+- `lib/audit/` — ligne 1200
+- `lib/tableau-de-bord/` — ligne 1204
+- `lib/feuille-de-route/` — ligne 1208
+- `lib/pwa/` — ligne 1214
+- `lib/suite-a-donner/` — ligne 1218
+- `components/` — ligne 1227
+- `prisma/` — ligne 1228
+- `tests/` — ligne 1229
+- `docs/` — ligne 1248
 
 ---
 
@@ -1214,6 +1215,15 @@ lib/
               31/10/2026) — la détection pure de l'état d'installation
               (`installation.ts`), lue par `components/pwa/` ; aucun accès au
               DOM ici, pour rester éprouvable sans navigateur
+  suite-a-donner/ LA SUITE À DONNER (9J17-SUITE-A-DONNER-SCHEMA, D231)
+              depot.ts : table, forme « filiation » (D103) — visible si
+              l'intervention D'ORIGINE l'est, jamais l'intervention de reprise
+              SEPT états fermés, pas huit (D231) : l'attente de pièce est
+              portée par deux colonnes nullables, jamais un état de plus
+              quatre fonctions seulement (qualifierSuite, enregistrerAccord,
+              marquerPieceRecue, cloturer) ; aucun écran (9J18), aucune
+              relance FLX-2/FLX-3/FLX-8 (futures) — nommées dans les deux
+              gardiens de chemins (`MODULES_SANS_CHEMIN`, `FONCTIONS_SANS_CHEMIN`)
 components/
 prisma/       schema.prisma, migrations/, seed.ts
 tests/

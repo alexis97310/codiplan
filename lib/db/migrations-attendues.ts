@@ -148,4 +148,5 @@ export const MIGRATIONS_ATTENDUES: readonly string[] = [
   "20261104100000_historique_des_etats_9j08a",
   "20261105010000_notification_interne_9j09",
   "20261105020000_notification_lecture_9j10a",
+  "20261106010000_suite_a_donner_9j17",
 ];

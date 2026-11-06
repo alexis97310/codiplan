@@ -230,7 +230,7 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
     );
   });
 
-  it("les quarante-deux tables auditées aujourd'hui sont exactement celles attendues", () => {
+  it("les quarante-trois tables auditées aujourd'hui sont exactement celles attendues", () => {
     // Le décompte, écrit en toutes lettres, pour qu'un déclencheur posé
     // ailleurs — ou disparu — se voie. C'est la constitution confrontée aux
     // migrations, pas les migrations confrontées à elles-mêmes.
@@ -375,6 +375,11 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
       "site",
       "site_habilitation_requise",
       "societe",
+      // `suite_a_donner` s'y ajoute au ticket 9J17-SUITE-A-DONNER-SCHEMA, et
+      // par le même chemin : première catégorie de I1, donc auditée à sa
+      // naissance. « Qui a qualifié ce dossier, quand, et depuis quel statut »
+      // est la question même d'un litige sur une suite qui tarde.
+      "suite_a_donner",
       "taux_horaire",
       // `technicien` s'y ajoute au ticket L3-01a, et par le même chemin. Elle
       // le mérite plus que sa voisine : *« depuis quand ce technicien

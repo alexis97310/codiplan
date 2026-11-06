@@ -84,6 +84,7 @@ function ligne(surcharge: Partial<LigneInventaire> = {}): LigneInventaire {
       vgp_verification: 0,
       notification: 0,
       notification_lecture: 0,
+      suite_a_donner: 0,
     },
     ...surcharge,
   };
@@ -140,6 +141,7 @@ function inventaire(surcharge: Partial<Inventaire> = {}): Inventaire {
         vgp_verification: 0,
         notification: 0,
         notification_lecture: 0,
+        suite_a_donner: 0,
       },
     }),
   ];
@@ -222,6 +224,9 @@ describe("inventaire à plat", () => {
       // 9J10A-NOTIFICATION-LUE-PAR-PERSONNE — même chemin : la lecture par
       // personne est entrée le jour où la table est née.
       notification_lecture: 0,
+      // 9J17-SUITE-A-DONNER-SCHEMA — même chemin : la suite à donner est
+      // entrée le jour où la table est née.
+      suite_a_donner: 0,
     });
   });
 

@@ -342,6 +342,11 @@ export const MODULES_SANS_CHEMIN: readonly {
     motif:
       "La consolidation est du lot 5, et elle n'a AUCUN appelant par décision : c'est la seule zone autorisée à convertir des devises (I2), et son rôle de base porte un secret distinct qui n'existe pas encore (D38).",
   },
+  {
+    module: "lib/suite-a-donner",
+    motif:
+      "9J17-SUITE-A-DONNER-SCHEMA borne le ticket au schéma, à la forme RLS et au dépôt minimal — l'écran est 9J18. Se retire le jour où 9J18 l'appelle.",
+  },
 ];
 
 /**
@@ -660,5 +665,34 @@ export const FONCTIONS_SANS_CHEMIN: readonly SansChemin[] = [
     fonction: "nombreEquipementsActifsDuClient",
     motif:
       "La tuile « Machines » de la fiche client (`clients/[id]/page.tsx`) compte désormais par `compterLeParc` (vue `parc`, decision 52) pour que le chiffre soit EXACTEMENT ce que son lien ouvre (D140) — cette fonction comptait autre chose (le brut actif, sans le critère de la vue). Reste éprouvée par `tests/isolation/fiche-360-1.test.ts` et `tests/isolation/resume-cartes-clients.test.ts`. Se retire le jour où un écran recompte ce brut.",
+  },
+  // ── 9J17-SUITE-A-DONNER-SCHEMA (06/11/2026, D231) — LA SCHÉMA SANS ÉCRAN ──
+  //
+  // Ticket délibérément borné au schéma, à la forme RLS et au dépôt minimal :
+  // les écrans sont 9J18, les relances FLX-2/FLX-3/FLX-8 restent futures.
+  // Les quatre fonctions sont éprouvées par `tests/isolation/suite-a-
+  // donner.test.ts`, qui traverse le chemin de production réel, pas une
+  // ligne posée à la main. Se retirent le jour où 9J18 les appelle.
+  {
+    module: "lib/suite-a-donner/depot.ts",
+    fonction: "qualifierSuite",
+    motif:
+      "9J17-SUITE-A-DONNER-SCHEMA borne le ticket au schéma et au dépôt ; aucun écran de ce ticket n'existe. Ouvert par l'écran de qualification de 9J18.",
+  },
+  {
+    module: "lib/suite-a-donner/depot.ts",
+    fonction: "enregistrerAccord",
+    motif: "Même écran que `qualifierSuite` (9J18).",
+  },
+  {
+    module: "lib/suite-a-donner/depot.ts",
+    fonction: "marquerPieceRecue",
+    motif:
+      "Cible de FLX-8 (relance à la réception de pièce, future) : aucun déclencheur ne l'appelle encore. Ouvert par FLX-8.",
+  },
+  {
+    module: "lib/suite-a-donner/depot.ts",
+    fonction: "cloturer",
+    motif: "Même écran que `qualifierSuite` (9J18).",
   },
 ];
