@@ -270,6 +270,26 @@ export const fr = {
   "portail.demande.a_venir_apres":
     ", elle enregistre votre demande et vous en accuse réception.",
 
+  // ── LA GRILLE TARIFAIRE DU PORTAIL (9J20-PORTAIL-GRILLE-TARIFAIRE, CLI-7)
+  // — LE BARÈME, JAMAIS LE MONTANT D'UNE INTERVENTION PRÉCISE (3.8, D37,
+  // D186, D232) : aucune de ces clés ne nomme un total ni une valorisation.
+  "portail.tarifs": "Nos tarifs",
+  "portail.tarifs.carte_sous_titre":
+    "Le taux horaire, la majoration hors horaires d'ouverture et nos forfaits.",
+  "portail.tarifs.titre": "Nos tarifs",
+  "portail.tarifs.sous_titre":
+    "Le barème appliqué à vos interventions. Le montant d'une intervention précise ne figure pas ici : votre bon d'intervention reste sans montant.",
+  "portail.tarifs.taux_titre": "Taux horaire en vigueur",
+  "portail.tarifs.taux_absent": "Aucun taux horaire n'est encore réglé.",
+  "portail.tarifs.majoration_titre": "Majoration hors horaires d'ouverture",
+  "portail.tarifs.regle_titre": "Règle de comptage du temps facturé",
+  "portail.tarifs.forfaits_titre": "Forfaits",
+  "portail.tarifs.forfaits_vide": "Aucun forfait n'est actif pour l'instant.",
+  "portail.tarifs.forfait_colonne_forfait": "Forfait",
+  "portail.tarifs.forfait_colonne_categorie": "Catégorie",
+  "portail.tarifs.forfait_colonne_conditions": "S'applique à",
+  "portail.tarifs.forfait_colonne_montant": "Montant HT",
+
   // Premier accès — l'écran où l'on CHOISIT son mot de passe (D65).
   // L'amorçage redirigeait ici depuis le 09/09 ; l'écran n'existait pas, et la
   // seule porte d'entrée d'une base neuve rendait 404.

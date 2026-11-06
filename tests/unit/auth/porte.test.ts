@@ -503,6 +503,16 @@ const EXEMPTIONS: readonly Exemption[] = [
     motif:
       "route du portail client (D10, D70) : aucune capacité de la matrice commune ne porte sur ce rôle, gardée par contextePortailDemande plutôt que par exigerCapacite — voir app/api/portail/demandes/contexte.ts.",
   },
+  // 9J20-PORTAIL-GRILLE-TARIFAIRE (CLI-7) — même motif que les routes du
+  // portail ci-dessus : route du portail client, gardée par
+  // `contextePortailTarifs` (app/api/portail/tarifs/contexte.ts), jamais par
+  // exigerCapacite. Elle ne résout aucun rattachement — le barème ne dépend
+  // d'aucun client ni d'aucun site, seulement de la société active (D232).
+  {
+    chemin: "app/api/portail/tarifs/route.ts",
+    motif:
+      "route du portail client (D10) : aucune capacité de la matrice commune ne porte sur ce rôle, gardée par contextePortailTarifs plutôt que par exigerCapacite — voir app/api/portail/tarifs/contexte.ts.",
+  },
 ];
 
 /** Chaque route mutante d'`app/api/`, chemin relatif à la racine. */

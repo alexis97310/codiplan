@@ -7889,3 +7889,27 @@ Elle ne décide d'aucun écran (9J18), d'aucune notification (9J19), et ne touch
 > Le jour où FLX-5 (la relance fournisseur structurée) entre au périmètre V1, cette liste se rouvre : elle ajoutera l'état qu'elle réclame, avec son propre déclencheur, plutôt que d'anticiper aujourd'hui une forme que personne ne sert encore. Et le jour où un compte de portail doit lire une ligne de `suite_a_donner`, la forme « filiation » le lui donnerait déjà — ce n'est pas tranché ici, exactement comme D103 l'avait laissé ouvert pour `intervention_machine`.
 
 **Règles amendées :** aucune — le chapitre 10 ne pose aucune règle sur la suite à donner ; cette table rend vérifiable un suivi qui n'existait dans aucun écran.
+
+## D232 — LE BARÈME EST PUBLIÉ SUR LE PORTAIL CLIENT, LA VALORISATION D'UNE INTERVENTION PRÉCISE NE L'EST JAMAIS — AMENDEMENT BORNÉ DE L'ARBITRAGE 3.8 ET DE D186 (décision verbatim d'Alexis, 29/10/2026 ; 9J20-PORTAIL-GRILLE-TARIFAIRE)
+
+*Décide, pour `/portail/tarifs`, la question posée avec les trois options de l'étude — **A** le barème seul, sans le montant d'une intervention, bon sans montant inchangé ; **B** le barème en PDF remis à la main ; **C** le barème ET le montant de chaque intervention — et l'objection du contradicteur. Réponse verbatim d'Alexis : « A ». Au même message, sans objection : le réglage « Afficher les montants » (9I8, `lib/societes/identite.ts`) ne masque pas ce barème côté client.*
+
+### CE QUI A ÉTÉ MESURÉ
+
+Alexis, en verbatim : « les montants (tous nos tarifs d'intervention) doivent être indiqués sur la page client ». L'arbitrage 3.8 (D37) et D186 ferment déjà la valorisation d'UNE intervention précise au client — aucune des deux ne s'était jamais prononcée sur le BARÈME lui-même, c'est-à-dire le taux horaire, la majoration hors horaires d'ouverture, la règle de comptage du temps et le catalogue de forfaits : rien dans le dépôt ne rendait ces quatre faits lisibles depuis le portail.
+
+### LA DÉCISION
+
+**Le barème est publié sur `/portail/tarifs`** : taux horaire en vigueur, majoration hors horaires d'ouverture (`Societe.majoration_hors_ouverture_pct`), règle de comptage du temps (les trois réglages `facturation_*_min` de `Societe`, 9I8A1), catalogue de forfaits actifs — code, libellé, catégorie, conditions, montant. **La valorisation d'une intervention précise n'y figure JAMAIS** : aucun total, aucune ligne de main-d'œuvre chiffrée pour une intervention nommée. Le bon d'intervention remis au client reste sans montant (9I8B, inchangé). **Le réglage « Afficher les montants » NE GOUVERNE PAS le barème** : il continue de gouverner exclusivement la valorisation d'une intervention précise (`accesAuxMontants`, D37) — un compte qui ne voit aucun montant d'intervention voit tout de même le barème de sa société.
+
+**Architecture, choix du pilote (réversible, sans toucher la liste close de I1) :** la route `/api/portail/tarifs` est ISOLÉE — sa transaction (`app/api/portail/tarifs/lecture.ts`) pose UNIQUEMENT `app.societe_id`, jamais `app.client_id` ni `app.perimetre_sites`, et ne lit que `Societe`, `taux_horaire` et `Forfait`. Aucune quatorzième forme de politique RLS : le barème est un prix de vente propre à la société, pas au client ni à son périmètre de sites, et la forme « société » (I1) suffit déjà.
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+Elle n'amende l'arbitrage 3.8 ni D186 QUE sur ce point précis — la publication du barème sur le portail. Tout le reste des deux décisions reste entier : `accesAuxMontants`, `lib/interventions/montants-visibles.ts`, `lib/interventions/version-bon.ts` et le bon sans montant du client (9I8B) n'ont pas une ligne de diff.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où Alexis demande que le montant d'une intervention précise rejoigne le portail (option C de l'étude), ou que le barème soit retiré du portail (option B), cette décision se rouvre pour la trancher à sa place.
+
+**Règles amendées :** arbitrage 3.8, D186 — toutes deux amendées de façon BORNÉE, sur ce seul point (publication du barème sur le portail), rien d'autre.

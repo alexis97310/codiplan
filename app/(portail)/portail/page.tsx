@@ -319,6 +319,22 @@ export default async function PagePortail() {
           </p>
         </article>
       </section>
+
+      {/* LE BARÈME (9J20-PORTAIL-GRILLE-TARIFAIRE, CLI-7) — le SEUL point
+          d'entrée vers `/portail/tarifs` : `ENTREES_PORTAIL` ne porte qu'une
+          destination (D97), même raison que le lien vers une fiche machine
+          plus haut sur cette page. */}
+      <Link
+        href="/portail/tarifs"
+        className="bg-app-surface border-app-bord hover:border-app-marque flex flex-col gap-1 rounded-lg border px-4 py-3.5 text-[13px] font-bold"
+      >
+        <h2 className="text-[15px] font-extrabold tracking-tight">
+          {t("portail.tarifs")}
+        </h2>
+        <p className="text-app-encre-faible text-13 font-bold">
+          {t("portail.tarifs.carte_sous_titre")}
+        </p>
+      </Link>
     </Page>
   );
 }
