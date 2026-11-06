@@ -531,8 +531,7 @@ export async function identitesExclusivesALaSociete(
 
 /** Ce qu'un refus NOMMÉ dit, et il n'en dit jamais plus (D50). */
 export type MotifRefusInvitationClient =
-  | "client_introuvable"
-  | "compte_interne";
+  "client_introuvable" | "compte_interne";
 
 export type ResultatInvitationClient =
   | {

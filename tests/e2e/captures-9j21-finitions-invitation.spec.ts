@@ -109,7 +109,9 @@ async function preparerLaScene(): Promise<void> {
     // buter sur l'unicité du courriel.
     await admin.utilisateurClient.deleteMany({
       where: {
-        utilisateur: { email: { in: [EMAIL_LIEN, EMAIL_INTERNE, EMAIL_CLIENT] } },
+        utilisateur: {
+          email: { in: [EMAIL_LIEN, EMAIL_INTERNE, EMAIL_CLIENT] },
+        },
       },
     });
     await admin.utilisateurSociete.deleteMany({
@@ -117,7 +119,9 @@ async function preparerLaScene(): Promise<void> {
     });
     await admin.compte.deleteMany({
       where: {
-        utilisateur: { email: { in: [EMAIL_LIEN, EMAIL_INTERNE, EMAIL_CLIENT] } },
+        utilisateur: {
+          email: { in: [EMAIL_LIEN, EMAIL_INTERNE, EMAIL_CLIENT] },
+        },
       },
     });
     await admin.utilisateur.deleteMany({
@@ -209,9 +213,7 @@ test.beforeAll(async () => {
 async function seConnecterCommeLeCompteClient(page: Page): Promise<void> {
   await page.goto("/connexion");
   await page.getByLabel(fr["connexion.email"]).fill(EMAIL_CLIENT);
-  await page
-    .getByLabel(fr["connexion.mot_de_passe"])
-    .fill(MOT_DE_PASSE_CLIENT);
+  await page.getByLabel(fr["connexion.mot_de_passe"]).fill(MOT_DE_PASSE_CLIENT);
   await page.getByRole("button", { name: fr["connexion.valider"] }).click();
 }
 
@@ -227,13 +229,13 @@ for (const largeur of [1280, 375] as const) {
     }) => {
       await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
       await page.goto(`/clients/${clientId}?onglet=identite`);
-      await page.getByLabel(fr["clients.acces.email_libelle"]).fill(
-        EMAIL_LIEN,
-      );
+      await page.getByLabel(fr["clients.acces.email_libelle"]).fill(EMAIL_LIEN);
       await page
         .getByRole("button", { name: fr["clients.acces.inviter"] })
         .click();
-      await expect(page.getByText(fr["clients.acces.lien_copie"])).toBeVisible();
+      await expect(
+        page.getByText(fr["clients.acces.lien_copie"]),
+      ).toBeVisible();
       const lien = page.locator("input[readonly]");
       await expect(lien).toHaveCount(1);
       await expect(lien).not.toHaveValue("");
@@ -249,9 +251,9 @@ for (const largeur of [1280, 375] as const) {
     }) => {
       await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
       await page.goto(`/clients/${clientId}?onglet=identite`);
-      await page.getByLabel(fr["clients.acces.email_libelle"]).fill(
-        EMAIL_INTERNE,
-      );
+      await page
+        .getByLabel(fr["clients.acces.email_libelle"])
+        .fill(EMAIL_INTERNE);
       await page
         .getByRole("button", { name: fr["clients.acces.inviter"] })
         .click();
@@ -271,9 +273,7 @@ for (const largeur of [1280, 375] as const) {
         "/premier-acces?token=jeton-de-capture&email=contact%40codima.test",
       );
       await expect(
-        page.getByText(
-          (fr as Record<string, string>)["premier_acces.compte"],
-        ),
+        page.getByText((fr as Record<string, string>)["premier_acces.compte"]),
       ).toBeVisible();
       await capturer(page, "apres-premier-acces-adresse", largeur);
     });

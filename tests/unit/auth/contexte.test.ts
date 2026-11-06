@@ -185,9 +185,7 @@ describe("contexte de session", () => {
 describe("societeEtRoleEtablis — assez pour router, pas pour lire (9J21)", () => {
   it("un compte PORTAIL juste basculé (clientId null, D70) est ÉTABLI malgré tout", () => {
     expect(
-      societeEtRoleEtablis(
-        contexte({ role: Role.client, clientId: null }),
-      ),
+      societeEtRoleEtablis(contexte({ role: Role.client, clientId: null })),
     ).toBe(true);
   });
 
