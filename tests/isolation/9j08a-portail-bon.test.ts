@@ -5,7 +5,7 @@ import { type ContexteSession } from "@/lib/auth/contexte";
 import { Role } from "@/lib/auth/roles";
 import { uuidv7 } from "@/lib/db/uuid";
 
-import { clientOwner, fermerClients } from "./setup/db";
+import { clientApp, clientOwner, fermerClients } from "./setup/db";
 import {
   CLIENT_A1,
   CLIENT_A2,
@@ -74,7 +74,11 @@ async function surUneInterventionJetable(
 describe("bonInterventionDuParc — ce qu'il ouvre", () => {
   it("un compte portail lit le bon d'une intervention CLÔTURÉE de son client", async () => {
     await surUneInterventionJetable(true, async (id) => {
-      const resultat = await bonInterventionDuParc(contextePortailA1(), id);
+      const resultat = await bonInterventionDuParc(
+        contextePortailA1(),
+        id,
+        clientApp(),
+      );
       expect(resultat.etat).toBe("disponible");
       if (resultat.etat === "disponible") {
         expect(resultat.bon.ligne.id).toBe(id);
@@ -92,7 +96,11 @@ describe("bonInterventionDuParc — ce qu'il ouvre", () => {
 describe("bonInterventionDuParc — ce qu'il refuse, et pourquoi", () => {
   it("refus NOMMÉ avant la clôture — une intervention seulement TERMINEE", async () => {
     await surUneInterventionJetable(false, async (id) => {
-      const resultat = await bonInterventionDuParc(contextePortailA1(), id);
+      const resultat = await bonInterventionDuParc(
+        contextePortailA1(),
+        id,
+        clientApp(),
+      );
       expect(resultat).toEqual({ etat: "non_cloturee" });
     });
   });
@@ -109,6 +117,7 @@ describe("bonInterventionDuParc — ce qu'il refuse, et pourquoi", () => {
           clientId: CLIENT_A2,
         },
         id,
+        clientApp(),
       );
       expect(resultat).toEqual({ etat: "introuvable" });
     });
@@ -118,6 +127,7 @@ describe("bonInterventionDuParc — ce qu'il refuse, et pourquoi", () => {
     const resultat = await bonInterventionDuParc(
       contextePortailA1(),
       INTERVENTION_B1,
+      clientApp(),
     );
     expect(resultat).toEqual({ etat: "introuvable" });
     // TÉMOIN — la ligne EXISTE : sans lui, « introuvable » prouverait
