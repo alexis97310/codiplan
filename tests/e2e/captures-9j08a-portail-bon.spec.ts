@@ -34,7 +34,11 @@ const MOT_DE_PASSE_PORTAIL = "epreuve-9j08a-portail-bon";
 
 let interventionId = "";
 
-async function capturer(page: Page, nom: string, largeur: number): Promise<void> {
+async function capturer(
+  page: Page,
+  nom: string,
+  largeur: number,
+): Promise<void> {
   if (DOSSIER === "") return;
   mkdirSync(DOSSIER, { recursive: true });
   await page.setViewportSize({ width: largeur, height: 1200 });
