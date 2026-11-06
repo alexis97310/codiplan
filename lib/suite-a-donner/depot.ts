@@ -2,24 +2,56 @@ import { randomUUID } from "node:crypto";
 
 import { type Prisma, type PrismaClient } from "@prisma/client";
 
+import { type Capacite } from "@/lib/auth/habilitations";
 import { type ContexteSession, exigerContexteActif } from "@/lib/auth/contexte";
-import { lireFuseau, maintenant } from "@/lib/calendar/fuseau";
+import {
+  comparerJours,
+  jourDe,
+  jourSuivant,
+  lireFuseau,
+  maintenant,
+  versLocal,
+} from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
+import { poserNotification } from "@/lib/notifications/depot";
 
 /**
- * LA SUITE À DONNER (9J17-SUITE-A-DONNER-SCHEMA, D231).
+ * LA SUITE À DONNER (9J17-SUITE-A-DONNER-SCHEMA, D231 ;
+ * 9J19-SUITE-A-DONNER-NOTIFICATIONS).
  *
  * Forme « filiation » (D103) : aucune comparaison de société n'est écrite
  * ici. L'écriture et la lecture passent par `avecContexteApplicatif`, donc
  * sous le contexte cloisonné, et c'est la politique de `suite_a_donner` qui
  * prononce — visible si `intervention_origine_id` l'est.
  *
- * **Quatre fonctions, pas plus** (territoire du ticket) : ce dépôt ne couvre
- * pas encore la transition `qualifiee` → `accord_attendu`, cible de FLX-3
- * (future, hors périmètre). Une ligne qui doit l'atteindre aujourd'hui y est
- * posée directement par qui l'écrit — aucun écran de ce ticket n'en a besoin
- * (9J18).
+ * **« Quatre fonctions, pas plus » (9J17) a vécu** : 9J19 en ajoute deux,
+ * `devisEnRetard` et `accordAttenduEnRetard` (FLX-2/FLX-3) — toujours sans
+ * toucher à la transition `qualifiee` → `accord_attendu` elle-même, qui
+ * reste hors territoire (aucune fonction de ce dépôt ne l'écrit encore ; une
+ * ligne qui doit l'atteindre aujourd'hui y est posée directement par qui
+ * l'écrit).
+ *
+ * ## LES RELANCES SONT DES LECTURES, JAMAIS UNE TÂCHE PLANIFIÉE
+ *
+ * `devisEnRetard`/`accordAttenduEnRetard` suivent le même patron que
+ * `enRetard` (`lib/interventions/retard.ts`) : calculées À LA VISITE d'un
+ * écran, jamais par une file de jobs. Elles POSENT en plus, par effet de
+ * bord, une notification interne pour chaque dossier détecté — au plus une
+ * par dossier et par événement, un second appel ne la répète pas. Ce n'est
+ * PAS la même transaction que la lecture (contrairement à `marquerPieceRecue`
+ * ci-dessous) : une relance en double, sur une course très rapide entre deux
+ * visites d'écran, est un risque nommé plutôt que caché — rien n'en souffre,
+ * aucune donnée métier n'est en jeu, seule une notification interne de plus.
  */
+
+/**
+ * LA CAPACITÉ QUI GOUVERNE LES TROIS NOTIFICATIONS DE CE TICKET — ADV et
+ * responsable_materiel au ●, même ligne de la matrice que `enregistrerAccord`
+ * et `marquerPieceRecue` servent déjà (`lib/auth/habilitations.ts`,
+ * `consulter_parc_complet`). Une seule constante : les trois producteurs
+ * (FLX-2/3/8) s'alignent automatiquement si la capacité change un jour.
+ */
+const CAPACITE_RELANCE: Capacite = "consulter_parc_complet";
 
 /** L'instant, daté dans le fuseau de la SOCIÉTÉ active (L0-08). */
 async function instantDate(
@@ -114,26 +146,46 @@ export async function enregistrerAccord(
 }
 
 /**
- * La pièce attendue arrive (cible de FLX-8, future) : nulle les deux
- * colonnes de l'attente et fait passer le statut à `a_replanifier`, dans la
- * MÊME transaction — jamais un état fermé de plus pour le dire (D231).
+ * La pièce attendue arrive (FLX-8, 9J19) : nulle les deux colonnes de
+ * l'attente et fait passer le statut à `a_replanifier`, **et pose la
+ * notification `piece_recue`, dans la MÊME transaction** — jamais un état
+ * fermé de plus pour le dire (D231), et jamais une notification qui
+ * survivrait à une transition défaite par une erreur plus bas dans le même
+ * appel. Écrite directement sur `tx` (pas `poserNotification`, qui ouvre SA
+ * PROPRE transaction) — exactement le choix que `creerReprise`
+ * (`lib/suite-a-donner/reprise.ts`) documente pour la même raison.
+ *
+ * Le DÉCLENCHEUR lui-même (l'écran de réception de pièce) reste futur et
+ * hors territoire : cette fonction n'a encore aucun appelant de production.
  */
 export async function marquerPieceRecue(
   contexte: ContexteSession,
   id: string,
   client?: PrismaClient,
 ): Promise<void> {
+  const { societeId } = exigerContexteActif(contexte);
   await avecContexteApplicatif(
     contexte,
-    (tx) =>
-      tx.suiteADonner.update({
+    async (tx) => {
+      await tx.suiteADonner.update({
         where: { id },
         data: {
           statut: "a_replanifier",
           piece_attendue_ref: null,
           date_dispo_prevue: null,
         },
-      }),
+      });
+      await tx.notification.create({
+        data: {
+          id: randomUUID(),
+          societe_id: societeId,
+          suite_a_donner_id: id,
+          evenement: "piece_recue",
+          capacite_requise: CAPACITE_RELANCE,
+          destinataire_id: null,
+        },
+      });
+    },
     client,
   );
 }
@@ -151,6 +203,166 @@ export async function cloturer(
         where: { id },
         data: { statut: "cloturee" },
       }),
+    client,
+  );
+}
+
+type EvenementRelance = "devis_en_retard" | "accord_attendu_en_retard";
+
+type DetectionRetard = {
+  readonly statut: "qualifiee" | "accord_attendu";
+  readonly evenement: EvenementRelance;
+  readonly dateReference: (ligne: {
+    readonly qualifiee_le: Date | null;
+    readonly modifie_le: Date;
+  }) => Date | null;
+};
+
+/**
+ * Pose la notification d'un dossier en retard, SI ELLE N'EXISTE PAS DÉJÀ —
+ * au plus une par (suite à donner, événement), jamais une seconde à chaque
+ * revisite de l'écran. Lecture puis écriture en deux temps (pas une seule
+ * transaction) : voir le docblock de ce fichier pour le risque nommé.
+ */
+async function poserNotificationSiAbsente(
+  contexte: ContexteSession,
+  suiteADonnerId: string,
+  evenement: EvenementRelance,
+  client?: PrismaClient,
+): Promise<void> {
+  const existe = await avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.notification.findFirst({
+        where: { suite_a_donner_id: suiteADonnerId, evenement },
+        select: { id: true },
+      }),
+    client,
+  );
+  if (existe !== null) {
+    return;
+  }
+  await poserNotification(
+    contexte,
+    evenement,
+    { cible: "suite_a_donner", suite_a_donner_id: suiteADonnerId },
+    CAPACITE_RELANCE,
+    undefined,
+    client,
+  );
+}
+
+/**
+ * LE MÉCANISME COMMUN À FLX-2 ET FLX-3 — voir le docblock de ce fichier.
+ *
+ * Si `delai_relance_suite_jours` est NUL, rend une liste vide SANS RIEN
+ * POSER : une absence de réglage n'est pas un réglage à zéro jour. Compare
+ * en JOUR CIVIL, dans le fuseau de la société (L0-08) — jamais en instant,
+ * même discipline que `jourCivilDeDatePlanifiee`
+ * (`lib/interventions/retard.ts`).
+ */
+async function relancesEnRetard(
+  contexte: ContexteSession,
+  detection: DetectionRetard,
+  client?: PrismaClient,
+): Promise<readonly string[]> {
+  const { societeId } = exigerContexteActif(contexte);
+
+  const lecture = await avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const societe = await tx.societe.findUniqueOrThrow({
+        where: { id: societeId },
+        select: { fuseau_horaire: true, delai_relance_suite_jours: true },
+      });
+      if (societe.delai_relance_suite_jours === null) {
+        return null;
+      }
+      const lignes = await tx.suiteADonner.findMany({
+        where: { statut: detection.statut },
+        select: { id: true, qualifiee_le: true, modifie_le: true },
+      });
+      return {
+        delaiJours: societe.delai_relance_suite_jours,
+        fuseau: lireFuseau(societe.fuseau_horaire),
+        lignes,
+      };
+    },
+    client,
+  );
+
+  if (lecture === null) {
+    return [];
+  }
+  const { delaiJours, fuseau, lignes } = lecture;
+  const aujourdhui = jourDe(maintenant(fuseau).local);
+
+  const enRetard = lignes.filter((ligne) => {
+    const reference = detection.dateReference(ligne);
+    if (reference === null) {
+      return false;
+    }
+    const jourLimite = jourSuivant(
+      jourDe(versLocal(reference, fuseau)),
+      delaiJours,
+    );
+    return comparerJours(jourLimite, aujourdhui) < 0;
+  });
+
+  for (const ligne of enRetard) {
+    await poserNotificationSiAbsente(
+      contexte,
+      ligne.id,
+      detection.evenement,
+      client,
+    );
+  }
+
+  return enRetard.map((ligne) => ligne.id);
+}
+
+/**
+ * FLX-2 : les dossiers `qualifiee` (devis en cours) sans réponse depuis plus
+ * de `delai_relance_suite_jours` jours, comptés depuis `qualifiee_le`.
+ */
+export async function devisEnRetard(
+  contexte: ContexteSession,
+  client?: PrismaClient,
+): Promise<readonly string[]> {
+  return relancesEnRetard(
+    contexte,
+    {
+      statut: "qualifiee",
+      evenement: "devis_en_retard",
+      dateReference: (ligne) => ligne.qualifiee_le,
+    },
+    client,
+  );
+}
+
+/**
+ * FLX-3 : les dossiers `accord_attendu` sans réponse depuis plus de
+ * `delai_relance_suite_jours` jours.
+ *
+ * **Compté depuis `modifie_le`, faute de colonne dédiée** : `suite_a_donner`
+ * ne porte aucune date d'entrée dans `accord_attendu` — seule `qualifiee_le`
+ * existe, et ce ticket n'en ajoute pas (la transition `qualifiee` →
+ * `accord_attendu` reste hors territoire, voir le docblock de ce fichier).
+ * `modifie_le` (`@updatedAt`) porte l'instant du dernier changement de la
+ * ligne ; tant qu'aucune autre écriture n'intervient avant la réponse,
+ * c'est exactement l'instant de l'entrée dans l'état.
+ */
+export async function accordAttenduEnRetard(
+  contexte: ContexteSession,
+  client?: PrismaClient,
+): Promise<readonly string[]> {
+  return relancesEnRetard(
+    contexte,
+    {
+      statut: "accord_attendu",
+      evenement: "accord_attendu_en_retard",
+      dateReference: (ligne) => ligne.modifie_le,
+    },
     client,
   );
 }

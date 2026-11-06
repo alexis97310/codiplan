@@ -40,20 +40,39 @@ import { avecContexteApplicatif } from "@/lib/db/client";
  * personne reste donc non lue pour les autres.
  */
 
-/** La cible d'une notification — l'intervention OU la demande, jamais deux. */
+/**
+ * La cible d'une notification — l'intervention, la demande OU la suite à
+ * donner (9J19-SUITE-A-DONNER-NOTIFICATIONS), jamais deux.
+ */
 export type CibleNotification =
   | { readonly cible: "intervention"; readonly intervention_id: string }
-  | { readonly cible: "demande"; readonly demande_id: string };
+  | { readonly cible: "demande"; readonly demande_id: string }
+  | { readonly cible: "suite_a_donner"; readonly suite_a_donner_id: string };
 
 function colonnesDeCible(cible: CibleNotification): {
   readonly intervention_id: string | null;
   readonly demande_id: string | null;
+  readonly suite_a_donner_id: string | null;
 } {
   switch (cible.cible) {
     case "intervention":
-      return { intervention_id: cible.intervention_id, demande_id: null };
+      return {
+        intervention_id: cible.intervention_id,
+        demande_id: null,
+        suite_a_donner_id: null,
+      };
     case "demande":
-      return { intervention_id: null, demande_id: cible.demande_id };
+      return {
+        intervention_id: null,
+        demande_id: cible.demande_id,
+        suite_a_donner_id: null,
+      };
+    case "suite_a_donner":
+      return {
+        intervention_id: null,
+        demande_id: null,
+        suite_a_donner_id: cible.suite_a_donner_id,
+      };
   }
 }
 

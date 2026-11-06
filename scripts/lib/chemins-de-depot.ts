@@ -669,21 +669,38 @@ export const FONCTIONS_SANS_CHEMIN: readonly SansChemin[] = [
   // 9J18-SUITE-A-DONNER-ECRAN : la première est appelée par la route de
   // qualification, la seconde par `cloturerSuiteSiReprise` (`lib/suite-a-
   // donner/reprise.ts`), elle-même appelée depuis `app/api/interventions/
-  // [id]/cloturer/route.ts` après toute clôture acceptée (point 6). `enregis
-  // trerAccord` et `marquerPieceRecue` restent ICI : 9J18 n'ouvre que la
-  // qualification manuelle et la clôture automatique — les relances
-  // FLX-2/FLX-3/FLX-8 (devis, accord, réception de pièce) restent de
-  // vraies relances futures, jamais le même écran.
+  // [id]/cloturer/route.ts` après toute clôture acceptée (point 6).
+  //
+  // 9J19-SUITE-A-DONNER-NOTIFICATIONS a posé le MÉCANISME des trois relances
+  // (devis/accord en retard, réception de pièce) — `devisEnRetard` et
+  // `accordAttenduEnRetard` sont NOUVELLES ici, et `marquerPieceRecue` pose
+  // désormais sa notification en plus de son changement de statut. **Aucune
+  // des quatre n'a pour autant gagné d'appelant de production** : ce ticket
+  // pose la lecture et l'écriture, pas l'écran qui les visite. `enregistrer
+  // Accord` reste elle aussi sans appelant — la transition `qualifiee` →
+  // `accord_attendu` qu'elle ne couvre toujours pas reste hors territoire.
   {
     module: "lib/suite-a-donner/depot.ts",
     fonction: "enregistrerAccord",
     motif:
-      "Cible de FLX-2/FLX-3 (devis en cours, accord attendu, futures) : aucun écran ne l'appelle encore. Ouvert par FLX-2/FLX-3.",
+      "Cible de FLX-2/FLX-3 (devis en cours, accord attendu) : aucun écran ne l'appelle encore. Ouvert par l'écran futur des relances.",
   },
   {
     module: "lib/suite-a-donner/depot.ts",
     fonction: "marquerPieceRecue",
     motif:
-      "Cible de FLX-8 (relance à la réception de pièce, future) : aucun déclencheur ne l'appelle encore. Ouvert par FLX-8.",
+      "Cible de FLX-8 : pose désormais sa notification « piece_recue » (9J19), mais le DÉCLENCHEUR — la réception de pièce elle-même — reste futur, aucun écran ne l'appelle encore. Ouvert par l'écran de réception de pièce.",
+  },
+  {
+    module: "lib/suite-a-donner/depot.ts",
+    fonction: "devisEnRetard",
+    motif:
+      "FLX-2 (9J19) : lecture calculée posant la notification « devis_en_retard » — aucun écran ne l'appelle encore à sa visite. Ouvert par l'écran futur des relances.",
+  },
+  {
+    module: "lib/suite-a-donner/depot.ts",
+    fonction: "accordAttenduEnRetard",
+    motif:
+      "FLX-3 (9J19) : même mécanique que `devisEnRetard`, même écran futur.",
   },
 ];
