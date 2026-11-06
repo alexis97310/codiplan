@@ -463,7 +463,7 @@ test.describe("« À facturer » — absente pour un rôle sans preparer_factura
     await expect(
       nav.locator('a[href="/interventions/a-facturer"]'),
     ).toHaveCount(0);
-    await expect(nav.getByRole("link")).toHaveCount(7);
+    await expect(nav.getByRole("link")).toHaveCount(8);
 
     await page.context().clearCookies();
     await ouvrirLaSessionSensible(page, COMPTE_EPREUVE);
@@ -475,6 +475,6 @@ test.describe("« À facturer » — absente pour un rôle sans preparer_factura
     await expect(
       navAdv.locator('a[href="/interventions/a-facturer"]'),
     ).toHaveCount(1);
-    await expect(navAdv.getByRole("link")).toHaveCount(8);
+    await expect(navAdv.getByRole("link")).toHaveCount(9);
   });
 });

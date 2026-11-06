@@ -5,13 +5,20 @@ import { PrismaClient } from "@prisma/client";
 import { expect, test } from "@playwright/test";
 
 import { referenceAffichee } from "@/app/(back-office)/interventions/presentation";
+import { type ContexteSession } from "@/lib/auth/contexte";
+import { Role } from "@/lib/auth/roles";
 import { t } from "@/lib/i18n/fr";
 import {
   anneeDeNumerotation,
   prochainNumero,
 } from "@/lib/interventions/numerotation";
+import {
+  enregistrerAccord,
+  marquerPieceRecue,
+  qualifierSuite,
+} from "@/lib/suite-a-donner/depot";
 
-import { urlAdministration } from "./setup/base";
+import { urlAdministration, urlApplicative } from "./setup/base";
 import {
   COMPTE_ADMIN_SOCIETE_EPREUVE,
   COMPTE_TECHNICIEN_EPREUVE,
@@ -207,6 +214,24 @@ const RESOLVEURS: Readonly<Record<string, Resolveur>> = {
   // les deux lignes ci-dessus. `tests/e2e/demandes.spec.ts` couvre la fiche
   // avec ses propres fixtures, écrites et détruites par le scénario.
   "/demandes/[id]": async () => null,
+  // 9J18-SUITE-A-DONNER-ECRAN — la page REFUSE (redirection) toute suite
+  // dont le statut n'est pas `a_replanifier` (voir `page.tsx` de cette
+  // route) : seule `assurerUneSuiteAReplanifier` ci-dessous en garantit une,
+  // même motif qu'`assurerUneInterventionNumerotee`.
+  "/interventions/suites-a-donner/[id]/replanifier": async (
+    prisma,
+    societeId,
+  ) =>
+    (
+      await prisma.suiteADonner.findFirst({
+        where: {
+          societe_id: societeId,
+          statut: "a_replanifier",
+          intervention_reprise_id: null,
+        },
+        select: { id: true },
+      })
+    )?.id ?? null,
 };
 
 type ResolveurDeNom = (
@@ -343,6 +368,69 @@ async function assurerUneInterventionNumerotee(
   });
 }
 
+/**
+ * UNE SUITE À DONNER « À REPLANIFIER », GARANTIE PAR L'ÉPREUVE ELLE-MÊME
+ * (9J18A-REPRISE-9J18) — même motif qu'`assurerUneInterventionNumerotee`
+ * ci-dessus : ni `prisma/seed.ts` ni `tests/e2e/setup/scene.ts` ne posent de
+ * ligne `suite_a_donner`, et le résolveur de
+ * `/interventions/suites-a-donner/[id]/replanifier` n'en trouverait aucune
+ * sans cette fonction. Traverse `qualifierSuite` → `enregistrerAccord` →
+ * `marquerPieceRecue` — les MÊMES fonctions de production que l'écran
+ * emprunte (`lib/suite-a-donner/depot.ts`), jamais une ligne posée à la
+ * main (même motif que `captures-9j18-suite-a-donner.spec.ts`).
+ */
+async function assurerUneSuiteAReplanifier(
+  admin: PrismaClient,
+  idSociete: string,
+): Promise<void> {
+  const dejaPresente = await admin.suiteADonner.findFirst({
+    where: {
+      societe_id: idSociete,
+      statut: "a_replanifier",
+      intervention_reprise_id: null,
+    },
+    select: { id: true },
+  });
+  if (dejaPresente !== null) {
+    return;
+  }
+  const origine = await admin.intervention.findFirst({
+    where: { societe_id: idSociete },
+    orderBy: [{ cree_le: "asc" }, { id: "asc" }],
+    select: { id: true },
+  });
+  if (origine === null) {
+    return;
+  }
+  const utilisateur = await admin.utilisateur.findFirstOrThrow({
+    where: { email: COMPTE_ADMIN_SOCIETE_EPREUVE },
+    select: { id: true },
+  });
+  const contexte: ContexteSession = {
+    utilisateurId: utilisateur.id,
+    societeId: idSociete,
+    role: Role.admin_societe,
+    secondFacteurValide: true,
+    adresseIp: null,
+    clientId: null,
+  };
+  const applicatif = new PrismaClient({
+    datasources: { db: { url: urlApplicative() } },
+  });
+  try {
+    const suiteId = await qualifierSuite(contexte, origine.id, applicatif);
+    await enregistrerAccord(
+      contexte,
+      suiteId,
+      { reponse: "accord_recu" },
+      applicatif,
+    );
+    await marquerPieceRecue(contexte, suiteId, applicatif);
+  } finally {
+    await applicatif.$disconnect();
+  }
+}
+
 test.beforeAll(async () => {
   prisma = new PrismaClient({
     datasources: { db: { url: urlAdministration() } },
@@ -353,6 +441,7 @@ test.beforeAll(async () => {
   });
   societeId = societe.id;
   await assurerUneInterventionNumerotee(prisma, societeId);
+  await assurerUneSuiteAReplanifier(prisma, societeId);
 });
 
 test.afterAll(async () => {
