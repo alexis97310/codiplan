@@ -159,6 +159,11 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   // « restreint ». La réutiliser évite d'ouvrir, par une requête forgée, une
   // écriture que le technicien ne voit jamais à l'écran.
   "app/api/interventions/[id]/note-interne/route.ts": "modifier_planning",
+  // QUALIFIER UNE SUITE À DONNER (9J18-SUITE-A-DONNER-ECRAN) — même capacité
+  // que « Déplacer »/« Planifier » sur le registre lui-même : qualifier
+  // n'est accessible qu'à qui peut déjà écrire sur le planning.
+  "app/api/interventions/suites-a-donner/qualifier/route.ts":
+    "modifier_planning",
   // « Importer / exporter en masse ».
   "app/api/imports/controler/route.ts": "importer_exporter",
   "app/api/imports/[id]/appliquer/route.ts": "importer_exporter",
@@ -302,6 +307,10 @@ const PORTE_COMPLETE: readonly string[] = [
   "app/api/interventions/[id]/note-interne/route.ts",
   "app/api/absences/ecourter/route.ts",
   "app/api/absences/lever/route.ts",
+  // QUALIFIER UNE SUITE À DONNER (9J18-SUITE-A-DONNER-ECRAN) — même porte
+  // complète que « Déplacer »/« Planifier » ci-dessus : aucun ○ technicien
+  // n'a de raison de qualifier une suite à donner.
+  "app/api/interventions/suites-a-donner/qualifier/route.ts",
 ];
 
 /**
@@ -602,7 +611,9 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
     // 96 depuis 9J02A-REPRISE-9J02 — les deux routes neuves de l'invitation
     // au portail client, `app/api/clients/[id]/inviter/route.ts` et
     // `app/api/clients/[id]/revoquer-acces/route.ts`.
-    expect(Object.keys(ROUTE_CAPACITE).length).toBe(96);
+    // 97 depuis 9J18-SUITE-A-DONNER-ECRAN — la route neuve
+    // `app/api/interventions/suites-a-donner/qualifier/route.ts`.
+    expect(Object.keys(ROUTE_CAPACITE).length).toBe(97);
   });
 
   it("aucune exemption ne survit à son objet — adossement dans les deux sens", () => {

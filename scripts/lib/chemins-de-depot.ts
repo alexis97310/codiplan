@@ -342,22 +342,19 @@ export const MODULES_SANS_CHEMIN: readonly {
     motif:
       "La consolidation est du lot 5, et elle n'a AUCUN appelant par décision : c'est la seule zone autorisée à convertir des devises (I2), et son rôle de base porte un secret distinct qui n'existe pas encore (D38).",
   },
-  {
-    module: "lib/suite-a-donner",
-    motif:
-      "9J17-SUITE-A-DONNER-SCHEMA borne le ticket au schéma, à la forme RLS et au dépôt minimal — l'écran est 9J18. Se retire le jour où 9J18 l'appelle.",
-  },
 ];
 
 /**
- * **La mesure du 14/09/2026 en nommait NEUF**, et il n'en reste que trois : la
+ * **La mesure du 14/09/2026 en nommait NEUF**, et il n'en reste que deux : la
  * liste n'a pas été corrigée, *le dépôt a bougé entre-temps.* `contacts`,
  * `excel`, `materiel` et `prestations` ont reçu un chemin avec l'écran d'import
  * (L1-11), les écrans clients (L1-01 rouvert) et le catalogue (R3-15) ;
  * `imports` aussi. `courriel` en est sorti le 24/09/2026 (AVERTISSEMENTS-1) :
  * la première notification déclenchée depuis un écran, exactement ce que le
- * motif retiré annonçait. **C'est exactement ce qu'un contrôle mesuré apporte
- * sur une liste écrite à la main : elle vieillit, et il ne vieillit pas.**
+ * motif retiré annonçait. `suite-a-donner` en est sorti le 9J18-SUITE-A-
+ * DONNER-ECRAN : l'onglet du registre lit `lib/suite-a-donner/lecture.ts`.
+ * **C'est exactement ce qu'un contrôle mesuré apporte sur une liste écrite à
+ * la main : elle vieillit, et il ne vieillit pas.**
  */
 
 /** Une exemption : une fonction sans chemin, et la raison écrite. */
@@ -668,21 +665,19 @@ export const FONCTIONS_SANS_CHEMIN: readonly SansChemin[] = [
   },
   // ── 9J17-SUITE-A-DONNER-SCHEMA (06/11/2026, D231) — LA SCHÉMA SANS ÉCRAN ──
   //
-  // Ticket délibérément borné au schéma, à la forme RLS et au dépôt minimal :
-  // les écrans sont 9J18, les relances FLX-2/FLX-3/FLX-8 restent futures.
-  // Les quatre fonctions sont éprouvées par `tests/isolation/suite-a-
-  // donner.test.ts`, qui traverse le chemin de production réel, pas une
-  // ligne posée à la main. Se retirent le jour où 9J18 les appelle.
-  {
-    module: "lib/suite-a-donner/depot.ts",
-    fonction: "qualifierSuite",
-    motif:
-      "9J17-SUITE-A-DONNER-SCHEMA borne le ticket au schéma et au dépôt ; aucun écran de ce ticket n'existe. Ouvert par l'écran de qualification de 9J18.",
-  },
+  // `qualifierSuite` s'est retirée de cette liste le 9J18-SUITE-A-DONNER-
+  // ECRAN : la route `app/api/interventions/suites-a-donner/qualifier/
+  // route.ts` l'appelle désormais. `cloturer` la rejoindra (point 6 de ce
+  // même ticket, clôture automatique au rattachement). `enregistrerAccord`
+  // et `marquerPieceRecue` restent ICI : 9J18 n'ouvre que la qualification
+  // manuelle et la clôture automatique — les relances FLX-2/FLX-3/FLX-8
+  // (devis, accord, réception de pièce) restent de vraies relances futures,
+  // jamais le même écran.
   {
     module: "lib/suite-a-donner/depot.ts",
     fonction: "enregistrerAccord",
-    motif: "Même écran que `qualifierSuite` (9J18).",
+    motif:
+      "Cible de FLX-2/FLX-3 (devis en cours, accord attendu, futures) : aucun écran ne l'appelle encore. Ouvert par FLX-2/FLX-3.",
   },
   {
     module: "lib/suite-a-donner/depot.ts",
@@ -693,6 +688,7 @@ export const FONCTIONS_SANS_CHEMIN: readonly SansChemin[] = [
   {
     module: "lib/suite-a-donner/depot.ts",
     fonction: "cloturer",
-    motif: "Même écran que `qualifierSuite` (9J18).",
+    motif:
+      "Ouverte par la clôture automatique au rattachement (9J18-SUITE-A-DONNER-ECRAN, point 6) — pas encore câblée à ce point du ticket.",
   },
 ];

@@ -61,10 +61,10 @@ _Les numéros de ligne du sommaire sont RECALCULÉS, jamais saisis à la main : 
 - `lib/feuille-de-route/` — ligne 1208
 - `lib/pwa/` — ligne 1214
 - `lib/suite-a-donner/` — ligne 1218
-- `components/` — ligne 1227
-- `prisma/` — ligne 1228
-- `tests/` — ligne 1229
-- `docs/` — ligne 1248
+- `components/` — ligne 1247
+- `prisma/` — ligne 1248
+- `tests/` — ligne 1249
+- `docs/` — ligne 1268
 
 ---
 
@@ -1215,15 +1215,35 @@ lib/
               31/10/2026) — la détection pure de l'état d'installation
               (`installation.ts`), lue par `components/pwa/` ; aucun accès au
               DOM ici, pour rester éprouvable sans navigateur
-  suite-a-donner/ LA SUITE À DONNER (9J17-SUITE-A-DONNER-SCHEMA, D231)
+  suite-a-donner/ LA SUITE À DONNER (9J17-SUITE-A-DONNER-SCHEMA, D231 ;
+              écran 9J18-SUITE-A-DONNER-ECRAN)
               depot.ts : table, forme « filiation » (D103) — visible si
               l'intervention D'ORIGINE l'est, jamais l'intervention de reprise
               SEPT états fermés, pas huit (D231) : l'attente de pièce est
               portée par deux colonnes nullables, jamais un état de plus
               quatre fonctions seulement (qualifierSuite, enregistrerAccord,
-              marquerPieceRecue, cloturer) ; aucun écran (9J18), aucune
-              relance FLX-2/FLX-3/FLX-8 (futures) — nommées dans les deux
-              gardiens de chemins (`MODULES_SANS_CHEMIN`, `FONCTIONS_SANS_CHEMIN`)
+              marquerPieceRecue, cloturer) — toujours figé à ce nombre, mais
+              qualifierSuite et cloturer ont désormais un chemin (9J18) ;
+              enregistrerAccord et marquerPieceRecue restent SANS chemin,
+              nommées dans `FONCTIONS_SANS_CHEMIN` (relances FLX-2/FLX-3/FLX-8,
+              futures)
+              lecture.ts (9J18) : les deux FORMES de ligne de l'onglet — une
+              intervention clôturée pas encore qualifiée (virtuelle, jamais
+              une colonne), une ligne `SuiteADonner` à son statut réel ;
+              AUCUNE écriture, aucune seconde politique RLS
+              reprise.ts (9J18, FLX-6/7/11) : `creerReprise` — les mêmes
+              refus qu'une pose ordinaire, `jugerPose` appelée directement
+              sur une ligne VIRTUELLE (l'intervention n'existe pas encore) ;
+              le lien `intervention_reprise_id` se pose APRÈS la création,
+              jamais avant (contrainte de clé étrangère, contrairement à la
+              garde D176 de `creerIntervention`) ; `cloturerSuiteSiReprise`,
+              appelée depuis `app/api/interventions/[id]/cloturer/route.ts`
+              APRÈS une clôture acceptée — deux transactions, un déclencheur
+              APPLICATIF, jamais PostgreSQL (I5)
+              type `curatif` PROVISOIRE pour l'intervention de reprise —
+              `TypeIntervention.reprise` désigne déjà la reprise DE MATÉRIEL
+              (chapitre 11.2), un sens différent ; décision d'Alexis attendue
+              au ticket 9J12
 components/
 prisma/       schema.prisma, migrations/, seed.ts
 tests/
