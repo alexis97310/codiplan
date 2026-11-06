@@ -2575,8 +2575,9 @@ model SuiteADonner {
 
   statut StatutSuiteADonner @default(a_qualifier)
 
-  /// Exigé dès que le statut est `sans_suite`, et refusé sinon — les deux
-  /// sens (même régime que `demande.motif_cloture`, D102). Texte LIBRE :
+  /// Exigé dès que le statut est `sans_suite`, et refusé sur tout autre état
+  /// SAUF `cloturee` — `cloturer` ne l'efface pas en fermant un dossier
+  /// `sans_suite` (I6, aucune suppression de ce qu'on sait). Texte LIBRE :
   /// aucune énumération de motifs de plus (§9, 20/08).
   motif_sans_suite String?
 

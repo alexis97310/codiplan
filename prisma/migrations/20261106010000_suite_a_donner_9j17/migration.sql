@@ -64,12 +64,22 @@ ALTER TABLE "suite_a_donner"
 -- ───────────────────────────────────────────────────────────────────────────
 
 ALTER TABLE "suite_a_donner"
-  -- Une clôture « sans suite » sans motif effacerait la raison du renoncement ;
-  -- un motif posé sur un dossier qui suit son cours dirait qu'il est sans
-  -- suite alors qu'il ne l'est pas (même régime que `demande.motif_cloture`,
-  -- D102).
-  ADD CONSTRAINT "suite_a_donner_sans_suite_a_son_motif" CHECK (
-    ("statut" = 'sans_suite') = ("motif_sans_suite" IS NOT NULL)
+  -- Un dossier `sans_suite` porte TOUJOURS son motif — jamais l'inverse.
+  -- **Pas une équivalence stricte avec le statut COURANT** : `cloturer`
+  -- fait passer un dossier `sans_suite` à `cloturee` sans effacer SON
+  -- motif, qui reste la raison du renoncement (I6, aucune suppression de
+  -- ce qu'on sait). Les deux CHECK ci-dessous portent ensemble ce que
+  -- l'équivalence stricte aurait dit, sans l'erreur qu'elle aurait commise
+  -- à la clôture.
+  ADD CONSTRAINT "suite_a_donner_sans_suite_exige_son_motif" CHECK (
+    "statut" <> 'sans_suite' OR "motif_sans_suite" IS NOT NULL
+  ),
+  -- Un motif n'existe que sur un dossier `sans_suite`, ou qui l'a été avant
+  -- sa clôture : jamais sur `qualifiee`, `accord_attendu`, `accord_recu`,
+  -- `a_replanifier` ni `a_qualifier`, où il dirait un renoncement qui n'a
+  -- pas eu lieu.
+  ADD CONSTRAINT "suite_a_donner_motif_suppose_sans_suite_ou_cloturee" CHECK (
+    "motif_sans_suite" IS NULL OR "statut" IN ('sans_suite', 'cloturee')
   ),
   -- RG-INT-06 exige les DEUX pour une attente de pièce. Une référence sans
   -- date ferait une file d'attente SANS HORIZON.
@@ -127,7 +137,7 @@ COMMENT ON COLUMN "suite_a_donner"."intervention_reprise_id" IS
   'L''intervention de reprise, une fois créée — NULLABLE jusque-là. Ne décide JAMAIS de la visibilité (D231) : seule intervention_origine_id est le parent au sens RLS. ON DELETE RESTRICT.';
 
 COMMENT ON COLUMN "suite_a_donner"."motif_sans_suite" IS
-  'Exigé dès que le statut est sans_suite, refusé sinon — les deux sens. Texte LIBRE, même régime que intervention.motif_suspension : aucune énumération de motifs de plus (§9, 20/08).';
+  'Exigé dès que le statut est sans_suite ; reste lisible après clôture (cloturer ne l''efface pas, I6) ; refusé sur tout autre état. Texte LIBRE, même régime que intervention.motif_suspension : aucune énumération de motifs de plus (§9, 20/08).';
 
 COMMENT ON COLUMN "suite_a_donner"."piece_attendue_ref" IS
   'Ce qui DÉSIGNE une attente de pièce (même patron que intervention.piece_attendue_ref, RG-INT-06) — PAS un huitième état (D231). N''existe que sous accord_recu. Exige date_dispo_prevue — une référence sans date ferait une file d''attente sans horizon.';
