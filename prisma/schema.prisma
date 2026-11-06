@@ -218,6 +218,7 @@ model Societe {
   interventionStatutHistorique InterventionStatutHistorique[]
   demandeStatutHistorique      DemandeStatutHistorique[]
   notificationLectures         NotificationLecture[]
+  suitesADonner                SuiteADonner[]
 
   @@map("societe")
 }
@@ -1693,6 +1694,12 @@ model Intervention {
   /// question 2) : une ligne n'existe qu'à compter du déploiement de cette
   /// migration.
   statut_historique     InterventionStatutHistorique[]
+  /// LES SUITES À DONNER NÉES DE CETTE INTERVENTION (9J17-SUITE-A-DONNER-
+  /// SCHEMA, D231) — forme « filiation », celle-ci décide qui les voit.
+  suites_a_donner_origine SuiteADonner[] @relation("SuiteADonnerOrigine")
+  /// LES SUITES À DONNER qui NOMMENT cette intervention comme sa reprise —
+  /// relation inverse de pure comptabilité, jamais un parent RLS (D231).
+  suites_a_donner_reprise SuiteADonner[] @relation("SuiteADonnerReprise")
 
   id         String @id @db.Uuid
   societe_id String @db.Uuid
@@ -2523,6 +2530,82 @@ model DemandeStatutHistorique {
   @@unique([societe_id, id])
   @@index([societe_id, demande_id, change_le])
   @@map("demande_statut_historique")
+}
+
+// ── LA SUITE À DONNER (9J17-SUITE-A-DONNER-SCHEMA, D231) ────────────────────
+//
+// `Intervention.suite_a_donner` — texte libre saisi par le technicien —
+// n'était lu par personne côté back-office. FLX-1 proposait HUIT états ;
+// réduits à SEPT par D231 : juste ce dont FLX-2/FLX-3/FLX-8 ont besoin.
+
+/// Le cycle de vie d'une suite à donner (D231). Sept états, pas huit :
+/// `piece_attendue` n'en est pas un — voir `piece_attendue_ref` ci-dessous.
+enum StatutSuiteADonner {
+  a_qualifier
+  /// Devis en cours — cible de FLX-2 (future).
+  qualifiee
+  /// Cible de FLX-3 (future).
+  accord_attendu
+  accord_recu
+  /// Motif en texte libre, voir `motif_sans_suite`.
+  sans_suite
+  /// Cible de FLX-8 (future) à la réception de la pièce.
+  a_replanifier
+  cloturee
+}
+
+/// LA SUITE À DONNER (D231). Table métier de la première catégorie de I1, de
+/// forme « filiation » (D103, une septième entrée) : une fille est visible si
+/// son intervention D'ORIGINE l'est — jamais de `client_id`/`perimetre_sites`
+/// propre, qui serait une seconde lecture du même critère.
+model SuiteADonner {
+  id         String @id @db.Uuid
+  societe_id String @db.Uuid
+
+  /// L'intervention dont cette suite à donner est née. OBLIGATOIRE : une
+  /// suite à donner n'existe jamais seule, et c'est elle qui décide QUI a le
+  /// droit de voir cette ligne (D103, même raisonnement que `intervention_
+  /// machine`).
+  intervention_origine_id String @db.Uuid
+
+  /// L'intervention de REPRISE, une fois créée — NULLABLE jusqu'à ce qu'elle
+  /// existe. N'est jamais le parent au sens RLS : elle ne fait que NOMMER une
+  /// intervention future, elle ne décide de rien (D231).
+  intervention_reprise_id String? @db.Uuid
+
+  statut StatutSuiteADonner @default(a_qualifier)
+
+  /// Exigé dès que le statut est `sans_suite`, et refusé sinon — les deux
+  /// sens (même régime que `demande.motif_cloture`, D102). Texte LIBRE :
+  /// aucune énumération de motifs de plus (§9, 20/08).
+  motif_sans_suite String?
+
+  /// L'ATTENTE DE PIÈCE, même patron que `Intervention.piece_attendue_ref`/
+  /// `date_dispo_prevue` (RG-INT-06, D117) : sa présence dit que le dossier
+  /// attend une pièce, ce n'est PAS un huitième état (D231). N'existe que
+  /// sous `accord_recu` — FLX-8 (future) nulle les deux colonnes et fait
+  /// passer le statut à `a_replanifier` dans la même transaction.
+  piece_attendue_ref String?
+  date_dispo_prevue  DateTime? @db.Date
+
+  /// QUI a qualifié cette suite, et QUAND — les deux ensemble, même régime
+  /// que `temps_valide_par`/`temps_valide_le` (D120).
+  qualifiee_par String?   @db.Uuid
+  qualifiee_le  DateTime? @db.Timestamptz(3)
+
+  cree_le    DateTime @default(now())
+  modifie_le DateTime @updatedAt
+
+  societe              Societe      @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  /// `ON DELETE CASCADE`, comme les autres filiations d'`intervention` : une
+  /// suite à donner n'a aucun sens sans son intervention d'origine.
+  intervention_origine Intervention @relation("SuiteADonnerOrigine", fields: [societe_id, intervention_origine_id], references: [societe_id, id], onDelete: Cascade, onUpdate: Restrict)
+  /// `RESTRICT` : une intervention nommée comme reprise ne se supprime pas
+  /// tant qu'une suite à donner la désigne.
+  intervention_reprise Intervention? @relation("SuiteADonnerReprise", fields: [societe_id, intervention_reprise_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([societe_id, intervention_origine_id])
+  @@map("suite_a_donner")
 }
 
 /// D'où vient la demande (chapitre 7/M3). Six sources, et elles ne se

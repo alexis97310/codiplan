@@ -2422,6 +2422,18 @@ export const TABLES_FILIATION = [
     parent: "notification",
     cle: "notification_id",
   },
+  // `suite_a_donner` REJOINT LA FILIATION au ticket 9J17-SUITE-A-DONNER-SCHEMA,
+  // PAR L'ARBITRAGE D231 — 06/11/2026. Même raisonnement qu'`intervention_
+  // machine` (D103) : c'est l'INTERVENTION D'ORIGINE qui décide qui a le droit
+  // de voir cette ligne, jamais une colonne `client_id`/`perimetre_sites`
+  // propre — ce serait une seconde lecture du même critère. Le parent est
+  // `intervention_origine_id`, jamais `intervention_reprise_id` : la seconde
+  // colonne ne fait que NOMMER une intervention future, elle ne décide de rien.
+  {
+    table: "suite_a_donner",
+    parent: "intervention",
+    cle: "intervention_origine_id",
+  },
 ] as const;
 
 /** Les entrées que l'arbitrage autorise. Recopiées : c'est la doctrine. */
@@ -2444,6 +2456,9 @@ const FILIATION_ARBITREE = [
   // Ticket 9J10A-NOTIFICATION-LUE-PAR-PERSONNE, 05/11/2026 — la lecture par
   // personne d'une notification.
   "notification_lecture",
+  // Ticket 9J17-SUITE-A-DONNER-SCHEMA, D231, 06/11/2026 — le suivi de la
+  // suite à donner d'une intervention.
+  "suite_a_donner",
 ];
 
 /** Écarts de la liste « filiation » — additions comme retraits. */
