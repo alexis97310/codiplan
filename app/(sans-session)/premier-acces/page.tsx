@@ -34,7 +34,16 @@ export const metadata: Metadata = { title: t("premier_acces.titre") };
  * ## Ce qu'il ne fait PAS
  *
  * Il n'ouvre aucune session et ne lit rien de la base au GET — ni prénom, ni
- * e-mail, ni nom d'administrateur : l'écran dit « Bienvenue », sans plus.
+ * nom d'administrateur : l'écran dit « Bienvenue », sans plus.
+ *
+ * ## L'ADRESSE AFFICHÉE VIENT DU LIEN, JAMAIS D'UNE LECTURE (9J21, point 6)
+ *
+ * `?email=` est posé par l'invitation elle-même (`inviterClientAuPortail`,
+ * via `redirectTo`) : ce n'est pas une lecture du jeton en base, donc un
+ * jeton mort reste exactement aussi muet qu'avant (D35/D50). Affichée en
+ * LECTURE SEULE — jamais un `<input name="email">` : rien de ce nom n'est
+ * soumis au serveur, qui ne lit l'identité QUE du jeton (`choisirLePremierMotDePasse`).
+ * Il n'existe donc aucune autre adresse à transmettre, et rien à « changer ».
  */
 export default async function PagePremierAcces({
   searchParams,
@@ -44,6 +53,7 @@ export default async function PagePremierAcces({
   const parametres = await searchParams;
   const jeton = parametres.token;
   const motif = parametres.motif;
+  const email = parametres.email;
 
   if (typeof jeton !== "string" || jeton.trim() === "") {
     return (
@@ -75,6 +85,14 @@ export default async function PagePremierAcces({
           <p className="text-muted-foreground text-sm">
             {t("premier_acces.accroche")}
           </p>
+          {typeof email === "string" && email !== "" ? (
+            <p className="text-sm">
+              <span className="text-muted-foreground">
+                {t("premier_acces.compte")}
+              </span>{" "}
+              <span className="font-medium">{email}</span>
+            </p>
+          ) : null}
         </div>
 
         <Message motif={typeof motif === "string" ? motif : undefined} />

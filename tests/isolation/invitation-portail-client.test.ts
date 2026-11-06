@@ -100,6 +100,19 @@ describe("inviterClientAuPortail — l'invitation", () => {
     expect(resultat.url).not.toBeNull();
     expect(resultat.url?.length).toBeGreaterThan(0);
 
+    // L'ADRESSE INVITÉE VOYAGE DANS LE LIEN LUI-MÊME (9J21, point 6) :
+    // `/premier-acces` l'affichera en lecture seule SANS lire le jeton — elle
+    // doit donc déjà être dans `callbackURL`, avant même que la personne
+    // invitée ne clique.
+    const callbackURL = new URL(
+      resultat.url ?? "",
+      "http://localhost",
+    ).searchParams.get("callbackURL");
+    expect(callbackURL).not.toBeNull();
+    expect(callbackURL).toBe(
+      `/premier-acces?email=${encodeURIComponent(email)}`,
+    );
+
     const [rattachement] = await clientOwner().$queryRawUnsafe<
       { actif: boolean; societe_id: string }[]
     >(

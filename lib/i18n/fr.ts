@@ -296,13 +296,19 @@ export const fr = {
   //
   // `premier_acces.titre` ne sert plus QUE le titre d'onglet depuis
   // 9EWB3-CONNEXION-MAQUETTE (M:5507-5522) : l'écran lui-même ne nomme ni
-  // prénom ni adresse au GET (rien lu du jeton avant la soumission) — il dit
-  // « Bienvenue » (`premier_acces.bienvenue`), et `premier_acces.accroche`
-  // porte désormais l'aide qui l'accompagne.
+  // prénom ni adresse au GET (rien lu DU JETON avant la soumission, D35/D50)
+  // — il dit « Bienvenue » (`premier_acces.bienvenue`), et
+  // `premier_acces.accroche` porte désormais l'aide qui l'accompagne.
+  //
+  // `premier_acces.compte` (9J21, point 6) NE ROUVRE PAS cette décision :
+  // l'adresse qu'il affiche vient du lien lui-même (`?email=`, posé par
+  // l'invitation, D96), jamais d'une lecture du jeton en base — un jeton
+  // inconnu ou expiré reste exactement aussi muet qu'avant.
   "premier_acces.titre": "Premier accès",
   "premier_acces.bienvenue": "Bienvenue",
   "premier_acces.accroche":
     "Choisissez votre mot de passe. Ce lien ne sert qu'une fois et reste valable une heure.",
+  "premier_acces.compte": "Compte",
   "premier_acces.mot_de_passe": "Nouveau mot de passe",
   "premier_acces.confirmation": "Confirmez le mot de passe",
   "premier_acces.regle_longueur": "8 caractères ou plus",

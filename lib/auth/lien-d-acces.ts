@@ -690,8 +690,19 @@ export async function inviterClientAuPortail(
         url = remise.url;
       },
     );
+    // `?email=` SUR LE LIEN LUI-MÊME (9J21, point 6) — Better Auth reporte
+    // tout ce qui figure déjà dans `redirectTo` jusqu'au lien final, en plus
+    // du jeton qu'il y ajoute. `/premier-acces` affiche cette adresse en
+    // LECTURE SEULE (D35/D50 intacts : rien n'est lu du jeton pour l'obtenir,
+    // voir `lib/i18n/fr.ts`). Alexis a vu, le 06/11, la personne invitée
+    // modifier l'adresse qu'il avait saisie — l'écran n'avait alors AUCUN
+    // champ `email` soumis au serveur, qui ne lit toujours l'identité que du
+    // jeton : il n'y a donc rien d'autre à « refuser ».
     await emetteur.api.requestPasswordReset({
-      body: { email, redirectTo: "/premier-acces" },
+      body: {
+        email,
+        redirectTo: `/premier-acces?email=${encodeURIComponent(email)}`,
+      },
     });
     if (url === null || url === "") {
       throw new RefusInvitationClient(
