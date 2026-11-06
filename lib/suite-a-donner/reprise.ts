@@ -230,17 +230,21 @@ export async function creerReprise(
 export async function cloturerSuiteSiReprise(
   contexte: ContexteSession,
   interventionId: string,
+  client?: PrismaClient,
 ): Promise<void> {
-  const suite = await avecContexteApplicatif(contexte, (tx) =>
-    tx.suiteADonner.findFirst({
-      where: {
-        intervention_reprise_id: interventionId,
-        statut: { not: "cloturee" },
-      },
-      select: { id: true },
-    }),
+  const suite = await avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.suiteADonner.findFirst({
+        where: {
+          intervention_reprise_id: interventionId,
+          statut: { not: "cloturee" },
+        },
+        select: { id: true },
+      }),
+    client,
   );
   if (suite !== null) {
-    await cloturer(contexte, suite.id);
+    await cloturer(contexte, suite.id, client);
   }
 }
