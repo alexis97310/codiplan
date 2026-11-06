@@ -186,11 +186,59 @@ export async function lireBonIntervention(
   id: string,
   connexion?: PrismaClient,
 ): Promise<BonIntervention | null> {
+  return composerBon(contexte, id, restrictionParPersonne(contexte), connexion);
+}
+
+/**
+ * LE BON D'UNE INTERVENTION DU PARC, SOUS LA SEULE POLITIQUE « PARC » (D84,
+ * 9J08A-REPRISE-9J08) — pour le portail, qui n'a jamais eu de place dans
+ * `restrictionParPersonne` (une fonction du périmètre PAR PERSONNE du
+ * back-office et du terrain, étrangère au compte client).
+ *
+ * Même composition que {@link lireBonIntervention} — `composerBon`, ci-
+ * dessous, jamais une seconde écriture — appelée sans restriction
+ * supplémentaire : la politique RLS « parc » de `intervention` (D84) est la
+ * SEULE porte, exactement comme `ficheInterventionDuParc`/`interventionsDuParc`
+ * (`app/(portail)/portail/interventions/depot.ts`), qui ne filtrent jamais non
+ * plus par personne.
+ *
+ * Certains champs composés restent structurellement VIDES sous ce contexte —
+ * jamais une panne : `segment_travail` ferme sa lecture à `app.client_id IS
+ * NULL` (D94, forme « interne »), donc `segments` est toujours `[]` ; le
+ * technicien affecté se résout toujours en `null`/« — », `utilisateur`
+ * fermant sa branche de rattachement au même discriminant (décision
+ * d'exploitation du 07/09/2026) — *un compte portail n'a rien à connaître du
+ * personnel de la société*. Aucune des deux n'est un défaut de ce module : ce
+ * sont des politiques RLS existantes, hors territoire de ce ticket.
+ */
+export async function lireBonDuParc(
+  contexte: ContexteSession,
+  id: string,
+  connexion?: PrismaClient,
+): Promise<BonIntervention | null> {
+  return composerBon(contexte, id, {}, connexion);
+}
+
+/**
+ * LA COMPOSITION DU BON, PARTAGÉE ENTRE LE BACK-OFFICE ET LE PORTAIL
+ * (9J08A-REPRISE-9J08) — reçoit la restriction supplémentaire à appliquer sur
+ * `intervention`, EN PLUS de l'identifiant : `restrictionParPersonne(contexte)`
+ * pour le back-office (inchangé), `{}` pour le portail, qui s'appuie
+ * uniquement sur la politique RLS « parc ». Tout ce qui suit le chargement de
+ * `ligne` est IDENTIQUE quel que soit l'appelant — jamais une seconde écriture
+ * de la mise en forme.
+ */
+async function composerBon(
+  contexte: ContexteSession,
+  id: string,
+  restriction: Prisma.InterventionWhereInput | undefined,
+  connexion?: PrismaClient,
+): Promise<BonIntervention | null> {
   const base = await avecContexteApplicatif(
     contexte,
     async (tx) => {
       const ligne = await tx.intervention.findFirst({
-        where: { id, ...restrictionParPersonne(contexte) },
+        where: { id, ...restriction },
         select: {
           ...CHAMPS_LIGNE,
           commentaire_technicien: true,
