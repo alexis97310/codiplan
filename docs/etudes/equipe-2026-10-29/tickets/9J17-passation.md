@@ -71,3 +71,15 @@ Budget : T0 12:26 (Pacific/Noumea), limite 150 min. Terminé sans dépasser T0+9
 
 `CI=1 pnpm verify:full` lancé en un seul appel, sortie dans
 `docs/etudes/equipe-2026-10-29/tickets/9J17-verify-final.txt`.
+
+**`format:check`, `typecheck`, `lint`, `test` (5517), `test:isolation` (1900), `build`,
+`feries:horizon` et `audit:partitions` sont VERTS — la chaîne au complet jusqu'à
+`test:e2e`.** `test:e2e` (1907 épreuves, un seul worker, le seed rejoué) a été interrompu
+par la limite d'exécution de l'outil (60 min) après environ 51 minutes de course, à peu
+près un tiers du total — AUCUNE épreuve rouge observée avant la coupure, seulement les
+points verts et deux lignes d'information déjà connues (« En retard » ne vaut pas 0 —
+capture non prise, voir le README). **Ni affirmé ni nié au-delà de ce qui a été observé**
+(doctrine §3) : `test:e2e` n'a PAS été rejoué en entier, faute de budget — ce ticket ne
+touche ni écran ni route, donc aucune épreuve e2e n'exerce le code qu'il ajoute, mais le
+tour complet de garde n'a pas été refait. `pnpm test:e2e` seul, hors ce ticket, confirmera
+la fin de la course.
