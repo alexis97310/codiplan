@@ -7913,3 +7913,80 @@ Elle n'amende l'arbitrage 3.8 ni D186 QUE sur ce point précis — la publicatio
 > Le jour où Alexis demande que le montant d'une intervention précise rejoigne le portail (option C de l'étude), ou que le barème soit retiré du portail (option B), cette décision se rouvre pour la trancher à sa place.
 
 **Règles amendées :** arbitrage 3.8, D186 — toutes deux amendées de façon BORNÉE, sur ce seul point (publication du barème sur le portail), rien d'autre.
+
+## D233 — UNE IDENTITÉ CONNUE D'UNE AUTRE SOCIÉTÉ À L'INVITATION PORTAIL ; RÉVOCATION IMMÉDIATE (décision verbatim d'Alexis, 08/11/2026 ~09:00 ; 9K01-PORTAIL-INVITATION-REVOCATION)
+
+*Tranche le défaut C1/I1 relevé par l'étude du 08/11
+(`portail-securite.md`) : `inviterClientAuPortail` ne consultait que la
+société ACTIVE pour juger « compte interne », et la révocation
+(`UtilisateurClient.actif = false`) ne fermait aucune session déjà ouverte.*
+
+### CE QUI A ÉTÉ MESURÉ
+
+Un administrateur de la société A peut inviter, par son seul courriel, une
+identité déjà connue d'une société B. Avant ce lot, le code ne regardait
+que la société active : un compte pas encore activé de B recevait un
+NOUVEAU jeton de premier accès remis à l'administrateur de A, qui pouvait
+l'utiliser pour prendre la main sur un compte qui ne lui appartient pas ;
+un compte employé de B pouvait se voir greffer un rattachement client sans
+qu'aucun contrôle ne s'y oppose. Côté révocation, basculer
+`UtilisateurClient.actif = false` ne touchait jamais la table `session` :
+un client révoqué déjà connecté gardait tout, barème compris.
+
+### LA DÉCISION
+
+**Un client peut avoir plusieurs sociétés.** À l'invitation, une identité
+trouvée par son courriel suit désormais, dans cet ordre :
+
+- **(a)** le compte porte déjà un mot de passe (`compte.mot_de_passe`, lu
+  sans filtre de société) — **quelle que soit la société où il est
+  connu** : c'est un compte client déjà ACTIF, l'invitation pose
+  simplement le rattachement, sans lien à transmettre (`dejaActif: true`,
+  comme pour une seconde invitation dans la même société) ;
+- **(b)** le compte n'a pas encore de mot de passe et est connu d'une
+  AUTRE société (`identiteExclusiveALaSociete`, D226, répond faux) —
+  rattachement interne OU client, peu importe : refus NOMMÉ
+  (`compte_connu_autre_societe`), avant tout jeton, avant tout
+  rattachement ;
+- **(c)** un employé d'une autre société (ligne `UtilisateurSociete`) suit
+  la MÊME porte que (b). **Ce lot ne lui donne pas un motif distinct** :
+  `identiteExclusiveALaSociete` (D226, `SET row_security = off` nommément
+  borné à UN booléen) ne rend jamais laquelle des deux tables a répondu,
+  et lui en donner un demanderait une seconde fonction `SECURITY DEFINER`
+  — une migration, hors mandat de ce lot. Un employé d'une autre société
+  qui aurait DÉJÀ un mot de passe suit donc la branche (a) : ce n'est pas
+  une régression (le code d'avant ce lot l'acceptait déjà, sans même
+  consulter `identiteExclusiveALaSociete`), mais ce n'est pas non plus ce
+  que (c) demande au sens strict.
+
+**Révocation immédiate.** Quand, après une révocation, l'identité ne tient
+plus aucun accès actif (client ou interne) **dans la société qui
+révoque**, toutes ses sessions sont détruites dans la même opération — un
+client révoqué déjà connecté ne voit plus rien, barème compris, dès la
+requête suivante (`obtenirSession` relit `session` à chaque appel, aucun
+cache de cookie n'est configuré). Si l'identité garde un accès ailleurs
+(autre société, ou second rattachement dans la MÊME société), sa session
+n'est pas détruite : chaque porte du portail revérifie de toute façon son
+rattachement actif à chaque requête.
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+Elle ne construit aucune fonction `SECURITY DEFINER` nouvelle, aucune
+migration : le résidu nommé en (c) — distinguer, pour un compte DÉJÀ
+ACTIF, « employé ailleurs » de « client ailleurs » — reste ouvert. Elle ne
+touche à aucune route `app/(portail)/**` ni à la porte du barème
+(`/api/portail/tarifs`, gardée par `tests/isolation/9j20-portail-
+tarifs.test.ts` contre toute lecture de rattachement) : la session détruite
+suffit au cas mesuré par l'étude, sans y introduire une lecture que
+l'architecture de cette route interdit nommément.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où Alexis demande que (c) porte son propre message, même quand le
+> compte employé d'ailleurs a déjà un mot de passe, cette décision se
+> rouvre : elle suppose une seconde fonction `SECURITY DEFINER` (sur le
+> modèle de D226), donc une migration, à traiter comme telle plutôt qu'en
+> passant.
+
+**Règles amendées :** aucune — I1 ne pose pas cette règle, ce lot la rend
+vérifiable là où elle ne l'était pas.
