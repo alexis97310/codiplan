@@ -29,6 +29,33 @@ export function dateLocaleDuBonPortail(instant: Date, fuseau: Fuseau): string {
 }
 
 /**
+ * « 20/09/2026 08:00 » LOCAL — même forme que `dateHeureLocale`
+ * (`app/(back-office)/interventions/presentation.ts`), reprise ici plutôt
+ * qu'importée (§6, chaque écran porte la sienne). Les segments de travail
+ * (9J22-PORTAIL-BON-TECHNICIEN-TEMPS) en ont besoin : `dateLocaleDuBonPortail`
+ * ci-dessus omet l'heure, qui est précisément ce qu'un segment affiche.
+ */
+export function dateHeureLocaleDuBonPortail(
+  instant: Date,
+  fuseau: Fuseau,
+): string {
+  const local = versLocal(instant, fuseau);
+  const heures = String(local.heures).padStart(2, "0");
+  const minutes = String(local.minutes).padStart(2, "0");
+  return `${dateLocaleDuBonPortail(instant, fuseau)} ${heures}:${minutes}`;
+}
+
+/** « Segments de travail sur le site » — même phrase que le back-office. */
+export function segmentsSurSiteTitreDuBonPortail(): string {
+  return `${t("intervention.bon.segments_titre")} ${motDansUnePhrase("site")}`;
+}
+
+/** « Temps total sur le site » — même phrase que le back-office. */
+export function tempsTotalSurSiteLibelleDuBonPortail(): string {
+  return `${t("intervention.bon.temps_total")} ${motDansUnePhrase("site")}`;
+}
+
+/**
  * « Signé par NOM (QUALITÉ) le DATE » — même phrase que le bon back-office
  * (`ligneSignature`, `app/(back-office)/interventions/[id]/bon/page.tsx`),
  * reprise ici plutôt qu'importée : elle vit dans une page, pas dans un

@@ -202,14 +202,21 @@ export async function lireBonIntervention(
  * (`app/(portail)/portail/interventions/depot.ts`), qui ne filtrent jamais non
  * plus par personne.
  *
- * Certains champs composés restent structurellement VIDES sous ce contexte —
- * jamais une panne : `segment_travail` ferme sa lecture à `app.client_id IS
- * NULL` (D94, forme « interne »), donc `segments` est toujours `[]` ; le
- * technicien affecté se résout toujours en `null`/« — », `utilisateur`
- * fermant sa branche de rattachement au même discriminant (décision
- * d'exploitation du 07/09/2026) — *un compte portail n'a rien à connaître du
- * personnel de la société*. Aucune des deux n'est un défaut de ce module : ce
- * sont des politiques RLS existantes, hors territoire de ce ticket.
+ * ## `segments` et `technicienAffecte`, DEPUIS 9J22
+ *
+ * `segment_travail` ferme sa lecture à `app.client_id IS NULL` (D94, forme
+ * « interne ») et `utilisateur` ferme sa branche de rattachement au même
+ * discriminant (décision d'exploitation du 07/09/2026) — **pour tout
+ * contexte qui n'est pas celui du client DE l'intervention**. Depuis 9J22
+ * (décision d'Alexis du 06/11/2026, « Oui, les deux »), chacune des deux
+ * tables porte une politique SUPPLÉMENTAIRE, forme « filiation », scopée à
+ * `app.client_id` : un segment ou un nom de technicien se lit QUAND
+ * l'intervention qui le porte est elle-même visible à ce client (politique
+ * « parc », D84) — jamais autrement. `segments` et `technicienAffecte` se
+ * remplissent donc normalement sous ce contexte précis ; ils restent `[]`/
+ * `null` pour toute intervention hors du périmètre du client — exactement
+ * comme `lireBonIntervention` ci-dessus continue de les voir toujours pour
+ * le back-office.
  */
 export async function lireBonDuParc(
   contexte: ContexteSession,

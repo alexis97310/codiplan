@@ -10,6 +10,7 @@ import { Carte } from "@/components/ui/carte";
 import { estRolePortail } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import { dateCivile, jourDe, versLocal } from "@/lib/calendar/fuseau";
+import { enDuree } from "@/lib/calendar/duree";
 import { estUuid } from "@/lib/identifiant";
 import { t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
@@ -28,9 +29,12 @@ import { bonInterventionDuParc } from "../../depot";
 import { identifiantDeLIntervention } from "../../presentation";
 import {
   aucuneMachineDuBonPortail,
+  dateHeureLocaleDuBonPortail,
   dateLocaleDuBonPortail,
   ligneSignatureAbsenteOuRefuseeDuBonPortail,
   ligneSignatureDuBonPortail,
+  segmentsSurSiteTitreDuBonPortail,
+  tempsTotalSurSiteLibelleDuBonPortail,
 } from "./presentation";
 
 /**
@@ -60,16 +64,17 @@ import {
  * `bonInterventionDuParc` refuse, nommément, un bon dont `cloturee_le` est
  * encore `null` — voir son en-tête. Le back-office n'est pas concerné.
  *
- * ## Ce qui manque structurellement, et pourquoi ce n'est pas réparé ici
+ * ## Le nom du technicien et les segments (9J22-PORTAIL-BON-TECHNICIEN-TEMPS)
  *
- * `segments` est toujours vide et le technicien affecté toujours
- * irrésolu sous le contexte portail (`lireBonDuParc`, `lib/interventions/
- * bon.ts`) : deux politiques RLS existantes (`segment_travail`, forme
- * « interne » D94 ; `utilisateur`, décision du 07/09/2026) excluent
- * structurellement tout contexte qui porte `app.client_id`. Cette page ne
- * les contourne pas (§8 : aucune politique RLS n'est à toucher ici) — elle
- * omet simplement le tableau des segments et le nom du technicien, que rien
- * ne remplirait jamais pour ce rôle.
+ * Décision d'Alexis du 06/11/2026 (« Oui, les deux ») : le client voit, pour
+ * SES PROPRES interventions seulement, le nom du technicien et les temps
+ * passés. `lireBonDuParc` les rend désormais normalement sous ce contexte —
+ * la migration `20261107050000_portail_bon_technicien_temps_9j22` a ajouté
+ * une politique de filiation, scopée au client, sur `segment_travail` ET sur
+ * `utilisateur` (voir le docblock de `lireBonDuParc`,
+ * `lib/interventions/bon.ts`) ; AUCUN montant ni taux ne les accompagne
+ * (3.8, D37, 9I8B, et le reste de cette page) — un segment n'en porte
+ * d'ailleurs aucun.
  */
 
 const sessionCache = cache(async () => obtenirSession(await headers()));
@@ -252,6 +257,12 @@ export default async function PageBonInterventionPortail({
             libelle={t("intervention.type")}
             valeur={t(`type_intervention.${typeLigne}`)}
           />
+          {bon.technicienAffecte === null ? null : (
+            <Ligne
+              libelle={t("intervention.technicien")}
+              valeur={bon.technicienAffecte}
+            />
+          )}
           <Ligne libelle={mot("agence")} valeur={bon.agence ?? "—"} />
           <Ligne
             libelle={t("intervention.panne_signalee")}
@@ -262,6 +273,71 @@ export default async function PageBonInterventionPortail({
             valeur={bon.ligne.reference_client ?? "—"}
           />
         </dl>
+        <div
+          className={`flex flex-col gap-2 px-4 pb-3.5 ${bon.segments.length === 0 ? "print:hidden" : ""}`}
+        >
+          <h3 className="text-app-encre-faible text-[12px] font-bold">
+            {segmentsSurSiteTitreDuBonPortail()}
+          </h3>
+          {bon.segments.length === 0 ? (
+            <p className="text-app-encre-faible text-[12px] font-bold">
+              {t("intervention.bon.aucun_segment")}
+            </p>
+          ) : (
+            <>
+              <table className="w-full border-collapse text-13 font-bold">
+                <thead>
+                  <tr className="border-app-bord border-b text-left">
+                    <th className="py-1 pr-2 font-semibold">
+                      {t("intervention.bon.segment_technicien")}
+                    </th>
+                    <th className="py-1 pr-2 font-semibold">
+                      {t("intervention.bon.segment_arrivee")}
+                    </th>
+                    <th className="py-1 pr-2 font-semibold">
+                      {t("intervention.bon.segment_depart")}
+                    </th>
+                    <th className="py-1 font-semibold">
+                      {t("intervention.bon.segment_duree")}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bon.segments.map((segment) => (
+                    <tr
+                      key={`${segment.technicien}-${segment.debut.toISOString()}`}
+                      className="border-app-bord-faible border-b"
+                    >
+                      <td className="py-1 pr-2">{segment.technicien}</td>
+                      <td className="py-1 pr-2">
+                        {dateHeureLocaleDuBonPortail(segment.debut, bon.fuseau)}
+                      </td>
+                      <td className="py-1 pr-2">
+                        {segment.fin === null
+                          ? t("intervention.bon.segment_en_cours")
+                          : dateHeureLocaleDuBonPortail(
+                              segment.fin,
+                              bon.fuseau,
+                            )}
+                      </td>
+                      <td className="py-1">
+                        {segment.minutes === null
+                          ? t("intervention.bon.segment_en_cours")
+                          : enDuree(segment.minutes)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <dl className="grid grid-cols-[132px_minmax(0,1fr)] gap-x-3 gap-y-2.5">
+                <Ligne
+                  libelle={tempsTotalSurSiteLibelleDuBonPortail()}
+                  valeur={enDuree(bon.minutesTotal)}
+                />
+              </dl>
+            </>
+          )}
+        </div>
       </Carte>
     ),
     commentaires: (
