@@ -3,7 +3,7 @@ import { Prisma, type PrismaClient } from "@prisma/client";
 import type { Envoi } from "@/lib/courriel/message";
 import { envoyerLienPremierAcces } from "@/lib/courriel/premier-acces";
 import { avecContexteApplicatif, prisma } from "@/lib/db/client";
-import { avecSociete } from "@/lib/db/rls";
+import { avecSociete, VARIABLE_SESSION_UTILISATEUR } from "@/lib/db/rls";
 import { uuidv7 } from "@/lib/db/uuid";
 
 import { creerAuth } from "./config";
@@ -527,11 +527,41 @@ export async function identitesExclusivesALaSociete(
  * Si l'identité porte déjà un mot de passe (elle a déjà servi, pour un AUTRE
  * client), aucun jeton n'est émis : l'accès est immédiat, il n'y a rien à
  * transmettre (`url: null`, `dejaActif: true`).
+ *
+ * ## UNE IDENTITÉ CONNUE D'UNE AUTRE SOCIÉTÉ (C1, étude du 08/11, décision
+ * d'Alexis du 08/11 ~09:00)
+ *
+ * Trouvée par son courriel, une identité peut appartenir à une tout AUTRE
+ * société — `preparerLienDAcces` ci-dessus ne se pose jamais la question
+ * (D96 garde déjà sa propre porte, `/premier-acces`, générique). Ici, un
+ * administrateur de la société A ne doit JAMAIS obtenir le lien d'un compte
+ * pas encore activé d'une société B, ni recevoir plus que ces deux faits :
+ *
+ * - le mot de passe est déjà posé (`compte.mot_de_passe`, lu sans filtre de
+ *   société — voir `preparerLienDAcces`) : « quelle que soit la société où il
+ *   est connu », c'est un compte client déjà ACTIF, et l'invitation pose
+ *   simplement le rattachement (`dejaActif: true`), EXACTEMENT comme pour une
+ *   seconde invitation dans la MÊME société ;
+ * - sinon, et SEULEMENT si `identiteExclusiveALaSociete` (D226) répond faux —
+ *   c'est-à-dire que l'identité porte au moins une ligne `utilisateur_societe`
+ *   OU `utilisateur_client` pour une société autre que l'active — le geste
+ *   refuse NOMMÉMENT (`compte_connu_autre_societe`) AVANT d'émettre quoi que
+ *   ce soit : aucun jeton, aucun rattachement.
+ *
+ * **Ce que cette seule fonction ne peut PAS distinguer** : elle ne rend qu'un
+ * booléen (D226, `SET row_security = off` nommément borné à ce résultat) —
+ * jamais LAQUELLE des deux tables a répondu. Un compte employé d'une AUTRE
+ * société qui aurait déjà posé un mot de passe suit donc la même branche
+ * qu'un compte client déjà actif ailleurs (accepté) : affiner cette
+ * distinction demanderait une fonction `SECURITY DEFINER` supplémentaire,
+ * donc une migration — hors mandat de ce lot (voir la passation). Ce n'est
+ * pas une régression : le code d'avant ce lot acceptait déjà ce cas sans
+ * même consulter `identiteExclusiveALaSociete`.
  */
 
 /** Ce qu'un refus NOMMÉ dit, et il n'en dit jamais plus (D50). */
 export type MotifRefusInvitationClient =
-  "client_introuvable" | "compte_interne";
+  "client_introuvable" | "compte_interne" | "compte_connu_autre_societe";
 
 export type ResultatInvitationClient =
   | {
@@ -618,6 +648,28 @@ export async function inviterClientAuPortail(
       return { accepte: false, motif: "compte_interne" };
     }
     utilisateurId = existante.id;
+
+    // ── CETTE IDENTITÉ EST-ELLE CONNUE D'UNE AUTRE SOCIÉTÉ ? (C1) ───────────
+    //
+    // Voir le en-tête de la fonction, juste au-dessus, pour ce que ce refus
+    // couvre et ce qu'il ne peut PAS distinguer. Lu AVANT tout rattachement
+    // ni tout jeton : un refus ici n'écrit rien.
+    const exclusive = await identiteExclusiveALaSociete(
+      contexteAdmin,
+      existante.id,
+      client,
+    );
+    if (!exclusive) {
+      const compteAilleurs = await avecDesignationAuth(client).compte.findFirst(
+        {
+          where: { utilisateur_id: existante.id },
+          select: { mot_de_passe: true },
+        },
+      );
+      if (compteAilleurs === null || compteAilleurs.mot_de_passe === null) {
+        return { accepte: false, motif: "compte_connu_autre_societe" };
+      }
+    }
   } else {
     // ── L'IDENTITÉ ET SON COMPTE AU REPOS, ÉCRITS DIRECTEMENT ───────────────
     //
@@ -740,6 +792,18 @@ export type ResultatRevocationAccesPortail =
  * ligne `UtilisateurClient`, jamais de suppression (I6). Même mécanisme que
  * `basculerActiviteContact` (`lib/contacts/depot.ts`).
  *
+ * **RÉVOCATION IMMÉDIATE (I1, décision d'Alexis du 08/11, point (d))** : si,
+ * APRÈS cette bascule, l'identité ne tient plus aucun accès ACTIF dans la
+ * SOCIÉTÉ QUI RÉVOQUE — ni un autre rattachement `UtilisateurClient`, ni une
+ * ligne `UtilisateurSociete` — toutes ses sessions sont détruites dans la
+ * foulée : un client révoqué connecté ne doit plus rien voir, barème compris.
+ * « Dans la société qui révoque », jamais ailleurs : I1 interdit de lire une
+ * AUTRE société pour en décider, et ce n'est pas nécessaire — si l'identité
+ * garde un accès dans une autre société, sa session y reste valable, et
+ * chaque porte du portail (`rattachementsDuCompte`, filtrée `actif: true`,
+ * et désormais `contextePortailTarifs`) revérifie son rattachement à chaque
+ * requête.
+ *
  * @param contexteAdmin voir `inviterClientAuPortail` — même garde (D230).
  * @param utilisateurClientId la ligne `UtilisateurClient` visée, jamais
  *   l'identifiant du client ni celui du compte : une même personne peut être
@@ -751,18 +815,62 @@ export async function revoquerAccesPortailClient(
   client: PrismaClient = prisma,
 ): Promise<ResultatRevocationAccesPortail> {
   exigerCapaciteInvitationClient(contexteAdmin);
-  const touchees = await avecContexteApplicatif(
+  const societeId = exigerSocieteActive(contexteAdmin);
+
+  const ligne = await avecContexteApplicatif(
     contexteAdmin,
-    (tx) =>
-      tx.utilisateurClient.updateMany({
+    async (tx) => {
+      const touchees = await tx.utilisateurClient.updateMany({
         where: { id: utilisateurClientId },
         data: { actif: false },
-      }),
+      });
+      if (touchees.count === 0) {
+        return null;
+      }
+      return tx.utilisateurClient.findUnique({
+        where: { id: utilisateurClientId },
+        select: { utilisateur_id: true },
+      });
+    },
     client,
   );
-  return touchees.count === 0
-    ? { accepte: false, motif: "introuvable" }
-    : { accepte: true };
+  if (ligne === null) {
+    return { accepte: false, motif: "introuvable" };
+  }
+  const utilisateurId = ligne.utilisateur_id;
+
+  const [resteUnRattachementClient, resteUnRoleInterne] = await Promise.all([
+    avecSociete(client, societeId, (tx) =>
+      tx.utilisateurClient.findFirst({
+        where: { utilisateur_id: utilisateurId, actif: true },
+        select: { id: true },
+      }),
+    ),
+    avecSociete(client, societeId, (tx) =>
+      tx.utilisateurSociete.findFirst({
+        where: { utilisateur_id: utilisateurId },
+        select: { utilisateur_id: true },
+      }),
+    ),
+  ]);
+  if (resteUnRattachementClient === null && resteUnRoleInterne === null) {
+    // `avecDesignationAuth` ne reconnaît QUE le jeton pour `session` (la
+    // table n'accepte, en désignation, que « token » — voir
+    // `CLES_DESIGNATION`) : la politique `session_fermeture`, elle, admet
+    // AUSSI sa propre ligne par `app.utilisateur_id` (D59/L1-02d) — la même
+    // variable que `fermerLesAutresSessions` (`lib/auth/mon-compte.ts`) pose
+    // à la main pour la même raison.
+    await client.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe(
+        "SELECT set_config($1, $2, true)",
+        VARIABLE_SESSION_UTILISATEUR,
+        utilisateurId,
+      );
+      await tx.session.deleteMany({ where: { utilisateur_id: utilisateurId } });
+    });
+  }
+
+  return { accepte: true };
 }
 
 /** Un compte du portail, tel que la fiche client le montre. */

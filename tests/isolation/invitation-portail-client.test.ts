@@ -16,6 +16,7 @@ import {
   CLIENT_A2,
   CLIENT_B1,
   SOCIETE_A,
+  SOCIETE_B,
   UTILISATEUR_PAR_ROLE,
 } from "./setup/fixtures";
 
@@ -243,6 +244,174 @@ describe("inviterClientAuPortail — l'invitation", () => {
     expect(rattachement).toHaveLength(0);
   });
 
+  /**
+   * C1 (étude du 08/11, décision d'Alexis du 08/11 ~09:00) — UNE IDENTITÉ
+   * CONNUE D'UNE AUTRE SOCIÉTÉ. Les trois scénarios ci-dessous posent la
+   * fixture directement (comme le test « compte interne » ci-dessus) plutôt
+   * que d'emprunter les comptes partagés `PORTAIL_B_CLIENT`/
+   * `UTILISATEUR_INTERNE_B` du harnais global : ceux-ci survivent à TOUT le
+   * run d'isolation, et les muter (nouveau rattachement, révocation) les
+   * ferait dériver sous les épreuves d'un AUTRE fichier. `afterEach`
+   * nettoie par motif de courriel, quelle que soit la société où la fixture
+   * a été posée.
+   */
+  it("C1(a) — une identité CLIENTE déjà ACTIVE (mot de passe posé) d'une AUTRE société est acceptée, sans lien", async () => {
+    const email = courriel();
+    const utilisateurId = uuidv7();
+    await clientOwner().utilisateur.create({
+      data: { id: utilisateurId, nom: "Client de B, déjà actif", email },
+    });
+    await clientOwner().compte.create({
+      data: {
+        id: uuidv7(),
+        utilisateur_id: utilisateurId,
+        emetteur: "local:credential",
+        compte_externe_id: utilisateurId,
+        fournisseur_id: "credential",
+        mot_de_passe: "empreinte-de-test",
+      },
+    });
+    await clientOwner().utilisateurClient.create({
+      data: {
+        id: uuidv7(),
+        utilisateur_id: utilisateurId,
+        client_id: CLIENT_B1,
+        societe_id: SOCIETE_B,
+        actif: true,
+      },
+    });
+
+    const resultat = await inviterClientAuPortail(
+      ADMIN_A,
+      CLIENT_A1,
+      email,
+      clientApp(),
+    );
+    expect(resultat).toEqual({ accepte: true, url: null, dejaActif: true });
+
+    const rattachements = await clientOwner().$queryRawUnsafe<
+      { societe_id: string; client_id: string }[]
+    >(
+      `SELECT societe_id::text, client_id::text FROM "utilisateur_client"
+        WHERE utilisateur_id = $1::uuid ORDER BY societe_id`,
+      utilisateurId,
+    );
+    expect(rattachements).toHaveLength(2);
+    expect(
+      rattachements.some(
+        (r) => r.societe_id === SOCIETE_A && r.client_id === CLIENT_A1,
+      ),
+    ).toBe(true);
+    expect(
+      rattachements.some(
+        (r) => r.societe_id === SOCIETE_B && r.client_id === CLIENT_B1,
+      ),
+    ).toBe(true);
+  });
+
+  it("C1(b) — une identité connue d'une autre société mais PAS ENCORE ACTIVÉE est refusée, sans jeton ni rattachement", async () => {
+    const email = courriel();
+    const utilisateurId = uuidv7();
+    await clientOwner().utilisateur.create({
+      data: { id: utilisateurId, nom: "Client de B, en attente", email },
+    });
+    await clientOwner().compte.create({
+      data: {
+        id: uuidv7(),
+        utilisateur_id: utilisateurId,
+        emetteur: "local:credential",
+        compte_externe_id: utilisateurId,
+        fournisseur_id: "credential",
+        mot_de_passe: null,
+      },
+    });
+    await clientOwner().utilisateurClient.create({
+      data: {
+        id: uuidv7(),
+        utilisateur_id: utilisateurId,
+        client_id: CLIENT_B1,
+        societe_id: SOCIETE_B,
+        actif: true,
+      },
+    });
+
+    const resultat = await inviterClientAuPortail(
+      ADMIN_A,
+      CLIENT_A1,
+      email,
+      clientApp(),
+    );
+    expect(resultat).toEqual({
+      accepte: false,
+      motif: "compte_connu_autre_societe",
+    });
+
+    const rattachementA = await clientOwner().$queryRawUnsafe<unknown[]>(
+      `SELECT 1 FROM "utilisateur_client"
+        WHERE utilisateur_id = $1::uuid AND societe_id = $2::uuid`,
+      utilisateurId,
+      SOCIETE_A,
+    );
+    expect(rattachementA).toHaveLength(0);
+
+    // AUCUN JETON ÉMIS — Better Auth pose `verification.valeur = utilisateurId`
+    // (même lecture que `tests/isolation/nouveau-lien-mot-de-passe-deja-pose.test.ts`).
+    const jetons = await clientOwner().$queryRawUnsafe<unknown[]>(
+      `SELECT 1 FROM "verification" WHERE valeur = $1`,
+      utilisateurId,
+    );
+    expect(jetons).toHaveLength(0);
+  });
+
+  it("C1(c) — une identité EMPLOYÉE d'une AUTRE société est refusée", async () => {
+    const email = courriel();
+    const utilisateurId = uuidv7();
+    await clientOwner().utilisateur.create({
+      data: { id: utilisateurId, nom: "Employé de B", email },
+    });
+    await clientOwner().utilisateurSociete.create({
+      data: {
+        id: uuidv7(),
+        utilisateur_id: utilisateurId,
+        societe_id: SOCIETE_B,
+        role: Role.adv,
+      },
+    });
+
+    const resultat = await inviterClientAuPortail(
+      ADMIN_A,
+      CLIENT_A1,
+      email,
+      clientApp(),
+    );
+    expect(resultat).toEqual({
+      accepte: false,
+      motif: "compte_connu_autre_societe",
+    });
+
+    const rattachement = await clientOwner().$queryRawUnsafe<unknown[]>(
+      `SELECT 1 FROM "utilisateur_client" WHERE utilisateur_id = $1::uuid`,
+      utilisateurId,
+    );
+    expect(rattachement).toHaveLength(0);
+  });
+
+  it("non-régression — une identité SANS mot de passe mais connue SEULEMENT de la société active reste acceptée AVEC lien", async () => {
+    const email = courriel();
+    await inviterClientAuPortail(ADMIN_A, CLIENT_A1, email, clientApp());
+
+    const second = await inviterClientAuPortail(
+      ADMIN_A,
+      CLIENT_A2,
+      email,
+      clientApp(),
+    );
+    expect(second.accepte).toBe(true);
+    if (!second.accepte) return;
+    expect(second.dejaActif).toBe(false);
+    expect(second.url).not.toBeNull();
+  });
+
   it("une seconde invitation POUR LE MÊME client RÉACTIVE la ligne, jamais ne la duplique", async () => {
     const email = courriel();
     await inviterClientAuPortail(ADMIN_A, CLIENT_A1, email, clientApp());
@@ -369,6 +538,103 @@ describe("revoquerAccesPortailClient — la révocation (I6 : jamais de suppress
     >(`SELECT actif FROM "utilisateur_client" WHERE id = $1::uuid`, ligne.id);
     expect(toujoursLa).toBeDefined();
     expect(toujoursLa?.actif).toBe(false);
+  });
+
+  /**
+   * I1, décision d'Alexis du 08/11 (point (d)) — RÉVOCATION IMMÉDIATE : plus
+   * aucun rattachement actif dans la société qui révoque détruit TOUTES les
+   * sessions de l'identité, barème compris (aucune route du portail ne lit
+   * de session détruite — `obtenirSession` relit la table à chaque requête,
+   * `lib/auth/config.ts` ne pose aucun cache de cookie).
+   */
+  it("I1(d) — détruit toutes les sessions quand plus aucun accès actif ne reste dans la société qui révoque", async () => {
+    const email = courriel();
+    await inviterClientAuPortail(ADMIN_A, CLIENT_A1, email, clientApp());
+    const [ligne] = await clientOwner().$queryRawUnsafe<
+      { id: string; utilisateur_id: string }[]
+    >(
+      `SELECT uc.id::text, uc.utilisateur_id::text FROM "utilisateur_client" uc
+         JOIN "utilisateur" u ON u.id = uc.utilisateur_id
+        WHERE u.email = $1`,
+      email,
+    );
+    if (ligne === undefined) throw new Error("fixture non créée");
+
+    // UNE SESSION, posée directement — TÉMOIN qu'elle existe avant révocation.
+    await clientOwner().session.create({
+      data: {
+        id: uuidv7(),
+        token: `${PREFIXE}${ligne.utilisateur_id}`,
+        utilisateur_id: ligne.utilisateur_id,
+        expire_le: new Date(Date.now() + 3_600_000),
+        societe_id_active: SOCIETE_A,
+      },
+    });
+    const avant = await clientOwner().$queryRawUnsafe<unknown[]>(
+      `SELECT 1 FROM "session" WHERE utilisateur_id = $1::uuid`,
+      ligne.utilisateur_id,
+    );
+    expect(avant).toHaveLength(1);
+
+    const resultat = await revoquerAccesPortailClient(
+      ADMIN_A,
+      ligne.id,
+      clientApp(),
+    );
+    expect(resultat).toEqual({ accepte: true });
+
+    const apres = await clientOwner().$queryRawUnsafe<unknown[]>(
+      `SELECT 1 FROM "session" WHERE utilisateur_id = $1::uuid`,
+      ligne.utilisateur_id,
+    );
+    expect(apres).toHaveLength(0);
+  });
+
+  it("I1(d) — garde la session quand un AUTRE rattachement actif reste dans la MÊME société", async () => {
+    const email = courriel();
+    await inviterClientAuPortail(ADMIN_A, CLIENT_A1, email, clientApp());
+    const second = await inviterClientAuPortail(
+      ADMIN_A,
+      CLIENT_A2,
+      email,
+      clientApp(),
+    );
+    expect(second.accepte).toBe(true);
+
+    const [ligneA1] = await clientOwner().$queryRawUnsafe<
+      { id: string; utilisateur_id: string }[]
+    >(
+      `SELECT uc.id::text, uc.utilisateur_id::text FROM "utilisateur_client" uc
+         JOIN "utilisateur" u ON u.id = uc.utilisateur_id
+        WHERE u.email = $1 AND uc.client_id = $2::uuid`,
+      email,
+      CLIENT_A1,
+    );
+    if (ligneA1 === undefined) throw new Error("fixture non créée");
+
+    await clientOwner().session.create({
+      data: {
+        id: uuidv7(),
+        token: `${PREFIXE}${ligneA1.utilisateur_id}`,
+        utilisateur_id: ligneA1.utilisateur_id,
+        expire_le: new Date(Date.now() + 3_600_000),
+        societe_id_active: SOCIETE_A,
+      },
+    });
+
+    const resultat = await revoquerAccesPortailClient(
+      ADMIN_A,
+      ligneA1.id,
+      clientApp(),
+    );
+    expect(resultat).toEqual({ accepte: true });
+
+    // LE RATTACHEMENT À A2 EST TOUJOURS ACTIF — la session reste valide.
+    const apres = await clientOwner().$queryRawUnsafe<unknown[]>(
+      `SELECT 1 FROM "session" WHERE utilisateur_id = $1::uuid`,
+      ligneA1.utilisateur_id,
+    );
+    expect(apres).toHaveLength(1);
   });
 
   it("un identifiant inconnu reçoit un refus NOMMÉ", async () => {

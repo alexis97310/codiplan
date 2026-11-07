@@ -7021,6 +7021,8 @@ export const fr = {
   "clients.acces.refus.client_introuvable": "Ce client n'existe pas.",
   "clients.acces.refus.compte_interne":
     "Cette adresse est un compte interne : elle ne peut pas recevoir un accès portail.",
+  "clients.acces.refus.compte_connu_autre_societe":
+    "Ce compte n'est pas encore activé et dépend d'une autre société : il doit d'abord l'activer par le lien reçu de cette société.",
   "clients.acces.refus.email_invalide": "Ce courriel n'est pas valide.",
   "clients.acces.refus.acces_refuse":
     "Réservé à l'administrateur de la société ou à la direction.",
