@@ -187,3 +187,138 @@ verts après chaque commit. `verify:full` laissé à la file.
 - `app/(portail)/portail/interventions/[id]/bon/presentation.ts` — trois fonctions ajoutées
 - `tests/e2e/captures-9j22-portail-bon-technicien-temps.spec.ts` (nouveau)
 - `docs/propositions/9J22-PORTAIL-BON-TECHNICIEN-TEMPS/captures/*.png` (nouveau)
+
+---
+
+## Reprise 9J22A-REPRISE-9J22 (07/11/2026 ~13:30–14:20)
+
+### Décision qui déclenche la reprise
+
+Décision d'Alexis (07/11/2026 ~12:15), sur CETTE passation elle-même, §« Ce
+qui reste dû » ci-dessus : *« la restriction aux colonnes `{id, nom}`
+d'`utilisateur` ne tient que par la discipline du seul appelant, pas par la
+base »* — un contexte client pouvait lire en base TOUTE la ligne `utilisateur`
+d'un technicien de ses interventions (`email` compris), ce que le contrat de
+9J22 interdisait nommément. **Le geste choisi : recopier le nom affiché là où
+le client lit déjà (`segment_travail`), et retirer la politique sur
+`utilisateur` — jamais l'élargir ni la border par colonne (impossible en
+PostgreSQL avec un seul rôle applicatif, voir la mesure ci-dessus).**
+
+### La migration NEUVE, nommément
+
+```
+20261107060000_portail_nom_technicien_recopie_9j22a
+```
+
+1. `ALTER TABLE "segment_travail" ADD COLUMN "nom_technicien_affiche" TEXT` (nullable).
+2. Backfill `UPDATE segment_travail SET nom_technicien_affiche = utilisateur.nom
+   FROM utilisateur WHERE ...` — `NO FORCE ROW LEVEL SECURITY` posé sur LES DEUX
+   tables (`segment_travail` ET `utilisateur`, les deux FORCE-RLS) pour la durée
+   du backfill, la levée CONSTATÉE par un témoin `relforcerowsecurity` avant
+   d'écrire quoi que ce soit (même discipline que L1-02), `FORCE` restauré
+   ensuite sur les deux.
+3. `ALTER COLUMN "nom_technicien_affiche" SET NOT NULL`.
+4. `DROP POLICY "utilisateur_lecture_filiation_portail" ON "utilisateur"` —
+   RETIRÉE, jamais rétrécie : les deux formes d'origine de `utilisateur`
+   (« désignation », « rattachement », L1-02c) restent entières et inchangées.
+   La politique `cloisonnement_filiation_lecture_portail` de `segment_travail`
+   (posée par 9J22) n'est PAS touchée : la mesure du point 1 (ci-dessous)
+   montre que la table ne porte aucune colonne de coût, de taux ni de montant.
+
+### Mesure (point 1 du ticket 9J22A)
+
+- **Colonnes de `segment_travail`** (`prisma/schema.prisma`) : `id`,
+  `societe_id`, `intervention_id`, `utilisateur_id`, `debut`, `fin`,
+  `saisi_hors_reseau`, `cree_le`, `modifie_le`. Aucune colonne de coût, de
+  taux ou de montant — la question ne se posait déjà pas pour la brèche de
+  9J22, et elle ne se pose pas davantage ici.
+- **Où naît le segment** : UN SEUL chemin d'écriture dans tout le dépôt —
+  `tx.segmentTravail.create` en `lib/interventions/depot-compteur.ts`
+  (`demarrerLeCompteur`). Les segments ne changent JAMAIS d'auteur après coup
+  (aucun `update` n'écrit `utilisateur_id` nulle part) : la colonne recopiée
+  n'a donc besoin d'être écrite qu'UNE FOIS, à la création, jamais réécrite.
+- **Où le bon lit le nom** : `composerBon` (`lib/interventions/bon.ts`), pour
+  DEUX champs — `segments[].technicien` (depuis `segment_travail`) ET
+  `technicienAffecte` (depuis `intervention.technicien_id`, un champ qui peut
+  être renseigné SANS qu'aucun segment existe). Le ticket 9J22A ne demandait
+  de recopier que sur `segment_travail` ; `technicienAffecte`, sous un
+  contexte client, est donc résolu en cherchant, PARMI LES SEGMENTS DÉJÀ LUS,
+  celui dont `utilisateur_id` égale `technicien_id` — `null` si aucun n'existe
+  (un technicien affecté qui n'a encore posé aucun segment de SA main n'a,
+  sous ce seul contexte, aucun nom à afficher). Le back-office, lui, continue
+  de résoudre les deux par `lib/auth/annuaire.ts`, inchangé.
+- **L'extension du gardien `scripts/lib/politiques-rls.ts`** : CONTRAIREMENT à
+  ce que l'énoncé du ticket supposait, aucune exception nommée n'existait
+  pour `utilisateur_lecture_filiation_portail` — `BRECHES_FILIATION_DES_TABLES_
+  INTERNES` (ajoutée par 9J22) ne porte QUE l'entrée de `segment_travail`
+  (`utilisateur` n'est pas une table de la forme « interne » de I1 ; son
+  propre système de formes, « désignation »/« rattachement », n'a jamais reçu
+  d'entrée pour cette troisième brèche). **Rien n'a donc été retiré de ce
+  fichier** : le `DROP POLICY` de la migration est la SEULE fermeture
+  nécessaire, et `9j22-portail-bon-technicien-temps.test.ts` porte désormais
+  un test de CONSTAT (la politique n'existe plus) plutôt que de clause.
+
+### Ce que le client peut encore lire, après cette reprise
+
+- Le nom affiché d'un technicien **qui a posé au moins un segment** de SON
+  intervention — par la recopie, jamais par une lecture de `utilisateur`.
+- Rien d'autre d'`utilisateur` : AUCUNE ligne de cette table, pas même celle
+  du technicien de sa PROPRE intervention (épreuve ajoutée, voir plus bas) —
+  ni `email`, ni quoi que ce soit.
+- Un technicien **affecté mais qui n'a posé aucun segment** de cette
+  intervention n'est plus nommé sous le portail (`technicienAffecte: null`),
+  à la différence du back-office qui continue de le nommer. C'est une
+  conséquence MESURÉE du choix du ticket (recopier sur `segment_travail`
+  seul), pas un oubli — si ce point doit être fermé plus fort, c'est un choix
+  à soumettre : soit l'accepter (un technicien affecté sans travail déclaré
+  n'a rien à montrer au client), soit recopier AUSSI sur `intervention` (une
+  seconde colonne, hors scope de ce ticket).
+
+### Épreuves d'isolation (point 6)
+
+`tests/isolation/9j22-portail-bon-technicien-temps.test.ts` réécrit : le test
+de clause sur `utilisateur_lecture_filiation_portail` devient un test de
+CONSTAT (la politique a disparu) ; une épreuve neuve vérifie qu'un contexte
+client ne lit AUCUNE ligne `utilisateur`, PAS MÊME celle du technicien de sa
+PROPRE intervention — exactement le point que 9J22A ferme et que 9J22 avait
+laissé ouvert. Les épreuves existantes (nom affiché, segments, exclusivité
+inter-client et inter-société) restent vertes avec la nouvelle source.
+
+**Effet de bord mesuré, et traité** : `segment_travail.nom_technicien_affiche`
+étant `NOT NULL`, TOUTE fixture du dépôt qui pose un segment par SQL brut ou
+par `segmentTravail.create` devait la renseigner — 10 fichiers
+`tests/isolation/*.test.ts`, 1 fichier `tests/e2e/setup/scene.ts` partagé par
+plusieurs scénarios, et 9 fichiers `tests/e2e/*.spec.ts` supplémentaires.
+Corrigés tous ensemble (sous-requête sur `utilisateur.nom` quand le fichier
+raw-SQL le permet, littéral `"Technicien de l'épreuve"` pour les créations
+Prisma qui ne portent pas sur l'affichage du bon). Une fixture de « base âgée »
+neuve (`tests/isolation/fixtures/base-agee/20261107060000_...j22a.sql`) pose
+un segment réel AVANT la migration, pour que le backfill soit éprouvé contre
+une ligne, pas contre une table vide (gardien `migrations-sur-base-agee.test.ts`).
+
+### Captures (point 7)
+
+AUCUN fichier neuf : le changement est invisible à l'écran (seule la
+PROVENANCE du nom change, jamais ce qu'il affiche). Les trois captures
+existantes de 9J22 (`bon-technicien-temps-apres-{375,1280,impression}.png`)
+ont été RÉGÉNÉRÉES contre le code de cette reprise — `git status` les montre
+byte-identiques aux précédentes, ce qui CONFIRME l'absence de régression
+visuelle plutôt que de la supposer.
+
+### Vérification jouée
+
+`pnpm test` (5541 tests), `pnpm test:isolation` (1945 tests), la capture e2e
+ciblée (3 tests), puis `CI=1 pnpm verify` — tous verts. `verify:full` laissé
+à la file de nuit.
+
+### Fichiers touchés par cette reprise
+
+- `prisma/schema.prisma` — colonne `segment_travail.nom_technicien_affiche`
+- `prisma/migrations/20261107060000_portail_nom_technicien_recopie_9j22a/migration.sql` (nouveau)
+- `lib/db/migrations-attendues.ts` — migration ajoutée
+- `lib/interventions/depot-compteur.ts` — recopie du nom à la création du segment
+- `lib/interventions/bon.ts` — `composerBon` ne lit plus `utilisateur` sous un contexte client
+- `tests/isolation/9j22-portail-bon-technicien-temps.test.ts` — réécrit
+- `tests/isolation/fixtures/base-agee/20261107060000_...j22a.sql` (nouveau)
+- 10 fichiers `tests/isolation/*.test.ts` — fixture `segment_travail` complétée
+- `tests/e2e/setup/scene.ts` + 10 fichiers `tests/e2e/*.spec.ts` — idem
