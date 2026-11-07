@@ -111,8 +111,9 @@ test.beforeAll(async () => {
     // CINQ minutes, volontairement — un seul chiffre, celui qui distinguait
     // « 05 min » (avant) de « 5 min » (après).
     await client.$executeRawUnsafe(
-      `INSERT INTO "segment_travail" ("id","societe_id","intervention_id","utilisateur_id","debut","fin","modifie_le")
-       VALUES (gen_random_uuid(), $1::uuid, $2::uuid, $3::uuid, now() - interval '5 minutes', now(), now())`,
+      `INSERT INTO "segment_travail" ("id","societe_id","intervention_id","utilisateur_id","nom_technicien_affiche","debut","fin","modifie_le")
+       VALUES (gen_random_uuid(), $1::uuid, $2::uuid, $3::uuid,
+               (SELECT "nom" FROM "utilisateur" WHERE "id" = $3::uuid), now() - interval '5 minutes', now(), now())`,
       reperes.societeId,
       INTERVENTION_GR14CAP,
       reperes.technicienDucos,

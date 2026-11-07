@@ -135,8 +135,9 @@ test.beforeAll(async () => {
     // l'écrire avant qu'aucun segment n'existe le refuserait (même ordre que
     // `scene.ts`).
     await client.$executeRawUnsafe(
-      `INSERT INTO "segment_travail" ("id","societe_id","intervention_id","utilisateur_id","debut","fin","modifie_le")
-       VALUES (gen_random_uuid(), $1::uuid, $2::uuid, $3::uuid, now() - interval '120 minutes', now(), now())`,
+      `INSERT INTO "segment_travail" ("id","societe_id","intervention_id","utilisateur_id","nom_technicien_affiche","debut","fin","modifie_le")
+       VALUES (gen_random_uuid(), $1::uuid, $2::uuid, $3::uuid,
+               (SELECT "nom" FROM "utilisateur" WHERE "id" = $3::uuid), now() - interval '120 minutes', now(), now())`,
       reperes.societeId,
       FICHE_BON_TERMINEE,
       reperes.technicienDucos,

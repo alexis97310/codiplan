@@ -152,6 +152,7 @@ for (const largeur of LARGEURS) {
           societe_id: societeId,
           intervention_id: INTERVENTIONS[largeur],
           utilisateur_id: technicienId,
+          nom_technicien_affiche: "Technicien de l'épreuve",
           debut: new Date(Date.now() - 15 * 60_000),
           fin: null,
         },

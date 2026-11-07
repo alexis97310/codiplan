@@ -100,8 +100,9 @@ function sql(
   societeId = SOCIETE_A,
 ): string {
   return `INSERT INTO "segment_travail"
-            ("id", "societe_id", "intervention_id", "utilisateur_id", "debut", "fin", "modifie_le")
+            ("id", "societe_id", "intervention_id", "utilisateur_id", "nom_technicien_affiche", "debut", "fin", "modifie_le")
           VALUES ('${id}', '${societeId}', '${interventionId}', '${utilisateurId}',
+                  (SELECT "nom" FROM "utilisateur" WHERE "id" = '${utilisateurId}'),
                   TIMESTAMPTZ '${debut.toISOString()}',
                   ${fin === null ? "NULL" : `TIMESTAMPTZ '${fin.toISOString()}'`},
                   now())`;

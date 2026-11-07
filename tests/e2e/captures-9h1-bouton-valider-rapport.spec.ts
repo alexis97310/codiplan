@@ -59,8 +59,9 @@ async function creerLIntervention(
     },
   });
   await client.$executeRawUnsafe(
-    `INSERT INTO "segment_travail" ("id","societe_id","intervention_id","utilisateur_id","debut","fin","modifie_le")
-     VALUES (gen_random_uuid(), $1::uuid, $2::uuid, $3::uuid, now() - interval '90 minutes', now(), now())`,
+    `INSERT INTO "segment_travail" ("id","societe_id","intervention_id","utilisateur_id","nom_technicien_affiche","debut","fin","modifie_le")
+     VALUES (gen_random_uuid(), $1::uuid, $2::uuid, $3::uuid,
+             (SELECT "nom" FROM "utilisateur" WHERE "id" = $3::uuid), now() - interval '90 minutes', now(), now())`,
     societeId,
     id,
     technicienId,

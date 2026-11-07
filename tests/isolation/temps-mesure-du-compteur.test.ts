@@ -121,8 +121,9 @@ async function segmentFerme(
   secondes: number,
 ): Promise<void> {
   await clientOwner().$executeRawUnsafe(
-    `INSERT INTO "segment_travail" ("id","societe_id","intervention_id","utilisateur_id","debut","fin","modifie_le")
+    `INSERT INTO "segment_travail" ("id","societe_id","intervention_id","utilisateur_id","nom_technicien_affiche","debut","fin","modifie_le")
      VALUES ('${uuidv7()}', '${SOCIETE_A}', '${interventionId}', '${TECHNICIEN}',
+             (SELECT "nom" FROM "utilisateur" WHERE "id" = '${TECHNICIEN}'),
              '${debut}'::timestamptz,
              '${debut}'::timestamptz + interval '${secondes} seconds', now())`,
   );

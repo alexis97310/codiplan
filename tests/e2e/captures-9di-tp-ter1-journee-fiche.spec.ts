@@ -194,6 +194,7 @@ test.beforeAll(async () => {
         societe_id: reperes.societeId,
         intervention_id: INTERVENTION_REPRISE_ID,
         utilisateur_id: reperes.technicienDucos,
+        nom_technicien_affiche: "Technicien de l'épreuve",
         debut: ilYA20Minutes,
         fin: ilYA5Minutes,
       },

@@ -127,8 +127,9 @@ async function interventionClose(forfaitId: string): Promise<string> {
   );
   for (const segment of [SEGMENT_1, SEGMENT_2]) {
     await clientOwner().$executeRawUnsafe(
-      `INSERT INTO "segment_travail" ("id","societe_id","intervention_id","utilisateur_id","debut","fin","modifie_le")
+      `INSERT INTO "segment_travail" ("id","societe_id","intervention_id","utilisateur_id","nom_technicien_affiche","debut","fin","modifie_le")
        VALUES ('${uuidv7()}', '${SOCIETE_A}', '${id}', '${TECHNICIEN}',
+               (SELECT "nom" FROM "utilisateur" WHERE "id" = '${TECHNICIEN}'),
                '${segment.debut}'::timestamptz, '${segment.fin}'::timestamptz, now())`,
     );
   }

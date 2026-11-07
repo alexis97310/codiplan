@@ -34,6 +34,13 @@ import {
  * pnpm exec next start --port 3100`, puis ce même fichier filtré sur
  * « capture ».
  *
+ * **REJOUÉ TEL QUEL PAR 9J22A-REPRISE-9J22** (décision d'Alexis du
+ * 07/11/2026) : la seule chose qui change sous ce ticket est la PROVENANCE du
+ * nom affiché (`segment_travail.nom_technicien_affiche`, recopié, au lieu
+ * d'une lecture de `utilisateur` désormais fermée au portail) — jamais ce
+ * que l'écran montre. Les captures APRÈS de 9J22A sont donc celles-ci,
+ * régénérées, pas un second fichier.
+ *
  * **SA PROPRE INTERVENTION JETABLE**, CLÔTURÉE, avec un technicien AFFECTÉ et
  * UN SEGMENT FERMÉ — sans les deux, la capture ne prouverait rien de ce que
  * ce ticket ouvre. Posée dans `beforeAll`, effacée dans `afterAll`.
@@ -123,8 +130,10 @@ async function preparerLaScene(): Promise<void> {
     );
     await admin.$executeRawUnsafe(
       `INSERT INTO "segment_travail"
-         ("id", "societe_id", "intervention_id", "utilisateur_id", "debut", "fin", "modifie_le")
+         ("id", "societe_id", "intervention_id", "utilisateur_id",
+          "nom_technicien_affiche", "debut", "fin", "modifie_le")
        VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid,
+               (SELECT "nom" FROM "utilisateur" WHERE "id" = $4::uuid),
                TIMESTAMPTZ '2026-11-05T08:00:00.000Z',
                TIMESTAMPTZ '2026-11-05T09:00:00.000Z', now())`,
       uuidv7(),

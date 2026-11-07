@@ -163,9 +163,10 @@ test.beforeAll(async () => {
     );
     await client.$executeRawUnsafe(
       `INSERT INTO "segment_travail"
-         ("id", "societe_id", "intervention_id", "utilisateur_id", "debut",
-          "fin", "modifie_le")
+         ("id", "societe_id", "intervention_id", "utilisateur_id",
+          "nom_technicien_affiche", "debut", "fin", "modifie_le")
        VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid,
+               (SELECT "nom" FROM "utilisateur" WHERE "id" = $4::uuid),
                now() - interval '35 minutes', NULL, now())`,
       SEGMENT_EN_COURS,
       reperes.societeId,
@@ -192,9 +193,10 @@ test.beforeAll(async () => {
     );
     await client.$executeRawUnsafe(
       `INSERT INTO "segment_travail"
-         ("id", "societe_id", "intervention_id", "utilisateur_id", "debut",
-          "fin", "modifie_le")
+         ("id", "societe_id", "intervention_id", "utilisateur_id",
+          "nom_technicien_affiche", "debut", "fin", "modifie_le")
        VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid,
+               (SELECT "nom" FROM "utilisateur" WHERE "id" = $4::uuid),
                now() - interval '90 minutes', now(), now())`,
       SEGMENT_TERMINEE,
       reperes.societeId,

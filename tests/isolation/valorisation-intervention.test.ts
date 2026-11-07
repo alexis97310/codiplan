@@ -160,8 +160,9 @@ async function interventionAClore(
   // vaut la somme des segments** : si ce décor mentait, la ligne suivante
   // serait refusée.
   await clientOwner().$executeRawUnsafe(
-    `INSERT INTO "segment_travail" ("id","societe_id","intervention_id","utilisateur_id","debut","fin","modifie_le")
+    `INSERT INTO "segment_travail" ("id","societe_id","intervention_id","utilisateur_id","nom_technicien_affiche","debut","fin","modifie_le")
      VALUES ('${uuidv7()}', '${SOCIETE_A}', '${id}', '${TECHNICIEN}',
+             (SELECT "nom" FROM "utilisateur" WHERE "id" = '${TECHNICIEN}'),
              '${CRENEAU_DEBUT}'::timestamptz,
              '${CRENEAU_DEBUT}'::timestamptz + interval '${TEMPS_REEL_MIN} minutes',
              now())`,

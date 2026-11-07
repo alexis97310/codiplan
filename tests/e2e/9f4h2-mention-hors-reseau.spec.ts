@@ -77,8 +77,9 @@ test.beforeAll(async () => {
     // `intervention_temps_mesure_est_celui_du_compteur` vérifie la somme).
     await client.$executeRawUnsafe(
       `INSERT INTO "segment_travail"
-         ("id","societe_id","intervention_id","utilisateur_id","debut","fin","saisi_hors_reseau","modifie_le")
-       VALUES (gen_random_uuid(), $1::uuid, $2::uuid, $3::uuid, now() - interval '30 minutes', now(), true, now())`,
+         ("id","societe_id","intervention_id","utilisateur_id","nom_technicien_affiche","debut","fin","saisi_hors_reseau","modifie_le")
+       VALUES (gen_random_uuid(), $1::uuid, $2::uuid, $3::uuid,
+               (SELECT "nom" FROM "utilisateur" WHERE "id" = $3::uuid), now() - interval '30 minutes', now(), true, now())`,
       reperes.societeId,
       INTERVENTION_9F4H2,
       reperes.technicienDucos,

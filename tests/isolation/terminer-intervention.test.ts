@@ -303,8 +303,10 @@ describe("terminerIntervention — les refus", () => {
     // exactement ce qu'un second `demarrerLeCompteur`, par un AUTRE
     // utilisateur, aurait écrit.
     await clientOwner().$executeRawUnsafe(
-      `INSERT INTO "segment_travail" ("id","societe_id","intervention_id","utilisateur_id","debut","modifie_le")
-       VALUES ('${uuidv7()}', '${SOCIETE_A}', '${id}', '${RENFORT}', '2026-09-14T09:10:00.000Z', now())`,
+      `INSERT INTO "segment_travail" ("id","societe_id","intervention_id","utilisateur_id","nom_technicien_affiche","debut","modifie_le")
+       VALUES ('${uuidv7()}', '${SOCIETE_A}', '${id}', '${RENFORT}',
+               (SELECT "nom" FROM "utilisateur" WHERE "id" = '${RENFORT}'),
+               '2026-09-14T09:10:00.000Z', now())`,
     );
 
     const resultat = await terminerIntervention(

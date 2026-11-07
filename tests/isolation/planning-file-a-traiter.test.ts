@@ -80,8 +80,9 @@ async function creer(champs: {
     // — deux instants distincts, jamais le même `now()`.
     await clientOwner().$executeRawUnsafe(
       `INSERT INTO "segment_travail" ("id", "societe_id", "intervention_id",
-         "utilisateur_id", "debut", "fin", "modifie_le")
-       VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, now(),
+         "utilisateur_id", "nom_technicien_affiche", "debut", "fin", "modifie_le")
+       VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid,
+               (SELECT "nom" FROM "utilisateur" WHERE "id" = $4::uuid), now(),
                now() + interval '5 minutes', now())`,
       uuidv7(),
       SOCIETE_A,

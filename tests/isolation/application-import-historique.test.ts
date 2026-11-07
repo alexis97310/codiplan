@@ -384,8 +384,9 @@ describe("un lot d'HISTORIQUE écrit des interventions CLOSES, relues en SQL", (
     // première intervention — *le travail terrain n'est jamais perdu* (I5).
     const f1 = await lireLIntervention(premierLot, F1);
     await clientOwner().$executeRawUnsafe(
-      `INSERT INTO "segment_travail" ("id", "societe_id", "intervention_id", "utilisateur_id", "debut", "modifie_le")
-       VALUES ('aaaaaaaa-0000-7000-8000-00000000c0f1', '${SOCIETE_A}', '${f1?.id}', '${UTILISATEUR_INTERNE_A}', now(), now())`,
+      `INSERT INTO "segment_travail" ("id", "societe_id", "intervention_id", "utilisateur_id", "nom_technicien_affiche", "debut", "modifie_le")
+       VALUES ('aaaaaaaa-0000-7000-8000-00000000c0f1', '${SOCIETE_A}', '${f1?.id}', '${UTILISATEUR_INTERNE_A}',
+               (SELECT "nom" FROM "utilisateur" WHERE "id" = '${UTILISATEUR_INTERNE_A}'), now(), now())`,
     );
 
     const resultat = await annulerLeLotDeHistorique(

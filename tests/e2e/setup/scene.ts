@@ -700,8 +700,9 @@ export async function ecrireLaScene(): Promise<ReperesDeScene> {
       // fixture mentait, elle serait refusée.*
       if (ligne.id === SCENE.obstacle) {
         await client.$executeRawUnsafe(
-          `INSERT INTO "segment_travail" ("id","societe_id","intervention_id","utilisateur_id","debut","fin","modifie_le")
+          `INSERT INTO "segment_travail" ("id","societe_id","intervention_id","utilisateur_id","nom_technicien_affiche","debut","fin","modifie_le")
            VALUES (gen_random_uuid(), $1::uuid, $2::uuid, $3::uuid,
+                   (SELECT "nom" FROM "utilisateur" WHERE "id" = $3::uuid),
                    $4::timestamptz, $4::timestamptz + interval '120 minutes', now())`,
           societe.id,
           ligne.id,

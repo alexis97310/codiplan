@@ -679,8 +679,9 @@ describe("les onglets du registre — vue, sur la vraie table (52-REGISTRE-1)", 
     );
     await clientOwner().$executeRawUnsafe(
       `INSERT INTO "segment_travail"
-         ("id","societe_id","intervention_id","utilisateur_id","debut","modifie_le")
-       VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid,now(),now())
+         ("id","societe_id","intervention_id","utilisateur_id","nom_technicien_affiche","debut","modifie_le")
+       VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid,
+               (SELECT "nom" FROM "utilisateur" WHERE "id" = $4::uuid),now(),now())
        ON CONFLICT ("id") DO NOTHING`,
       PGC1C_SEGMENT,
       SOCIETE_A,

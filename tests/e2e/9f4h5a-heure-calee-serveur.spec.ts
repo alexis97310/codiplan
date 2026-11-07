@@ -106,6 +106,7 @@ test.beforeAll(async () => {
         societe_id: societeId,
         intervention_id: INTERVENTION_9F4H5A,
         utilisateur_id: technicienId,
+        nom_technicien_affiche: "Technicien de l'épreuve",
         debut: new Date(Date.now() - 15 * 60_000),
         fin: null,
       },

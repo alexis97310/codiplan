@@ -118,8 +118,9 @@ async function jetable(commentaireTechnicien: string | null): Promise<string> {
  */
 async function poserUnSegmentFerme(id: string, minutes: number): Promise<void> {
   await clientOwner().$executeRawUnsafe(
-    `INSERT INTO "segment_travail" ("id","societe_id","intervention_id","utilisateur_id","debut","fin","modifie_le")
+    `INSERT INTO "segment_travail" ("id","societe_id","intervention_id","utilisateur_id","nom_technicien_affiche","debut","fin","modifie_le")
      VALUES ('${uuidv7()}', '${SOCIETE_A}', '${id}', '${RESPONSABLE_A.utilisateurId}',
+             (SELECT "nom" FROM "utilisateur" WHERE "id" = '${RESPONSABLE_A.utilisateurId}'),
              now() - interval '${minutes} minutes', now(), now())`,
   );
   await clientOwner().$executeRawUnsafe(
