@@ -17,7 +17,7 @@ import {
   sousSocieteEtRole,
 } from "./setup/db";
 import {
-  CLIENT_A1,
+  CLIENT_A2,
   INTERVENTION_A1,
   INTERVENTION_A2,
   INTERVENTION_B1,
@@ -349,10 +349,21 @@ describe("R5-02 — les verrous du compteur", () => {
     });
   });
 
-  // ── 3. LE CLOISONNEMENT — forme « interne » (D94) ────────────────────────
+  // ── 3. LE CLOISONNEMENT — forme « interne », PLUS SA BRÈCHE DE FILIATION
+  // PORTAIL (D94, 9J22-PORTAIL-BON-TECHNICIEN-TEMPS) ───────────────────────
+  //
+  // Depuis 9J22, un compte portail n'est plus fermé à TOUT segment : une
+  // politique SUPPLÉMENTAIRE (`cloisonnement_filiation_lecture_portail`,
+  // scopée au contexte portail) ouvre un segment à SON PROPRE client, pour
+  // SA PROPRE intervention — jamais à un AUTRE client, jamais à un contexte
+  // interne. Les deux scénarios ci-dessous le distinguent : celui-ci reste
+  // la preuve que la forme « interne » FERME pour qui n'est pas le client de
+  // l'intervention ; la preuve POSITIVE (le client DE l'intervention la lit)
+  // vit dans `9j22-portail-bon-technicien-temps.test.ts`, avec le reste de ce
+  // ticket — ne pas la dupliquer ici.
 
   describe("la forme « interne »", () => {
-    it("un compte de PORTAIL ne lit AUCUN segment, et son témoin le dit", async () => {
+    it("un compte de PORTAIL D'UN AUTRE CLIENT ne lit AUCUN segment, et son témoin le dit", async () => {
       const id = neuf();
       await sousInterne((tx) =>
         tx.$executeRawUnsafe(sql(id, TECHNICIEN, H8, H9)),
@@ -366,8 +377,11 @@ describe("R5-02 — les verrous du compteur", () => {
       );
       expect(vuesParLInterne).toBeGreaterThan(0);
 
+      // CLIENT_A2 — PAS le client d'INTERVENTION_A1 (qui est CLIENT_A1) : la
+      // brèche de filiation ne trouve aucune intervention visible à CE
+      // client, et la forme « interne » reste pleinement fermée.
       const vuesParLePortail = await avecPortail(
-        { societeId: SOCIETE_A, clientId: CLIENT_A1 },
+        { societeId: SOCIETE_A, clientId: CLIENT_A2 },
         (tx) => tx.segmentTravail.count(),
       );
       expect(vuesParLePortail).toBe(0);

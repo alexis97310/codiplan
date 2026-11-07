@@ -2242,6 +2242,48 @@ export function ecartsListeInterne(
   return ecarts;
 }
 
+/**
+ * LA BRÈCHE « FILIATION PORTAIL » D'UNE TABLE INTERNE (9J22-PORTAIL-BON-
+ * TECHNICIEN-TEMPS) — une politique SUPPLÉMENTAIRE, scopée au seul contexte
+ * portail, qui ouvre en SUS une table « interne » pour sa propre filiation.
+ *
+ * *La forme « interne » (D94) dit qu'AUCUN compte portail ne lit la table,
+ * quel que soit son client — et cela reste vrai pour toute ligne hors
+ * filiation.* Ce que 9J22 ajoute n'est pas une exception À la forme, c'est
+ * une SECONDE politique permissive, qui s'OR-e à elle (PostgreSQL) sans la
+ * toucher : `segment_travail` garde ses trois politiques « interne »
+ * d'origine, inchangées, et en gagne une quatrième, scopée et nommée.
+ *
+ * Deux conditions, les DEUX vérifiées ci-dessous : la brèche DOIT lire
+ * `app.client_id` (sans quoi elle ouvrirait aussi le contexte interne, ce que
+ * la forme « interne » existe précisément pour fermer), et DOIT s'adosser à
+ * son parent par `EXISTS` — même critère que la forme « filiation » (D103),
+ * sans en reprendre la forme à elle seule : le parent décide déjà de la
+ * société, du client et du périmètre de sites.
+ *
+ * **Liste close, gardée côté ADDITION seulement.** Une brèche retirée d'ici
+ * referme la table sur l'interne pur — le RETRAIT n'est jamais le geste
+ * dangereux (même raisonnement que `INTERNES_ARBITREES` ci-dessus) ; c'est
+ * l'épreuve FONCTIONNELLE (le client lit son propre segment) qui le découvre,
+ * pas ce gardien statique. Une brèche AJOUTÉE sans entrée ici, en revanche,
+ * est jugée comme n'importe quelle autre politique de la table — contre la
+ * forme « interne » pure — et le gardien la refuse déjà sans qu'il soit
+ * besoin de la lister.
+ */
+export const BRECHES_FILIATION_DES_TABLES_INTERNES: ReadonlyArray<{
+  readonly table: string;
+  readonly politique: string;
+  readonly parent: string;
+  readonly cle: string;
+}> = [
+  {
+    table: "segment_travail",
+    politique: "cloisonnement_filiation_lecture_portail",
+    parent: "intervention",
+    cle: "intervention_id",
+  },
+];
+
 /** Écarts de la forme « interne » : l'ancrage société ET le discriminant. */
 function ecartsInterne(
   table: string,
@@ -2249,6 +2291,46 @@ function ecartsInterne(
 ): string[] {
   const ecarts: string[] = [];
   for (const politique of politiques) {
+    const breche = BRECHES_FILIATION_DES_TABLES_INTERNES.find(
+      (entree) => entree.table === table && entree.politique === politique.nom,
+    );
+    if (breche !== undefined) {
+      for (const clause of clausesGardiennes(politique)) {
+        if (ouvertureTotale(clause) || roleEditeur(clause)) {
+          ecarts.push(
+            entete(table, "interne") +
+              `la brèche « ${politique.nom} » porte la forme « référentiel ». ` +
+              "C'est la forme qui NE s'applique JAMAIS à une table métier.",
+          );
+          continue;
+        }
+        if (!filtreClient(clause)) {
+          ecarts.push(
+            entete(table, "interne") +
+              `la brèche « ${politique.nom} » ne lit pas \`app.client_id\`. ` +
+              "Sans ce terme, elle ouvrirait aussi le contexte interne — " +
+              "exactement ce que la forme « interne » existe pour fermer.",
+          );
+        }
+        const normalisee = normaliser(clause).toLowerCase();
+        if (
+          !normalisee.includes("exists") ||
+          !normalisee.includes(breche.parent) ||
+          !normalisee.includes(breche.cle)
+        ) {
+          ecarts.push(
+            entete(table, "interne") +
+              `la brèche « ${politique.nom} » ne s'adosse pas à son parent ` +
+              `« ${breche.parent} » par sa clé « ${breche.cle} ». La forme ` +
+              "attendue est `EXISTS (SELECT 1 FROM " +
+              `${breche.parent} WHERE ${breche.parent}.id = ${table}.${breche.cle})\` — ` +
+              "c'est le parent, déjà gardé par sa propre politique, qui " +
+              "décide de la société, du client et du périmètre de sites.",
+          );
+        }
+      }
+      continue;
+    }
     for (const clause of clausesGardiennes(politique)) {
       if (ouvertureTotale(clause) || roleEditeur(clause)) {
         ecarts.push(
