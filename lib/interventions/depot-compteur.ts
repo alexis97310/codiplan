@@ -200,6 +200,24 @@ export async function demarrerLeCompteur(
         if (!verdict.accepte) {
           return { accepte: false as const, cle: verdict.cle };
         }
+        // LE NOM AFFICHÉ, RECOPIÉ UNE SEULE FOIS, ICI (9J22A-REPRISE-9J22) —
+        // le bon du portail le lira sur CETTE ligne, jamais sur `utilisateur`
+        // (voir le docblock de la colonne, `prisma/schema.prisma`).
+        // `contexte.utilisateurId` est déjà le sien : sous ce contexte
+        // interne, la branche « rattachement » de `utilisateur_lecture`
+        // rend sa propre identité.
+        const identite = await tx.utilisateur.findFirst({
+          where: { id: contexte.utilisateurId },
+          select: { nom: true },
+        });
+        if (identite === null) {
+          // Impossible en pratique : la session valide porte déjà cette
+          // identité (même raisonnement que la société introuvable de
+          // `composerBon`, `lib/interventions/bon.ts`).
+          throw new Error(
+            `Utilisateur ${contexte.utilisateurId} illisible sous le contexte courant : le segment ne peut pas naître sans son nom.`,
+          );
+        }
         const segment = await tx.segmentTravail.create({
           data: {
             // L'identifiant naît ICI et non en base (I10) : un segment doit
@@ -210,6 +228,7 @@ export async function demarrerLeCompteur(
             societe_id: societeId,
             intervention_id: interventionId,
             utilisateur_id: contexte.utilisateurId,
+            nom_technicien_affiche: identite.nom,
             debut:
               differe !== undefined && depuisFile
                 ? differe.instantAppareil

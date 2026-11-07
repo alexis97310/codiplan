@@ -202,21 +202,29 @@ export async function lireBonIntervention(
  * (`app/(portail)/portail/interventions/depot.ts`), qui ne filtrent jamais non
  * plus par personne.
  *
- * ## `segments` et `technicienAffecte`, DEPUIS 9J22
+ * ## `segments` et `technicienAffecte`, DEPUIS 9J22 — ET REVUS PAR 9J22A
  *
  * `segment_travail` ferme sa lecture à `app.client_id IS NULL` (D94, forme
- * « interne ») et `utilisateur` ferme sa branche de rattachement au même
- * discriminant (décision d'exploitation du 07/09/2026) — **pour tout
- * contexte qui n'est pas celui du client DE l'intervention**. Depuis 9J22
- * (décision d'Alexis du 06/11/2026, « Oui, les deux »), chacune des deux
- * tables porte une politique SUPPLÉMENTAIRE, forme « filiation », scopée à
- * `app.client_id` : un segment ou un nom de technicien se lit QUAND
- * l'intervention qui le porte est elle-même visible à ce client (politique
- * « parc », D84) — jamais autrement. `segments` et `technicienAffecte` se
- * remplissent donc normalement sous ce contexte précis ; ils restent `[]`/
- * `null` pour toute intervention hors du périmètre du client — exactement
- * comme `lireBonIntervention` ci-dessus continue de les voir toujours pour
- * le back-office.
+ * « interne ») — **pour tout contexte qui n'est pas celui du client DE
+ * l'intervention**. Depuis 9J22 (décision d'Alexis du 06/11/2026), elle porte
+ * une politique SUPPLÉMENTAIRE, forme « filiation », scopée à `app.client_id` :
+ * un segment se lit QUAND l'intervention qui le porte est elle-même visible à
+ * ce client (politique « parc », D84) — jamais autrement.
+ *
+ * `utilisateur`, elle, N'EST PLUS OUVERTE au portail depuis 9J22A-REPRISE-9J22
+ * (décision d'Alexis du 07/11/2026) : la brèche que 9J22 y avait posée rendait
+ * TOUTE la ligne d'un technicien (adresse électronique comprise) à son client,
+ * et la discipline d'un seul appelant (`lib/auth/annuaire.ts`) n'était pas une
+ * garantie de la base. `composerBon` ne l'appelle donc plus sous un contexte
+ * client (`contexte.clientId !== null`) : le nom affiché vient de
+ * `segment_travail.nom_technicien_affiche`, une recopie posée une seule fois à
+ * la naissance du segment (`lib/interventions/depot-compteur.ts`). `segments`
+ * se remplit donc normalement sous ce contexte ; `technicienAffecte`, lui, ne
+ * se résout QUE si le technicien affecté a lui-même posé un segment de cette
+ * intervention — `null` sinon, même pour une intervention par ailleurs visible.
+ * Les deux restent `[]`/`null` pour toute intervention hors du périmètre du
+ * client — exactement comme `lireBonIntervention` ci-dessus continue de les
+ * voir toujours, par l'annuaire, pour le back-office.
  */
 export async function lireBonDuParc(
   contexte: ContexteSession,
@@ -311,17 +319,36 @@ async function composerBon(
 
       const segmentsBruts = await tx.segmentTravail.findMany({
         where: { intervention_id: id },
-        select: { id: true, utilisateur_id: true, debut: true, fin: true },
+        select: {
+          id: true,
+          utilisateur_id: true,
+          debut: true,
+          fin: true,
+          nom_technicien_affiche: true,
+        },
         orderBy: [{ debut: "asc" }, { id: "asc" }],
       });
-      const annuaire = await annuaireDesPersonnes(tx, [
-        ...segmentsBruts.map((s) => s.utilisateur_id),
-        ...(brute.technicien_id === null ? [] : [brute.technicien_id]),
-      ]);
+      // SOUS UN CONTEXTE CLIENT, JAMAIS `lib/auth/annuaire.ts` (9J22A-REPRISE-
+      // 9J22) — `utilisateur` lui est fermée (la brèche que 9J22 avait
+      // ouverte est retirée) ; le nom affiché vient de la recopie que porte
+      // CHAQUE segment (voir le docblock de la colonne). Un technicien affecté
+      // sans aucun segment de SA main n'a donc, sous ce seul contexte, aucun
+      // nom à afficher — `null`, comme toute affectation hors périmètre.
+      const contexteClient = contexte.clientId !== null;
+      const annuaire = contexteClient
+        ? null
+        : await annuaireDesPersonnes(tx, [
+            ...segmentsBruts.map((s) => s.utilisateur_id),
+            ...(brute.technicien_id === null ? [] : [brute.technicien_id]),
+          ]);
       const technicienAffecte =
         brute.technicien_id === null
           ? null
-          : nomDuSegment(brute.technicien_id, annuaire);
+          : contexteClient
+            ? (segmentsBruts.find(
+                (s) => s.utilisateur_id === brute.technicien_id,
+              )?.nom_technicien_affiche ?? null)
+            : nomDuSegment(brute.technicien_id, annuaire as Annuaire);
       const segments: readonly SegmentBonAffiche[] = segmentsBruts.map((s) => ({
         debut: s.debut,
         fin: s.fin,
@@ -329,7 +356,9 @@ async function composerBon(
           s.fin === null
             ? null
             : Math.floor((s.fin.getTime() - s.debut.getTime()) / 60_000),
-        technicien: nomDuSegment(s.utilisateur_id, annuaire),
+        technicien: contexteClient
+          ? s.nom_technicien_affiche
+          : nomDuSegment(s.utilisateur_id, annuaire as Annuaire),
       }));
       const mesure = mesurer(
         segmentsBruts.map((s): Segment => ({

@@ -3266,6 +3266,12 @@ model SegmentTravail {
   /// QUI a travaillé. Ce n'est pas forcément `intervention.technicien_id` : un
   /// renfort d'une heure est un fait, et l'affectation n'en dit rien.
   utilisateur_id  String @db.Uuid
+  /// LE NOM AFFICHÉ, RECOPIÉ (9J22A-REPRISE-9J22) — rempli une seule fois, à
+  /// la création du segment (`lib/interventions/depot-compteur.ts`), jamais
+  /// lu depuis `utilisateur` par un contexte client : c'est ce qui permet au
+  /// bon du portail de nommer le technicien sans que `utilisateur` lui soit
+  /// jamais ouverte (voir la migration `..._portail_nom_technicien_recopie_9j22a`).
+  nom_technicien_affiche String
 
   /// L'instant où le compteur a été lancé — **l'heure du TERRAIN, pas celle de
   /// l'arrivée en base** (L2-03) : *l'ordre d'arrivée n'est pas l'ordre des
