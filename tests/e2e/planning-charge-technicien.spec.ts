@@ -4,13 +4,20 @@ import { PrismaClient } from "@prisma/client";
 import { expect, test } from "@playwright/test";
 
 import { Role } from "@/lib/auth/roles";
+import { chargerCalendrierAgence, estJourOuvre } from "@/lib/calendar";
 import {
   cleJour,
   instantDuJour,
   jourDe,
+  jourSuivant,
   maintenant,
+  type JourLocal,
 } from "@/lib/calendar/fuseau";
-import { lundiDeLaSemaine } from "@/lib/calendar/semaine";
+import {
+  joursDeLaSemaine,
+  lundiDeLaSemaine,
+  SAMEDI,
+} from "@/lib/calendar/semaine";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
@@ -99,6 +106,52 @@ async function nettoyer(client: PrismaClient): Promise<void> {
 
 let semaineCourante = "";
 
+/**
+ * LE PROCHAIN LUNDI DONT LA SEMAINE AFFICHÉE (lundi→samedi, `joursDeLaVue`)
+ * N'A AUCUN JOUR FERMÉ pour `agenceId` — ni férié, ni pont.
+ *
+ * « une barre de charge dans CHAQUE case » exige que les six jours soient
+ * ouverts : un seul jour fermé vide sa case (`barreChargeDuJour` y rend
+ * `null`, exactement comme « pas de calendrier connu » —
+ * `occupationDuJourDeLaCase`/`tauxCompact`, `app/(back-office)/planning/
+ * page.tsx` et `lib/interventions/statistiques.ts`). C'est le comportement
+ * voulu, pas un défaut à corriger ici.
+ *
+ * Même oracle que 9K00-E2E-PLANNING5-FERIE (`chargerCalendrierAgence`,
+ * `lib/calendar`) — `estJourOuvre` y est le primitif dont `prochainJourOuvert`
+ * se sert déjà pour chaque jour ; jamais une date en dur (I7).
+ */
+async function lundiSansJourFerme(
+  client: PrismaClient,
+  societeId: string,
+  agenceId: string,
+  depart: JourLocal,
+): Promise<JourLocal> {
+  const calendrier = await chargerCalendrierAgence(client, {
+    societeId,
+    agenceId,
+    fenetre: { du: depart, au: jourSuivant(depart, 120) },
+  });
+  if (calendrier === null) {
+    throw new Error(
+      "PG-C4-CHARGE : l'agence semée n'a pas de calendrier chargeable — " +
+        "aucune semaine ouverte ne peut être choisie.",
+    );
+  }
+  let candidat = depart;
+  for (let semaine = 0; semaine < 16; semaine += 1) {
+    const joursOuvertsVises = joursDeLaSemaine(candidat).slice(0, SAMEDI);
+    if (joursOuvertsVises.every((jour) => estJourOuvre(calendrier, jour))) {
+      return candidat;
+    }
+    candidat = jourSuivant(candidat, 7);
+  }
+  throw new Error(
+    "PG-C4-CHARGE : aucune semaine entièrement ouverte sous 16 semaines " +
+      "pour l'agence semée.",
+  );
+}
+
 test.beforeAll(async () => {
   const client = admin();
   try {
@@ -113,8 +166,11 @@ test.beforeAll(async () => {
       orderBy: { code: "asc" },
     });
 
-    const lundi = lundiDeLaSemaine(
-      jourDe(maintenant(societe.fuseau_horaire).local),
+    const lundi = await lundiSansJourFerme(
+      client,
+      societe.id,
+      agence.id,
+      lundiDeLaSemaine(jourDe(maintenant(societe.fuseau_horaire).local)),
     );
     semaineCourante = cleJour(lundi);
     const dateDuJour = instantDuJour(lundi);
