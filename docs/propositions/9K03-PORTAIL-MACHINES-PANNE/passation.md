@@ -163,3 +163,40 @@
 
 - `pnpm verify:full` reste à la file (non joué ici, par consigne).
 - `CI=1 pnpm verify` joué avant de rendre la main (voir le dernier commit).
+
+## Reprise 9K03A (09/11/2026)
+
+`CI=1 pnpm verify:full` sur le lot ci-dessus rendait **deux échecs**, aucun des
+deux imputable au code applicatif.
+
+1. **`tests/e2e/demandes.spec.ts:394` « LA FILE EST VIDE ET LE DIT »** —
+   `tr[data-demande]` attendu 0, reçu 2. `9k03-portail-machines-panne.spec.ts`
+   dépose réellement une demande (« machine à l'arrêt ») à 1280px ET à 375px,
+   et ne l'effaçait jamais : deux demandes `p3` restaient ouvertes dans
+   CODIMA-NC, et `demandes.spec.ts` les compte SANS filtre (par société,
+   comme avant ce lot). Corrigé en suivant chaque id créé
+   (`idsDemandesCreees`) et en l'effaçant par un `afterAll`, sur le modèle de
+   `9edz-nouvelle-demande.spec.ts`.
+2. **`tests/e2e/planning-charge-technicien.spec.ts:316`** — la case n° 3
+   (mercredi) d'une semaine n'avait pas de barre de charge. Semaine du
+   09-15/11/2026 : le mercredi 11 novembre est l'Armistice, férié semé
+   (`prisma/seed-data.ts`). Lu le code : `barreChargeDuJour`
+   (`app/(back-office)/planning/carte.ts`) rend `null` quand
+   `minutesOuvrables <= 0` — EXACTEMENT le même état que « pas de calendrier
+   connu » (`tauxCompact`, `lib/interventions/statistiques.ts`) — un jour
+   fermé n'affiche donc PAS de barre, et c'est le comportement voulu, pas un
+   défaut. Épreuve étrangère à 9K03 (semaine courante, sans rapport avec les
+   machines/pannes), et aurait rougi pour TOUT lot vérifié cette semaine-là.
+   Corrigé en choisissant le prochain lundi dont les six jours affichés
+   (lundi→samedi) sont tous ouverts pour l'agence semée, via
+   `chargerCalendrierAgence` + `estJourOuvre` (`lib/calendar`) — même famille
+   d'oracle que 9K00-E2E-PLANNING5-FERIE, jamais une date en dur.
+
+Rejoué dans la même exécution (`CI=1 --workers=1`) :
+`9k03-portail-machines-panne.spec.ts` + `demandes.spec.ts` (11 passés),
+`planning-charge-technicien.spec.ts` (5 passés),
+`tous-les-ecrans-rendent.spec.ts` (59 passés, 3 ignorés, préexistants),
+`pnpm test:isolation` (228 fichiers / 1958 tests), puis `CI=1 pnpm verify`
+(format, typecheck, lint, test, isolation, build) — tout vert.
+`pnpm verify:full` reste à la file, non rejoué ici par consigne de la
+reprise.
