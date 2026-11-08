@@ -36,7 +36,12 @@ import {
  *
  * **Sa première entrée est `app_identite_exclusive_a_la_societe` (D226,
  * 01/11/2026, 9I8D1-REPRISE-9I8D)** — vérifie l'exclusivité d'une identité à
- * la société active avant la copie d'un nouveau lien d'accès. Le repli de
+ * la société active avant la copie d'un nouveau lien d'accès. **Sa seconde
+ * entrée est `app_identite_interne_ailleurs` (D233, complément du 09/11/2026,
+ * 9K04-PORTAIL-INVITATION-EMPLOYE)** — vérifie, à l'invitation portail, si une
+ * identité porte un rattachement INTERNE (`utilisateur_societe`) pour une
+ * société autre que l'active ; une question plus étroite que celle de D226,
+ * posée nommément dans la condition de réouverture de D233. Le repli de
  * consolidation portable de D36 (lot 5) reste un candidat connu, pas encore
  * écrit : il y entrera, lui aussi, **par arbitrage**, avec son nom écrit ici —
  * pas par une décision de session qui trouverait le gardien encombrant.
@@ -54,9 +59,18 @@ import {
  * copie d'un nouveau lien d'accès. Ne rend qu'un booléen ; `search_path`
  * figé ; `REVOKE ALL FROM PUBLIC` + `GRANT EXECUTE` au seul rôle applicatif
  * (migration `20261101080000_identite_exclusive_a_la_societe_9i8d1`).
+ *
+ * `app_identite_interne_ailleurs` — D233, complément du 09/11/2026 (9K04-
+ * PORTAIL-INVITATION-EMPLOYE) : vérifie, à l'invitation portail, si une
+ * identité porte un rattachement INTERNE (`utilisateur_societe` seule, jamais
+ * `utilisateur_client`) pour une société autre que l'active. Ne rend qu'un
+ * booléen ; `search_path` figé ; `REVOKE ALL FROM PUBLIC` + `GRANT EXECUTE`
+ * au seul rôle applicatif (migration
+ * `20261109050000_identite_interne_ailleurs_9k04`).
  */
 const AUTORISEES_PAR_ARBITRAGE: readonly string[] = [
   "app_identite_exclusive_a_la_societe",
+  "app_identite_interne_ailleurs",
 ];
 
 /**
@@ -161,15 +175,19 @@ describe("aucune fonction SECURITY DEFINER hors arbitrage (D50)", () => {
     ).toBe(true);
   });
 
-  it("la liste des exceptions est close, et ne contient que l'entrée arbitrée (D226)", () => {
+  it("la liste des exceptions est close, et ne contient que les entrées arbitrées (D226, D233)", () => {
     // Elle se vérifie explicitement : une entrée apparue sans arbitrage doit
     // faire tomber ce test-ci, pas seulement échapper au précédent. D36
     // (lot 5) reste le candidat suivant connu, pas encore écrit.
     expect(
       AUTORISEES_PAR_ARBITRAGE,
-      "une exception a été ajoutée sans arbitrage : seule " +
-        "app_identite_exclusive_a_la_societe (D226) y figure à ce jour",
-    ).toEqual(["app_identite_exclusive_a_la_societe"]);
+      "une exception a été ajoutée sans arbitrage : seules " +
+        "app_identite_exclusive_a_la_societe (D226) et " +
+        "app_identite_interne_ailleurs (D233) y figurent à ce jour",
+    ).toEqual([
+      "app_identite_exclusive_a_la_societe",
+      "app_identite_interne_ailleurs",
+    ]);
   });
 
   it("aucune migration ne déclare de fonction SECURITY DEFINER hors arbitrage", () => {

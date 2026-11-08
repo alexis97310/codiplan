@@ -152,4 +152,5 @@ export const MIGRATIONS_ATTENDUES: readonly string[] = [
   "20261107010000_suite_a_donner_notifications_9j19",
   "20261107050000_portail_bon_technicien_temps_9j22",
   "20261107060000_portail_nom_technicien_recopie_9j22a",
+  "20261109050000_identite_interne_ailleurs_9k04",
 ];
