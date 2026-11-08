@@ -132,3 +132,20 @@ raccourci applicatif (relire `utilisateur_societe` d'une autre société en posa
 `pnpm format`, `pnpm typecheck`, `pnpm lint`, `pnpm test` (5541 tests), `pnpm test:isolation`
 (1951 tests, dont les 6 nouveaux scénarios de ce lot) — tous verts après chaque commit.
 `verify:full` est laissé à la file, comme demandé.
+
+## Reprise 9K01A (08/11)
+
+9K01 est parti le 08/11 09:28 de `4d9e8e888`, recalé à tort : `-verify-2.txt` ne porte AUCUN échec
+hors `tests/e2e/planning-5.spec.ts:198` (lundi de Pâques 2027, jour férié lu en base — sans rapport
+avec ce lot), corrigé entre-temps par `9K00-E2E-PLANNING5-FERIE`. Les autres lignes `stderr`
+relevées dans cette trace (erreurs RLS, « Reset password isn't enabled », violations de politique
+sur `utilisateur`) appartiennent à des tests qui vérifient volontairement un comportement
+fail-closed ou fail-safe et sont passés — ce ne sont pas des échecs.
+
+Les 4 commits de la garde `9K01-PORTAIL-INVITATION-REVOCATION-garde` (`7323b7daa`, `eaa2c8b99`,
+`c7d9c7406`, `d43a135a5`) ont été reportés par cherry-pick, sans modification, sur une branche
+`9K01A-REPRISE-9K01` partant d'`origin/main` (`7246d3e7d`, qui porte déjà 9K00). Aucun conflit.
+
+Rejoués au premier plan : `pnpm test:isolation` (227 fichiers, 1951 tests, vert) ;
+`CI=1 pnpm exec playwright test --workers=1 tests/e2e/planning-5.spec.ts` (1 passed) ;
+`CI=1 pnpm verify` (vert, code de sortie 0, build compris).
