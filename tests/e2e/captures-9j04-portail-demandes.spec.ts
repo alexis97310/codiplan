@@ -58,7 +58,7 @@ async function capturer(
 }
 
 type SceneDemandes = {
-  readonly machineNumeroSerie: string;
+  readonly machineId: string;
   readonly siteLibelle: string;
 };
 
@@ -82,7 +82,7 @@ async function preparerLaScene(): Promise<SceneDemandes> {
     });
     const machine = await admin.machine.findFirstOrThrow({
       where: { societe_id: societeId, client_id: client.id },
-      select: { numero_serie: true },
+      select: { id: true },
       orderBy: { numero_serie: "asc" },
     });
     const site = await admin.site.findFirstOrThrow({
@@ -144,7 +144,7 @@ async function preparerLaScene(): Promise<SceneDemandes> {
     }
 
     return {
-      machineNumeroSerie: machine.numero_serie,
+      machineId: machine.id,
       siteLibelle: site.libelle,
     };
   } finally {
@@ -222,9 +222,12 @@ for (const largeur of [1280, 375] as const) {
           hasText: fr["portail.demandes.action.deposer"],
         })
         .click();
+      // SÉLECTION PAR VALEUR (l'id de la machine), JAMAIS PAR LIBELLÉ (9K03)
+      // — le libellé de l'option est désormais « Famille · Marque · Modèle »,
+      // une donnée de démonstration que ce scénario ne doit pas connaître.
       await page
         .getByLabel(fr["portail.demandes.champ.machine"])
-        .selectOption({ label: scene.machineNumeroSerie });
+        .selectOption({ value: scene.machineId });
       await page
         .getByLabel(fr["portail.demandes.champ.description"])
         .fill("Bruit anormal au démarrage (capture 9J04)");
