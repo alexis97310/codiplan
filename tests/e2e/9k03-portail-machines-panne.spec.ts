@@ -134,6 +134,7 @@ async function lireDemandeParDescription(
   societeId: string,
   description: string,
 ): Promise<{
+  readonly id: string;
   readonly machine_id: string | null;
   readonly machine_arretee: boolean;
   readonly urgence: string;
@@ -146,6 +147,7 @@ async function lireDemandeParDescription(
     return await admin.demande.findFirst({
       where: { societe_id: societeId, description },
       select: {
+        id: true,
         machine_id: true,
         machine_arretee: true,
         urgence: true,
@@ -158,9 +160,28 @@ async function lireDemandeParDescription(
 }
 
 let scene: SceneMachinesPanne;
+// La seule épreuve de ce fichier qui dépose réellement une demande (celle de
+// « machine à l'arrêt ») la laisse en base, ouverte, dans la société de
+// l'épreuve — exactement ce que `demandes.spec.ts` compte SANS filtre pour
+// « LA FILE EST VIDE ». Un identifiant par largeur testée (1280px, 375px).
+const idsDemandesCreees: string[] = [];
 
 test.beforeAll(async () => {
   scene = await preparerLaScene();
+});
+
+test.afterAll(async () => {
+  if (idsDemandesCreees.length === 0) return;
+  const admin = new PrismaClient({
+    datasources: { db: { url: urlAdministration() } },
+  });
+  try {
+    await admin.demande.deleteMany({
+      where: { id: { in: idsDemandesCreees } },
+    });
+  } finally {
+    await admin.$disconnect();
+  }
 });
 
 for (const largeur of [1280, 375] as const) {
@@ -236,6 +257,7 @@ for (const largeur of [1280, 375] as const) {
         scene.societeId,
         description,
       );
+      if (ligne !== null) idsDemandesCreees.push(ligne.id);
       expect(ligne?.machine_id).toBe(idMachine);
       expect(ligne?.machine_arretee).toBe(true);
       // L'URGENCE RESTE FIXÉE CÔTÉ SERVEUR (décision d'Alexis du 08/11/2026) —
