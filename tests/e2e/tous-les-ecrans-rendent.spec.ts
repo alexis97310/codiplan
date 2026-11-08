@@ -14,7 +14,7 @@ import {
 } from "@/lib/interventions/numerotation";
 import {
   enregistrerAccord,
-  marquerPieceRecue,
+  marquerDevisEnvoye,
   qualifierSuite,
 } from "@/lib/suite-a-donner/depot";
 
@@ -232,6 +232,16 @@ const RESOLVEURS: Readonly<Record<string, Resolveur>> = {
         select: { id: true },
       })
     )?.id ?? null,
+  // 9K05-SUITES-A-DONNER-DEBLOQUEES — la page REFUSE (redirection) toute
+  // suite dont le statut n'est pas `accord_attendu` : `assurerUneSuiteAccordAttendu`
+  // ci-dessous en garantit une.
+  "/interventions/suites-a-donner/[id]/accord": async (prisma, societeId) =>
+    (
+      await prisma.suiteADonner.findFirst({
+        where: { societe_id: societeId, statut: "accord_attendu" },
+        select: { id: true },
+      })
+    )?.id ?? null,
 };
 
 type ResolveurDeNom = (
@@ -369,15 +379,42 @@ async function assurerUneInterventionNumerotee(
 }
 
 /**
+ * LE CONTEXTE ADMIN_SOCIETE PARTAGÉ PAR LES DEUX FABRIQUES CI-DESSOUS —
+ * extrait pour ne pas le répéter (9K05-SUITES-A-DONNER-DEBLOQUEES).
+ */
+async function contexteAdminSociete(
+  admin: PrismaClient,
+  idSociete: string,
+): Promise<ContexteSession> {
+  const utilisateur = await admin.utilisateur.findFirstOrThrow({
+    where: { email: COMPTE_ADMIN_SOCIETE_EPREUVE },
+    select: { id: true },
+  });
+  return {
+    utilisateurId: utilisateur.id,
+    societeId: idSociete,
+    role: Role.admin_societe,
+    secondFacteurValide: true,
+    adresseIp: null,
+    clientId: null,
+  };
+}
+
+/**
  * UNE SUITE À DONNER « À REPLANIFIER », GARANTIE PAR L'ÉPREUVE ELLE-MÊME
  * (9J18A-REPRISE-9J18) — même motif qu'`assurerUneInterventionNumerotee`
  * ci-dessus : ni `prisma/seed.ts` ni `tests/e2e/setup/scene.ts` ne posent de
  * ligne `suite_a_donner`, et le résolveur de
  * `/interventions/suites-a-donner/[id]/replanifier` n'en trouverait aucune
- * sans cette fonction. Traverse `qualifierSuite` → `enregistrerAccord` →
- * `marquerPieceRecue` — les MÊMES fonctions de production que l'écran
+ * sans cette fonction. Traverse `qualifierSuite` → `marquerDevisEnvoye` →
+ * `enregistrerAccord` — les MÊMES fonctions de production que l'écran
  * emprunte (`lib/suite-a-donner/depot.ts`), jamais une ligne posée à la
  * main (même motif que `captures-9j18-suite-a-donner.spec.ts`).
+ *
+ * **Plus de `marquerPieceRecue` depuis 9K05** : un accord SANS pièce
+ * attendue (celui posé ici) saute désormais DIRECTEMENT à `a_replanifier`
+ * (DÉCISION D'ALEXIS du 08/11/2026) — l'étape « pièce reçue » n'a plus lieu
+ * sur ce chemin.
  */
 async function assurerUneSuiteAReplanifier(
   admin: PrismaClient,
@@ -402,30 +439,58 @@ async function assurerUneSuiteAReplanifier(
   if (origine === null) {
     return;
   }
-  const utilisateur = await admin.utilisateur.findFirstOrThrow({
-    where: { email: COMPTE_ADMIN_SOCIETE_EPREUVE },
-    select: { id: true },
-  });
-  const contexte: ContexteSession = {
-    utilisateurId: utilisateur.id,
-    societeId: idSociete,
-    role: Role.admin_societe,
-    secondFacteurValide: true,
-    adresseIp: null,
-    clientId: null,
-  };
+  const contexte = await contexteAdminSociete(admin, idSociete);
   const applicatif = new PrismaClient({
     datasources: { db: { url: urlApplicative() } },
   });
   try {
     const suiteId = await qualifierSuite(contexte, origine.id, applicatif);
+    await marquerDevisEnvoye(contexte, suiteId, applicatif);
     await enregistrerAccord(
       contexte,
       suiteId,
       { reponse: "accord_recu" },
       applicatif,
     );
-    await marquerPieceRecue(contexte, suiteId, applicatif);
+  } finally {
+    await applicatif.$disconnect();
+  }
+}
+
+/**
+ * UNE SUITE À DONNER « ACCORD ATTENDU », GARANTIE PAR L'ÉPREUVE ELLE-MÊME
+ * (9K05-SUITES-A-DONNER-DEBLOQUEES) — le résolveur de
+ * `/interventions/suites-a-donner/[id]/accord` n'en trouverait aucune sans
+ * cette fonction. Prend l'intervention la PLUS RÉCENTE (`desc`, à la
+ * différence d'`assurerUneSuiteAReplanifier` ci-dessus qui prend la plus
+ * ANCIENNE) pour ne jamais qualifier deux fois la même ligne.
+ */
+async function assurerUneSuiteAccordAttendu(
+  admin: PrismaClient,
+  idSociete: string,
+): Promise<void> {
+  const dejaPresente = await admin.suiteADonner.findFirst({
+    where: { societe_id: idSociete, statut: "accord_attendu" },
+    select: { id: true },
+  });
+  if (dejaPresente !== null) {
+    return;
+  }
+  const origine = await admin.intervention.findFirst({
+    where: { societe_id: idSociete },
+    orderBy: [{ cree_le: "desc" }, { id: "desc" }],
+    select: { id: true },
+  });
+  if (origine === null) {
+    return;
+  }
+  const contexte = await contexteAdminSociete(admin, idSociete);
+  const applicatif = new PrismaClient({
+    datasources: { db: { url: urlApplicative() } },
+  });
+  try {
+    const suiteId = await qualifierSuite(contexte, origine.id, applicatif);
+    await marquerDevisEnvoye(contexte, suiteId, applicatif);
   } finally {
     await applicatif.$disconnect();
   }
@@ -442,6 +507,7 @@ test.beforeAll(async () => {
   societeId = societe.id;
   await assurerUneInterventionNumerotee(prisma, societeId);
   await assurerUneSuiteAReplanifier(prisma, societeId);
+  await assurerUneSuiteAccordAttendu(prisma, societeId);
 });
 
 test.afterAll(async () => {
