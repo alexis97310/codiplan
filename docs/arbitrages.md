@@ -7990,3 +7990,52 @@ l'architecture de cette route interdit nommément.
 
 **Règles amendées :** aucune — I1 ne pose pas cette règle, ce lot la rend
 vérifiable là où elle ne l'était pas.
+
+### COMPLÉMENT DU 09/11/2026 (9K04-PORTAIL-INVITATION-EMPLOYE) — LA CONDITION DE RÉOUVERTURE EST REMPLIE, LE RÉSIDU (c) EST FERMÉ
+
+Décision verbatim d'Alexis du 08/11/2026 ~09:00, point (c) : « un compte
+d'EMPLOYÉ (interne) d'une autre société : refusé ». C'est exactement la
+condition de réouverture posée ci-dessus — Alexis demande que (c) porte son
+propre refus, même quand le compte employé d'ailleurs a déjà un mot de
+passe — et elle se traite donc comme une migration, pas en passant.
+
+**Ce qui a été mesuré.** Avant ce lot, un compte déjà actif ailleurs (mot de
+passe posé) était accepté sans distinction, qu'il soit CLIENT ailleurs (a)
+ou EMPLOYÉ ailleurs (c) : les deux suivaient la même branche, faute de
+pouvoir distinguer laquelle des deux tables (`utilisateur_societe`,
+`utilisateur_client`) `identiteExclusiveALaSociete` (D226) avait trouvée.
+
+**La décision.** Une seconde fonction `SECURITY DEFINER`,
+`app_identite_interne_ailleurs(p_utilisateur_id uuid) RETURNS boolean`
+(migration `20261109050000_identite_interne_ailleurs_9k04`), entre nommément
+dans `AUTORISEES_PAR_ARBITRAGE` — même patron que D226 (propriétaire du
+schéma, `SET search_path = pg_catalog, public` figé, `SET row_security =
+off` fail-closed, `STABLE`, `app.societe_id` lu dans le contexte et jamais
+en paramètre, `REVOKE ALL ... FROM PUBLIC` + `GRANT EXECUTE` au seul rôle
+applicatif), mais une question plus étroite : elle ne regarde QUE
+`utilisateur_societe` (rattachement INTERNE — bureau ou technicien),
+JAMAIS `utilisateur_client`. `utilisateur_societe` ne porte aucune colonne
+`actif` — l'existence d'une ligne EST le rattachement actif, sans besoin
+d'y regarder de plus près.
+
+`inviterClientAuPortail` (`lib/auth/lien-d-acces.ts`) appelle cette fonction
+pour un compte déjà actif ailleurs (mot de passe posé) — jamais pour un
+compte pas encore activé, déjà refusé par (b). Si elle répond vrai, le geste
+refuse NOMMÉMENT (`compte_interne`, le même motif que le compte interne de
+la société active), AVANT tout jeton ou rattachement. Si elle répond faux,
+(a) s'applique sans changement : accepté, `dejaActif: true`.
+
+**Fail-closed, inversé par rapport à D226.** `identiteInterneAilleurs`
+(l'enveloppe) rend `true` — jamais `false` — quand l'appel à la fonction
+échoue : c'est `true` qui mène au refus dans `inviterClientAuPortail`, à
+l'inverse de `identiteExclusiveALaSociete` où c'est `false` qui mène au
+contrôle supplémentaire. Une erreur ne doit jamais devenir une acceptation
+silencieuse.
+
+Portée : `prisma/migrations/20261109050000_identite_interne_ailleurs_9k04`,
+`lib/db/migrations-attendues.ts`,
+`tests/unit/db/security-definer-sous-arbitrage.test.ts`
+(`AUTORISEES_PAR_ARBITRAGE`, seconde entrée), `lib/auth/lien-d-acces.ts`
+(`identiteInterneAilleurs`, appel dans `inviterClientAuPortail`),
+`tests/isolation/identite-interne-ailleurs.test.ts`,
+`tests/isolation/invitation-portail-client.test.ts`.
