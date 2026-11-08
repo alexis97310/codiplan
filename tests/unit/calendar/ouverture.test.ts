@@ -371,6 +371,38 @@ describe("prochainJourOuvert", () => {
       lireCleJour(DIMANCHE_23),
     );
   });
+
+  /**
+   * 9K00-E2E-PLANNING5-FERIE (08/11/2026) : `planning-5.spec.ts` avançait un
+   * jour choisi 140 jours à l'avance sans éviter que le lundi suivant un
+   * dimanche soit LUI-MÊME férié — mesuré sur un dimanche 28/03/2027 décalé
+   * au lundi 29/03/2027, le lundi de Pâques 2027. Le jour du mois n'est pas
+   * figé ici : c'est le LUNDI DE PÂQUES DE L'ANNÉE EN COURS DE L'HORIZON
+   * (`premiereAnneeDeLHorizon`) qui est lu, pour que ce cas reste éprouvé une
+   * fois l'horizon glissant passé 2027.
+   */
+  it("un dimanche suivi d'un lundi de Pâques saute les DEUX, jamais un seul", () => {
+    const lundiDePaques = lireCleJour(
+      ferieDeDemonstration(
+        "CODIMA-NC",
+        "DUCOS",
+        "Lundi de Pâques",
+        premiereAnneeDeLHorizon("CODIMA-NC"),
+      ),
+    );
+    const dimancheVeille = jourSuivant(lundiDePaques, -1);
+
+    // Le dimanche ferme Ducos indépendamment de tout férié (critère 1) ; le
+    // lundi qui le suit est ici fermé par le fait public, pas par le jour de
+    // semaine — c'est précisément le cas que la vérification « jamais un
+    // dimanche » laissait passer.
+    expect(estJourOuvre(DUCOS, dimancheVeille)).toBe(false);
+    expect(estJourOuvre(DUCOS, lundiDePaques)).toBe(false);
+
+    const prochain = prochainJourOuvert([DUCOS], dimancheVeille);
+    expect(prochain).not.toEqual(lundiDePaques);
+    expect(estJourOuvre(DUCOS, prochain)).toBe(true);
+  });
 });
 
 describe("un calendrier sans aucune plage refuse plutôt que de boucler", () => {

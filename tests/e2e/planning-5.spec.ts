@@ -6,6 +6,7 @@ import { expect, test } from "@playwright/test";
 
 import { dureeCarteAffichee } from "@/app/(back-office)/planning/carte";
 import { Role } from "@/lib/auth/roles";
+import { chargerCalendrierAgence, prochainJourOuvert } from "@/lib/calendar";
 import {
   cleJour,
   instantDuJour,
@@ -14,7 +15,6 @@ import {
   maintenant,
   type JourLocal,
 } from "@/lib/calendar/fuseau";
-import { jourSemaineIso } from "@/lib/calendar/semaine";
 import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
 
@@ -36,8 +36,22 @@ import { ouvrirUneSession } from "./setup/session";
  * Un technicien, un client et un site forgés (identifiants `uuidv7()`, I10),
  * une seule intervention DATÉE SANS HEURE de 180 minutes, à un jour ouvré
  * choisi à 140 jours d'aujourd'hui — loin des décalages déjà pris par les
- * autres fichiers (5, 10, 11, 21, 35, 49, 63, 91) — et ajusté au besoin pour
- * tomber un jour où Ducos ouvre (jamais un dimanche).
+ * autres fichiers (5, 10, 11, 21, 35, 49, 63, 91) — et ajusté au besoin par
+ * `prochainJourOuvert` (`lib/calendar`), sur le calendrier de Ducos CHARGÉ
+ * DEPUIS LA BASE (`chargerCalendrierAgence`) : ni un dimanche (fermeture),
+ * ni un jour férié de la société (9K00-E2E-PLANNING5-FERIE, mesuré le
+ * 08/11/2026 — +140 jours tombe le lundi de Pâques 2027 les 08 et 09/11).
+ *
+ * **Pas la fonction de `scene.ts`** (`lundiSansJourFerie`) : elle avance un
+ * LUNDI de semaine entière pour trois rangs fixes (MARDI, MERCREDI, SAMEDI)
+ * et lit les fériés d'une fonction statique du semis
+ * (`feriesDeLaSceneNc`/`prisma/seed-data.ts`), jamais de la base — alors que
+ * ce fichier avance un jour UNIQUE et veut lire la base, comme le font déjà
+ * `pg-g14b-transmettre-groupe.spec.ts` et les cinq autres fichiers qui
+ * partagent cet oracle. `prochainJourOuvert` EST cet assistant partagé :
+ * aucune extraction neuve n'était nécessaire, et une liste de dates en dur
+ * n'a jamais été envisagée. Son cas du 29/03/2027 (lundi de Pâques) est
+ * éprouvé par `tests/unit/calendar/ouverture.test.ts`.
  */
 
 test.describe.configure({ mode: "serial" });
@@ -99,14 +113,22 @@ async function ecrireLaScene(): Promise<void> {
 
     const aujourdhui = jourDe(maintenant(societe.fuseau_horaire).local);
     // 140 JOURS — loin de tout autre décalage pris par les fichiers e2e du
-    // dépôt, et ajusté sur un jour où Ducos ouvre (jamais un dimanche, I7 :
-    // aucun calendrier codé en dur ici, seule sa FERMETURE dominicale connue
-    // du semis est évitée).
-    let candidat = jourSuivant(aujourdhui, 140);
-    if (jourSemaineIso(candidat) === 7) {
-      candidat = jourSuivant(candidat, 1);
+    // dépôt — puis ajusté par `prochainJourOuvert` sur le calendrier de
+    // Ducos CHARGÉ DEPUIS LA BASE : ni un dimanche, ni un jour férié de la
+    // société (I7 : aucun calendrier codé en dur ici).
+    const depuis = jourSuivant(aujourdhui, 140);
+    const calendrierDucos = await chargerCalendrierAgence(client, {
+      societeId: societe.id,
+      agenceId: ducos.id,
+      fenetre: { du: depuis, au: jourSuivant(depuis, 14) },
+    });
+    if (calendrierDucos === null) {
+      throw new Error(
+        "La scène PLA5- ne peut pas choisir un jour ouvré : Ducos n'a pas " +
+          "de calendrier chargeable.",
+      );
     }
-    jourVise = candidat;
+    jourVise = prochainJourOuvert([calendrierDucos], depuis);
 
     await client.utilisateur.create({
       data: {
