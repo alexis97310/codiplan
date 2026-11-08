@@ -396,6 +396,56 @@ describe("inviterClientAuPortail — l'invitation", () => {
     expect(rattachement).toHaveLength(0);
   });
 
+  /**
+   * D233 (c), fermé par le complément du 09/11/2026 (9K04-PORTAIL-
+   * INVITATION-EMPLOYE, décision verbatim d'Alexis du 08/11 ~09:00) — un
+   * EMPLOYÉ (interne) d'une autre société, même déjà actif (mot de passe
+   * posé), est refusé : la MÊME identité qui suivrait la branche (a) si elle
+   * était cliente ailleurs suit désormais (c) parce qu'elle est INTERNE
+   * ailleurs. Avant ce lot, ce cas suivait (a) sans distinction (résidu nommé
+   * par D233) — c'est exactement la régression que cette épreuve ferme.
+   */
+  it("C1(c), compte déjà actif — un EMPLOYÉ déjà actif (mot de passe posé) d'une AUTRE société est REFUSÉ", async () => {
+    const email = courriel();
+    const utilisateurId = uuidv7();
+    await clientOwner().utilisateur.create({
+      data: { id: utilisateurId, nom: "Employé de B, déjà actif", email },
+    });
+    await clientOwner().compte.create({
+      data: {
+        id: uuidv7(),
+        utilisateur_id: utilisateurId,
+        emetteur: "local:credential",
+        compte_externe_id: utilisateurId,
+        fournisseur_id: "credential",
+        mot_de_passe: "empreinte-de-test",
+      },
+    });
+    await clientOwner().utilisateurSociete.create({
+      data: {
+        id: uuidv7(),
+        utilisateur_id: utilisateurId,
+        societe_id: SOCIETE_B,
+        role: Role.adv,
+      },
+    });
+
+    const resultat = await inviterClientAuPortail(
+      ADMIN_A,
+      CLIENT_A1,
+      email,
+      clientApp(),
+    );
+    expect(resultat).toEqual({ accepte: false, motif: "compte_interne" });
+
+    // AUCUN RATTACHEMENT CLIENT N'A ÉTÉ POSÉ, dans AUCUNE société.
+    const rattachement = await clientOwner().$queryRawUnsafe<unknown[]>(
+      `SELECT 1 FROM "utilisateur_client" WHERE utilisateur_id = $1::uuid`,
+      utilisateurId,
+    );
+    expect(rattachement).toHaveLength(0);
+  });
+
   it("non-régression — une identité SANS mot de passe mais connue SEULEMENT de la société active reste acceptée AVEC lien", async () => {
     const email = courriel();
     await inviterClientAuPortail(ADMIN_A, CLIENT_A1, email, clientApp());

@@ -475,6 +475,51 @@ export async function identitesExclusivesALaSociete(
 }
 
 /**
+ * CETTE IDENTITÉ TIENT-ELLE UN RATTACHEMENT INTERNE DANS UNE AUTRE SOCIÉTÉ
+ * QUE L'ACTIVE ? (D233, complément du 09/11/2026, 9K04-PORTAIL-INVITATION-
+ * EMPLOYE) — appelle `app_identite_interne_ailleurs` (migration
+ * `20261109050000_identite_interne_ailleurs_9k04`), la SECONDE entrée de
+ * `AUTORISEES_PAR_ARBITRAGE` (D50), sur le modèle de D226.
+ *
+ * Question plus étroite que `identiteExclusiveALaSociete` : ne regarde que
+ * `utilisateur_societe` (rattachement INTERNE — bureau ou technicien), jamais
+ * `utilisateur_client`. Ferme le résidu nommé par D233 (c) :
+ * `identiteExclusiveALaSociete` seule ne peut pas distinguer un compte
+ * d'employé d'ailleurs d'un compte client d'ailleurs.
+ *
+ * **FAIL-CLOSED (même famille que 9I8D2), MAIS INVERSÉ par rapport à
+ * `identiteExclusiveALaSociete`** : dans `inviterClientAuPortail`, c'est la
+ * réponse `true` qui mène au REFUS (motif `compte_interne`). Une exception
+ * ici ne doit donc JAMAIS devenir une acceptation silencieuse : elle vaut
+ * « oui, interne ailleurs », au même titre qu'un résultat trouvé — jamais
+ * `false`. L'erreur est journalisée SANS l'identité ni la société en cause.
+ */
+export async function identiteInterneAilleurs(
+  contexteAdmin: ContexteSession,
+  utilisateurId: string,
+  client: PrismaClient,
+): Promise<boolean> {
+  const societeId = exigerSocieteActive(contexteAdmin);
+  try {
+    const lignes = await avecSociete(
+      client,
+      societeId,
+      (tx) =>
+        tx.$queryRaw<
+          readonly { readonly interne_ailleurs: boolean }[]
+        >`SELECT "app_identite_interne_ailleurs"(${utilisateurId}::uuid) AS "interne_ailleurs"`,
+    );
+    return lignes[0]?.interne_ailleurs ?? true;
+  } catch (erreur) {
+    console.error(
+      "app_identite_interne_ailleurs a échoué, code SQLSTATE :",
+      sqlstateDeLErreur(erreur),
+    );
+    return true;
+  }
+}
+
+/**
  * L'INVITATION D'UN CLIENT AU PORTAIL (D96, D230, 9J02A-REPRISE-9J02).
  *
  * ## Une porte DISTINCTE (D96, §3) — et pourtant adossée au même module
@@ -548,15 +593,20 @@ export async function identitesExclusivesALaSociete(
  *   refuse NOMMÉMENT (`compte_connu_autre_societe`) AVANT d'émettre quoi que
  *   ce soit : aucun jeton, aucun rattachement.
  *
- * **Ce que cette seule fonction ne peut PAS distinguer** : elle ne rend qu'un
- * booléen (D226, `SET row_security = off` nommément borné à ce résultat) —
- * jamais LAQUELLE des deux tables a répondu. Un compte employé d'une AUTRE
- * société qui aurait déjà posé un mot de passe suit donc la même branche
- * qu'un compte client déjà actif ailleurs (accepté) : affiner cette
- * distinction demanderait une fonction `SECURITY DEFINER` supplémentaire,
- * donc une migration — hors mandat de ce lot (voir la passation). Ce n'est
- * pas une régression : le code d'avant ce lot acceptait déjà ce cas sans
- * même consulter `identiteExclusiveALaSociete`.
+ * **Ce que `identiteExclusiveALaSociete` seule ne peut PAS distinguer** :
+ * elle ne rend qu'un booléen (D226, `SET row_security = off` nommément borné
+ * à ce résultat) — jamais LAQUELLE des deux tables a répondu. Un compte déjà
+ * actif ailleurs (mot de passe posé) tombe donc dans la branche `!exclusive`
+ * sans qu'on sache encore s'il s'agit d'un client ou d'un employé.
+ *
+ * **D233 (c), fermé par le complément du 09/11/2026 (9K04-PORTAIL-
+ * INVITATION-EMPLOYE)** : `identiteInterneAilleurs` (D233, migration
+ * `20261109050000_identite_interne_ailleurs_9k04`) tranche cette seconde
+ * question — ce compte déjà actif ailleurs porte-t-il un rattachement
+ * `utilisateur_societe` (interne) pour une AUTRE société ? Si oui, refus
+ * NOMMÉ (`compte_interne`), avant tout rattachement ni tout jeton — un
+ * employé d'ailleurs ne devient jamais un compte client, même déjà actif.
+ * Sinon, (a) s'applique : accepté, `dejaActif: true`.
  */
 
 /** Ce qu'un refus NOMMÉ dit, et il n'en dit jamais plus (D50). */
@@ -668,6 +718,23 @@ export async function inviterClientAuPortail(
       );
       if (compteAilleurs === null || compteAilleurs.mot_de_passe === null) {
         return { accepte: false, motif: "compte_connu_autre_societe" };
+      }
+
+      // ── CE COMPTE DÉJÀ ACTIF AILLEURS EST-IL UN EMPLOYÉ, PAS UN CLIENT ?
+      // (D233 (c), fermé par D233 complément 9K04) ───────────────────────
+      //
+      // Jusqu'ici, un compte déjà actif ailleurs (mot de passe posé) était
+      // accepté sans distinction — (a) et (c) suivaient la même branche. La
+      // décision d'Alexis du 08/11 ~09:00, point (c) : un employé (interne)
+      // d'une autre société est refusé, même déjà actif. Lu AVANT tout
+      // rattachement ni tout jeton : un refus ici n'écrit rien.
+      const interneAilleurs = await identiteInterneAilleurs(
+        contexteAdmin,
+        existante.id,
+        client,
+      );
+      if (interneAilleurs) {
+        return { accepte: false, motif: "compte_interne" };
       }
     }
   } else {
