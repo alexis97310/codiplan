@@ -518,6 +518,15 @@ const ICONE_PAR_CHEMIN: Partial<Record<string, NomIcone>> = {
   // « Notifications » (9J10-NOTIFICATIONS-ECRAN) — `bell` (:1644 de la
   // planche `ICONS`, voir `components/ui/icone.tsx`).
   "/notifications": "bell",
+  // LES QUATRE ENTRÉES AJOUTÉES À LA BARRE DU PORTAIL (9K02-PORTAIL-MENU-
+  // ACCUEIL) — un chemin PROPRE au portail (`/portail/...`), donc aucune
+  // collision possible avec `/interventions` ou `/demandes` du back-office :
+  // pas besoin de l'exception `ICONE_PORTAIL_PAR_CLE` ci-dessous, réservée au
+  // seul chemin partagé `/portail`.
+  "/portail/interventions": "clipboard",
+  "/portail/demandes": "inbox",
+  "/portail/contacts": "users",
+  "/portail/tarifs": "tag",
 };
 
 /** Voir le commentaire de `ICONE_PAR_CHEMIN` — l'exception par `cle`, réservée à `/portail`. */

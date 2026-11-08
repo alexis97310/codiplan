@@ -4934,6 +4934,16 @@ export const fr = {
   // qui est l'entrée du back-office vers ce même espace : ce n'est pas le même
   // lecteur, donc ce n'est pas le même mot.
   "nav.portail_parc": "Votre parc",
+  // 9K02-PORTAIL-MENU-ACCUEIL — les quatre autres entrées de la barre DU
+  // PORTAIL, décision d'Alexis du 08/11/2026. Même libellé que le titre de
+  // l'écran qu'elles ouvrent (`portail.interventions.titre`,
+  // `portail.demandes.titre`, `portail.contacts.titre`, `portail.tarifs`) :
+  // une clé distincte plutôt qu'une réutilisation, parce que les deux barres
+  // ne partagent AUCUNE clé (D97, gardien `barre-du-portail.test.tsx`).
+  "nav.portail_interventions": "Vos interventions",
+  "nav.portail_demandes": "Vos demandes",
+  "nav.portail_contacts": "Vos interlocuteurs",
+  "nav.portail_tarifs": "Nos tarifs",
   "nav.imports_excel": "Imports Excel",
   // 9IC5-FEUILLE-DE-ROUTE (demande d'Alexis, 02/11/2026) — visible aux seuls
   // admin_societe et admin_plateforme, voir `lib/feuille-de-route/acces.ts`.

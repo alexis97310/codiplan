@@ -421,18 +421,29 @@ export const ENTREES: readonly EntreeDeBarre[] = [
  * inerte, ce serait promettre au client un outil qu'on n'a pas décidé de lui
  * donner.* Le gardien l'exige, dans les deux sens.
  *
- * **Une seule entrée aujourd'hui**, et c'est un état plutôt qu'un choix : le
- * portail n'a qu'un écran servi (L2-12). Ce qu'une barre d'une entrée apporte
- * quand même est le POINT DE RETOUR — sans elle, un client qui ouvre une fiche
- * n'a aucun chemin vers sa liste, et c'est le coût que l'issue « pas de barre
- * du tout » faisait payer.
+ * **CINQ ENTRÉES DEPUIS LE 08/11/2026 (9K02-PORTAIL-MENU-ACCUEIL)** — décision
+ * d'Alexis : Votre parc, Vos interventions, Vos demandes, Vos interlocuteurs,
+ * Nos tarifs. Les quatre dernières existaient déjà en écran (9J07, 9J04,
+ * 9J03, 9J20) mais SEULEMENT par leur URL tapée à la main — ni `/portail`, ni
+ * le burger à 375 px ne les montraient (étude du 08/11,
+ * `etude-0811/portail-parcours.md`, I1). Ce n'est pas une barre qui grandit
+ * au hasard des lots : c'est une barre qui RATTRAPE des écrans déjà vivants.
  *
- * **Ce n'est pas un contrôle d'accès**, pas plus que l'autre : ce qui protège
+ * **Ce qu'une barre à cinq entrées apporte** : le POINT DE RETOUR, comme la
+ * barre à une seule entrée le faisait déjà — sans elle, un client qui ouvre
+ * une fiche n'a aucun chemin vers sa liste —, et maintenant aussi la
+ * DÉCOUVERTE : un client ne devine pas une adresse qu'on ne lui montre pas.
+ *
+ * **Ce n'est pas un contrôle d'accès**, pas plus qu'avant : ce qui protège
  * le parc d'un client est la forme « parc » et la forme « rattachement », pas
  * l'absence d'un lien.
  */
 export const ENTREES_PORTAIL: readonly EntreeNavigation[] = [
   { cle: "nav.portail_parc", chemin: "/portail" },
+  { cle: "nav.portail_interventions", chemin: "/portail/interventions" },
+  { cle: "nav.portail_demandes", chemin: "/portail/demandes" },
+  { cle: "nav.portail_contacts", chemin: "/portail/contacts" },
+  { cle: "nav.portail_tarifs", chemin: "/portail/tarifs" },
 ];
 
 /**
