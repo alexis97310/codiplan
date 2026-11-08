@@ -132,6 +132,18 @@ async function preparerLaScene(): Promise<void> {
   }
 }
 
+/**
+ * LA CARTE DE L'ACCUEIL, jamais l'entrée du menu — 9K02-PORTAIL-MENU-ACCUEIL
+ * a ajouté « Nos tarifs » à la barre, qui porte désormais le même libellé
+ * que cette carte. Le titre `<h2>` de la carte est la seule marque qui les
+ * distingue : l'entrée de menu n'en a pas.
+ */
+function carteTarifsDeLAccueil(page: Page) {
+  return page.getByRole("link").filter({
+    has: page.getByRole("heading", { level: 2, name: fr["portail.tarifs"] }),
+  });
+}
+
 async function ouvrirLaSessionPortail(page: Page): Promise<void> {
   await page.goto("/connexion");
   await page.getByLabel(fr["connexion.email"]).fill(EMAIL_PORTAIL);
@@ -158,7 +170,7 @@ for (const largeur of [1280, 375] as const) {
       page,
     }) => {
       await ouvrirLaSessionPortail(page);
-      await expect(page.getByText(fr["portail.tarifs"])).toBeVisible();
+      await expect(carteTarifsDeLAccueil(page)).toBeVisible();
       await capturer(page, "avant-portail", largeur);
     });
 
@@ -166,7 +178,7 @@ for (const largeur of [1280, 375] as const) {
       page,
     }) => {
       await ouvrirLaSessionPortail(page);
-      await page.getByText(fr["portail.tarifs"]).click();
+      await carteTarifsDeLAccueil(page).click();
       await expect(page).toHaveURL(/\/portail\/tarifs/);
       await expect(
         page.getByRole("heading", {
