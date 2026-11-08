@@ -10,7 +10,7 @@ import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
 import {
   enregistrerAccord,
-  marquerPieceRecue,
+  marquerDevisEnvoye,
   qualifierSuite,
 } from "@/lib/suite-a-donner/depot";
 
@@ -29,13 +29,15 @@ import { ouvrirUneSession } from "./setup/session";
  * samedi, 07:30–11:30 puis 13:00–17:00), et aucun des fériés NC fixes ou
  * mobiles de cette année.
  *
- * **`qualifierSuite`/`enregistrerAccord`/`marquerPieceRecue` sont appelées
+ * **`qualifierSuite`/`marquerDevisEnvoye`/`enregistrerAccord` sont appelées
  * directement**, comme bibliothèque — même geste que `preparerLaScene` de
  * `captures-9j08a-portail-bon.spec.ts` (`inviterClientAuPortail`) : amener
- * une ligne à `a_replanifier` traverse FLX-2/FLX-3/FLX-8, hors écran de ce
- * ticket (9J18 n'ouvre que la qualification manuelle et la clôture
+ * une ligne à `a_replanifier` traverse la chaîne des transitions, hors écran
+ * de ce ticket (9J18 n'ouvre que la qualification manuelle et la clôture
  * automatique), mais ce sont les mêmes fonctions de production, jamais une
- * ligne posée à la main.
+ * ligne posée à la main. **Un accord sans pièce saute directement à
+ * `a_replanifier`** (DÉCISION D'ALEXIS du 08/11/2026, 9K05) : `marquerPieceRecue`
+ * n'a donc plus lieu sur ce chemin.
  */
 test.describe.configure({ mode: "serial" });
 
@@ -133,13 +135,13 @@ async function preparerLaScene(): Promise<void> {
         interventionOrigineId,
         applicatif,
       );
+      await marquerDevisEnvoye(contexte, suiteADonnerId, applicatif);
       await enregistrerAccord(
         contexte,
         suiteADonnerId,
         { reponse: "accord_recu" },
         applicatif,
       );
-      await marquerPieceRecue(contexte, suiteADonnerId, applicatif);
     } finally {
       await applicatif.$disconnect();
     }
@@ -154,13 +156,6 @@ async function effacerLaScene(): Promise<void> {
   });
   try {
     if (suiteADonnerId !== "") {
-      // LA NOTIFICATION S'EFFACE AVANT LA SUITE (9J19-SUITE-A-DONNER-
-      // NOTIFICATIONS) : `marquerPieceRecue` pose désormais une notification
-      // « piece_recue » référençant cette ligne (clé étrangère RESTRICT).
-      await admin.$executeRawUnsafe(
-        `DELETE FROM "notification" WHERE "suite_a_donner_id" = $1::uuid`,
-        suiteADonnerId,
-      );
       await admin.$executeRawUnsafe(
         `DELETE FROM "suite_a_donner" WHERE "id" = $1::uuid`,
         suiteADonnerId,
