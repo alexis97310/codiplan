@@ -17,6 +17,7 @@ import {
 } from "@/lib/auth/habilitations";
 import { LONGUEUR_MINIMALE } from "@/lib/auth/premier-acces";
 import { libelleCapacite } from "@/lib/auth/presentation-capacites";
+import { estRolePortail } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
@@ -54,6 +55,14 @@ export default async function PageMonCompte({
   }
   if (session.contexte.societeId === null || session.contexte.role === null) {
     redirect("/arrivee");
+  }
+  // UN ROLE DU PORTAIL NE DÉSIGNE JAMAIS DE CLIENT ICI (D70) : `clientId`
+  // vaudrait `null`, et `avecContexteApplicatif` lèverait avant d'atteindre
+  // la moindre politique (I5, 9K06-PORTAIL-COMPTE-TELEPHONE, mesuré par une
+  // épreuve e2e). Cette route est celle du BUREAU ; la sienne est
+  // `/portail/mon-compte`.
+  if (estRolePortail(session.contexte.role)) {
+    redirect("/portail/mon-compte");
   }
   const contexte = {
     ...session.contexte,

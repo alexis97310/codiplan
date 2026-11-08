@@ -10,7 +10,7 @@ import { MarqueClaire } from "@/components/navigation/marque";
 import { BandeauSociete } from "@/components/theme/bandeau-societe";
 import { CLASSES_TON } from "@/components/ui/badge";
 import { Icone, type NomIcone } from "@/components/ui/icone";
-import type { Role } from "@/lib/auth/roles";
+import { estRolePortail, type Role } from "@/lib/auth/roles";
 import { t, type CleTraduction } from "@/lib/i18n/fr";
 import {
   entreeActive,
@@ -166,6 +166,20 @@ function useColonneRepliable(): {
 
   return { repliee, basculer };
 }
+
+/**
+ * LA PASTILLE « MON COMPTE » MÈNE À DEUX ÉCRANS DISTINCTS SELON LE RÔLE (I5,
+ * 9K06-PORTAIL-COMPTE-TELEPHONE) — un rôle du portail n'atteint jamais
+ * `/mon-compte` (D70, aucun client n'y est désigné). Les deux chemins sont
+ * nommés ici, en clé d'objet plutôt qu'en ternaire nu, pour que
+ * `scripts/lib/atteignabilite-ecrans.ts` (`cheminsDesignes`) les voie l'un et
+ * l'autre — il ne lit qu'un NOM suivi d'un chemin, jamais la syntaxe d'un
+ * ternaire.
+ */
+const CHEMINS_MON_COMPTE = {
+  bureau: "/mon-compte",
+  portail: "/portail/mon-compte",
+} as const;
 
 export function BarreDeNavigation({
   theme,
@@ -354,7 +368,11 @@ export function BarreDeNavigation({
             <div className="flex items-center justify-between gap-2">
               <Deconnexion />
               <Link
-                href="/mon-compte"
+                href={
+                  role !== null && role !== undefined && estRolePortail(role)
+                    ? CHEMINS_MON_COMPTE.portail
+                    : CHEMINS_MON_COMPTE.bureau
+                }
                 aria-label={t("nav.mon_compte")}
                 className="rounded-full"
               >

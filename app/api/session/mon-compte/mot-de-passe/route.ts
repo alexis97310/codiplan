@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { changerSonMotDePasse } from "@/lib/auth/mon-compte";
 import { exigerSessionActive } from "@/lib/auth/porte";
+import { estRolePortail } from "@/lib/auth/roles";
 
 import { champ, redirectionAvecMotif } from "../../reponses";
 
@@ -37,8 +38,13 @@ async function traiter(requete: Request): Promise<Response> {
     await headers(),
   );
 
+  // LA DESTINATION SUIT LE RÔLE, PAS UNE VALEUR REÇUE (9K06) : un compte du
+  // portail n'atteint jamais `/mon-compte` (I5) ; cette route change le mot
+  // de passe de TOUT rôle de bureau connecté sans le distinguer, voir
+  // l'en-tête — seule la redirection qui suit a besoin de savoir où le
+  // ramener.
   return redirectionAvecMotif(
-    "/mon-compte",
+    estRolePortail(contexte.role) ? "/portail/mon-compte" : "/mon-compte",
     `mon_compte.mot_de_passe.${issue.issue}`,
     issue.issue === "abouti" ? issue.cookies : [],
   );

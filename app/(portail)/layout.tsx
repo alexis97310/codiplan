@@ -38,7 +38,7 @@ import { ENTREES_PORTAIL } from "@/lib/navigation/entrees";
 export default async function MiseEnPagePortail({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const { theme, initiales } = await chromeDeLaRequete();
+  const { theme, initiales, role } = await chromeDeLaRequete();
 
   return (
     <FournisseurNavigationMobile>
@@ -47,6 +47,7 @@ export default async function MiseEnPagePortail({
           theme={theme}
           initiales={initiales}
           entrees={ENTREES_PORTAIL}
+          role={role}
           accueil="/portail"
         />
         <div className="min-w-0 flex-1">

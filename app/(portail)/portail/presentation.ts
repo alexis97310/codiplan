@@ -1,3 +1,5 @@
+import type { Prisma } from "@prisma/client";
+
 import { t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 
@@ -113,4 +115,37 @@ export function placeDesDocuments(): string {
 
 export function placeDuVgp(): string {
   return `${t("portail.vgp")} ${TIRET} ${t("portail.vgp.sans_information")}`;
+}
+
+/**
+ * « 12 rue des Palétuviers, Nouméa », mise en une ligne — même convention que
+ * `lib/interventions/bon.ts` (`formatAdresseSite`) : une clé `rue`, libre pour
+ * le reste. **La commune vient ici du MÊME objet JSON**, `client.
+ * adresse_facturation` ne portant pas de colonne dédiée comme `site.commune`.
+ *
+ * `null` seulement quand ni l'une ni l'autre n'est renseignée.
+ */
+export function adresseDuCompte(
+  adresse: Prisma.JsonValue | null,
+): string | null {
+  if (
+    adresse === null ||
+    typeof adresse !== "object" ||
+    Array.isArray(adresse)
+  ) {
+    return null;
+  }
+  const valeurs = adresse as Record<string, Prisma.JsonValue>;
+  const rue =
+    typeof valeurs.rue === "string" && valeurs.rue.trim().length > 0
+      ? valeurs.rue.trim()
+      : null;
+  const commune =
+    typeof valeurs.commune === "string" && valeurs.commune.trim().length > 0
+      ? valeurs.commune.trim()
+      : null;
+  if (rue === null) {
+    return commune;
+  }
+  return commune === null ? rue : `${rue}, ${commune}`;
 }

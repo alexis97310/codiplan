@@ -3,7 +3,7 @@ import { avecIdentite } from "@/lib/db/rls";
 import { prisma as clientParDefaut } from "@/lib/db/client";
 import { type ContexteSession } from "@/lib/auth/contexte";
 
-import { type PrismaClient, type StatutMachine } from "@prisma/client";
+import { Prisma, type PrismaClient, type StatutMachine } from "@prisma/client";
 
 /**
  * LE PORTAIL CLIENT — CONSULTATION SEULE (ticket L2-12, D92).
@@ -70,6 +70,38 @@ export async function rattachementsDuCompte(
     societeId: ligne.societe_id,
     clientId: ligne.client_id,
   }));
+}
+
+/** Ce que « Mon compte » du portail montre du client — rien que le nom et l'adresse. */
+export type FicheDuCompte = {
+  readonly raisonSociale: string | null;
+  readonly adresseFacturation: Prisma.JsonValue | null;
+};
+
+/**
+ * LA FICHE DU CLIENT POUR « MON COMPTE » (9K06-PORTAIL-COMPTE-TELEPHONE).
+ *
+ * MÊME politique « parc » que `parcDuClient` — aucune politique neuve, une
+ * seule colonne de plus (`adresse_facturation`) sur la même lecture sous
+ * contexte.
+ */
+export async function ficheDuCompte(
+  contexte: ContexteSession,
+  client?: PrismaClient,
+): Promise<FicheDuCompte> {
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const fiche = await tx.client.findFirst({
+        select: { raison_sociale: true, adresse_facturation: true },
+      });
+      return {
+        raisonSociale: fiche?.raison_sociale ?? null,
+        adresseFacturation: fiche?.adresse_facturation ?? null,
+      };
+    },
+    client,
+  );
 }
 
 /** Un site tel que le portail le montre. */

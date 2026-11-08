@@ -1,3 +1,8 @@
+import {
+  CLASSE_BOUTON_PORTAIL,
+  CLASSE_CHAMP_PORTAIL,
+  CLASSE_DEPLIANT_PORTAIL,
+} from "@/components/portail/gabarit";
 import type { Fuseau } from "@/lib/calendar/fuseau";
 import type { LigneDemande } from "@/lib/demandes/depot";
 import type { StatutDemande } from "@/lib/demandes/saisie";
@@ -81,7 +86,7 @@ export function ListeDemandes({
       )}
 
       <details open={machinePreselectionnee !== undefined}>
-        <summary className="border-app-bord bg-app-surface inline-flex w-fit cursor-pointer items-center gap-1.5 rounded-lg border px-3.5 py-2 text-13 font-bold [&::-webkit-details-marker]:hidden marker:hidden">
+        <summary className={CLASSE_DEPLIANT_PORTAIL}>
           {t("portail.demandes.action.deposer")}
         </summary>
         <div className="mt-2">
@@ -205,7 +210,7 @@ function FormeDemande({
         <select
           name="machine_id"
           defaultValue={machinePreselectionnee ?? ""}
-          className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+          className={CLASSE_CHAMP_PORTAIL}
         >
           <option value="">{t("portail.demandes.champ.machine.aucune")}</option>
           {machines.map((machine) => (
@@ -218,11 +223,7 @@ function FormeDemande({
 
       <label className="flex flex-col gap-1 text-13 font-bold">
         {t("portail.demandes.champ.site")}
-        <select
-          name="site_id"
-          defaultValue=""
-          className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
-        >
+        <select name="site_id" defaultValue="" className={CLASSE_CHAMP_PORTAIL}>
           <option value="">{t("portail.demandes.champ.site.choisir")}</option>
           {sites.map((site) => (
             <option key={site.id} value={site.id}>
@@ -243,15 +244,12 @@ function FormeDemande({
           name="description"
           required
           rows={3}
-          className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+          className={CLASSE_CHAMP_PORTAIL}
         />
       </label>
 
       <div>
-        <button
-          type="submit"
-          className="bg-app-marque text-app-marque-encre rounded-md px-3.5 py-1.5 text-13 font-bold"
-        >
+        <button type="submit" className={CLASSE_BOUTON_PORTAIL}>
           {t("portail.demandes.action.deposer")}
         </button>
       </div>

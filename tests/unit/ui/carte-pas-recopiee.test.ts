@@ -305,6 +305,12 @@ const EXCEPTIONS: readonly Exception[] = [
     raison: "la boîte <dialog> de confirmation de pose",
   },
   {
+    chemin: "components/portail/gabarit.tsx",
+    categories: ["details-natif"],
+    raison:
+      "CLASSE_DEPLIANT_PORTAIL — le <summary> des dépliants du portail (9K06), jamais un encadré : le portail n'utilise ni Carte ni aucun composant du back-office (voir l'en-tête de app/(portail)/portail/contacts/vue.tsx)",
+  },
+  {
     chemin: "components/pwa/bouton-installer.tsx",
     categories: ["bouton"],
     raison:

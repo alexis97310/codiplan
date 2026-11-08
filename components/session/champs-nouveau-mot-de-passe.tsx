@@ -60,7 +60,7 @@ export function ChampsNouveauMotDePasse({
           autoComplete="new-password"
           value={motDePasse}
           onChange={(evenement) => setMotDePasse(evenement.target.value)}
-          className="border-input bg-app-surface rounded-md border px-3 py-2 text-sm font-normal"
+          className="border-input bg-app-surface rounded-md border px-3 py-2 text-base font-normal sm:text-sm"
         />
       </label>
       <ul className="text-muted-foreground -mt-2 flex flex-wrap gap-4 text-14">
@@ -90,7 +90,7 @@ export function ChampsNouveauMotDePasse({
           autoComplete="new-password"
           value={confirmation}
           onChange={(evenement) => setConfirmation(evenement.target.value)}
-          className="border-input bg-app-surface rounded-md border px-3 py-2 text-sm font-normal"
+          className="border-input bg-app-surface rounded-md border px-3 py-2 text-base font-normal sm:text-sm"
         />
       </label>
     </>

@@ -6,6 +6,7 @@ import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 
 import { Page } from "@/components/mise-en-page/page";
+import { CLASSE_BOUTON_PORTAIL } from "@/components/portail/gabarit";
 import { estRolePortail } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import { maintenant, lireFuseau } from "@/lib/calendar/fuseau";
@@ -172,13 +173,28 @@ export default async function PageFicheInterventionPortail({
       titre={titreFiche}
       sousTitre={t("portail.interventions.fiche.sous_titre")}
     >
-      <section className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5 text-[13px] font-bold">
-        <span>{t(`statut.${fiche.statut}`)}</span>
-        <span>{t(`type_intervention.${fiche.type}`)}</span>
-        <span>{dateDeLIntervention(fiche)}</span>
-        <span>{siteDeLIntervention(fiche.siteId, siteParId)}</span>
-        <span>{identifiantDeLIntervention(fiche.numero, fiche.annee)}</span>
-      </section>
+      <dl className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5 text-[13px] font-bold">
+        <LigneFiche
+          libelle={t("intervention.statut")}
+          valeur={t(`statut.${fiche.statut}`)}
+        />
+        <LigneFiche
+          libelle={t("intervention.type")}
+          valeur={t(`type_intervention.${fiche.type}`)}
+        />
+        <LigneFiche
+          libelle={t("intervention.date")}
+          valeur={dateDeLIntervention(fiche)}
+        />
+        <LigneFiche
+          libelle={t("intervention.numero")}
+          valeur={identifiantDeLIntervention(fiche.numero, fiche.annee)}
+        />
+      </dl>
+
+      <p className="text-13 font-bold">
+        {siteDeLIntervention(fiche.siteId, siteParId)}
+      </p>
 
       <section className="text-app-encre-faible flex flex-col gap-2 text-13 font-bold">
         {sansCommentaire ? (
@@ -250,13 +266,32 @@ export default async function PageFicheInterventionPortail({
         le proposer avant ce palier.
       */}
       {fiche.statut === "cloturee" ? (
-        <Link
-          href={`/portail/interventions/${id}/bon`}
-          className="text-app-marque text-[13px] font-bold"
-        >
-          {t("portail.interventions.bon.lien")}
-        </Link>
+        <div>
+          <Link
+            href={`/portail/interventions/${id}/bon`}
+            className={CLASSE_BOUTON_PORTAIL}
+          >
+            {t("portail.interventions.bon.lien")}
+          </Link>
+        </div>
+      ) : fiche.statut === "terminee" ? (
+        <p className="text-app-encre-faible text-13 font-bold">
+          {t("portail.interventions.bon.refus_non_cloturee")}
+        </p>
       ) : null}
     </Page>
+  );
+}
+
+/** Une ligne étiquetée de la fiche (I8, 9K06) — même patron que `LigneIdentite` de `/mon-compte`. */
+function LigneFiche({
+  libelle,
+  valeur,
+}: Readonly<{ libelle: string; valeur: string }>) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <dt className="text-app-encre-faible">{libelle}</dt>
+      <dd>{valeur}</dd>
+    </div>
   );
 }

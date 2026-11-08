@@ -82,7 +82,7 @@ export function Champ({
         autoComplete={
           autoComplete ?? (type === "password" ? "new-password" : "on")
         }
-        className="border-input bg-app-surface rounded-md border px-3 py-2 text-sm font-normal"
+        className="border-input bg-app-surface rounded-md border px-3 py-2 text-base font-normal sm:text-sm"
       />
     </label>
   );

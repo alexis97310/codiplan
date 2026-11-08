@@ -1,3 +1,10 @@
+import {
+  CLASSE_BOUTON_PORTAIL,
+  CLASSE_CHAMP_PORTAIL,
+  CLASSE_DEPLIANT_PORTAIL,
+  ChampPortail,
+  LienTelephone,
+} from "@/components/portail/gabarit";
 import type { FicheContact } from "@/lib/contacts/depot";
 import { ROLES_CONTACT, type RoleContact } from "@/lib/contacts/saisie";
 import { t } from "@/lib/i18n/fr";
@@ -55,7 +62,7 @@ export function ListeContacts({
       )}
 
       <details>
-        <summary className="border-app-bord bg-app-surface inline-flex w-fit cursor-pointer items-center gap-1.5 rounded-lg border px-3.5 py-2 text-13 font-bold [&::-webkit-details-marker]:hidden marker:hidden">
+        <summary className={CLASSE_DEPLIANT_PORTAIL}>
           {t("contacts.action.creer")}
         </summary>
         <div className="mt-2">
@@ -103,15 +110,23 @@ function LigneContact({
                 ?.libelle ?? contact.site_id)}
         </span>
         {contact.fonction === null ? null : <span>{contact.fonction}</span>}
-        {contact.telephone === null ? null : <span>{contact.telephone}</span>}
-        {contact.mobile === null ? null : <span>{contact.mobile}</span>}
+        {contact.telephone === null ? null : (
+          <span>
+            <LienTelephone numero={contact.telephone} />
+          </span>
+        )}
+        {contact.mobile === null ? null : (
+          <span>
+            <LienTelephone numero={contact.mobile} />
+          </span>
+        )}
         {contact.email === null ? null : <span>{contact.email}</span>}
       </div>
 
       <details>
         <summary
           aria-label={`${t("contacts.action.modifier_fiche")} ${contact.nom}`}
-          className="border-app-bord inline-flex w-fit cursor-pointer items-center rounded-md border px-3 py-1 text-12 font-bold [&::-webkit-details-marker]:hidden marker:hidden"
+          className="border-app-bord inline-flex min-h-11 w-fit cursor-pointer items-center rounded-md border px-3 py-1 text-12 font-bold [&::-webkit-details-marker]:hidden marker:hidden"
         >
           {t("contacts.action.modifier_fiche")}
         </summary>
@@ -151,7 +166,7 @@ function FormeContact({
         <select
           name="site_id"
           defaultValue={contact?.site_id ?? ""}
-          className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
+          className={CLASSE_CHAMP_PORTAIL}
         >
           <option value="">{t("contact.rattachement.client")}</option>
           {siteOptions.map((site) => (
@@ -162,29 +177,31 @@ function FormeContact({
         </select>
       </label>
 
-      <Champ
+      <ChampPortail
         nom="nom"
         libelle={t("contact.nom")}
         valeur={contact?.nom ?? ""}
         requis
       />
       <div className="grid gap-2 md:grid-cols-2">
-        <Champ
+        <ChampPortail
           nom="fonction"
           libelle={t("contact.fonction")}
           valeur={contact?.fonction ?? ""}
         />
-        <Champ
+        <ChampPortail
           nom="telephone"
           libelle={t("contact.telephone")}
           valeur={contact?.telephone ?? ""}
+          type="tel"
         />
-        <Champ
+        <ChampPortail
           nom="mobile"
           libelle={t("contact.mobile")}
           valeur={contact?.mobile ?? ""}
+          type="tel"
         />
-        <Champ
+        <ChampPortail
           nom="email"
           libelle={t("contact.email")}
           valeur={contact?.email ?? ""}
@@ -215,45 +232,10 @@ function FormeContact({
       </fieldset>
 
       <div>
-        <button
-          type="submit"
-          className="bg-app-marque text-app-marque-encre rounded-md px-3.5 py-1.5 text-13 font-bold"
-        >
+        <button type="submit" className={CLASSE_BOUTON_PORTAIL}>
           {libelleAction}
         </button>
       </div>
     </form>
-  );
-}
-
-function Champ({
-  nom,
-  libelle,
-  valeur,
-  type,
-  requis,
-  aide,
-}: {
-  readonly nom: string;
-  readonly libelle: string;
-  readonly valeur: string;
-  readonly type?: string;
-  readonly requis?: boolean;
-  readonly aide?: string;
-}) {
-  return (
-    <label className="flex flex-col gap-1 text-13 font-bold">
-      {libelle}
-      <input
-        name={nom}
-        type={type ?? "text"}
-        defaultValue={valeur}
-        required={requis ?? false}
-        className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
-      />
-      {aide === undefined ? null : (
-        <span className="text-app-encre-faible text-12 font-bold">{aide}</span>
-      )}
-    </label>
   );
 }

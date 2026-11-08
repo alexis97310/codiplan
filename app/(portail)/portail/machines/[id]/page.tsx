@@ -6,6 +6,7 @@ import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 
 import { Page } from "@/components/mise-en-page/page";
+import { CLASSE_BOUTON_PORTAIL } from "@/components/portail/gabarit";
 import { obtenirSession } from "@/lib/auth/session";
 import { estRolePortail } from "@/lib/auth/roles";
 import { estUuid } from "@/lib/identifiant";
@@ -173,7 +174,7 @@ export default async function PageFicheMachinePortail({
       <div>
         <Link
           href={`/portail/demandes?machine_id=${fiche.machine.id}`}
-          className="bg-app-marque text-app-marque-encre inline-flex rounded-md px-3.5 py-1.5 text-13 font-bold"
+          className={CLASSE_BOUTON_PORTAIL}
         >
           {t("portail.machine.action.signaler_panne")}
         </Link>

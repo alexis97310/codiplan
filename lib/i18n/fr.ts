@@ -7401,6 +7401,7 @@ export const fr = {
   "mon_compte.identite.nom": "Nom",
   "mon_compte.identite.courriel": "Courriel",
   "mon_compte.identite.societe": "Société",
+  "mon_compte.identite.adresse": "Adresse",
   "mon_compte.identite.role": "Rôle",
   "mon_compte.identite.inconnu": "—",
   "mon_compte.habilitations.titre": "Vos habilitations",
