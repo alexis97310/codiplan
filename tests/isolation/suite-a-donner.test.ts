@@ -6,6 +6,7 @@ import { uuidv7 } from "@/lib/db/uuid";
 import {
   cloturer,
   enregistrerAccord,
+  marquerDevisEnvoye,
   marquerPieceRecue,
   qualifierSuite,
 } from "@/lib/suite-a-donner/depot";
@@ -223,11 +224,51 @@ describe("qualifierSuite — crée et qualifie dans le même geste", () => {
   });
 });
 
-describe("enregistrerAccord — accord_recu ou sans_suite", () => {
+describe("marquerDevisEnvoye — qualifiee → accord_attendu (9K05)", () => {
+  it("fait avancer une ligne `qualifiee`", async () => {
+    await surUneInterventionJetable(async (interventionId) => {
+      const id = await qualifierSuite(INTERNE_ADV, interventionId, clientApp());
+      const resultat = await marquerDevisEnvoye(INTERNE_ADV, id, clientApp());
+      expect(resultat.accepte).toBe(true);
+
+      const ligne = await clientOwner().suiteADonner.findUnique({
+        where: { id },
+      });
+      expect(ligne?.statut).toBe("accord_attendu");
+
+      await clientOwner().$executeRawUnsafe(
+        `DELETE FROM "suite_a_donner" WHERE "id" = '${id}'`,
+      );
+    });
+  });
+
+  it("ÉPREUVE : refuse un statut de départ autre que `qualifiee`", async () => {
+    await surUneInterventionJetable(async (interventionId) => {
+      const id = await poserLigne(interventionId, "accord_attendu");
+      const resultat = await marquerDevisEnvoye(INTERNE_ADV, id, clientApp());
+      expect(resultat).toEqual({
+        accepte: false,
+        cle: "suites_a_donner.refus.pas_qualifiee",
+      });
+
+      const ligne = await clientOwner().suiteADonner.findUnique({
+        where: { id },
+      });
+      expect(ligne?.statut).toBe("accord_attendu");
+
+      await clientOwner().$executeRawUnsafe(
+        `DELETE FROM "suite_a_donner" WHERE "id" = '${id}'`,
+      );
+    });
+  });
+});
+
+describe("enregistrerAccord — accord_recu, a_replanifier (accord sans pièce) ou sans_suite", () => {
   it("accord_recu avec attente de pièce pose les deux colonnes de l'horizon", async () => {
     await surUneInterventionJetable(async (interventionId) => {
       const id = await qualifierSuite(INTERNE_ADV, interventionId, clientApp());
-      await enregistrerAccord(
+      await marquerDevisEnvoye(INTERNE_ADV, id, clientApp());
+      const resultat = await enregistrerAccord(
         INTERNE_ADV,
         id,
         {
@@ -237,6 +278,7 @@ describe("enregistrerAccord — accord_recu ou sans_suite", () => {
         },
         clientApp(),
       );
+      expect(resultat.accepte).toBe(true);
 
       const ligne = await clientOwner().suiteADonner.findUnique({
         where: { id },
@@ -251,9 +293,35 @@ describe("enregistrerAccord — accord_recu ou sans_suite", () => {
     });
   });
 
+  it("DÉCISION D'ALEXIS (08/11/2026) : accord_recu SANS pièce attendue saute directement à a_replanifier", async () => {
+    await surUneInterventionJetable(async (interventionId) => {
+      const id = await qualifierSuite(INTERNE_ADV, interventionId, clientApp());
+      await marquerDevisEnvoye(INTERNE_ADV, id, clientApp());
+      const resultat = await enregistrerAccord(
+        INTERNE_ADV,
+        id,
+        { reponse: "accord_recu" },
+        clientApp(),
+      );
+      expect(resultat.accepte).toBe(true);
+
+      const ligne = await clientOwner().suiteADonner.findUnique({
+        where: { id },
+      });
+      expect(ligne?.statut).toBe("a_replanifier");
+      expect(ligne?.piece_attendue_ref).toBeNull();
+      expect(ligne?.date_dispo_prevue).toBeNull();
+
+      await clientOwner().$executeRawUnsafe(
+        `DELETE FROM "suite_a_donner" WHERE "id" = '${id}'`,
+      );
+    });
+  });
+
   it("sans_suite exige et pose le motif, en texte libre", async () => {
     await surUneInterventionJetable(async (interventionId) => {
       const id = await qualifierSuite(INTERNE_ADV, interventionId, clientApp());
+      await marquerDevisEnvoye(INTERNE_ADV, id, clientApp());
       await enregistrerAccord(
         INTERNE_ADV,
         id,
@@ -272,12 +340,38 @@ describe("enregistrerAccord — accord_recu ou sans_suite", () => {
       );
     });
   });
+
+  it("ÉPREUVE : refuse un statut de départ autre que `accord_attendu`", async () => {
+    await surUneInterventionJetable(async (interventionId) => {
+      const id = await qualifierSuite(INTERNE_ADV, interventionId, clientApp());
+      const resultat = await enregistrerAccord(
+        INTERNE_ADV,
+        id,
+        { reponse: "sans_suite", motifSansSuite: "client injoignable" },
+        clientApp(),
+      );
+      expect(resultat).toEqual({
+        accepte: false,
+        cle: "suites_a_donner.refus.pas_accord_attendu",
+      });
+
+      const ligne = await clientOwner().suiteADonner.findUnique({
+        where: { id },
+      });
+      expect(ligne?.statut).toBe("qualifiee");
+
+      await clientOwner().$executeRawUnsafe(
+        `DELETE FROM "suite_a_donner" WHERE "id" = '${id}'`,
+      );
+    });
+  });
 });
 
 describe("marquerPieceRecue — nulle l'attente, passe à a_replanifier", () => {
   it("nulle les deux colonnes de l'horizon dans la même transaction", async () => {
     await surUneInterventionJetable(async (interventionId) => {
       const id = await qualifierSuite(INTERNE_ADV, interventionId, clientApp());
+      await marquerDevisEnvoye(INTERNE_ADV, id, clientApp());
       await enregistrerAccord(
         INTERNE_ADV,
         id,
@@ -289,7 +383,8 @@ describe("marquerPieceRecue — nulle l'attente, passe à a_replanifier", () => 
         clientApp(),
       );
 
-      await marquerPieceRecue(INTERNE_ADV, id, clientApp());
+      const resultat = await marquerPieceRecue(INTERNE_ADV, id, clientApp());
+      expect(resultat.accepte).toBe(true);
 
       const ligne = await clientOwner().suiteADonner.findUnique({
         where: { id },
@@ -309,12 +404,33 @@ describe("marquerPieceRecue — nulle l'attente, passe à a_replanifier", () => 
       );
     });
   });
+
+  it("ÉPREUVE : refuse un statut de départ autre que `accord_recu`", async () => {
+    await surUneInterventionJetable(async (interventionId) => {
+      const id = await qualifierSuite(INTERNE_ADV, interventionId, clientApp());
+      const resultat = await marquerPieceRecue(INTERNE_ADV, id, clientApp());
+      expect(resultat).toEqual({
+        accepte: false,
+        cle: "suites_a_donner.refus.pas_accord_recu",
+      });
+
+      const ligne = await clientOwner().suiteADonner.findUnique({
+        where: { id },
+      });
+      expect(ligne?.statut).toBe("qualifiee");
+
+      await clientOwner().$executeRawUnsafe(
+        `DELETE FROM "suite_a_donner" WHERE "id" = '${id}'`,
+      );
+    });
+  });
 });
 
 describe("cloturer", () => {
   it("passe le statut à `cloturee`", async () => {
     await surUneInterventionJetable(async (interventionId) => {
       const id = await qualifierSuite(INTERNE_ADV, interventionId, clientApp());
+      await marquerDevisEnvoye(INTERNE_ADV, id, clientApp());
       await enregistrerAccord(
         INTERNE_ADV,
         id,

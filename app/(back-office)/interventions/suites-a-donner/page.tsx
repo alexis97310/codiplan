@@ -230,18 +230,67 @@ function LigneSuite({
           </Link>
         )}
       </Cellule>
-      <Cellule>
-        {peutEcrire &&
-        suite.statut === "a_replanifier" &&
-        suite.intervention_reprise === null ? (
-          <Link
-            href={`/interventions/suites-a-donner/${suite.id}/replanifier`}
-            className="border-app-bord text-app-encre-faible hover:bg-app-fond rounded-md border px-2.5 py-1 text-12 font-bold"
-          >
-            {t("suites_a_donner.action.replanifier")}
-          </Link>
-        ) : null}
-      </Cellule>
+      <Cellule>{peutEcrire ? <ActionSuite suite={suite} /> : null}</Cellule>
     </tr>
   );
+}
+
+/**
+ * LE GESTE SUIVANT, SELON LE STATUT (9K05-SUITES-A-DONNER-DEBLOQUEES) — un
+ * dossier `a_replanifier` DÉJÀ lié à sa reprise n'a plus de geste (il ne
+ * reste que le lien vers elle, déjà montré par la colonne « Reprise »).
+ */
+function ActionSuite({
+  suite,
+}: Readonly<{ suite: LigneSuiteADonner }>): React.ReactNode {
+  switch (suite.statut) {
+    case "qualifiee":
+      return (
+        <form
+          method="POST"
+          action={`/api/interventions/suites-a-donner/${suite.id}/devis-envoye`}
+        >
+          <button
+            type="submit"
+            className="border-app-bord text-app-encre-faible hover:bg-app-fond rounded-md border px-2.5 py-1 text-12 font-bold"
+          >
+            {t("suites_a_donner.action.devis_envoye")}
+          </button>
+        </form>
+      );
+    case "accord_attendu":
+      return (
+        <Link
+          href={`/interventions/suites-a-donner/${suite.id}/accord`}
+          className="border-app-bord text-app-encre-faible hover:bg-app-fond rounded-md border px-2.5 py-1 text-12 font-bold"
+        >
+          {t("suites_a_donner.action.accord")}
+        </Link>
+      );
+    case "accord_recu":
+      return (
+        <form
+          method="POST"
+          action={`/api/interventions/suites-a-donner/${suite.id}/piece-recue`}
+        >
+          <button
+            type="submit"
+            className="border-app-bord text-app-encre-faible hover:bg-app-fond rounded-md border px-2.5 py-1 text-12 font-bold"
+          >
+            {t("suites_a_donner.action.piece_recue")}
+          </button>
+        </form>
+      );
+    case "a_replanifier":
+      return suite.intervention_reprise === null ? (
+        <Link
+          href={`/interventions/suites-a-donner/${suite.id}/replanifier`}
+          className="border-app-bord text-app-encre-faible hover:bg-app-fond rounded-md border px-2.5 py-1 text-12 font-bold"
+        >
+          {t("suites_a_donner.action.replanifier")}
+        </Link>
+      ) : null;
+    default:
+      return null;
+  }
 }

@@ -1592,6 +1592,9 @@ export const fr = {
   "suites_a_donner.statut.a_replanifier": "À déplacer",
   "suites_a_donner.statut.cloturee": "Clôturée",
   "suites_a_donner.action.qualifier": "Qualifier",
+  "suites_a_donner.action.devis_envoye": "Devis envoyé",
+  "suites_a_donner.action.accord": "Accord…",
+  "suites_a_donner.action.piece_recue": "Pièce reçue",
   "suites_a_donner.action.replanifier": "Déplacer…",
   "suites_a_donner.refus.inconnue": "Cette suite à donner n'existe pas.",
   "suites_a_donner.refus.deja_qualifiee":
@@ -1600,8 +1603,38 @@ export const fr = {
     "Cette suite à donner n'est pas au statut « À déplacer ».",
   "suites_a_donner.refus.deja_replanifiee":
     "Cette suite à donner a déjà été déplacée.",
+  // LES TROIS GARDES POSÉES PAR 9K05 — UNE PAR TRANSITION, JAMAIS LE MÊME
+  // TEXTE : chacune nomme le statut qu'elle attendait, pour qu'un refus dise
+  // où le dossier en est réellement, pas seulement qu'il a été refusé.
+  "suites_a_donner.refus.pas_qualifiee":
+    "Cette suite à donner n'est pas au statut « Qualifiée ».",
+  "suites_a_donner.refus.pas_accord_attendu":
+    "Cette suite à donner n'est pas au statut « Accord attendu ».",
+  "suites_a_donner.refus.pas_accord_recu":
+    "Cette suite à donner n'est pas au statut « Accord reçu ».",
+  "suites_a_donner.refus.motif_requis":
+    "Le motif « sans suite » est obligatoire.",
+  "suites_a_donner.refus.piece_sans_horizon":
+    "Une référence de pièce exige sa date de disponibilité, et réciproquement.",
   "suites_a_donner.qualifiee": "Suite à donner qualifiée.",
+  "suites_a_donner.devis_envoye": "Devis envoyé — accord en attente.",
+  "suites_a_donner.accord_recu": "Accord reçu.",
+  "suites_a_donner.sans_suite": "Classée sans suite.",
+  "suites_a_donner.piece_recue": "Pièce reçue — prête à déplacer.",
   "suites_a_donner.reprise_creee": "Intervention de reprise créée.",
+
+  // ── STATUER SUR L'ACCORD ATTENDU (9K05-SUITES-A-DONNER-DEBLOQUEES) ──────
+  // `app/(back-office)/interventions/suites-a-donner/[id]/accord/`.
+  "suites_a_donner.accord.titre": "Accord attendu",
+  "suites_a_donner.accord.recu_titre": "Accord reçu",
+  "suites_a_donner.accord.recu_aide":
+    "Laissez les deux champs vides si le client n'a rien à faire parvenir : la suite à donner passe directement à « À déplacer ».",
+  "suites_a_donner.accord.piece_ref": "Référence de la pièce attendue",
+  "suites_a_donner.accord.piece_date": "Date de disponibilité prévue",
+  "suites_a_donner.accord.recu_confirmer": "Enregistrer l'accord",
+  "suites_a_donner.accord.sans_suite_titre": "Sans suite",
+  "suites_a_donner.accord.motif": "Motif",
+  "suites_a_donner.accord.sans_suite_confirmer": "Classer sans suite",
 
   // ── LE DÉPLACEMENT DE LA REPRISE (9J18-SUITE-A-DONNER-ECRAN, FLX-6/7/11) ─
   // `app/(back-office)/interventions/suites-a-donner/[id]/replanifier/` —

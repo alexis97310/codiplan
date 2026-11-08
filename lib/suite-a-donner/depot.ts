@@ -17,20 +17,24 @@ import { poserNotification } from "@/lib/notifications/depot";
 
 /**
  * LA SUITE À DONNER (9J17-SUITE-A-DONNER-SCHEMA, D231 ;
- * 9J19-SUITE-A-DONNER-NOTIFICATIONS).
+ * 9J19-SUITE-A-DONNER-NOTIFICATIONS ; 9K05-SUITES-A-DONNER-DEBLOQUEES).
  *
  * Forme « filiation » (D103) : aucune comparaison de société n'est écrite
  * ici. L'écriture et la lecture passent par `avecContexteApplicatif`, donc
  * sous le contexte cloisonné, et c'est la politique de `suite_a_donner` qui
  * prononce — visible si `intervention_origine_id` l'est.
  *
- * **« Quatre fonctions, pas plus » (9J17) a vécu** : 9J19 en ajoute deux,
- * `devisEnRetard` et `accordAttenduEnRetard` (FLX-2/FLX-3) — toujours sans
- * toucher à la transition `qualifiee` → `accord_attendu` elle-même, qui
- * reste hors territoire (aucune fonction de ce dépôt ne l'écrit encore ; une
- * ligne qui doit l'atteindre aujourd'hui y est posée directement par qui
- * l'écrit).
+ * **« Quatre fonctions, pas plus » (9J17) a vécu** : 9J19 en ajoute deux
+ * (`devisEnRetard`, `accordAttenduEnRetard`, FLX-2/FLX-3) ; 9K05 ajoute
+ * `marquerDevisEnvoye` et BRANCHE les deux restées sans appelant depuis 9J17
+ * (`enregistrerAccord`, `marquerPieceRecue`) sur un écran réel — voir leurs
+ * docblocks pour la DÉCISION D'ALEXIS du 08/11/2026 : l'ADV mène le dossier
+ * de bout en bout, et un accord sans pièce saute directement à
+ * `a_replanifier`. **Chaque transition refuse désormais tout statut de
+ * départ qui n'est pas le sien** (ÉPREUVE) — elles ne rendent donc plus
+ * `void`, mais `ResultatTransitionSuite`.
  *
+
  * ## LES RELANCES SONT DES LECTURES, JAMAIS UNE TÂCHE PLANIFIÉE
  *
  * `devisEnRetard`/`accordAttenduEnRetard` suivent le même patron que
@@ -101,6 +105,49 @@ export async function qualifierSuite(
   return id;
 }
 
+/**
+ * LE RÉSULTAT D'UNE TRANSITION DE SUITE À DONNER — jamais de `fiche` : les
+ * quatre fonctions ci-dessous ne CRÉENT rien, elles font avancer une ligne
+ * déjà posée par `qualifierSuite`. Même forme que `ResultatModificationTechnicien`
+ * (`lib/techniciens/depot.ts`).
+ */
+export type ResultatTransitionSuite =
+  | { readonly accepte: true }
+  | { readonly accepte: false; readonly cle: string };
+
+/**
+ * DEVIS ENVOYÉ (9K05-SUITES-A-DONNER-DEBLOQUEES) : `qualifiee` → `accord_attendu`
+ * — le dossier attend désormais la réponse du client. Refuse tout autre
+ * statut de départ (ÉPREUVE).
+ */
+export async function marquerDevisEnvoye(
+  contexte: ContexteSession,
+  id: string,
+  client?: PrismaClient,
+): Promise<ResultatTransitionSuite> {
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const suite = await tx.suiteADonner.findFirst({
+        where: { id },
+        select: { statut: true },
+      });
+      if (suite === null) {
+        return { accepte: false, cle: "suites_a_donner.refus.inconnue" };
+      }
+      if (suite.statut !== "qualifiee") {
+        return { accepte: false, cle: "suites_a_donner.refus.pas_qualifiee" };
+      }
+      await tx.suiteADonner.update({
+        where: { id },
+        data: { statut: "accord_attendu" },
+      });
+      return { accepte: true };
+    },
+    client,
+  );
+}
+
 /** La réponse du client, à l'issue de l'attente d'accord (cible de FLX-3). */
 export type ReponseAccord =
   | {
@@ -111,36 +158,67 @@ export type ReponseAccord =
   | { readonly reponse: "sans_suite"; readonly motifSansSuite: string };
 
 /**
- * Enregistre la réponse à l'accord attendu : `accord_recu` — avec, le cas
- * échéant, l'attente de pièce qui s'ouvre (RG-INT-06, D117, D231) — ou
- * `sans_suite`, avec son motif en texte libre.
+ * Enregistre la réponse à l'accord attendu — `accord_attendu` est le SEUL
+ * statut de départ légal (ÉPREUVE) :
+ *
+ *   - `accord_recu` AVEC pièce attendue (RG-INT-06, D117, D231) — reste à
+ *     `accord_recu`, en attendant `marquerPieceRecue` ;
+ *   - `accord_recu` SANS pièce attendue — DÉCISION D'ALEXIS (08/11/2026) :
+ *     passe DIRECTEMENT à `a_replanifier`, l'état qui ouvre la
+ *     replanification, sans transiter par `accord_recu` (qui n'aurait alors
+ *     plus rien à attendre, et n'ouvrirait jamais la notification
+ *     « piece_recue ») ;
+ *   - `sans_suite`, avec son motif en texte libre.
  */
 export async function enregistrerAccord(
   contexte: ContexteSession,
   id: string,
   reponse: ReponseAccord,
   client?: PrismaClient,
-): Promise<void> {
-  await avecContexteApplicatif(
+): Promise<ResultatTransitionSuite> {
+  return avecContexteApplicatif(
     contexte,
-    (tx) =>
-      tx.suiteADonner.update({
+    async (tx) => {
+      const suite = await tx.suiteADonner.findFirst({
         where: { id },
-        data:
-          reponse.reponse === "accord_recu"
-            ? {
-                statut: "accord_recu",
-                motif_sans_suite: null,
-                piece_attendue_ref: reponse.pieceAttendueRef ?? null,
-                date_dispo_prevue: reponse.dateDispoPrevue ?? null,
-              }
-            : {
-                statut: "sans_suite",
-                motif_sans_suite: reponse.motifSansSuite,
-                piece_attendue_ref: null,
-                date_dispo_prevue: null,
-              },
-      }),
+        select: { statut: true },
+      });
+      if (suite === null) {
+        return { accepte: false, cle: "suites_a_donner.refus.inconnue" };
+      }
+      if (suite.statut !== "accord_attendu") {
+        return {
+          accepte: false,
+          cle: "suites_a_donner.refus.pas_accord_attendu",
+        };
+      }
+      if (reponse.reponse === "accord_recu") {
+        const statutApres =
+          reponse.pieceAttendueRef === undefined
+            ? "a_replanifier"
+            : "accord_recu";
+        await tx.suiteADonner.update({
+          where: { id },
+          data: {
+            statut: statutApres,
+            motif_sans_suite: null,
+            piece_attendue_ref: reponse.pieceAttendueRef ?? null,
+            date_dispo_prevue: reponse.dateDispoPrevue ?? null,
+          },
+        });
+      } else {
+        await tx.suiteADonner.update({
+          where: { id },
+          data: {
+            statut: "sans_suite",
+            motif_sans_suite: reponse.motifSansSuite,
+            piece_attendue_ref: null,
+            date_dispo_prevue: null,
+          },
+        });
+      }
+      return { accepte: true };
+    },
     client,
   );
 }
@@ -155,18 +233,34 @@ export async function enregistrerAccord(
  * PROPRE transaction) — exactement le choix que `creerReprise`
  * (`lib/suite-a-donner/reprise.ts`) documente pour la même raison.
  *
- * Le DÉCLENCHEUR lui-même (l'écran de réception de pièce) reste futur et
- * hors territoire : cette fonction n'a encore aucun appelant de production.
+ * `accord_recu` est le SEUL statut de départ légal (ÉPREUVE, 9K05) — depuis
+ * la décision du 08/11/2026, un dossier n'atteint `accord_recu` que s'il
+ * porte une attente de pièce (voir `enregistrerAccord`) : cette garde n'est
+ * donc jamais contournable par un accord sans pièce qui aurait déjà sauté
+ * l'étape.
  */
 export async function marquerPieceRecue(
   contexte: ContexteSession,
   id: string,
   client?: PrismaClient,
-): Promise<void> {
+): Promise<ResultatTransitionSuite> {
   const { societeId } = exigerContexteActif(contexte);
-  await avecContexteApplicatif(
+  return avecContexteApplicatif(
     contexte,
     async (tx) => {
+      const suite = await tx.suiteADonner.findFirst({
+        where: { id },
+        select: { statut: true },
+      });
+      if (suite === null) {
+        return { accepte: false, cle: "suites_a_donner.refus.inconnue" };
+      }
+      if (suite.statut !== "accord_recu") {
+        return {
+          accepte: false,
+          cle: "suites_a_donner.refus.pas_accord_recu",
+        };
+      }
       await tx.suiteADonner.update({
         where: { id },
         data: {
@@ -185,6 +279,7 @@ export async function marquerPieceRecue(
           destinataire_id: null,
         },
       });
+      return { accepte: true };
     },
     client,
   );

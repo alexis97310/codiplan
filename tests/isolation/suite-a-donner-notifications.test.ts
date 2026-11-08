@@ -8,6 +8,7 @@ import {
   accordAttenduEnRetard,
   devisEnRetard,
   enregistrerAccord,
+  marquerDevisEnvoye,
   marquerPieceRecue,
   qualifierSuite,
 } from "@/lib/suite-a-donner/depot";
@@ -106,7 +107,12 @@ async function reculerQualifieeLe(id: string, jours: number): Promise<void> {
   );
 }
 
-/** Pose directement une ligne `accord_attendu` — aucune fonction du dépôt ne l'écrit encore (FLX-3 hors territoire). */
+/**
+ * Pose directement une ligne `accord_attendu`, en contrôlant `modifie_le`
+ * (nécessaire pour FLX-3) — `marquerDevisEnvoye` (9K05) écrit cette
+ * transition en production, mais ne permet pas de choisir l'ancienneté de
+ * l'entrée dans l'état, que ce test doit maîtriser.
+ */
 async function poserLigneAccordAttendu(
   interventionOrigineId: string,
   joursEcoules: number,
@@ -263,6 +269,7 @@ describe("marquerPieceRecue — pose piece_recue dans la MÊME transaction (FLX-
   it("la notification existe dès que le statut passe à a_replanifier", async () => {
     await surUneInterventionJetable(async (interventionId) => {
       const id = await qualifierSuite(INTERNE_ADV, interventionId, clientApp());
+      await marquerDevisEnvoye(INTERNE_ADV, id, clientApp());
       await enregistrerAccord(
         INTERNE_ADV,
         id,

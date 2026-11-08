@@ -5,6 +5,7 @@ import { Role } from "@/lib/auth/roles";
 import { uuidv7 } from "@/lib/db/uuid";
 import {
   enregistrerAccord,
+  marquerDevisEnvoye,
   marquerPieceRecue,
   qualifierSuite,
 } from "@/lib/suite-a-donner/depot";
@@ -126,6 +127,7 @@ async function suiteAReplanifier(
     interventionOrigineId,
     clientApp(),
   );
+  await marquerDevisEnvoye(INTERNE_ADV, id, clientApp());
   await enregistrerAccord(
     INTERNE_ADV,
     id,

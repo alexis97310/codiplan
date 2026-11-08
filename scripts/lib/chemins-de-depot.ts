@@ -671,26 +671,14 @@ export const FONCTIONS_SANS_CHEMIN: readonly SansChemin[] = [
   // donner/reprise.ts`), elle-même appelée depuis `app/api/interventions/
   // [id]/cloturer/route.ts` après toute clôture acceptée (point 6).
   //
-  // 9J19-SUITE-A-DONNER-NOTIFICATIONS a posé le MÉCANISME des trois relances
-  // (devis/accord en retard, réception de pièce) — `devisEnRetard` et
-  // `accordAttenduEnRetard` sont NOUVELLES ici, et `marquerPieceRecue` pose
-  // désormais sa notification en plus de son changement de statut. **Aucune
-  // des quatre n'a pour autant gagné d'appelant de production** : ce ticket
-  // pose la lecture et l'écriture, pas l'écran qui les visite. `enregistrer
-  // Accord` reste elle aussi sans appelant — la transition `qualifiee` →
-  // `accord_attendu` qu'elle ne couvre toujours pas reste hors territoire.
-  {
-    module: "lib/suite-a-donner/depot.ts",
-    fonction: "enregistrerAccord",
-    motif:
-      "Cible de FLX-2/FLX-3 (devis en cours, accord attendu) : aucun écran ne l'appelle encore. Ouvert par l'écran futur des relances.",
-  },
-  {
-    module: "lib/suite-a-donner/depot.ts",
-    fonction: "marquerPieceRecue",
-    motif:
-      "Cible de FLX-8 : pose désormais sa notification « piece_recue » (9J19), mais le DÉCLENCHEUR — la réception de pièce elle-même — reste futur, aucun écran ne l'appelle encore. Ouvert par l'écran de réception de pièce.",
-  },
+  // `enregistrerAccord` et `marquerPieceRecue` se sont retirées À LEUR TOUR
+  // au 9K05-SUITES-A-DONNER-DEBLOQUEES : la première est appelée par
+  // `app/api/interventions/suites-a-donner/[id]/accord/route.ts`, la seconde
+  // par `app/api/interventions/suites-a-donner/[id]/piece-recue/route.ts`.
+  // `marquerDevisEnvoye`, NOUVELLE au même ticket, a un appelant dès sa
+  // naissance (`.../[id]/devis-envoye/route.ts`) : elle n'a jamais figuré
+  // ici. `devisEnRetard` et `accordAttenduEnRetard` restent SANS appelant —
+  // les relances restent hors territoire de 9K05 (interdit explicite).
   {
     module: "lib/suite-a-donner/depot.ts",
     fonction: "devisEnRetard",

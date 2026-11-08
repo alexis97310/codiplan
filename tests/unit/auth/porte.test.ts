@@ -168,6 +168,15 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   // FLX-6/7/11) — même capacité que la qualification ci-dessus.
   "app/api/interventions/suites-a-donner/[id]/replanifier/route.ts":
     "modifier_planning",
+  // L'ADV MÈNE LE DOSSIER DE BOUT EN BOUT (9K05-SUITES-A-DONNER-DEBLOQUEES,
+  // DÉCISION D'ALEXIS du 08/11/2026) — les trois gestes neufs, même capacité
+  // que les deux ci-dessus.
+  "app/api/interventions/suites-a-donner/[id]/devis-envoye/route.ts":
+    "modifier_planning",
+  "app/api/interventions/suites-a-donner/[id]/accord/route.ts":
+    "modifier_planning",
+  "app/api/interventions/suites-a-donner/[id]/piece-recue/route.ts":
+    "modifier_planning",
   // « Importer / exporter en masse ».
   "app/api/imports/controler/route.ts": "importer_exporter",
   "app/api/imports/[id]/appliquer/route.ts": "importer_exporter",
@@ -322,6 +331,11 @@ const PORTE_COMPLETE: readonly string[] = [
   // n'a de raison de qualifier une suite à donner.
   "app/api/interventions/suites-a-donner/qualifier/route.ts",
   "app/api/interventions/suites-a-donner/[id]/replanifier/route.ts",
+  // L'ADV MÈNE LE DOSSIER DE BOUT EN BOUT (9K05-SUITES-A-DONNER-DEBLOQUEES)
+  // — même porte complète, même raison.
+  "app/api/interventions/suites-a-donner/[id]/devis-envoye/route.ts",
+  "app/api/interventions/suites-a-donner/[id]/accord/route.ts",
+  "app/api/interventions/suites-a-donner/[id]/piece-recue/route.ts",
 ];
 
 /**
@@ -637,7 +651,10 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
     // `app/api/interventions/suites-a-donner/[id]/replanifier/route.ts`.
     // 99 depuis 9J19-SUITE-A-DONNER-NOTIFICATIONS — la route neuve
     // `app/api/parametres/societe/delai-relance-suite/route.ts`.
-    expect(Object.keys(ROUTE_CAPACITE).length).toBe(99);
+    // 102 depuis 9K05-SUITES-A-DONNER-DEBLOQUEES — les trois routes neuves,
+    // `.../[id]/devis-envoye/route.ts`, `.../[id]/accord/route.ts` et
+    // `.../[id]/piece-recue/route.ts`.
+    expect(Object.keys(ROUTE_CAPACITE).length).toBe(102);
   });
 
   it("aucune exemption ne survit à son objet — adossement dans les deux sens", () => {
