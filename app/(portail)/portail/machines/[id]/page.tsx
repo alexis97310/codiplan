@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { headers } from "next/headers";
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 
@@ -21,6 +22,7 @@ import {
 } from "../presentation";
 import {
   emplacementDeLaMachine,
+  numeroDeSerieDeLaMachine,
   placeDesDocuments,
   placeDuVgp,
 } from "../../presentation";
@@ -158,7 +160,24 @@ export default async function PageFicheMachinePortail({
         {emplacement === "" ? null : <span>{emplacement}</span>}
         <span>{miseEnServiceDeLaFiche(fiche.machine)}</span>
         {client === null ? null : <span>{client}</span>}
+        <span className="text-app-encre-faible text-12 font-bold">
+          {numeroDeSerieDeLaMachine(fiche.machine)}
+        </span>
       </section>
+
+      {/* « SIGNALER UNE PANNE » DEPUIS LA FICHE MACHINE (9K03) — ouvre le
+          formulaire de dépôt avec CETTE machine pré-choisie. Le paramètre
+          `machine_id` est revérifié côté serveur par `/portail/demandes`
+          (il n'est jamais cru sur parole depuis cette seule page) : même
+          machine, même contexte, deux écrans. */}
+      <div>
+        <Link
+          href={`/portail/demandes?machine_id=${fiche.machine.id}`}
+          className="bg-app-marque text-app-marque-encre inline-flex rounded-md px-3.5 py-1.5 text-13 font-bold"
+        >
+          {t("portail.machine.action.signaler_panne")}
+        </Link>
+      </div>
 
       {/* LES DEUX PLACES RÉSERVÉES — mêmes qu'à la liste (CLI-2.3b, lots 8 et
           9, D87/D88, non construits) : elles disent qu'elles sont vides. */}

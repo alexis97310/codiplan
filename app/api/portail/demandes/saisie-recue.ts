@@ -30,6 +30,9 @@ export type SaisiePortailDemande = {
    * par la route si `machineId` n'est pas `null` — le site est alors DÉDUIT
    * de la machine, jamais des deux lectures à la fois. */
   readonly siteIdSaisi: string | null;
+  /** La case « machine à l'arrêt » (9K03) — JAMAIS l'urgence, qui reste fixée
+   * côté serveur (décision d'Alexis du 08/11/2026). */
+  readonly machineArretee: boolean;
 };
 
 export function creationDemandePortailRecue(
@@ -56,6 +59,7 @@ export function creationDemandePortailRecue(
       siteBrut !== null && IDENTIFIANT_UUID.safeParse(siteBrut).success
         ? siteBrut
         : null,
+    machineArretee: champ(formulaire, "machine_arretee") !== null,
   };
 }
 
@@ -63,11 +67,28 @@ export function creationDemandePortailRecue(
  * LE RETOUR — toujours `/portail/demandes`, jamais un chemin reçu de la
  * requête : même raison que `versLeRetourPortail`
  * (`app/api/portail/contacts/saisie-recue.ts`), un seul écran à désigner.
+ *
+ * `numeroDemande`/`anneeDemande` (9K03) accompagnent le SEUL motif de succès
+ * (`portail.demandes.cree`) : le bandeau les lit pour nommer la demande,
+ * jamais pour autre chose — un numéro sur un motif de refus ne serait pas
+ * utilisé par l'écran, mais ce n'est pas cette fonction qui le décide.
  */
-export function versLeRetourPortailDemandes(cle?: string): Response {
+export function versLeRetourPortailDemandes(
+  cle?: string,
+  identifiant?: {
+    readonly numero: number | null;
+    readonly annee: number | null;
+  },
+): Response {
   const parametres = new URLSearchParams();
   if (cle !== undefined) {
     parametres.set("motif", cle);
+  }
+  if (identifiant?.numero !== null && identifiant?.numero !== undefined) {
+    parametres.set("numero", String(identifiant.numero));
+  }
+  if (identifiant?.annee !== null && identifiant?.annee !== undefined) {
+    parametres.set("annee", String(identifiant.annee));
   }
   const chaine = parametres.toString();
   const suffixe = chaine === "" ? "" : `?${chaine}`;

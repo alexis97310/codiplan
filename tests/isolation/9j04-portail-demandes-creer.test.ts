@@ -20,6 +20,11 @@ import {
  * confronte ce que LA ROUTE ajoute par-dessus — la déduction du site depuis
  * la machine (CLI-4.1), le refus d'une machine hors périmètre, et
  * l'imposition de `source` en dur, jamais lue du formulaire (INTERDITS).
+ *
+ * `machine_arretee` (9K03-PORTAIL-MACHINES-PANNE) ET `urgence` S'OPPOSENT
+ * DÉLIBÉRÉMENT : la première VIENT du formulaire depuis 9K03, la seconde
+ * RESTE fixée ici en dur (décision d'Alexis du 08/11/2026) — un client ne la
+ * choisit pas. Les deux scénarios ci-dessous le montrent côte à côte.
  */
 
 vi.mock("@/app/api/portail/demandes/contexte", () => ({
@@ -95,11 +100,19 @@ async function lireDemande(id: string): Promise<{
   readonly site_id: string;
   readonly machine_id: string | null;
   readonly source: string;
+  readonly machine_arretee: boolean;
+  readonly urgence: string;
 } | null> {
   const lignes = await clientOwner().$queryRawUnsafe<
-    Array<{ site_id: string; machine_id: string | null; source: string }>
+    Array<{
+      site_id: string;
+      machine_id: string | null;
+      source: string;
+      machine_arretee: boolean;
+      urgence: string;
+    }>
   >(
-    `SELECT "site_id", "machine_id", "source" FROM "demande" WHERE "id" = $1::uuid`,
+    `SELECT "site_id", "machine_id", "source", "machine_arretee", "urgence" FROM "demande" WHERE "id" = $1::uuid`,
     id,
   );
   return lignes[0] ?? null;
@@ -210,6 +223,54 @@ describe("POST /api/portail/demandes/creer — CLI-4.2, matériel non identifié
     expect(statut).toBe(303);
     expect(motif).toBe("portail.demandes.refus.saisie");
     expect(await compterDemandes(id)).toBe(0);
+  });
+});
+
+describe("POST /api/portail/demandes/creer — « machine à l'arrêt » (9K03), `urgence` reste fixée", () => {
+  it("la case cochée écrit `machine_arretee = true`, `urgence` reste « p3 »", async () => {
+    vi.mocked(contextePortailDemande).mockResolvedValueOnce(porte());
+    const id = crypto.randomUUID();
+    const { statut, motif } = await appeler({
+      id,
+      description: "9K03 — machine à l'arrêt",
+      machine_id: MACHINE_A1,
+      machine_arretee: "on",
+    });
+    expect(statut).toBe(303);
+    expect(motif).toBe("portail.demandes.cree");
+    demandeIds.push(id);
+    const ligne = await lireDemande(id);
+    expect(ligne?.machine_arretee).toBe(true);
+    expect(ligne?.urgence).toBe("p3");
+  });
+
+  it("la case absente écrit `machine_arretee = false`", async () => {
+    vi.mocked(contextePortailDemande).mockResolvedValueOnce(porte());
+    const id = crypto.randomUUID();
+    const { statut } = await appeler({
+      id,
+      description: "9K03 — sans la case",
+      machine_id: MACHINE_A1,
+    });
+    expect(statut).toBe(303);
+    demandeIds.push(id);
+    const ligne = await lireDemande(id);
+    expect(ligne?.machine_arretee).toBe(false);
+  });
+
+  it("un `urgence` forgé dans le formulaire est IGNORÉ : la demande reste « p3 »", async () => {
+    vi.mocked(contextePortailDemande).mockResolvedValueOnce(porte());
+    const id = crypto.randomUUID();
+    const { statut } = await appeler({
+      id,
+      description: "9K03 — urgence forgée",
+      machine_id: MACHINE_A1,
+      urgence: "p1",
+    });
+    expect(statut).toBe(303);
+    demandeIds.push(id);
+    const ligne = await lireDemande(id);
+    expect(ligne?.urgence).toBe("p3");
   });
 });
 

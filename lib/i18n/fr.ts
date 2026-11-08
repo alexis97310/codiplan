@@ -170,6 +170,7 @@ export const fr = {
   "portail.machine.localisation": "Emplacement",
   "portail.machine.statut": "État",
   "portail.machine.mise_en_service": "Mise en service",
+  "portail.machine.action.signaler_panne": "Signaler une panne",
   "portail.sans_machine":
     "Aucune machine ne figure à votre parc pour le périmètre qui vous est ouvert.",
   // MÊME RAISON QUE portail.sous_titre_avant/apres CI-DESSUS — voir
@@ -7519,6 +7520,7 @@ export const fr = {
   "portail.demandes.champ.site": "Lieu (si vous ne connaissez pas la machine)",
   "portail.demandes.champ.site.choisir": "Choisir un lieu",
   "portail.demandes.champ.description": "Décrivez ce que vous constatez",
+  "portail.demandes.champ.machine_arretee": "La machine est à l'arrêt",
   "portail.demandes.ligne.sans_machine": "Sans machine identifiée",
 
   // ── LE TEMPS PAR ÉTAT DE CHAQUE DEMANDE DU PORTAIL
@@ -7532,6 +7534,10 @@ export const fr = {
   "portail.demandes.temps_par_etat.aucune": "Aucun historique enregistré.",
 
   "portail.demandes.cree": "Votre demande est enregistrée.",
+  // LE NUMÉRO S'INSÈRE ENTRE CES DEUX MORCEAUX (9K03, `confirmationDuDepot`)
+  // — même découpage que `portail.sous_titre_avant/apres`.
+  "portail.demandes.cree.avant": "Votre demande",
+  "portail.demandes.cree.apres": "est enregistrée.",
   "portail.demandes.refus.saisie":
     "Vérifiez les champs : choisissez une machine ou un lieu, et décrivez ce que vous constatez.",
   "portail.demandes.refus.machine_inconnue":

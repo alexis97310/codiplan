@@ -1,5 +1,9 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
-import { deposerDemande, lireDemandePourCreation } from "@/lib/demandes/depot";
+import {
+  deposerDemande,
+  lireDemandePourCreation,
+  numeroDeLaDemande,
+} from "@/lib/demandes/depot";
 import { schemaDepot } from "@/lib/demandes/saisie";
 import { lireMachine } from "@/lib/machines/depot";
 
@@ -33,6 +37,10 @@ import {
  * lieu vient directement du formulaire — c'est alors `deposerDemande`, puis
  * la politique `WITH CHECK` de `demande`, qui referment si ce lieu sort du
  * périmètre du compte.
+ *
+ * **`urgence` RESTE FIXÉE ICI, EN DUR** (décision d'Alexis du 08/11/2026,
+ * 9K03) — un client ne la choisit pas. **`machine_arretee` VIENT DU
+ * FORMULAIRE** depuis 9K03 : ce n'est plus la seule valeur forcée.
  */
 export async function POST(requete: Request): Promise<Response> {
   return dansUnEchangeAuth(() =>
@@ -57,7 +65,8 @@ async function traiter(requete: Request): Promise<Response> {
   // autre client ne s'y voit jamais.
   const dejaDeposee = await lireDemandePourCreation(porte.contexte, saisie.id);
   if (dejaDeposee !== null) {
-    return versLeRetourPortailDemandes("portail.demandes.cree");
+    const identifiant = await numeroDeLaDemande(porte.contexte, saisie.id);
+    return versLeRetourPortailDemandes("portail.demandes.cree", identifiant);
   }
 
   let siteId: string | null;
@@ -85,7 +94,7 @@ async function traiter(requete: Request): Promise<Response> {
     contact_id: null,
     description: saisie.description,
     urgence: "p3",
-    machine_arretee: false,
+    machine_arretee: saisie.machineArretee,
     etat_machine: null,
     date_souhaitee: null,
   });
@@ -96,5 +105,8 @@ async function traiter(requete: Request): Promise<Response> {
   const resultat = await deposerDemande(porte.contexte, depot.data);
   return versLeRetourPortailDemandes(
     resultat.accepte ? "portail.demandes.cree" : resultat.cle,
+    resultat.accepte
+      ? { numero: resultat.fiche.numero, annee: resultat.fiche.annee }
+      : undefined,
   );
 }

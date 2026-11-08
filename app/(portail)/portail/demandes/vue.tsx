@@ -5,6 +5,7 @@ import { t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import type { MachineDuPortail, SiteDuPortail } from "@/lib/portail/depot";
 
+import { nomDeLaMachine } from "../presentation";
 import {
   dateCourteLocale,
   identifiantDeLaDemande,
@@ -38,6 +39,7 @@ export function ListeDemandes({
   fuseau,
   idNouvelleDemande,
   tempsParEtatParDemande,
+  machinePreselectionnee,
 }: {
   readonly demandes: readonly LigneDemande[];
   readonly sites: readonly SiteDuPortail[];
@@ -45,6 +47,8 @@ export function ListeDemandes({
   readonly fuseau: Fuseau;
   readonly idNouvelleDemande: string;
   readonly tempsParEtatParDemande: ReadonlyMap<string, TempsParEtatPortail>;
+  /** La machine CHOISIE depuis sa fiche (9K03), déjà revérifiée par l'appelant. */
+  readonly machinePreselectionnee?: string;
 }) {
   const siteParId = new Map(sites.map((site) => [site.id, site.libelle]));
   const machineParId = new Map(
@@ -76,7 +80,7 @@ export function ListeDemandes({
         </ul>
       )}
 
-      <details>
+      <details open={machinePreselectionnee !== undefined}>
         <summary className="border-app-bord bg-app-surface inline-flex w-fit cursor-pointer items-center gap-1.5 rounded-lg border px-3.5 py-2 text-13 font-bold [&::-webkit-details-marker]:hidden marker:hidden">
           {t("portail.demandes.action.deposer")}
         </summary>
@@ -85,6 +89,7 @@ export function ListeDemandes({
             id={idNouvelleDemande}
             sites={sites}
             machines={machines}
+            machinePreselectionnee={machinePreselectionnee}
           />
         </div>
       </details>
@@ -134,7 +139,7 @@ function LigneDemandeVue({
         <span>
           {machine === undefined
             ? t("portail.demandes.ligne.sans_machine")
-            : `${t("portail.machine.serie")}${t("ponctuation.deux_points")}${machine.numeroSerie}`}
+            : nomDeLaMachine(machine)}
         </span>
       </div>
       <p>{demande.description}</p>
@@ -180,10 +185,12 @@ function FormeDemande({
   id,
   sites,
   machines,
+  machinePreselectionnee,
 }: {
   readonly id: string;
   readonly sites: readonly SiteDuPortail[];
   readonly machines: readonly MachineDuPortail[];
+  readonly machinePreselectionnee?: string;
 }) {
   return (
     <form
@@ -197,13 +204,13 @@ function FormeDemande({
         {t("portail.demandes.champ.machine")}
         <select
           name="machine_id"
-          defaultValue=""
+          defaultValue={machinePreselectionnee ?? ""}
           className="border-app-bord rounded-md border px-3 py-1.5 text-[13px] font-bold"
         >
           <option value="">{t("portail.demandes.champ.machine.aucune")}</option>
           {machines.map((machine) => (
             <option key={machine.id} value={machine.id}>
-              {machine.numeroSerie}
+              {nomDeLaMachine(machine)}
             </option>
           ))}
         </select>
@@ -223,6 +230,11 @@ function FormeDemande({
             </option>
           ))}
         </select>
+      </label>
+
+      <label className="flex items-center gap-1.5 text-13 font-bold">
+        <input type="checkbox" name="machine_arretee" />
+        {t("portail.demandes.champ.machine_arretee")}
       </label>
 
       <label className="flex flex-col gap-1 text-13 font-bold">

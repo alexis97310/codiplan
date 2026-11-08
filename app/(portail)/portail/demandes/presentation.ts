@@ -9,6 +9,7 @@ import {
 } from "@/lib/interventions/durees-par-etat";
 import { t } from "@/lib/i18n/fr";
 import { motDansUnePhrase } from "@/lib/i18n/vocabulaire";
+import type { MachineDuPortail } from "@/lib/portail/depot";
 
 /**
  * CE QUE L'ÉCRAN DES DEMANDES DU PORTAIL ÉCRIT, COMPOSÉ HORS DU JSX (L0-11).
@@ -35,6 +36,42 @@ export function identifiantDeLaDemande(
   return numero === null || annee === null
     ? t("demande.sans_numero")
     : `DEM-${annee}-${String(numero).padStart(4, "0")}`;
+}
+
+/**
+ * « Votre demande DEM-2026-0029 est enregistrée. » — LE BANDEAU DE SUCCÈS DU
+ * DÉPÔT (9K03), avec le numéro dès qu'il est attribué (il l'est toujours à ce
+ * point : le dépôt portail est synchrone). Sans lui, le texte générique
+ * existant (`portail.demandes.cree`) — même discipline que
+ * `identifiantDeLaDemande`, qu'elle réutilise plutôt que de la recomposer.
+ */
+export function confirmationDuDepot(
+  numero: number | null,
+  annee: number | null,
+): string {
+  return numero === null || annee === null
+    ? t("portail.demandes.cree")
+    : `${t("portail.demandes.cree.avant")} ${identifiantDeLaDemande(numero, annee)} ${t("portail.demandes.cree.apres")}`;
+}
+
+/**
+ * LA MACHINE PRÉ-CHOISIE DEPUIS SA FICHE (9K03) — REVÉRIFIÉE ICI contre le
+ * parc DÉJÀ LU sous le contexte cloisonné, jamais crue sur parole depuis le
+ * paramètre d'URL `machine_id`. `machines` vient de `parcDuClient` (forme
+ * « parc ») : une machine d'un autre client ou d'un autre périmètre de sites
+ * n'y figure JAMAIS (éprouvé par `tests/isolation/portail-client.test.ts` et
+ * `tests/isolation/9j06-portail-fiche-machine.test.ts`) — cette fonction n'a
+ * donc qu'à vérifier l'appartenance à CETTE liste, jamais une seconde
+ * comparaison de client ou de société.
+ */
+export function machinePreselectionneeValide(
+  machineIdBrut: string | string[] | undefined,
+  machines: readonly MachineDuPortail[],
+): string | undefined {
+  return typeof machineIdBrut === "string" &&
+    machines.some((machine) => machine.id === machineIdBrut)
+    ? machineIdBrut
+    : undefined;
 }
 
 /** « JJ/MM/AAAA » LOCAL — même forme que `dateCourteLocale` (tableau de bord, L0-08). */

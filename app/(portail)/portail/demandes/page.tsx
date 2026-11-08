@@ -20,7 +20,12 @@ import { ENTREES_PORTAIL } from "@/lib/navigation/entrees";
 import { parcDuClient, rattachementsDuCompte } from "@/lib/portail/depot";
 import { historiquesDemandesDuClient } from "@/lib/portail/historique-etats";
 
-import { sousTitreDesDemandes, tempsParEtatDeLaDemande } from "./presentation";
+import {
+  confirmationDuDepot,
+  machinePreselectionneeValide,
+  sousTitreDesDemandes,
+  tempsParEtatDeLaDemande,
+} from "./presentation";
 import { ListeDemandes } from "./vue";
 
 export const metadata: Metadata = { title: t("portail.demandes.titre") };
@@ -126,6 +131,13 @@ export default async function PageDemandesPortail({
 
   const paramsResolus = await searchParams;
   const motif = paramsResolus.motif;
+  const numero = entierDuParametre(paramsResolus.numero);
+  const annee = entierDuParametre(paramsResolus.annee);
+
+  const machinePreselectionnee = machinePreselectionneeValide(
+    paramsResolus.machine_id,
+    parc.machines,
+  );
 
   return (
     <Page
@@ -135,7 +147,11 @@ export default async function PageDemandesPortail({
       sousTitre={sousTitreDesDemandes()}
     >
       {typeof motif === "string" && estCleTraduction(motif) ? (
-        <BandeauMotif motif={motif}>{t(motif)}</BandeauMotif>
+        <BandeauMotif motif={motif}>
+          {motif === "portail.demandes.cree"
+            ? confirmationDuDepot(numero, annee)
+            : t(motif)}
+        </BandeauMotif>
       ) : null}
       <ListeDemandes
         demandes={demandes}
@@ -144,7 +160,18 @@ export default async function PageDemandesPortail({
         fuseau={fuseau}
         idNouvelleDemande={uuidv7()}
         tempsParEtatParDemande={tempsParEtatParDemande}
+        machinePreselectionnee={machinePreselectionnee}
       />
     </Page>
   );
+}
+
+/** Un paramètre d'URL numérique, ou `null` — jamais `NaN` passé en aval. */
+function entierDuParametre(
+  valeur: string | string[] | undefined,
+): number | null {
+  if (typeof valeur !== "string" || !/^\d+$/.test(valeur)) {
+    return null;
+  }
+  return Number(valeur);
 }
