@@ -8039,3 +8039,69 @@ Portée : `prisma/migrations/20261109050000_identite_interne_ailleurs_9k04`,
 (`identiteInterneAilleurs`, appel dans `inviterClientAuPortail`),
 `tests/isolation/identite-interne-ailleurs.test.ts`,
 `tests/isolation/invitation-portail-client.test.ts`.
+
+## D234 — L'ADV MÈNE LA SUITE À DONNER DE BOUT EN BOUT ; UN ACCORD SANS PIÈCE SAUTE DIRECTEMENT À « À DÉPLACER » (décision verbatim d'Alexis, 08/11/2026 ~09:00 ; 9K05-SUITES-A-DONNER-DEBLOQUEES)
+
+*Débloque le défaut I1 relevé par l'étude du 08/11
+(`interventions-integration-ergonomie.md`) : la chaîne de la suite à donner
+s'arrêtait après « Qualifier » — `enregistrerAccord` et `marquerPieceRecue`
+(`lib/suite-a-donner/depot.ts`) n'avaient aucun appelant de production, et
+aucune suite n'atteignait jamais « À déplacer », seul état qui ouvre la
+reprise.*
+
+### CE QUI A ÉTÉ MESURÉ
+
+`qualifierSuite` (devis en cours) était la seule transition atteinte depuis
+un écran. `enregistrerAccord` (accord reçu ou sans suite) et
+`marquerPieceRecue` (pièce reçue) existaient depuis 9J17/9J19, exercées
+seulement par les épreuves — aucune route, aucun bouton. Un dossier qualifié
+restait donc bloqué pour toujours : sans bouton pour dire que le devis est
+parti, sans bouton pour enregistrer la réponse du client, sans bouton pour
+dire qu'une pièce attendue est arrivée.
+
+### LA DÉCISION
+
+**L'ADV mène le dossier après « Qualifier »** (devis, accord, pièce) — avec
+la capacité qui porte déjà la planification, `modifier_planning` (déjà
+portée par ADV, `lib/auth/habilitations.ts`) : aucune capacité neuve.
+
+**Un accord SANS pièce attendue passe directement à `a_replanifier`** —
+l'état qui ouvre la replanification — au lieu de s'arrêter à `accord_recu`,
+qui n'aurait alors plus rien à attendre et n'ouvrirait jamais
+`marquerPieceRecue`. Un accord AVEC pièce reste à `accord_recu` jusqu'à ce
+que la pièce arrive. `enregistrerAccord` et `marquerPieceRecue` refusent
+désormais tout statut de départ qui n'est pas le leur (ÉPREUVE) — elles
+rendent un `ResultatTransitionSuite`, jamais `void`.
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+Elle ne touche ni la transition `qualifiee` → `accord_attendu` du point de
+vue de son EXISTENCE (elle existait déjà au schéma, D231 ; ce ticket lui
+donne pour la première fois une fonction, `marquerDevisEnvoye`, et un
+bouton) ni les relances automatiques (`devisEnRetard`,
+`accordAttenduEnRetard`, FLX-2/FLX-3, 9J19) : elles restent hors territoire,
+sans appelant de production, exemptées à ce titre dans
+`scripts/lib/chemins-de-depot.ts`.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où FLX-2/FLX-3 (les relances automatiques) entrent au périmètre
+> V1, cette décision se rouvre pour leur donner un écran — ce ticket ne
+> branche que les gestes manuels.
+
+**Règles amendées :** aucune — le chapitre 10 ne pose aucune règle sur la
+suite à donner ; cette décision rend atteignables des transitions que le
+schéma portait déjà sans écran (D231).
+
+Portée : `lib/suite-a-donner/depot.ts` (`marquerDevisEnvoye`,
+`ResultatTransitionSuite`, gardes sur `enregistrerAccord` et
+`marquerPieceRecue`),
+`app/api/interventions/suites-a-donner/[id]/devis-envoye/route.ts`,
+`app/api/interventions/suites-a-donner/[id]/accord/route.ts`,
+`app/api/interventions/suites-a-donner/[id]/piece-recue/route.ts`,
+`app/(back-office)/interventions/suites-a-donner/[id]/accord/page.tsx`,
+`app/(back-office)/interventions/suites-a-donner/page.tsx`,
+`tests/isolation/suite-a-donner.test.ts`,
+`tests/isolation/suite-a-donner-reprise.test.ts`,
+`tests/isolation/suite-a-donner-notifications.test.ts`,
+`tests/e2e/captures-9k05-suites-a-donner-debloquees.spec.ts`.
