@@ -317,9 +317,11 @@ test.describe("I7 — 16 px et 44 px, à 375 px", () => {
     await page
       .getByRole("button", { name: fr["contacts.action.creer"] })
       .click();
-    await expect(
-      page.getByRole("link", { name: "+687 00 00 00" }),
-    ).toHaveAttribute("href", "tel:+687 00 00 00");
+    // LE NUMÉRO N'EST PAS RELU LITTÉRALEMENT ICI (L0-11, gardien
+    // `tests/unit/i18n/sans-chaine-visible-en-dur.test.ts`, qui traite aussi les
+    // épreuves de bout en bout comme un emplacement visible) : le lien est
+    // retrouvé par son ATTRIBUT `href`, jamais par le texte qu'il affiche.
+    await expect(page.locator('a[href="tel:+687 00 00 00"]')).toBeVisible();
   });
 
   test("le formulaire des demandes : champs en 16 px, bouton ≥ 44 px", async ({
