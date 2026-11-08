@@ -141,8 +141,13 @@ export const fr = {
   // dans `sousTitreDuPortail` (presentation.ts), autour de
   // `chromeDeLaRequete().theme.nom` — jamais une seconde lecture (§9, 01/09).
   "portail.sous_titre_avant": "Ce que",
-  "portail.sous_titre_apres":
-    " suit pour vous. Cette page est en consultation seule.",
+  // « CETTE PAGE EST EN CONSULTATION SEULE » EST RETIRÉ (9K02-PORTAIL-MENU-
+  // ACCUEIL) : CETTE phrase devenait fausse pour l'accueil le jour où il a
+  // porté un bouton « Signaler une panne » — le reste du portail (fiche
+  // machine, fiche intervention) garde la mention sous SES PROPRES clés
+  // (`portail.machine.sous_titre`, `portail.interventions.fiche.sous_titre`),
+  // inchangées : ce sont encore des écrans de pure lecture.
+  "portail.sous_titre_apres": " suit pour vous.",
   // LE VOCABULAIRE IMPOSÉ NE S'ÉCRIT PAS ICI (L0-11) : la notion se nomme par
   // `mot("site")`, et ces libellés portent tout SAUF le mot. Une clé
   // « Vos sites » aurait recopié dans le dictionnaire ce dont `vocabulaire.ts`
@@ -216,14 +221,15 @@ export const fr = {
   "portail.chiffre.visite": "Prochaine visite",
   "portail.chiffre.visite_detail":
     "Sans information : le planning n'est pas encore lisible ici.",
-  "portail.interventions": "Vos interventions",
-  // Les deux phrases ci-dessous nomment un MOT IMPOSÉ, et il ne s'écrit pas
-  // ici : « agence » se définit une fois sous `vocabulaire.*` et se compose
-  // depuis `mot(notion)` (D5, D47). Le dictionnaire ne porte donc que ce qui
-  // l'entoure — c'est la forme déjà en vigueur sur l'écran de paramétrage.
-  "portail.interventions.a_venir_avant":
-    "Sans information : l'historique de vos interventions et leurs rapports ne sont pas encore lisibles ici. Votre",
-  "portail.interventions.a_venir_apres": "vous les transmet.",
+
+  // ── L'ACCUEIL : LE BOUTON ET LES DEUX TUILES (9K02-PORTAIL-MENU-ACCUEIL,
+  // décision d'Alexis du 08/11/2026) — REMPLACENT les deux cartes qui
+  // disaient « ce n'est pas encore lisible ici » / « ce formulaire n'est pas
+  // ouvert » : les deux écrans existent désormais (9J04, 9J07), et dire
+  // encore l'inverse sur l'accueil serait faux.
+  "portail.accueil.signaler_panne": "Signaler une panne",
+  "portail.accueil.interventions_en_cours": "Interventions en cours",
+  "portail.accueil.demandes_en_attente": "Demandes en attente",
 
   // ── L'ÉCRAN DES INTERVENTIONS DU PORTAIL (9J07-PORTAIL-INTERVENTION-ETAT,
   // CLI-2.5, CLI-2.7) — L'ÉTAT COURANT SEUL. CLI-2.4 (la durée par état),
@@ -263,12 +269,6 @@ export const fr = {
   "portail.interventions.bon.lien": "Télécharger le bon",
   "portail.interventions.bon.refus_non_cloturee":
     "Le bon sera disponible une fois l'intervention clôturée.",
-
-  "portail.demande": "Demander une intervention",
-  "portail.demande.a_venir_avant":
-    "Ce formulaire n'est pas ouvert : appelez votre",
-  "portail.demande.a_venir_apres":
-    ", elle enregistre votre demande et vous en accuse réception.",
 
   // ── LA GRILLE TARIFAIRE DU PORTAIL (9J20-PORTAIL-GRILLE-TARIFAIRE, CLI-7)
   // — LE BARÈME, JAMAIS LE MONTANT D'UNE INTERVENTION PRÉCISE (3.8, D37,

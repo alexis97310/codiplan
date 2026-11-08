@@ -18,10 +18,22 @@ import type { MachineDuPortail, SiteDuPortail } from "@/lib/portail/depot";
 /** La ponctuation de liaison. Écrite UNE fois, pour ne pas diverger. */
 const TIRET = "—";
 const DEUX_POINTS = ":";
+const PARENTHESE_OUVRANTE = "(";
+const PARENTHESE_FERMANTE = ")";
 
 /** « Vos sites » — la notion est nommée, jamais le mot (D5, D47). */
 export function titreDesSites(): string {
   return `${t("portail.vos")} ${mot("site", true)}`;
+}
+
+/**
+ * « Interventions en cours (3) » — les deux tuiles de l'accueil
+ * (9K02-PORTAIL-MENU-ACCUEIL). Le chiffre est une MESURE, jamais un « — » :
+ * contrairement aux deux cartes `portail.chiffre.arret`/`visite`, ces deux
+ * comptes sont bien lus en base (`estFige`, `demandesOuvertes`).
+ */
+export function titreTuileAvecCompte(libelle: string, compte: number): string {
+  return `${libelle} ${PARENTHESE_OUVRANTE}${compte}${PARENTHESE_FERMANTE}`;
 }
 
 /**

@@ -7,12 +7,14 @@ import { redirect } from "next/navigation";
 import { Page } from "@/components/mise-en-page/page";
 import { obtenirSession } from "@/lib/auth/session";
 import { estRolePortail } from "@/lib/auth/roles";
+import { demandesOuvertes } from "@/lib/demandes/depot";
 import { t } from "@/lib/i18n/fr";
-import { motDansUnePhrase } from "@/lib/i18n/vocabulaire";
+import { estFige } from "@/lib/interventions/cycle-de-vie";
 import { chromeDeLaRequete } from "@/lib/navigation/chrome";
 import { ENTREES_PORTAIL } from "@/lib/navigation/entrees";
 import { parcDuClient, rattachementsDuCompte } from "@/lib/portail/depot";
 
+import { interventionsDuParc } from "./interventions/depot";
 import {
   emplacementDeLaMachine,
   libelleDuSite,
@@ -22,6 +24,7 @@ import {
   siteDeLaMachine,
   sousTitreDuPortail,
   titreDesSites,
+  titreTuileAvecCompte,
 } from "./presentation";
 
 export const metadata: Metadata = { title: t("portail.titre") };
@@ -45,13 +48,17 @@ export const metadata: Metadata = { title: t("portail.titre") };
  * cette page serait une seconde lecture d'un même critère (§9, 01/09) — verte
  * aujourd'hui, divergente demain, et permissive quand elle divergera.
  *
- * ## CONSULTATION SEULE, ET RIEN N'EST PRÉPARÉ POUR L'ÉCRITURE
+ * ## CONSULTATION SEULE — SAUF LE BOUTON QUI MÈNE AU DÉPÔT, DEPUIS 9K02
  *
- * Aucun bouton « demander une intervention » : cette demande n'est pas
- * tranchée. Elle n'est pas non plus *préparée* — pas de table qui l'attendrait,
- * pas de champ mort. *Une place réservée pour une décision qu'on n'a pas prise
- * est une décision prise par personne (§9, 24/08).*
+ * L2-12 refusait tout bouton « demander une intervention » : cette demande
+ * n'était pas tranchée, et une place réservée pour une décision qu'on n'a pas
+ * prise est une décision prise par personne (§9, 24/08). **Elle l'est
+ * désormais** — 9J04-PORTAIL-DEMANDES livre `/portail/demandes` et son
+ * formulaire. « Signaler une panne », ci-dessous, n'est qu'un LIEN vers cet
+ * écran déjà construit : cette page elle-même ne lit toujours que le parc, et
+ * n'écrit rien.
  *
+
  * ## L'EMPLACEMENT DES DOCUMENTS ET DU VGP EXISTE, SON CONTENU N'EST PAS INVENTÉ
  *
  * Les lots 8 (D87) et 9 (D88) ne sont pas construits. La place est tenue et
@@ -104,10 +111,26 @@ export default async function PagePortail() {
     redirect("/arrivee");
   }
 
-  const parc = await parcDuClient({
-    ...session.contexte,
-    clientId: premier.clientId,
-  });
+  const contexte = { ...session.contexte, clientId: premier.clientId };
+
+  // LES DEUX TUILES DE L'ACCUEIL (9K02-PORTAIL-MENU-ACCUEIL) — MÊMES
+  // LECTURES que `/portail/interventions` et `/portail/demandes`, jamais une
+  // troisième lecture du même critère (§9, 01/09) : aucun filtre de société,
+  // de client ni de périmètre de sites n'est recomposé ici.
+  //
+  // « En cours » = non FIGÉE (`estFige`, `lib/interventions/cycle-de-vie.ts`) :
+  // le même partage que le back-office lit déjà pour refuser une action sur
+  // une intervention `cloturee` ou `annulee`. « En attente » = la file de
+  // qualification de l'ADV (`demandesOuvertes`, les statuts `nouvelle` et
+  // `qualifiee`) — le même appel que l'onglet ouvert de `/portail/demandes`.
+  const [parc, interventions, demandes] = await Promise.all([
+    parcDuClient(contexte),
+    interventionsDuParc(contexte),
+    demandesOuvertes(contexte),
+  ]);
+  const interventionsEnCours = interventions.filter(
+    (intervention) => !estFige(intervention.statut),
+  ).length;
 
   const siteParId = new Map(parc.sites.map((site) => [site.id, site.libelle]));
 
@@ -163,6 +186,43 @@ export default async function PagePortail() {
           </p>
         </div>
       )}
+
+      {/*
+        « SIGNALER UNE PANNE » EN PREMIER, PUIS LES DEUX TUILES
+        (9K02-PORTAIL-MENU-ACCUEIL, recommandation non contredite d'Alexis du
+        08/11/2026). Les trois mènent à des écrans qui EXISTENT déjà (9J04,
+        9J07) — ce que l'accueil ne faisait pas voir avant ce lot.
+
+        `min-h-11` (44 px) sur le bouton : la même cible tactile que
+        `components/ui/choix.tsx` et `components/planning/pose.tsx`.
+      */}
+      <Link
+        href="/portail/demandes"
+        className="bg-app-marque text-app-marque-encre flex min-h-11 w-fit items-center justify-center rounded-lg px-5 text-[14px] font-extrabold"
+      >
+        {t("portail.accueil.signaler_panne")}
+      </Link>
+
+      <section className="grid gap-3 sm:grid-cols-2">
+        <Link
+          href="/portail/interventions"
+          className="bg-app-surface border-app-bord hover:border-app-marque rounded-lg border px-4 py-3.5 text-[13px] font-bold"
+        >
+          {titreTuileAvecCompte(
+            t("portail.accueil.interventions_en_cours"),
+            interventionsEnCours,
+          )}
+        </Link>
+        <Link
+          href="/portail/demandes"
+          className="bg-app-surface border-app-bord hover:border-app-marque rounded-lg border px-4 py-3.5 text-[13px] font-bold"
+        >
+          {titreTuileAvecCompte(
+            t("portail.accueil.demandes_en_attente"),
+            demandes.length,
+          )}
+        </Link>
+      </section>
 
       {/*
         LES QUATRE INDICATEURS DE LA MAQUETTE — et DEUX D'ENTRE EUX SONT VIDES,
@@ -243,17 +303,31 @@ export default async function PagePortail() {
         {parc.machines.length === 0 ? (
           <p className="text-[13px] font-bold">{t("portail.sans_machine")}</p>
         ) : (
-          <ul className="flex flex-col gap-2">
-            {parc.machines.map((machine) => (
-              <li key={machine.id}>
-                {/* CHAQUE LIGNE MÈNE À SA FICHE (9J06-PORTAIL-FICHE-MACHINE,
-                    CLI-2.3a) — D98 retire « Fiche machine » de la barre, ça
-                    n'empêche pas une fiche ATTEINTE depuis une liste. */}
-                <Link
-                  href={`/portail/machines/${machine.id}`}
-                  className="bg-app-surface border-app-bord hover:border-app-marque flex flex-col gap-2 rounded-lg border px-4 py-3 text-[13px] font-bold"
-                >
-                  <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+          <>
+            {/* LES DEUX PLACES RÉSERVÉES, DITES UNE SEULE FOIS
+                (9K02-PORTAIL-MENU-ACCUEIL) — elles valaient pour CHAQUE
+                machine de la liste, identiques d'une ligne à l'autre ; répétées
+                sous chacune, elles gonflaient la page sans rien dire de plus.
+                Elles disent toujours qu'elles sont vides ; elles n'affichent
+                NI un compte de documents à zéro, NI un état VGP « à jour ».
+                Les deux se liraient comme des mesures (§9, 06/09), et le
+                second serait faux au sens de D88. */}
+            <p className="text-app-encre-faible text-12 font-bold">
+              {placeDesDocuments()}
+            </p>
+            <p className="text-app-encre-faible text-12 font-bold">
+              {placeDuVgp()}
+            </p>
+            <ul className="flex flex-col gap-2">
+              {parc.machines.map((machine) => (
+                <li key={machine.id}>
+                  {/* CHAQUE LIGNE MÈNE À SA FICHE (9J06-PORTAIL-FICHE-MACHINE,
+                      CLI-2.3a) — D98 retire « Fiche machine » de la barre, ça
+                      n'empêche pas une fiche ATTEINTE depuis une liste. */}
+                  <Link
+                    href={`/portail/machines/${machine.id}`}
+                    className="bg-app-surface border-app-bord hover:border-app-marque flex flex-wrap items-baseline gap-x-4 gap-y-1 rounded-lg border px-4 py-3 text-[13px] font-bold"
+                  >
                     <span className="font-bold">
                       {t("portail.machine.serie")} {machine.numeroSerie}
                     </span>
@@ -265,65 +339,19 @@ export default async function PagePortail() {
                         {emplacementDeLaMachine(machine)}
                       </span>
                     )}
-                  </div>
-                  {/* LES DEUX PLACES RÉSERVÉES. Elles disent qu'elles sont
-                      vides ; elles n'affichent NI un compte de documents à
-                      zéro, NI un état VGP « à jour ». Les deux se liraient
-                      comme des mesures (§9, 06/09), et le second serait faux
-                      au sens de D88. */}
-                  <div className="text-app-encre-faible flex flex-col gap-1 text-12 font-bold">
-                    <span>{placeDesDocuments()}</span>
-                    <span>{placeDuVgp()}</span>
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </section>
 
-      {/*
-        LES DEUX CARTES DE LA COLONNE DROITE DE LA MAQUETTE, et elles sont VIDES
-        toutes les deux — nommément, avec ce qu'il faut faire à la place.
-
-        **« Mes interventions » et son tableau** demandent l'historique, que le
-        portail ne lit pas ; **« Demander une intervention »** est un FORMULAIRE
-        que L2-12 refuse d'ouvrir et même de préparer — *une place réservée pour
-        une décision qu'on n'a pas prise est une décision prise par personne*.
-        La table `demande_intervention` existe (L2-06) et un compte portail peut
-        y écrire ; **ce qui manque est la décision de lui ouvrir cet écran**, et
-        elle n'appartient pas à une session : c'est ce qu'un client voit.
-
-        Ce qui est écrit ici n'est donc pas « bientôt » — c'est **ce que la
-        personne doit faire aujourd'hui** : appeler son agence. *Une place qui
-        promet sans dire quoi faire est pire qu'une absence.*
-      */}
-      <section className="grid gap-3 lg:grid-cols-2">
-        <article className="bg-app-surface border-app-bord rounded-lg border px-4 py-3.5">
-          <h2 className="text-[15px] font-extrabold tracking-tight">
-            {t("portail.interventions")}
-          </h2>
-          <p className="text-app-encre-faible mt-1.5 text-13 font-bold">
-            {t("portail.interventions.a_venir_avant")}{" "}
-            {motDansUnePhrase("agence")}{" "}
-            {t("portail.interventions.a_venir_apres")}
-          </p>
-        </article>
-        <article className="bg-app-surface border-app-bord rounded-lg border px-4 py-3.5">
-          <h2 className="text-[15px] font-extrabold tracking-tight">
-            {t("portail.demande")}
-          </h2>
-          <p className="text-app-encre-faible mt-1.5 text-13 font-bold">
-            {t("portail.demande.a_venir_avant")} {motDansUnePhrase("agence")}
-            {t("portail.demande.a_venir_apres")}
-          </p>
-        </article>
-      </section>
-
-      {/* LE BARÈME (9J20-PORTAIL-GRILLE-TARIFAIRE, CLI-7) — le SEUL point
-          d'entrée vers `/portail/tarifs` : `ENTREES_PORTAIL` ne porte qu'une
-          destination (D97), même raison que le lien vers une fiche machine
-          plus haut sur cette page. */}
+      {/* LE BARÈME (9J20-PORTAIL-GRILLE-TARIFAIRE, CLI-7) — un point d'entrée
+          de PLUS vers `/portail/tarifs`, à côté de l'entrée de la barre
+          (9K02-PORTAIL-MENU-ACCUEIL) : même raison que le lien vers une
+          fiche machine plus haut sur cette page, une fiche ATTEINTE depuis
+          une liste n'est pas la même chose qu'une fiche dans la barre. */}
       <Link
         href="/portail/tarifs"
         className="bg-app-surface border-app-bord hover:border-app-marque flex flex-col gap-1 rounded-lg border px-4 py-3.5 text-[13px] font-bold"
