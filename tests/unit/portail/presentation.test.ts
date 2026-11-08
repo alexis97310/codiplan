@@ -1,10 +1,26 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  nomDeLaMachine,
+  numeroDeSerieDeLaMachine,
   sansLieuDuPortail,
   sousTitreDuPortail,
   titreTuileAvecCompte,
 } from "@/app/(portail)/portail/presentation";
+import type { MachineDuPortail } from "@/lib/portail/depot";
+
+const MACHINE: MachineDuPortail = {
+  id: "11111111-1111-1111-1111-111111111111",
+  numeroSerie: "10044",
+  referenceInterne: null,
+  localisation: null,
+  statut: "en_service",
+  siteId: "22222222-2222-2222-2222-222222222222",
+  dateMiseEnService: null,
+  familleLibelle: "Pont 2 colonnes",
+  marque: "Cascos",
+  modeleReference: "13442",
+};
 
 /**
  * LE PORTAIL NOMME LA SOCIÉTÉ QUI LE SERT, JAMAIS « CODIMA » EN DUR (TR-28,
@@ -49,5 +65,26 @@ describe("le titre d'une tuile de compte porte le libellé ET le chiffre", () =>
     expect(titreTuileAvecCompte("Demandes en attente", 0)).toBe(
       "Demandes en attente (0)",
     );
+  });
+});
+
+/**
+ * LA MACHINE NOMMÉE PAR SON ÉQUIPEMENT, JAMAIS SON SEUL NUMÉRO DE SÉRIE
+ * (9K03-PORTAIL-MACHINES-PANNE) — « Famille · Marque · Modèle », le numéro de
+ * série restant lisible à PART, jamais en remplacement du nom.
+ */
+describe("nomDeLaMachine — famille, marque, modèle", () => {
+  it("compose « Famille · Marque · Modèle »", () => {
+    expect(nomDeLaMachine(MACHINE)).toBe("Pont 2 colonnes · Cascos · 13442");
+  });
+
+  it("ne contient jamais le numéro de série", () => {
+    expect(nomDeLaMachine(MACHINE)).not.toContain(MACHINE.numeroSerie);
+  });
+});
+
+describe("numeroDeSerieDeLaMachine — toujours en second", () => {
+  it("compose « Numéro de série : <numéro> »", () => {
+    expect(numeroDeSerieDeLaMachine(MACHINE)).toBe("Numéro de série : 10044");
   });
 });

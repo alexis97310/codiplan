@@ -390,7 +390,13 @@ async function composerBon(
               select: {
                 id: true,
                 numero_serie: true,
-                modele: { select: { marque: true, reference: true } },
+                modele: {
+                  select: {
+                    marque: true,
+                    reference: true,
+                    famille: { select: { libelle: true } },
+                  },
+                },
                 // LES DATES ET L'ANNÉE DE FABRICATION (9I8C) — pour
                 // `machinesDetaillees`, dans CETTE même requête (voir la
                 // note de tête de `BonIntervention.machinesDetaillees`).
@@ -403,7 +409,13 @@ async function composerBon(
       const libellesIdentifies = new Map(
         machinesBrutes.map((m) => [
           m.id,
-          `${m.modele.marque} ${m.modele.reference} — ${t("intervention.bon.numero_serie")} ${m.numero_serie}`,
+          // « Pont 2 colonnes Cascos 13442 — N° série 10044 » — LA FAMILLE
+          // S'AJOUTE DEVANT (9K03), MÊME SÉPARATEUR qu'avant (un espace) :
+          // ce bon est partagé avec le back-office
+          // (`app/(back-office)/interventions/[id]/bon/page.tsx`), donc pas
+          // le « · » du reste du portail — un changement de ponctuation sur
+          // un écran que ce ticket ne doit pas toucher serait hors périmètre.
+          `${m.modele.famille.libelle} ${m.modele.marque} ${m.modele.reference} — ${t("intervention.bon.numero_serie")} ${m.numero_serie}`,
         ]),
       );
       const machinesIdentifiees = brute.machines

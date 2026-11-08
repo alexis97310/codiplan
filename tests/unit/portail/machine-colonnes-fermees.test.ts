@@ -15,6 +15,10 @@ import { SELECTION_FICHE_MACHINE_PORTAIL } from "@/lib/portail/depot";
  * que les colonnes RÉELLEMENT sélectionnées par `SELECTION_FICHE_MACHINE_
  * PORTAIL`, dans les deux sens : une clé ajoutée là-bas sans être ajoutée ici
  * rougit, et réciproquement.
+ *
+ * `modele` (9K03) est une JOINTURE, pas une colonne plate de `Machine` : la
+ * liste ci-dessous la ferme à son tour, par ses DEUX sous-niveaux
+ * (`ModeleMateriel`, `FamilleMateriel`) — même discipline, dans les deux sens.
  */
 const CHAMPS_VISIBLES_CLIENT = [
   "id",
@@ -24,7 +28,18 @@ const CHAMPS_VISIBLES_CLIENT = [
   "statut",
   "site_id",
   "date_mise_en_service",
+  "modele",
 ] as const;
+
+/** Le sous-select de `modele` — fermé comme `CHAMPS_VISIBLES_CLIENT`. */
+const CHAMPS_MODELE_VISIBLES_CLIENT = [
+  "marque",
+  "reference",
+  "famille",
+] as const;
+
+/** Le sous-select de `modele.famille` — fermé comme `CHAMPS_VISIBLES_CLIENT`. */
+const CHAMPS_FAMILLE_VISIBLES_CLIENT = ["libelle"] as const;
 
 describe("le select de la fiche machine du portail — liste close, dans les deux sens", () => {
   it("chaque clé du select appartient à la liste close", () => {
@@ -47,6 +62,49 @@ describe("le select de la fiche machine du portail — liste close, dans les deu
     }
   });
 
+  it("le sous-select de `modele` est fermé, dans les deux sens", () => {
+    const sousSelect = SELECTION_FICHE_MACHINE_PORTAIL.modele.select;
+    const cles = Object.keys(sousSelect);
+    for (const cle of cles) {
+      expect(CHAMPS_MODELE_VISIBLES_CLIENT).toContain(cle);
+    }
+    for (const champ of CHAMPS_MODELE_VISIBLES_CLIENT) {
+      expect(cles).toContain(champ);
+    }
+    const modele = Prisma.dmmf.datamodel.models.find(
+      (m) => m.name === "ModeleMateriel",
+    );
+    if (modele === undefined) {
+      throw new Error("le modèle ModeleMateriel a disparu du schéma");
+    }
+    const colonnes = modele.fields.map((champ) => champ.name);
+    for (const champ of CHAMPS_MODELE_VISIBLES_CLIENT) {
+      expect(colonnes).toContain(champ);
+    }
+  });
+
+  it("le sous-select de `modele.famille` est fermé, dans les deux sens", () => {
+    const sousSelect =
+      SELECTION_FICHE_MACHINE_PORTAIL.modele.select.famille.select;
+    const cles = Object.keys(sousSelect);
+    for (const cle of cles) {
+      expect(CHAMPS_FAMILLE_VISIBLES_CLIENT).toContain(cle);
+    }
+    for (const champ of CHAMPS_FAMILLE_VISIBLES_CLIENT) {
+      expect(cles).toContain(champ);
+    }
+    const famille = Prisma.dmmf.datamodel.models.find(
+      (m) => m.name === "FamilleMateriel",
+    );
+    if (famille === undefined) {
+      throw new Error("le modèle FamilleMateriel a disparu du schéma");
+    }
+    const colonnes = famille.fields.map((champ) => champ.name);
+    for (const champ of CHAMPS_FAMILLE_VISIBLES_CLIENT) {
+      expect(colonnes).toContain(champ);
+    }
+  });
+
   it("aucune colonne interne ou de montant n'est dans la liste close ni dans le select", () => {
     const interdites = [
       "facture_origine",
@@ -64,6 +122,28 @@ describe("le select de la fiche machine du portail — liste close, dans les deu
     for (const champ of interdites) {
       expect(CHAMPS_VISIBLES_CLIENT).not.toContain(champ);
       expect(Object.keys(SELECTION_FICHE_MACHINE_PORTAIL)).not.toContain(champ);
+    }
+    const interditesModele = [
+      "periodicite_jours",
+      "periodicite_compteur",
+      "caracteristiques",
+      "vgp_periodicite_mois",
+      "vgp_reference_texte",
+      "famille_id",
+      "societe_id",
+    ];
+    for (const champ of interditesModele) {
+      expect(CHAMPS_MODELE_VISIBLES_CLIENT).not.toContain(champ);
+    }
+    const interditesFamille = [
+      "code",
+      "assujettissement_vgp",
+      "vgp_periodicite_mois",
+      "vgp_reference_texte",
+      "societe_id",
+    ];
+    for (const champ of interditesFamille) {
+      expect(CHAMPS_FAMILLE_VISIBLES_CLIENT).not.toContain(champ);
     }
   });
 });

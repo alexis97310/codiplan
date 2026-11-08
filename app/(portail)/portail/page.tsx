@@ -18,6 +18,8 @@ import { interventionsDuParc } from "./interventions/depot";
 import {
   emplacementDeLaMachine,
   libelleDuSite,
+  nomDeLaMachine,
+  numeroDeSerieDeLaMachine,
   placeDesDocuments,
   placeDuVgp,
   sansLieuDuPortail,
@@ -328,9 +330,7 @@ export default async function PagePortail() {
                     href={`/portail/machines/${machine.id}`}
                     className="bg-app-surface border-app-bord hover:border-app-marque flex flex-wrap items-baseline gap-x-4 gap-y-1 rounded-lg border px-4 py-3 text-[13px] font-bold"
                   >
-                    <span className="font-bold">
-                      {t("portail.machine.serie")} {machine.numeroSerie}
-                    </span>
+                    <span className="font-bold">{nomDeLaMachine(machine)}</span>
                     <span className="text-app-encre-faible">
                       {siteDeLaMachine(machine, siteParId)}
                     </span>
@@ -339,6 +339,9 @@ export default async function PagePortail() {
                         {emplacementDeLaMachine(machine)}
                       </span>
                     )}
+                    <span className="text-app-encre-faible text-12 font-bold">
+                      {numeroDeSerieDeLaMachine(machine)}
+                    </span>
                   </Link>
                 </li>
               ))}

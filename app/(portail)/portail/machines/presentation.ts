@@ -4,7 +4,7 @@ import { mot } from "@/lib/i18n/vocabulaire";
 
 import type { MachineDuPortail, SiteDuPortail } from "@/lib/portail/depot";
 
-import { libelleDuSite } from "../presentation";
+import { libelleDuSite, nomDeLaMachine } from "../presentation";
 
 /**
  * CE QUE LA FICHE MACHINE DU PORTAIL ÉCRIT, COMPOSÉ HORS DU JSX (L0-11) —
@@ -15,9 +15,12 @@ import { libelleDuSite } from "../presentation";
 const TIRET = "—";
 const DEUX_POINTS = ":";
 
-/** « Numéro de série 123456 » — LE MÊME texte que la carte de la liste. */
+/**
+ * « Pont 2 colonnes · Cascos · 13442 » — LE MÊME nom que la carte de la liste
+ * (9K03) : `nomDeLaMachine`, réutilisée plutôt que recomposée.
+ */
 export function titreDeLaFicheMachine(machine: MachineDuPortail): string {
-  return `${t("portail.machine.serie")} ${machine.numeroSerie}`;
+  return nomDeLaMachine(machine);
 }
 
 /** « Site : Atelier principal — Nouméa ». */

@@ -20,6 +20,7 @@ const TIRET = "—";
 const DEUX_POINTS = ":";
 const PARENTHESE_OUVRANTE = "(";
 const PARENTHESE_FERMANTE = ")";
+const POINT_MEDIAN = "·";
 
 /** « Vos sites » — la notion est nommée, jamais le mot (D5, D47). */
 export function titreDesSites(): string {
@@ -68,6 +69,27 @@ export function siteDeLaMachine(
   libelleParId: ReadonlyMap<string, string>,
 ): string {
   return `${mot("site")} ${DEUX_POINTS} ${libelleParId.get(machine.siteId) ?? ""}`;
+}
+
+/**
+ * « Pont 2 colonnes · Cascos · 13442 » — LA MACHINE NOMMÉE PAR SON ÉQUIPEMENT
+ * (9K03-PORTAIL-MACHINES-PANNE), partout au portail où elle était montrée par
+ * son seul numéro de série : l'accueil, le sélecteur de la demande, la liste
+ * des demandes déposées, et le titre de la fiche machine (via
+ * `../machines/presentation.ts`, qui réutilise CETTE fonction plutôt que de
+ * la recomposer — même raison que `libelleDuSite`, réutilisée par ce module).
+ */
+export function nomDeLaMachine(machine: MachineDuPortail): string {
+  return `${machine.familleLibelle} ${POINT_MEDIAN} ${machine.marque} ${POINT_MEDIAN} ${machine.modeleReference}`;
+}
+
+/**
+ * « Numéro de série : 10044 » — TOUJOURS EN SECOND, jamais en remplacement du
+ * nom ci-dessus (9K03) : le numéro de série identifie l'exemplaire, pas
+ * l'équipement, et un client le lit en petit, à côté du nom.
+ */
+export function numeroDeSerieDeLaMachine(machine: MachineDuPortail): string {
+  return `${t("portail.machine.serie")} ${DEUX_POINTS} ${machine.numeroSerie}`;
 }
 
 /** « Emplacement : quai 3 ». Rendu vide quand la machine n'en porte pas. */

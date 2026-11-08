@@ -89,6 +89,9 @@ export type MachineDuPortail = {
   readonly statut: StatutMachine;
   readonly siteId: string;
   readonly dateMiseEnService: Date | null;
+  readonly familleLibelle: string;
+  readonly marque: string;
+  readonly modeleReference: string;
 };
 
 /** Ce que le portail affiche d'un client : ses sites, et son parc. */
@@ -113,6 +116,14 @@ export type FicheMachineDuPortail = {
  * `vgp_exception*`, `criticite`, `source_creation`, `machine_remplacee_id`),
  * et un `select` composé à la main pourrait un jour en recopier une.
  * `tests/unit/portail/machine-colonnes-fermees.test.ts` lit ces clés RÉELLES.
+ *
+ * `modele` est lu par JOINTURE (9K03) pour nommer la machine par son
+ * équipement — « Famille · Marque · Modèle » — plutôt que par son seul
+ * numéro de série. La policy d'ascendance de `modele_materiel` et
+ * `famille_materiel` (D93) ouvre déjà cette lecture au compte portail dès
+ * qu'il voit la machine : aucune politique neuve. Le sous-select ne nomme
+ * QUE `marque`, `reference` et `famille.libelle` — jamais `periodicite_*`,
+ * `vgp_*` ni `caracteristiques`, réservées au back-office.
  */
 export const SELECTION_FICHE_MACHINE_PORTAIL = {
   id: true,
@@ -122,6 +133,13 @@ export const SELECTION_FICHE_MACHINE_PORTAIL = {
   statut: true,
   site_id: true,
   date_mise_en_service: true,
+  modele: {
+    select: {
+      marque: true,
+      reference: true,
+      famille: { select: { libelle: true } },
+    },
+  },
 } as const;
 
 /**
@@ -175,6 +193,9 @@ export async function ficheMachineDuParc(
           statut: machine.statut,
           siteId: machine.site_id,
           dateMiseEnService: machine.date_mise_en_service,
+          familleLibelle: machine.modele.famille.libelle,
+          marque: machine.modele.marque,
+          modeleReference: machine.modele.reference,
         },
         site: {
           id: machine.site.id,
@@ -220,15 +241,7 @@ export async function parcDuClient(
           orderBy: { libelle: "asc" },
         }),
         tx.machine.findMany({
-          select: {
-            id: true,
-            numero_serie: true,
-            reference_interne: true,
-            localisation: true,
-            statut: true,
-            site_id: true,
-            date_mise_en_service: true,
-          },
+          select: SELECTION_FICHE_MACHINE_PORTAIL,
           orderBy: { numero_serie: "asc" },
         }),
       ]);
@@ -249,6 +262,9 @@ export async function parcDuClient(
           statut: machine.statut,
           siteId: machine.site_id,
           dateMiseEnService: machine.date_mise_en_service,
+          familleLibelle: machine.modele.famille.libelle,
+          marque: machine.modele.marque,
+          modeleReference: machine.modele.reference,
         })),
       };
     },
