@@ -114,3 +114,44 @@
   menu) est demandée, elle se reprend en rejouant
   `captures-9k02-portail-menu-accueil.spec.ts` seul — aucune fixture de parc
   n'est posée par ce fichier, le semis de démonstration suffit déjà.
+
+## Reprise « 9K02A » (passation ajoutée le 08/11/2026)
+
+**Mesure** : premier `pnpm verify` de ce lot (`9K02-PORTAIL-MENU-ACCUEIL-verify-1.txt`),
+1 seul échec — `tests/e2e/captures-9j20-portail-tarifs.spec.ts:161`,
+`getByText(fr["portail.tarifs"])` en mode strict. Avant 9K02, « Nos tarifs »
+n'apparaissait qu'une fois sur `/portail` (la carte). Depuis que le menu porte
+la même entrée (`nav.portail_tarifs`, même texte), la recherche par texte
+résout deux éléments.
+
+**Ce qui a été fait** : la recherche vise désormais la carte de l'accueil par
+structure, jamais par le texte seul — `carteTarifsDeLAccueil(page)`, un
+`getByRole("link")` filtré par son descendant `getByRole("heading", { level: 2,
+name: fr["portail.tarifs"] })`. Le lien de menu n'a pas de `<h2>` : aucune
+ambiguïté possible, et ce n'est pas « prendre le premier des deux » — c'est
+viser la carte par ce qui la distingue structurellement du menu. Les deux
+usages de la ligne 161 (AVANT, visibilité) et de la ligne 169 (APRÈS, clic)
+sont passés par ce même repère.
+
+**Recherche d'autres ambiguïtés** : les quatre autres libellés que le menu
+porte désormais (« Vos interventions », « Vos demandes », « Vos
+interlocuteurs », « Votre parc ») sont aussi les titres `<h1>` de leurs
+écrans respectifs (`portail.interventions.titre`, `portail.demandes.titre`,
+`portail.contacts.titre`, `portail.titre`). Recherche par `grep` sur
+`tests/e2e/**/*.spec.ts` : aucun autre fichier ne cherche ces clés par
+`getByText` — les deux occurrences de `9j08b-portail-temps-par-etat.spec.ts`
+portent sur des clés `*.temps_par_etat.titre` distinctes, non concernées. Le
+propre fichier de 9K02 (`9k02-portail-menu-accueil.spec.ts`) scope déjà ses
+clics de menu à `#colonne-navigation`, et ses clics de tuile par
+`portail.accueil.*` (textes propres à l'accueil, absents du menu) : aucune
+correction due là.
+
+**Mesuré** :
+- `tests/e2e/captures-9j20-portail-tarifs.spec.ts` seul : 4 passés.
+- Toutes les e2e dont le nom contient `portail` + `tous-les-ecrans-rendent.spec.ts`,
+  `--workers=1` : 118 passés, 3 ignorés (préexistants, étrangers à ce lot).
+- `CI=1 pnpm verify` : vert (format, typecheck, lint, test, test:isolation, build).
+
+**Ce que je n'ai PAS fait** : aucun code d'écran touché — le défaut était dans
+l'épreuve, pas dans le rendu. Aucune migration. `pnpm verify:full` reste à la
+file.
