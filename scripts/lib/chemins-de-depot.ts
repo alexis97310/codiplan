@@ -677,18 +677,7 @@ export const FONCTIONS_SANS_CHEMIN: readonly SansChemin[] = [
   // par `app/api/interventions/suites-a-donner/[id]/piece-recue/route.ts`.
   // `marquerDevisEnvoye`, NOUVELLE au même ticket, a un appelant dès sa
   // naissance (`.../[id]/devis-envoye/route.ts`) : elle n'a jamais figuré
-  // ici. `devisEnRetard` et `accordAttenduEnRetard` restent SANS appelant —
-  // les relances restent hors territoire de 9K05 (interdit explicite).
-  {
-    module: "lib/suite-a-donner/depot.ts",
-    fonction: "devisEnRetard",
-    motif:
-      "FLX-2 (9J19) : lecture calculée posant la notification « devis_en_retard » — aucun écran ne l'appelle encore à sa visite. Ouvert par l'écran futur des relances.",
-  },
-  {
-    module: "lib/suite-a-donner/depot.ts",
-    fonction: "accordAttenduEnRetard",
-    motif:
-      "FLX-3 (9J19) : même mécanique que `devisEnRetard`, même écran futur.",
-  },
+  // ici. `devisEnRetard` et `accordAttenduEnRetard` se sont retirées À LEUR
+  // TOUR au 9K07-SUITES-A-DONNER-RELANCES : les deux sont appelées à
+  // l'ouverture de `app/(back-office)/interventions/suites-a-donner/page.tsx`.
 ];

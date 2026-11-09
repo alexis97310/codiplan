@@ -15,6 +15,10 @@ import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { compterParVue } from "@/lib/interventions/depot";
 import { schemaRechercheInterventions } from "@/lib/interventions/saisie";
 import {
+  accordAttenduEnRetard,
+  devisEnRetard,
+} from "@/lib/suite-a-donner/depot";
+import {
   suitesADonnerDuRegistre,
   type InterventionAQualifier,
   type LigneSuiteADonner,
@@ -69,6 +73,12 @@ export default async function PageSuitesADonner({
 
   const params = await searchParams;
   const motif = params.motif;
+
+  // Les relances FLX-2/FLX-3 : des LECTURES calculées À LA VISITE de cet
+  // écran, jamais une tâche planifiée (docblock de `lib/suite-a-donner/depot.ts`).
+  // Idempotentes — ouvrir dix fois ce registre ne pose qu'une notification
+  // par dossier en retard.
+  await Promise.all([devisEnRetard(contexte), accordAttenduEnRetard(contexte)]);
 
   const [{ aQualifier, suites }, comptesVue] = await Promise.all([
     suitesADonnerDuRegistre(contexte),
