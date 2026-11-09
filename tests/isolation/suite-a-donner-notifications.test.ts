@@ -17,7 +17,9 @@ import { clientApp, clientOwner, fermerClients } from "./setup/db";
 import {
   INTERVENTION_A1,
   SOCIETE_A,
+  SOCIETE_B,
   UTILISATEUR_INTERNE_A,
+  UTILISATEUR_INTERNE_B,
   UTILISATEUR_PAR_ROLE,
 } from "./setup/fixtures";
 
@@ -31,6 +33,11 @@ import {
  * réglage n'est pas un réglage à zéro jour) ; qu'elles en posent UNE, et une
  * seule même rejouées, dès le délai dépassé ; et que `marquerPieceRecue` pose
  * la sienne dans la MÊME transaction que le passage à `a_replanifier`.
+ *
+ * **9K07-SUITES-A-DONNER-RELANCES ajoute** : qu'une société qui règle elle
+ * aussi un délai ne relance JAMAIS le dossier en retard d'une autre société
+ * (I1) — la forme « filiation » (D103) n'est éprouvée nulle part ailleurs
+ * pour ces deux fonctions.
  *
  * Et que le filtre de capacité (`consulter_parc_complet`) tient : un rôle qui
  * la détient la lit, un rôle qui n'en tient AUCUN niveau ne la lit pas.
@@ -80,9 +87,14 @@ async function reglerDelai(jours: number): Promise<void> {
   });
 }
 
-/** Une intervention jetable du client A1, même patron que `suite-a-donner.test.ts`. */
+/**
+ * Une intervention jetable, même patron que `suite-a-donner.test.ts` —
+ * du client A1 par défaut, ou d'une autre origine fournie (I1 : les tests
+ * d'isolation ont besoin d'une ligne de société B).
+ */
 async function surUneInterventionJetable(
   travail: (id: string) => Promise<void>,
+  origineId: string = INTERVENTION_A1,
 ): Promise<void> {
   const id = uuidv7();
   await clientOwner().$executeRawUnsafe(
@@ -90,7 +102,7 @@ async function surUneInterventionJetable(
        "agence_id", "type", "statut", "duree_estimee_min", "modifie_le")
      SELECT '${id}', "societe_id", "client_id", "site_id", "agence_id",
             "type", 'planifiee', 60, now()
-       FROM "intervention" WHERE "id" = '${INTERVENTION_A1}'`,
+       FROM "intervention" WHERE "id" = '${origineId}'`,
   );
   try {
     await travail(id);
@@ -254,6 +266,62 @@ describe("accordAttenduEnRetard — FLX-3", () => {
 
       const resultat = await accordAttenduEnRetard(INTERNE_ADV, clientApp());
       expect(resultat).not.toContain(id);
+
+      const notifs = await clientOwner().notification.findMany({
+        where: { suite_a_donner_id: id },
+      });
+      expect(notifs).toEqual([]);
+
+      await supprimerSuite(id);
+    });
+  });
+});
+
+describe("I1 — une société ne relance jamais les dossiers d'une autre (9K07)", () => {
+  const INTERNE_B = session(UTILISATEUR_INTERNE_B, SOCIETE_B, Role.adv);
+
+  afterEach(async () => {
+    await clientOwner().societe.update({
+      where: { id: SOCIETE_B },
+      data: { delai_relance_suite_jours: null },
+    });
+  });
+
+  it("devisEnRetard, appelée sous la société B, ignore le dossier en retard de la société A", async () => {
+    await surUneInterventionJetable(async (interventionId) => {
+      const id = await qualifierSuite(INTERNE_ADV, interventionId, clientApp());
+      await reculerQualifieeLe(id, 10);
+      await reglerDelai(5);
+      // La société B règle aussi un délai : si rien n'est détecté, c'est le
+      // cloisonnement qui l'explique, jamais un délai nul de son côté.
+      await clientOwner().societe.update({
+        where: { id: SOCIETE_B },
+        data: { delai_relance_suite_jours: 5 },
+      });
+
+      const resultatB = await devisEnRetard(INTERNE_B, clientApp());
+      expect(resultatB).not.toContain(id);
+
+      const notifs = await clientOwner().notification.findMany({
+        where: { suite_a_donner_id: id },
+      });
+      expect(notifs).toEqual([]);
+
+      await supprimerSuite(id);
+    });
+  });
+
+  it("accordAttenduEnRetard, appelée sous la société B, ignore le dossier en attente de la société A", async () => {
+    await surUneInterventionJetable(async (interventionId) => {
+      const id = await poserLigneAccordAttendu(interventionId, 10);
+      await reglerDelai(5);
+      await clientOwner().societe.update({
+        where: { id: SOCIETE_B },
+        data: { delai_relance_suite_jours: 5 },
+      });
+
+      const resultatB = await accordAttenduEnRetard(INTERNE_B, clientApp());
+      expect(resultatB).not.toContain(id);
 
       const notifs = await clientOwner().notification.findMany({
         where: { suite_a_donner_id: id },
