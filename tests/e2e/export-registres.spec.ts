@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { PrismaClient } from "@prisma/client";
 import { expect, test } from "@playwright/test";
 
+import { ouTiret } from "@/app/(back-office)/presentation";
 import { lireClasseur } from "@/lib/excel/classeur";
 import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
@@ -175,6 +176,17 @@ test("« Exporter » sur /interventions télécharge un .xlsx aux mêmes colonne
     fr["intervention.date"],
     fr["intervention.priorite"],
     fr["intervention.statut"],
+    // LES SIX COLONNES WINPRO (9K12-EXPORT-WINPRO) — sans aucun montant.
+    fr["intervention.type"],
+    // « Code Winpro » — le libellé CONFIGURÉ de CODIMA (agence DUCOS),
+    // `libelle_code_externe` de `prisma/seed-data.ts`, jamais la chaîne du
+    // dictionnaire (D29 : le mot d'une société est une donnée, pas une
+    // constante de compilation).
+    "Code Winpro",
+    fr["intervention.reference_client"],
+    fr["intervention.realisation.cloturee_le"],
+    fr["intervention.realisation.temps_valide"],
+    fr["intervention.export_colonne_temps_valide_minutes"],
   ]);
   const ligneEpreuve = lignes.find(
     (l) => l[1]?.texte === fr["export9ds.e2e.client"],
@@ -184,6 +196,15 @@ test("« Exporter » sur /interventions télécharge un .xlsx aux mêmes colonne
     "la ligne de l'épreuve n'est pas dans l'export",
   ).toBeDefined();
   expect(ligneEpreuve?.[3]?.texte).toBe(fr["export9ds.e2e.lieu"]);
+  // LA FICHE DE L'ÉPREUVE N'A NI RÉFÉRENCE CLIENT, NI CLÔTURE, NI TEMPS
+  // VALIDÉ : LES QUATRE CELLULES RESTENT DES SIGNES D'ABSENCE, JAMAIS UN
+  // ZÉRO NI UNE CASE VIDE.
+  expect(ligneEpreuve?.[8]?.texte).toBe(fr["type_intervention.recensement"]);
+  expect(ligneEpreuve?.[9]?.texte).toBe(ouTiret(null));
+  expect(ligneEpreuve?.[10]?.texte).toBe(ouTiret(null));
+  expect(ligneEpreuve?.[11]?.texte).toBe(ouTiret(null));
+  expect(ligneEpreuve?.[12]?.texte).toBe(ouTiret(null));
+  expect(ligneEpreuve?.[13]?.texte).toBe(ouTiret(null));
 });
 
 test("« Exporter » sur /parc télécharge un .xlsx aux mêmes colonnes que l'écran, sur le filtre courant (MO-9)", async ({
