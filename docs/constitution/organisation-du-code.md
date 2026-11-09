@@ -19,52 +19,53 @@ _Les numéros de ligne du sommaire sont RECALCULÉS, jamais saisis à la main : 
 
 ### Sommaire
 
-- `app/` — ligne 72
-- `lib/` — ligne 77
-- `lib/db/` — ligne 78
-- `lib/auth/` — ligne 124
-- `lib/absences/` — ligne 159
-- `lib/clients/` — ligne 215
-- `lib/habilitations/` — ligne 218
-- `lib/contacts/` — ligne 226
-- `lib/demandes/` — ligne 236
-- `lib/agences/` — ligne 270
-- `lib/sites/` — ligne 285
-- `lib/machines/` — ligne 315
-- `lib/interventions/` — ligne 366
-- `lib/materiel/` — ligne 540
-- `lib/tarification/` — ligne 573
-- `lib/navigation/` — ligne 669
-- `lib/money/` — ligne 705
-- `lib/courriel/` — ligne 707
-- `lib/avertissements/` — ligne 739
-- `lib/compteurs/` — ligne 752
-- `lib/calendar/` — ligne 771
-- `lib/sync/` — ligne 797
-- `lib/documents/` — ligne 798
-- `lib/excel/` — ligne 824
-- `lib/imports/` — ligne 882
-- `lib/notifications/` — ligne 1034
-- `lib/prestations/` — ligne 1049
-- `lib/portail/` — ligne 1068
-- `lib/pdf/` — ligne 1084
-- `lib/reporting/` — ligne 1085
-- `lib/vgp/` — ligne 1086
-- `lib/techniciens/` — ligne 1139
-- `lib/terrain/` — ligne 1144
-- `lib/theme/` — ligne 1153
-- `lib/i18n/` — ligne 1188
-- `lib/tri/` — ligne 1191
-- `lib/societes/` — ligne 1196
-- `lib/audit/` — ligne 1200
-- `lib/tableau-de-bord/` — ligne 1204
-- `lib/feuille-de-route/` — ligne 1208
-- `lib/pwa/` — ligne 1214
-- `lib/suite-a-donner/` — ligne 1218
-- `components/` — ligne 1247
-- `prisma/` — ligne 1248
-- `tests/` — ligne 1249
-- `docs/` — ligne 1268
+- `app/` — ligne 73
+- `lib/` — ligne 78
+- `lib/db/` — ligne 79
+- `lib/auth/` — ligne 125
+- `lib/absences/` — ligne 160
+- `lib/clients/` — ligne 216
+- `lib/habilitations/` — ligne 219
+- `lib/contacts/` — ligne 227
+- `lib/demandes/` — ligne 237
+- `lib/agences/` — ligne 271
+- `lib/sites/` — ligne 286
+- `lib/machines/` — ligne 316
+- `lib/interventions/` — ligne 367
+- `lib/materiel/` — ligne 541
+- `lib/tarification/` — ligne 574
+- `lib/navigation/` — ligne 670
+- `lib/money/` — ligne 706
+- `lib/courriel/` — ligne 708
+- `lib/avertissements/` — ligne 740
+- `lib/compteurs/` — ligne 753
+- `lib/calendar/` — ligne 772
+- `lib/sync/` — ligne 798
+- `lib/documents/` — ligne 799
+- `lib/excel/` — ligne 825
+- `lib/imports/` — ligne 883
+- `lib/notifications/` — ligne 1035
+- `lib/prestations/` — ligne 1050
+- `lib/portail/` — ligne 1069
+- `lib/pdf/` — ligne 1085
+- `lib/reporting/` — ligne 1086
+- `lib/vgp/` — ligne 1087
+- `lib/techniciens/` — ligne 1140
+- `lib/terrain/` — ligne 1145
+- `lib/theme/` — ligne 1154
+- `lib/i18n/` — ligne 1189
+- `lib/tri/` — ligne 1192
+- `lib/societes/` — ligne 1197
+- `lib/audit/` — ligne 1201
+- `lib/tableau-de-bord/` — ligne 1205
+- `lib/feuille-de-route/` — ligne 1209
+- `lib/pwa/` — ligne 1215
+- `lib/suite-a-donner/` — ligne 1219
+- `lib/checklists/` — ligne 1248
+- `components/` — ligne 1259
+- `prisma/` — ligne 1260
+- `tests/` — ligne 1261
+- `docs/` — ligne 1280
 
 ---
 
@@ -1244,6 +1245,17 @@ lib/
               `TypeIntervention.reprise` désigne déjà la reprise DE MATÉRIEL
               (chapitre 11.2), un sens différent ; décision d'Alexis attendue
               au ticket 9J12
+  checklists/ LE SOCLE DES CHECKLISTS (9K08-CHECKLIST-SCHEMA, D235) — écran
+              de paramétrage CK3, cascade de résolution CK2, les deux futurs
+              depot.ts : TROIS fonctions SANS ÉCRAN (creerModele,
+              publierVersion, dernierVersionPubliee), nommées avec leur motif
+              dans `FONCTIONS_SANS_CHEMIN`
+              forme « interne » (D94) sur checklist_modele ; forme
+              « filiation » (D103) CHAÎNÉE pour checklist_version et
+              checklist_point ; forme « filiation » sur `intervention` pour
+              checklist_reponse — la SEULE des quatre qu'un compte portail lit
+              AUCUN gabarit semé en production ni en démonstration par ce
+              ticket (CK4, après l'atelier, le fera)
 components/
 prisma/       schema.prisma, migrations/, seed.ts
 tests/

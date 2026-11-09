@@ -342,6 +342,11 @@ export const MODULES_SANS_CHEMIN: readonly {
     motif:
       "La consolidation est du lot 5, et elle n'a AUCUN appelant par décision : c'est la seule zone autorisée à convertir des devises (I2), et son rôle de base porte un secret distinct qui n'existe pas encore (D38).",
   },
+  {
+    module: "lib/checklists",
+    motif:
+      "9K08-CHECKLIST-SCHEMA borne le ticket au schéma, à la forme RLS et au dépôt minimal — l'écran de paramétrage est CK3, hors territoire ici. Se retire le jour où CK3 l'appelle.",
+  },
 ];
 
 /**
@@ -680,4 +685,28 @@ export const FONCTIONS_SANS_CHEMIN: readonly SansChemin[] = [
   // ici. `devisEnRetard` et `accordAttenduEnRetard` se sont retirées À LEUR
   // TOUR au 9K07-SUITES-A-DONNER-RELANCES : les deux sont appelées à
   // l'ouverture de `app/(back-office)/interventions/suites-a-donner/page.tsx`.
+  // ── 9K08-CHECKLIST-SCHEMA (09/11/2026, D235) — LE SOCLE SANS ÉCRAN ───────
+  //
+  // Les trois fonctions du dépôt minimal, sans aucun appelant : l'écran de
+  // paramétrage est CK3, hors territoire de ce ticket (schéma, forme RLS et
+  // dépôt seuls). Éprouvées par `tests/isolation/checklists.test.ts`, qui
+  // traverse le chemin de production réel. Se retirent le jour où CK3 les
+  // appelle.
+  {
+    module: "lib/checklists/depot.ts",
+    fonction: "creerModele",
+    motif:
+      "9K08-CHECKLIST-SCHEMA borne le ticket au schéma et au dépôt ; aucun écran de ce ticket n'existe. Ouvert par l'écran de paramétrage de CK3.",
+  },
+  {
+    module: "lib/checklists/depot.ts",
+    fonction: "publierVersion",
+    motif: "Même écran que `creerModele` (CK3).",
+  },
+  {
+    module: "lib/checklists/depot.ts",
+    fonction: "dernierVersionPubliee",
+    motif:
+      "Cible de CK3 (paramétrage) et CK2 (cascade de résolution, future) : aucun des deux n'existe encore.",
+  },
 ];
