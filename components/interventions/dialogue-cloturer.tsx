@@ -1,8 +1,9 @@
 "use client";
 
-import { useId } from "react";
+import { useId, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { CaseACocher } from "@/components/ui/case-a-cocher";
 import { Dialogue } from "@/components/ui/dialogue";
 import { t } from "@/lib/i18n/fr";
 import { explicationRegle } from "@/lib/interventions/presentation-partagee";
@@ -25,6 +26,16 @@ const CLASSES_CHAMP =
  * **Aucun second dialogue de confirmation** (contrairement à
  * `BoutonCloturer`, qui ouvrait sa propre fenêtre « Clôturer avec … validées
  * ? ») : ce dialogue EST la confirmation, et il n'y en a plus qu'une.
+ *
+ * **« Valider et clôturer » (9K09-FICHE-CLOTURE-SUITE-ORIGINE, I4)** —
+ * `offrirValiderEtCloturer` n'ajoute AUCUNE capacité : il n'offre la case que
+ * pour le rôle qui détient déjà les deux (`peutValiderCeRapport &&
+ * peutClore`, décidé par l'appelant, jamais ici). Cochée, elle est
+ * envoyée dans LE MÊME formulaire que la clôture — c'est la route qui
+ * enchaîne alors `validerRapport` puis `cloturerIntervention`, avec les
+ * mêmes refus qu'aujourd'hui. Sans elle, `verdict.refuse` continue de
+ * désactiver le bouton et d'afficher le motif, comme avant ce ticket — la
+ * case est l'unique changement de comportement.
  */
 export function DialogueCloturer({
   reference,
@@ -33,6 +44,7 @@ export function DialogueCloturer({
   verdict,
   unSegmentHorsReseau,
   regle,
+  offrirValiderEtCloturer = false,
 }: Readonly<{
   readonly reference: string;
   readonly action: string;
@@ -55,8 +67,12 @@ export function DialogueCloturer({
    * (`lib/societes/identite.ts`).
    */
   readonly regle: RegleArrondi;
+  readonly offrirValiderEtCloturer?: boolean;
 }>) {
   const idFormulaire = useId();
+  const [validerEtCloturer, setValiderEtCloturer] = useState(false);
+  const combinaisonActive = offrirValiderEtCloturer && validerEtCloturer;
+  const desactive = verdict.refuse && !combinaisonActive;
 
   return (
     <Dialogue
@@ -104,11 +120,21 @@ export function DialogueCloturer({
               {t("intervention.cloture.avertissement_hors_reseau")}
             </p>
           ) : null}
-          {verdict.refuse ? (
+          {!offrirValiderEtCloturer ? null : (
+            <CaseACocher
+              name="valider_puis_cloturer"
+              value="1"
+              checked={validerEtCloturer}
+              onChange={() => setValiderEtCloturer((valeur) => !valeur)}
+              libelle={t("intervention.cloture.valider_et_cloturer")}
+              className="flex items-center gap-2 text-12 font-bold"
+            />
+          )}
+          {!verdict.refuse || combinaisonActive ? null : (
             <p className="text-app-rouge-encre text-13 font-bold">
               {verdict.raison}
             </p>
-          ) : null}
+          )}
         </form>
       )}
       pied={(fermer) => (
@@ -120,7 +146,7 @@ export function DialogueCloturer({
             type="submit"
             form={idFormulaire}
             size="sm"
-            disabled={verdict.refuse}
+            disabled={desactive}
           >
             {t("intervention.action.cloturer")}
           </Button>

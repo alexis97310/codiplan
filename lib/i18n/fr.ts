@@ -2438,6 +2438,10 @@ export const fr = {
   // temps mesuré validé ci-dessus en dépend, l'ADV le sait avant de valider.
   "intervention.cloture.avertissement_hors_reseau":
     "Au moins un segment de temps a été saisi hors réseau, à l'heure du téléphone.",
+  // « VALIDER ET CLÔTURER » EN UN GESTE (9K09-FICHE-CLOTURE-SUITE-ORIGINE,
+  // I4) — offerte seulement au rôle qui détient déjà les deux capacités.
+  "intervention.cloture.valider_et_cloturer":
+    "Valider le rapport et clôturer en même temps",
 
   // ── LES CONDITIONS DE FACTURATION, SANS AUCUN MONTANT (9I8B-CONDITIONS-DE-
   // FACTURATION-SANS-MONTANT, décisions d'Alexis du 29/10/2026) — affichées au
@@ -2686,6 +2690,12 @@ export const fr = {
   "intervention.realisation.commentaire_technicien":
     "Commentaire du technicien",
   "intervention.realisation.suite_a_donner": "Suite à donner",
+  // LA TUILE « SUITE À DONNER » CONNAÎT SON DOSSIER ET SON ORIGINE
+  // (9K09-FICHE-CLOTURE-SUITE-ORIGINE, I5 de l'étude du 08/11/2026) —
+  // `suites_a_donner.statut.*` et `suites_a_donner.action.qualifier`
+  // existent déjà (9K05) et se relisent tels quels, jamais recopiés.
+  "intervention.suite_a_donner.lien_registre": "Voir dans le registre",
+  "intervention.suite_a_donner.reprise_prefixe": "Reprise de l'intervention",
   "intervention.realisation.signature": "Signature du client",
   "intervention.realisation.signee_le": "Signée le",
   "intervention.realisation.aucune_signature": "Aucune signature",

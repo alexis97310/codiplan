@@ -116,6 +116,7 @@ import {
 } from "@/lib/machines/presentation";
 import { formatMoney } from "@/lib/money";
 import { lireSite } from "@/lib/sites/depot";
+import { suiteADonnerPourIntervention } from "@/lib/suite-a-donner/lecture";
 import { observationLieeAIntervention } from "@/lib/vgp/observations";
 
 import { tonDePriorite } from "@/lib/theme/priorites";
@@ -316,10 +317,14 @@ export default async function PageIntervention({
   // le panneau « Actions » ne rend alors QUE ce qui reste possible (D131,
   // 29-DROITS-1), jamais un bloc dont le verdict refuse.
   const figee = estFige(statut);
-  // LAQUELLE FAIRE ENSUITE (93-FICHE-ACTIONS, constat 19) — la seule action
-  // que ce statut désigne comme suivante ; les autres se replient dans le
-  // panneau « Actions » ci-dessous.
-  const principale = actionPrincipale(statut);
+  // LAQUELLE FAIRE ENSUITE (93-FICHE-ACTIONS, constat 19 ; AMENDÉ PAR
+  // 9K09-FICHE-CLOTURE-SUITE-ORIGINE, I4) — la seule action que ce statut
+  // désigne comme suivante ; les autres se replient dans le panneau
+  // « Actions » ci-dessous. `rapportValide` se lit ICI, avant toute autre
+  // ligne qui en aurait besoin plus bas (`verdictCloturer`, etc.) : une
+  // seule lecture de `fiche.rapportValidePar`, jamais deux (§9, 01/09).
+  const rapportValide = fiche.rapportValidePar !== null;
+  const principale = actionPrincipale(statut, rapportValide);
   // LA DATE ET L'HEURE PLANIFIÉES, DANS L'EN-TÊTE (FICHE-INTERVENTION-1) —
   // *l'information n°1 d'un planificateur qui ouvre cette fiche*, mesurée
   // absente de l'identification le 23/09/2026. `date_planifiee` est un jour
@@ -419,8 +424,8 @@ export default async function PageIntervention({
   // LE VERDICT DE CLÔTURE, TRADUIT UNE SEULE FOIS (9ES-TP-UX4-3-FICHE-GESTES-1)
   // — `DialogueCloturer` affiche le motif à la place du champ si la base le
   // refuserait encore (aucun temps mesuré), le bouton d'action désactivé :
-  // on voit le champ ET pourquoi on ne peut pas encore valider.
-  const rapportValide = fiche.rapportValidePar !== null;
+  // on voit le champ ET pourquoi on ne peut pas encore valider. `rapportValide`
+  // est lu plus haut, avec `principale` — jamais une seconde lecture (§9, 01/09).
   const verdictCloturer = peutCloturer(
     statut,
     ligne.temps_mesure_min,
@@ -437,6 +442,15 @@ export default async function PageIntervention({
         ? t(verdictCloturer.cle)
         : "",
   };
+  // « VALIDER ET CLÔTURER » EN UN GESTE (9K09-FICHE-CLOTURE-SUITE-ORIGINE,
+  // I4) — offert au dialogue SEULEMENT pour qui détient les DEUX capacités ET
+  // tant que le rapport n'est pas déjà validé (sinon la case n'aurait aucun
+  // effet) : aucune capacité ne change de rôle, c'est la MÊME porte que les
+  // deux gestes séparés, simplement jouée dans la même opération serveur
+  // (`/api/interventions/[id]/cloturer`). La question « l'ADV peut-il valider ? »
+  // n'est pas tranchée par ce ticket : `peutValiderCeRapport` reste la même
+  // capacité qu'avant, l'ADV ne l'a jamais eue (habilitations.ts).
+  const offrirValiderEtCloturer = peutValiderCeRapport && !rapportValide;
   // LA LISTE NOMINATIVE N'EST DEMANDÉE À L'ANNUAIRE QUE SI UN FORMULAIRE EN A
   // L'USAGE — jamais par défaut : c'est la lecture, pas seulement le rendu,
   // qui fuyait (même raisonnement qu'à la création).
@@ -809,6 +823,7 @@ export default async function PageIntervention({
     photosFiche,
     origineDemande,
     observationOrigine,
+    suiteADonnerDeLaFiche,
   ] = await Promise.all([
     // « Habilitation <code> exigée sur le site » (Q8 du pilote, 08/10/2026,
     // amendé R6 de l'addendum recalage 2 du 08/10/2026,
@@ -848,6 +863,12 @@ export default async function PageIntervention({
     ongletResume && ligne.demande_id === null
       ? observationLieeAIntervention(session.contexte, ligne.id)
       : Promise.resolve(null),
+    // LA TUILE « SUITE À DONNER » CONNAÎT SON DOSSIER ET SON ORIGINE
+    // (9K09-FICHE-CLOTURE-SUITE-ORIGINE, I5) — onglet Résumé seulement, même
+    // garde que le reste de ce bloc.
+    ongletResume
+      ? suiteADonnerPourIntervention(session.contexte, ligne.id)
+      : Promise.resolve({ commeOrigine: null, commeReprise: null }),
   ]);
   const exigencesBloquantes = exigencesSite.filter(
     (exigence) => exigence.bloquant,
@@ -1097,25 +1118,16 @@ export default async function PageIntervention({
               </Button>
             </form>
           ) : null}
-          {statut === "terminee" && peutClore ? (
-            <DialogueCloturer
-              reference={referenceAffichee(ligne)}
-              action={`/api/interventions/${ligne.id}/cloturer`}
-              tempsMesureMin={ligne.temps_mesure_min}
-              verdict={verdictCloturerAffiche}
-              unSegmentHorsReseau={(segments ?? []).some(
-                (s) => s.saisiHorsReseau,
-              )}
-              regle={regleArrondi}
-            />
-          ) : null}
           {/*
-            « VALIDER LE RAPPORT » (RG-INT-03, D135, 9H1) — tant qu'il ne
-            l'est pas : une fois validé, le geste a disparu, comme
-            « Reprendre » disparaît une fois l'intervention reprise. Un
-            formulaire simple, sans dialogue : rien à saisir, le geste
-            CONFIRME, il ne configure rien (même régime que « Reprendre »
-            ci-dessus).
+            « VALIDER LE RAPPORT » AVANT « CLÔTURER »
+            (9K09-FICHE-CLOTURE-SUITE-ORIGINE, I4 de l'étude du 08/11/2026,
+            AMENDE 9H1) — l'étude mesurait « Clôturer » rendu EN PREMIER,
+            alors que la validation est obligatoire avant (RG-INT-03) :
+            l'écran ouvrait le dialogue de clôture pour n'y montrer qu'un
+            refus. Ce bloc se rend désormais avant celui de « Clôturer » ;
+            une fois validé, le geste a disparu, comme « Reprendre » disparaît
+            une fois l'intervention reprise. Un formulaire simple, sans
+            dialogue : rien à saisir, le geste CONFIRME, il ne configure rien.
           */}
           {statut === "terminee" && peutValiderCeRapport && !rapportValide ? (
             <form
@@ -1137,6 +1149,19 @@ export default async function PageIntervention({
                 {t("intervention.action.valider_rapport")}
               </Button>
             </form>
+          ) : null}
+          {statut === "terminee" && peutClore ? (
+            <DialogueCloturer
+              reference={referenceAffichee(ligne)}
+              action={`/api/interventions/${ligne.id}/cloturer`}
+              tempsMesureMin={ligne.temps_mesure_min}
+              verdict={verdictCloturerAffiche}
+              unSegmentHorsReseau={(segments ?? []).some(
+                (s) => s.saisiHorsReseau,
+              )}
+              regle={regleArrondi}
+              offrirValiderEtCloturer={offrirValiderEtCloturer}
+            />
           ) : null}
           {/*
             LE BON D'INTERVENTION DEVIENT L'ACTION PRINCIPALE D'UNE CLÔTURÉE
@@ -1696,9 +1721,19 @@ export default async function PageIntervention({
               SUITE À DONNER (9I6) — même donnée que l'onglet Rapport et le
               bon, sa propre tuile ici : `fiche.suiteADonner`, jamais
               recalculée.
+
+              AMENDÉ PAR 9K09-FICHE-CLOTURE-SUITE-ORIGINE (I5, étude du
+              08/11/2026) — le texte seul ne disait ni le statut du dossier
+              (s'il a été qualifié), ni d'où VENAIT cette intervention
+              lorsqu'elle est elle-même une reprise. `suiteADonnerDeLaFiche`
+              (`suiteADonnerPourIntervention`, `lib/suite-a-donner/
+              lecture.ts`) porte les deux lectures, jamais recalculées ici.
+              Les clés de statut (`suites_a_donner.statut.*`) et le libellé
+              du bouton (`suites_a_donner.action.qualifier`) sont CEUX de
+              9K05 — jamais une seconde écriture (§9, 01/09).
             */}
             <Carte titre={t("intervention.realisation.suite_a_donner")}>
-              <div className="px-4 py-3.5">
+              <div className="flex flex-col gap-2 px-4 py-3.5">
                 <p className="text-13 font-bold whitespace-pre-wrap">
                   {fiche.suiteADonner ?? (
                     <span className="text-app-encre-faible">
@@ -1706,6 +1741,48 @@ export default async function PageIntervention({
                     </span>
                   )}
                 </p>
+                {suiteADonnerDeLaFiche.commeOrigine !== null ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="border-app-bord text-app-encre-faible rounded-full border px-1.5 text-12 font-bold">
+                      {t(
+                        `suites_a_donner.statut.${suiteADonnerDeLaFiche.commeOrigine.statut}`,
+                      )}
+                    </span>
+                    <Link
+                      href="/interventions/suites-a-donner"
+                      className={CLASSES_LIEN}
+                    >
+                      {t("intervention.suite_a_donner.lien_registre")}
+                    </Link>
+                  </div>
+                ) : fiche.suiteADonner === null ||
+                  statut !== "cloturee" ||
+                  !peutModifierLePlanning ? null : (
+                  <form
+                    method="post"
+                    action="/api/interventions/suites-a-donner/qualifier"
+                  >
+                    <input
+                      type="hidden"
+                      name="intervention_id"
+                      value={ligne.id}
+                    />
+                    <Button type="submit" variant="outline" size="sm">
+                      {t("suites_a_donner.action.qualifier")}
+                    </Button>
+                  </form>
+                )}
+                {suiteADonnerDeLaFiche.commeReprise === null ? null : (
+                  <p className="text-13 font-bold">
+                    <Link
+                      href={`/interventions/${suiteADonnerDeLaFiche.commeReprise.id}`}
+                      className={CLASSES_LIEN}
+                    >
+                      {t("intervention.suite_a_donner.reprise_prefixe")}{" "}
+                      {referenceAffichee(suiteADonnerDeLaFiche.commeReprise)}
+                    </Link>
+                  </p>
+                )}
               </div>
             </Carte>
 

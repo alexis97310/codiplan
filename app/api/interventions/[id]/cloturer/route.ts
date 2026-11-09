@@ -1,6 +1,9 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
-import { cloturerIntervention } from "@/lib/interventions/depot";
+import {
+  cloturerIntervention,
+  validerRapport,
+} from "@/lib/interventions/depot";
 import { schemaCloture } from "@/lib/interventions/saisie";
 import { cloturerSuiteSiReprise } from "@/lib/suite-a-donner/reprise";
 
@@ -28,6 +31,16 @@ import { avecFilet, champ, versLaFiche } from "../../actions";
  * fonction, `cloturerIntervention`, l'écrit), donc le seul endroit où ce
  * déclencheur APPLICATIF (jamais PostgreSQL : c'est une règle métier) a
  * besoin de s'accrocher.
+ *
+ * **« VALIDER ET CLÔTURER » EN UN GESTE (9K09-FICHE-CLOTURE-SUITE-ORIGINE,
+ * I4).** Le champ `valider_puis_cloturer` n'ouvre AUCUNE porte nouvelle :
+ * `validerRapport` rejuge lui-même la capacité (`accesSurCetteIntervention`,
+ * `valider_rapport`) avec le MÊME contexte que celui que `cloturer_
+ * intervention` vient de faire passer — un rôle qui n'a pas la capacité de
+ * valider reçoit exactement le refus qu'il recevrait en appelant la route
+ * `valider-rapport` directement. Appelé AVANT `cloturerIntervention`, dans
+ * la même requête : si la validation refuse, la clôture n'est même pas
+ * tentée.
  */
 export async function POST(
   requete: Request,
@@ -47,6 +60,12 @@ async function traiter(
       return versLaFiche(id, await motifDuRefus());
     }
     const formulaire = await requete.formData();
+    if (champ(formulaire, "valider_puis_cloturer") === "1") {
+      const resultatValidation = await validerRapport(contexte, id);
+      if (!resultatValidation.accepte) {
+        return versLaFiche(id, resultatValidation.cle);
+      }
+    }
     const saisie = schemaCloture.safeParse({
       intervention_id: id,
       temps_valide_min: Number(

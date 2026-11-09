@@ -15,19 +15,26 @@ import { STATUTS_INTERVENTION } from "@/lib/interventions/saisie";
  */
 describe("actionPrincipale — un statut, une réponse", () => {
   it("à_planifier → planifier", () => {
-    expect(actionPrincipale("a_planifier")).toBe("planifier");
+    expect(actionPrincipale("a_planifier", false)).toBe("planifier");
   });
 
   it("planifiée → transmettre (D141, 9CO-PG-G14A-TRANSMETTRE)", () => {
-    expect(actionPrincipale("planifiee")).toBe("transmettre");
+    expect(actionPrincipale("planifiee", false)).toBe("transmettre");
   });
 
   it("suspendue → reprendre", () => {
-    expect(actionPrincipale("suspendue")).toBe("reprendre");
+    expect(actionPrincipale("suspendue", false)).toBe("reprendre");
   });
 
-  it("terminée → clôturer", () => {
-    expect(actionPrincipale("terminee")).toBe("cloturer");
+  it("terminée, rapport validé → clôturer", () => {
+    expect(actionPrincipale("terminee", true)).toBe("cloturer");
+  });
+
+  // 9K09-FICHE-CLOTURE-SUITE-ORIGINE (constat I4 de l'étude du 08/11/2026) —
+  // tant que le rapport n'est pas validé, « Clôturer » ouvrirait un dialogue
+  // qui n'affiche qu'un refus : ce n'est plus l'action qui compte.
+  it("terminée, rapport NON validé → valider_rapport", () => {
+    expect(actionPrincipale("terminee", false)).toBe("valider_rapport");
   });
 
   it("affectée, en cours, clôturée, annulée → aucune", () => {
@@ -37,7 +44,7 @@ describe("actionPrincipale — un statut, une réponse", () => {
       "cloturee",
       "annulee",
     ] as const) {
-      expect(actionPrincipale(statut)).toBeNull();
+      expect(actionPrincipale(statut, false)).toBeNull();
     }
   });
 
@@ -47,7 +54,7 @@ describe("actionPrincipale — un statut, une réponse", () => {
     // fige le nombre pour que l'ajout d'un neuvième statut se voie ici aussi.
     expect(STATUTS_INTERVENTION).toHaveLength(8);
     for (const statut of STATUTS_INTERVENTION) {
-      expect(() => actionPrincipale(statut)).not.toThrow();
+      expect(() => actionPrincipale(statut, false)).not.toThrow();
     }
   });
 });

@@ -1,4 +1,4 @@
-import { type StatutSuiteADonner } from "@prisma/client";
+import { type PrismaClient, type StatutSuiteADonner } from "@prisma/client";
 
 import { type ContexteSession } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
@@ -60,6 +60,66 @@ export type LigneSuiteADonner = {
     readonly statut: string;
   } | null;
 };
+
+/**
+ * CE QUE LA FICHE D'UNE INTERVENTION MONTRE DE SA SUITE À DONNER, DANS LES
+ * DEUX SENS (9K09-FICHE-CLOTURE-SUITE-ORIGINE, I5 de l'étude du 08/11/2026) —
+ * `commeOrigine` quand un dossier est né DE cette intervention,
+ * `commeReprise` quand CETTE intervention est la reprise d'un dossier né
+ * d'une autre. Les deux lectures sont indépendantes — une intervention peut
+ * en théorie porter les deux (elle a terminé un travail avec sa propre
+ * suite à donner, ET elle est elle-même née d'une suite à donner antérieure).
+ *
+ * `orderBy: { cree_le: "asc" }` sur `commeOrigine` : le double clic rapide
+ * nommé par `suitesADonnerDuRegistre` ci-dessus peut en théorie créer deux
+ * lignes pour la même intervention d'origine ; la première créée reste la
+ * ligne canonique que cette fiche montre.
+ */
+export type SuiteADonnerOrigine = {
+  readonly id: string;
+  readonly statut: StatutSuiteADonner;
+} | null;
+
+export type OrigineDeLaReprise = {
+  readonly id: string;
+  readonly annee: number | null;
+  readonly numero: number | null;
+} | null;
+
+export async function suiteADonnerPourIntervention(
+  contexte: ContexteSession,
+  interventionId: string,
+  client?: PrismaClient,
+): Promise<{
+  readonly commeOrigine: SuiteADonnerOrigine;
+  readonly commeReprise: OrigineDeLaReprise;
+}> {
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const [commeOrigine, suiteDeReprise] = await Promise.all([
+        tx.suiteADonner.findFirst({
+          where: { intervention_origine_id: interventionId },
+          select: { id: true, statut: true },
+          orderBy: { cree_le: "asc" },
+        }),
+        tx.suiteADonner.findFirst({
+          where: { intervention_reprise_id: interventionId },
+          select: {
+            intervention_origine: {
+              select: { id: true, annee: true, numero: true },
+            },
+          },
+        }),
+      ]);
+      return {
+        commeOrigine,
+        commeReprise: suiteDeReprise?.intervention_origine ?? null,
+      };
+    },
+    client,
+  );
+}
 
 /**
  * TOUT CE QUE L'ONGLET MONTRE — les deux formes, pas encore ORDONNÉES
