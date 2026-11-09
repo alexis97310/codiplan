@@ -159,5 +159,106 @@ deux nouveaux champs requis par `LignePlanning`.
    qui était voulu malgré le nom du ticket.
 2. Les cinq libellés sur six réutilisent des clés déjà existantes plutôt
    qu'un bloc `export_colonne_*` dédié (voir §2) — à confirmer.
-3. `transmission-groupee.test.ts` (3 tests) est rouge sur `main`
-   indépendamment de ce ticket — à ouvrir comme son propre défaut.
+3. `transmission-groupee.test.ts` (3 tests) était rouge sur `main`
+   indépendamment de ce ticket — **repris et corrigé ci-dessous (9K12A)**.
+
+## 5. Reprise 9K12A (10/11/2026) — la cause signalée au §3/§4, et au-delà
+
+### Ce qui était rouge, et pourquoi
+
+`tests/isolation/transmission-groupee.test.ts` fixait `JOUR_SQL = "2026-11-09"`
+et `AUTRE_JOUR_SQL = "2026-11-16"` en dur. Le 10/11/2026, le premier est devenu
+`date_passee` (D141, `verdictDatePassee`, `lib/interventions/pose.ts:193`) :
+`listerPlanifieesATransmettre`/`transmettreEnGroupe` refusaient alors les
+lignes que l'épreuve posait comme « prêtes », pour une raison totalement
+étrangère à ce que le fichier mesure (le tri prêt/laissée, le cloisonnement).
+
+### La correction — un oracle, jamais une seconde date en dur
+
+Remplacé par le calcul déjà en usage dans ce dépôt pour le même problème
+(`tests/e2e/pg-g14b-transmettre-groupe.spec.ts`, mémoire de session) :
+`chargerCalendrierAgence` (le calendrier RÉEL de l'agence A, fériés et ponts
+compris) puis `prochainJourOuvert`, à partir d'aujourd'hui. `JOUR` est le
+premier jour ouvré ≥ aujourd'hui ; `AUTRE_JOUR` le premier jour ouvré au moins
+sept jours après `JOUR`. Les deux restent des lundis (le calendrier fixture de
+l'agence A n'ouvre que ce jour-là), donc toujours distincts l'un de l'autre —
+ce que l'épreuve du filtre « jour » exige.
+
+### La bombe à retardement ne s'arrêtait pas à ce fichier
+
+Une recherche de toute autre date en dur comparée (directement, ou par le
+code appelé) à l'heure courante — `grep` sur les dates de 2026-11-11 à
+2026-12-31 dans `tests/isolation/**` et `tests/e2e/**`, puis lecture au cas
+par cas de chaque fonction appelée — a trouvé QUATRE autres épreuves qui
+posaient le même piège, toutes via la même porte D141/D123
+(`creerReprise`/`deplacerIntervention`, `confirmer_date_passee`) :
+
+- `tests/isolation/suite-a-donner-reprise.test.ts` — `LUNDI` fixé au
+  23/11/2026, avec `confirmer_date_passee: false` sur CHAQUE appel (le
+  fichier attend l'ACCEPTATION, jamais le refus) : aurait cassé dès le
+  24/11/2026. Son propre en-tête notait déjà que le `14/09/2026` de
+  `verdict-pose-lecture.test.ts` était « tombé dans le passé au fil des
+  exécutions de ce dépôt » — sans tirer la conséquence que sa propre date,
+  simplement plus lointaine, subirait le même sort.
+- `tests/e2e/fiche-suspendue-gestes.spec.ts` — le dialogue « Déplacer »
+  rempli avec `15/12/2026` : aurait cassé dès le 16/12/2026.
+- `tests/e2e/captures-9j18-suite-a-donner.spec.ts` et
+  `tests/e2e/9k10-reprise-complete.spec.ts` — l'écran de reprise rempli avec
+  `01/12/2026` (le premier avait un commentaire explicite expliquant avoir
+  VÉRIFIÉ À LA MAIN que ce jour était ouvert et sans férié — exactement le
+  geste que l'oracle rend inutile) : auraient cassé dès le 02/12/2026.
+
+Les quatre sont corrigés par le même oracle (`chargerCalendrierAgence` +
+`prochainJourOuvert`, sur l'agence A en isolation, sur DUCOS en e2e via
+`cleDeJour` de `tests/e2e/setup/scene.ts`), chacun calculant son propre jour
+dans son `beforeAll`.
+
+### Ce qui a été examiné et volontairement GARDÉ en dur
+
+Tout fichier portant une date de 2026-11-11 à 2026-12-31 a été lu, pas
+seulement grep'é :
+
+- `tests/isolation/verdict-pose-lecture.test.ts`,
+  `pose-habilitation.test.ts`, `absence.test.ts`, `absences-2.test.ts`,
+  `date-passee.test.ts` — utilisent délibérément une date PASSÉE avec
+  `confirmer_date_passee: true` : ils éprouvent justement le chemin
+  « date passée, forcée » (D141/D123). Une date qui reste dans le passé pour
+  toujours ne peut pas casser — c'est l'inverse du défaut ci-dessus.
+- `tests/isolation/avertissements-transmission-groupee.test.ts` — `JOUR` sert
+  uniquement de contenu du courriel récapitulatif
+  (`avertirApresTransmissionGroupee`, qui ne compare rien à l'horloge).
+- `tests/isolation/taux-initial.test.ts`,
+  `tests/isolation/succession-taux.test.ts` — `tauxEnVigueur` compare deux
+  dates EXPLICITES l'une à l'autre (date d'effet vs. date demandée), jamais
+  à l'heure réelle.
+- `tests/isolation/blocage-agenda-verrous.test.ts` — commentaire du fichier :
+  « aucun de ces scénarios ne lit l'horloge » (des bornes d'absence
+  comparées entre elles, jamais à aujourd'hui).
+- `dateDispoPrevue` (`suite-a-donner.test.ts`,
+  `suite-a-donner-notifications.test.ts`, `suite-a-donner-reprise.test.ts`,
+  `tests/e2e/captures-9k05-suites-a-donner-debloquees.spec.ts`,
+  `tests/e2e/captures-9k07-suites-a-donner-relances.spec.ts`) — stockée
+  telle quelle (`lib/suite-a-donner/depot.ts:206`), jamais validée contre
+  « maintenant ».
+- Plusieurs e2e (`9eq-fiche-intervention.spec.ts`, `9i8-*`,
+  `captures-9i8*`) posent une ligne déjà `en_cours`/`cloturee`/`planifiee`
+  par INSERT direct pour un test d'AFFICHAGE pur — aucune ne traverse
+  `jugerPose`/`verdictDatePassee`.
+
+### Épreuves rejouées
+
+`pnpm test:isolation` (231 fichiers, 1997 tests, verts, `transmission-groupee`
+et `suite-a-donner-reprise` compris) ; `CI=1 pnpm test:e2e --workers=1` sur
+`export-registres.spec.ts`, `fiche-suspendue-gestes.spec.ts`,
+`captures-9j18-suite-a-donner.spec.ts`, `9k10-reprise-complete.spec.ts` (10/10
+verts) et `tous-les-ecrans-rendent.spec.ts` (60 verts, 3 ignorés — déjà
+ignorés avant ce lot) ; `CI=1 pnpm verify` (format:check, typecheck, lint,
+test, test:isolation, build) vert de bout en bout.
+
+### État à la fin de cette reprise
+
+- Partie d'`origin/main` (confirmé identique à `HEAD` avant de commencer),
+  les quatre commits de la branche de garde `9K12-EXPORT-WINPRO-garde`
+  rapportés par `cherry-pick` sans modification, puis ce commit-ci.
+- `git status --porcelain` : vide après le dernier commit.
+- Non rejoué ici (laissé à la file, comme demandé) : `verify:full`.
