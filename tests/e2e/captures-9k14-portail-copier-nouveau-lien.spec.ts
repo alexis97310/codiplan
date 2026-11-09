@@ -36,7 +36,11 @@ function admin(): PrismaClient {
   });
 }
 
-async function capturer(page: Page, nom: string, largeur: number): Promise<void> {
+async function capturer(
+  page: Page,
+  nom: string,
+  largeur: number,
+): Promise<void> {
   if (DOSSIER === "") return;
   mkdirSync(DOSSIER, { recursive: true });
   await page.screenshot({
@@ -70,7 +74,11 @@ test.beforeAll(async () => {
 
     utilisateurId = uuidv7();
     await base.utilisateur.create({
-      data: { id: utilisateurId, nom: "Compte portail 9K14", email: EMAIL_COMPTE },
+      data: {
+        id: utilisateurId,
+        nom: "Compte portail 9K14",
+        email: EMAIL_COMPTE,
+      },
     });
     await base.compte.create({
       data: {
@@ -104,7 +112,9 @@ test.afterAll(async () => {
       `DELETE FROM "journal_acces" WHERE detail LIKE '%cible:' || $1`,
       utilisateurId,
     );
-    await base.utilisateurClient.deleteMany({ where: { utilisateur_id: utilisateurId } });
+    await base.utilisateurClient.deleteMany({
+      where: { utilisateur_id: utilisateurId },
+    });
     await base.compte.deleteMany({ where: { utilisateur_id: utilisateurId } });
     await base.utilisateur.deleteMany({ where: { id: utilisateurId } });
   } finally {
@@ -127,7 +137,9 @@ for (const largeur of [1280, 375] as const) {
       page,
     }) => {
       await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
-      await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+      await page
+        .context()
+        .grantPermissions(["clipboard-read", "clipboard-write"]);
 
       await page.goto(`/clients/${clientId}?onglet=identite`);
       const ligne = ligneDuCompte(page);
@@ -140,10 +152,14 @@ for (const largeur of [1280, 375] as const) {
       await capturer(page, "apres-bouton-copier-nouveau-lien", largeur);
 
       await bouton.click();
-      await expect(ligne.getByText(fr["equipe.acces.lien_copie"])).toBeVisible();
+      await expect(
+        ligne.getByText(fr["equipe.acces.lien_copie"]),
+      ).toBeVisible();
       await capturer(page, "apres-lien-copie", largeur);
 
-      const urlCopiee = await page.evaluate(() => navigator.clipboard.readText());
+      const urlCopiee = await page.evaluate(() =>
+        navigator.clipboard.readText(),
+      );
       expect(urlCopiee).toMatch(/^https?:\/\//);
 
       // AUCUNE PAGE NE MONTRE JAMAIS LE LIEN COPIÉ EN CLAIR (D50, même

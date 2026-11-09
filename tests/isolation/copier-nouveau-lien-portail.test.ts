@@ -85,7 +85,10 @@ async function inviterEtLire(clientId: string): Promise<string> {
   expect(resultat.accepte).toBe(true);
   const [ligne] = await clientOwner().$queryRawUnsafe<
     { utilisateur_id: string }[]
-  >(`SELECT id::text AS utilisateur_id FROM "utilisateur" WHERE email = $1`, email);
+  >(
+    `SELECT id::text AS utilisateur_id FROM "utilisateur" WHERE email = $1`,
+    email,
+  );
   if (ligne === undefined) throw new Error("fixture non créée");
   return ligne.utilisateur_id;
 }

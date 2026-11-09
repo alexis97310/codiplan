@@ -859,9 +859,7 @@ const LIBELLE_CHEMIN_NOUVEAU_LIEN_PORTAIL =
 
 /** Ce qu'un refus NOMMÉ dit — les motifs partagés plus ceux du portail (D50). */
 export type MotifRefusCopieNouveauLienPortail =
-  | MotifRefusAccesPartage
-  | "revoque"
-  | "autre_societe";
+  MotifRefusAccesPartage | "revoque" | "autre_societe";
 
 export type ResultatCopieNouveauLienPortail =
   | { readonly accepte: true; readonly url: string }
