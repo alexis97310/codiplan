@@ -16,7 +16,9 @@ import {
 
 import { clientApp, clientOwner, fermerClients } from "./setup/db";
 import {
+  CONTACT_A1_COMPTABLE,
   INTERVENTION_A1,
+  MACHINE_A1,
   SOCIETE_A,
   UTILISATEUR_INTERNE_A,
   UTILISATEUR_PAR_ROLE,
@@ -61,17 +63,28 @@ const DUREE_MIN = 60;
 
 /**
  * Une intervention jetable, clonée de `INTERVENTION_A1` — même agence/site/
- * type. `priorite` se pose DANS l'INSERT, jamais par une écriture
- * ultérieure : une ligne `cloturee` est TERMINALE (D160) et refuse toute
- * modification, y compris pour en changer la priorité.
+ * type. `priorite`, `contact_id` et `reference_client` se posent DANS
+ * l'INSERT, jamais par une écriture ultérieure : une ligne `cloturee` est
+ * TERMINALE (D160) et refuse toute modification, y compris pour en changer
+ * la priorité — ou, depuis I6, le contact ou la référence client.
  */
-async function interventionJetable(priorite = "p3"): Promise<string> {
+async function interventionJetable(options?: {
+  readonly priorite?: string;
+  readonly contactId?: string;
+  readonly referenceClient?: string;
+}): Promise<string> {
   const id = uuidv7();
+  const priorite = options?.priorite ?? "p3";
+  const contactId = options?.contactId ?? null;
+  const referenceClient = options?.referenceClient ?? null;
   await clientOwner().$executeRawUnsafe(
     `INSERT INTO "intervention" ("id", "societe_id", "client_id", "site_id",
-       "agence_id", "type", "statut", "priorite", "duree_estimee_min", "modifie_le")
+       "agence_id", "type", "statut", "priorite", "duree_estimee_min",
+       "contact_id", "reference_client", "modifie_le")
      SELECT '${id}', "societe_id", "client_id", "site_id", "agence_id",
-            "type", 'cloturee', '${priorite}'::"PrioriteIntervention", 60, now()
+            "type", 'cloturee', '${priorite}'::"PrioriteIntervention", 60,
+            ${contactId === null ? "NULL" : `'${contactId}'`},
+            ${referenceClient === null ? "NULL" : `'${referenceClient}'`}, now()
        FROM "intervention" WHERE "id" = '${INTERVENTION_A1}'`,
   );
   return id;
@@ -118,6 +131,41 @@ async function effacerSuite(id: string): Promise<void> {
   );
 }
 
+/** Rattache une machine à une intervention — même forme que les autres dépôts (hors `creerReprise`). */
+async function rattacherMachine(
+  interventionId: string,
+  machineId: string,
+): Promise<void> {
+  await clientOwner().$executeRawUnsafe(
+    `INSERT INTO "intervention_machine" ("id", "societe_id", "intervention_id", "machine_id", "modifie_le")
+     SELECT '${uuidv7()}', "societe_id", '${interventionId}', '${machineId}', now()
+       FROM "intervention" WHERE "id" = '${interventionId}'`,
+  );
+}
+
+/**
+ * Une machine JETABLE, clonée de `MACHINE_A1` — même modèle/client/site —
+ * mais avec le STATUT demandé, pour éprouver `STATUTS_HORS_PARC_ACTIF`
+ * (`lib/machines/depot.ts`) sans toucher aux machines partagées par d'autres
+ * fichiers d'isolation.
+ */
+async function machineJetable(statut: string): Promise<string> {
+  const id = uuidv7();
+  const jeton = uuidv7();
+  await clientOwner().$executeRawUnsafe(
+    `INSERT INTO "machine" ("id", "societe_id", "modele_id", "client_id", "site_id", "qr_token", "numero_serie", "statut", "modifie_le")
+     SELECT '${id}', "societe_id", "modele_id", "client_id", "site_id", '${jeton}', 'SN-JETABLE-9K10', '${statut}'::"StatutMachine", now()
+       FROM "machine" WHERE "id" = '${MACHINE_A1}'`,
+  );
+  return id;
+}
+
+async function effacerMachine(id: string): Promise<void> {
+  await clientOwner().$executeRawUnsafe(
+    `DELETE FROM "machine" WHERE "id" = '${id}'`,
+  );
+}
+
 /** Qualifie, accorde et marque la pièce reçue — une suite au statut `a_replanifier`. */
 async function suiteAReplanifier(
   interventionOrigineId: string,
@@ -144,7 +192,7 @@ async function suiteAReplanifier(
 
 describe("creerReprise — les mêmes refus qu'une pose ordinaire", () => {
   it("crée l'intervention, hérite la priorité, et lie la suite dans la MÊME transaction", async () => {
-    const origineId = await interventionJetable("p1");
+    const origineId = await interventionJetable({ priorite: "p1" });
     let repriseId: string | null = null;
     try {
       const suiteId = await suiteAReplanifier(origineId);
@@ -269,6 +317,127 @@ describe("creerReprise — les mêmes refus qu'une pose ordinaire", () => {
     } finally {
       await effacerIntervention(origineId);
       await effacerIntervention(occupanteId);
+    }
+  });
+});
+
+describe("creerReprise — I6 : reprise complète (machine, contact, référence client)", () => {
+  it("recopie la machine ACTIVE, le contact et la référence client de l'origine", async () => {
+    const origineId = await interventionJetable({
+      contactId: CONTACT_A1_COMPTABLE,
+      referenceClient: "BON-9K10-A",
+    });
+    let repriseId: string | null = null;
+    try {
+      await rattacherMachine(origineId, MACHINE_A1);
+      const suiteId = await suiteAReplanifier(origineId);
+      try {
+        const resultat = await creerReprise(
+          INTERNE_ADV,
+          suiteId,
+          {
+            technicien_id: TECHNICIEN,
+            date_planifiee: LUNDI,
+            debut_minutes: DEBUT_MINUTES,
+            duree_min: DUREE_MIN,
+            confirmer_hors_ouverture: false,
+            confirmer_date_passee: false,
+          },
+          clientApp(),
+        );
+        expect(resultat.accepte).toBe(true);
+        if (!resultat.accepte) return;
+        repriseId = resultat.fiche.id;
+        expect(resultat.fiche.machines).toEqual([{ machine_id: MACHINE_A1 }]);
+
+        const reprise = await clientOwner().intervention.findUnique({
+          where: { id: repriseId },
+          select: { contact_id: true, reference_client: true },
+        });
+        expect(reprise?.contact_id).toBe(CONTACT_A1_COMPTABLE);
+        expect(reprise?.reference_client).toBe("BON-9K10-A");
+      } finally {
+        await effacerSuite(suiteId);
+      }
+    } finally {
+      if (repriseId !== null) {
+        await effacerIntervention(repriseId);
+      }
+      await effacerIntervention(origineId);
+    }
+  });
+
+  it("crée la reprise SANS machine, sans refus, quand celle de l'origine est hors parc actif", async () => {
+    const machineFerraillee = await machineJetable("ferraillee");
+    try {
+      const origineId = await interventionJetable();
+      let repriseId: string | null = null;
+      try {
+        await rattacherMachine(origineId, machineFerraillee);
+        const suiteId = await suiteAReplanifier(origineId);
+        try {
+          const resultat = await creerReprise(
+            INTERNE_ADV,
+            suiteId,
+            {
+              technicien_id: TECHNICIEN,
+              date_planifiee: LUNDI,
+              debut_minutes: DEBUT_MINUTES,
+              duree_min: DUREE_MIN,
+              confirmer_hors_ouverture: false,
+              confirmer_date_passee: false,
+            },
+            clientApp(),
+          );
+          expect(resultat.accepte).toBe(true);
+          if (!resultat.accepte) return;
+          repriseId = resultat.fiche.id;
+          expect(resultat.fiche.machines).toEqual([]);
+        } finally {
+          await effacerSuite(suiteId);
+        }
+      } finally {
+        if (repriseId !== null) {
+          await effacerIntervention(repriseId);
+        }
+        await effacerIntervention(origineId);
+      }
+    } finally {
+      await effacerMachine(machineFerraillee);
+    }
+  });
+
+  it("crée la reprise SANS machine quand l'origine n'en porte aucune", async () => {
+    const origineId = await interventionJetable();
+    let repriseId: string | null = null;
+    try {
+      const suiteId = await suiteAReplanifier(origineId);
+      try {
+        const resultat = await creerReprise(
+          INTERNE_ADV,
+          suiteId,
+          {
+            technicien_id: TECHNICIEN,
+            date_planifiee: LUNDI,
+            debut_minutes: DEBUT_MINUTES,
+            duree_min: DUREE_MIN,
+            confirmer_hors_ouverture: false,
+            confirmer_date_passee: false,
+          },
+          clientApp(),
+        );
+        expect(resultat.accepte).toBe(true);
+        if (!resultat.accepte) return;
+        repriseId = resultat.fiche.id;
+        expect(resultat.fiche.machines).toEqual([]);
+      } finally {
+        await effacerSuite(suiteId);
+      }
+    } finally {
+      if (repriseId !== null) {
+        await effacerIntervention(repriseId);
+      }
+      await effacerIntervention(origineId);
     }
   });
 });
