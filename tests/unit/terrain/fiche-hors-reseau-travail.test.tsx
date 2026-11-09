@@ -83,6 +83,9 @@ const INSTANTANE: InstantaneJSON = {
         cle: "intervention.refus.pas_en_cours",
       },
       verdictDemarrer: { refuse: false },
+      motifSuspension: null,
+      pieceAttendueRef: null,
+      dateDispoPrevue: null,
     },
   },
   catalogue: [

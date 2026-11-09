@@ -33,13 +33,17 @@ import {
 
 type Identite = { readonly utilisateurId: string; readonly societeId: string };
 
+// « suspendre » (9K13-TERRAIN-ATTENTE-PIECE) vient APRÈS le rapport et les
+// prestations, AVANT « terminer » qu'il rend impossible — une intervention
+// SUSPENDUE n'est plus EN_COURS, condition que `peutTerminer` exige.
 const ORDRE_PIPELINE: Readonly<Record<Geste["type"], number>> = {
   compteur: 0,
   rapport: 1,
   prestations: 2,
-  photo: 3,
-  signature: 4,
-  terminer: 5,
+  suspendre: 3,
+  photo: 4,
+  signature: 5,
+  terminer: 6,
 };
 
 function routeDe(type: Geste["type"]): string {
@@ -111,6 +115,12 @@ function corpsDe(entree: EntreeFile): FormData {
       corps.set("operation_id", entree.id);
       // ADDENDUM n°1 (9F4H4B) — voir le même commentaire sur `compteur`.
       corps.set("depuis_file", "1");
+      return corps;
+    case "suspendre":
+      corps.set("motif", geste.motif);
+      corps.set("piece_attendue_ref", geste.pieceAttendueRef);
+      corps.set("date_dispo_prevue", geste.dateDispoPrevue);
+      corps.set("operation_id", entree.id);
       return corps;
   }
 }

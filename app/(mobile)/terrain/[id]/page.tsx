@@ -24,6 +24,7 @@ import {
 } from "@/lib/calendar/fuseau";
 import { PhotosTerrain } from "@/components/interventions/photos-terrain";
 import { RapportTerrainAutomatique } from "@/components/terrain/rapport-automatique";
+import { BoutonSuspendreTerrain } from "@/components/terrain/suspendre-terrain";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
 import { Button } from "@/components/ui/button";
 import { Priorite } from "@/components/ui/priorite";
@@ -498,6 +499,19 @@ export default async function PageInterventionTerrain({
           />
         )}
       </section>
+
+      {/* « J'ATTENDS UNE PIÈCE » (9K13-TERRAIN-ATTENTE-PIECE) — juste après
+          le compteur, même emplacement que le geste principal : se vide
+          elle-même (`null`) hors `en_cours`/`suspendue`. */}
+      <BoutonSuspendreTerrain
+        interventionId={id}
+        utilisateurId={contexte.utilisateurId}
+        societeId={contexte.societeId}
+        statut={statut}
+        motifSuspension={ligne.motif_suspension}
+        pieceAttendueRef={ligne.piece_attendue_ref}
+        dateDispoPrevue={ligne.date_dispo_prevue?.toISOString() ?? null}
+      />
 
       <section className="bg-app-surface border-app-bord rounded-lg border px-4 py-3.5">
         <dl className="grid grid-cols-[104px_1fr] gap-x-3 gap-y-2.5 text-16 font-bold">

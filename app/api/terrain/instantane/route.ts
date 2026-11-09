@@ -121,6 +121,12 @@ export type FicheJSON = {
   readonly signatureIssue: string | null;
   readonly verdictTerminer: Verdict;
   readonly verdictDemarrer: Verdict;
+  /** LA PIÈCE ATTENDUE (9K13-TERRAIN-ATTENTE-PIECE) — `null` tant qu'aucune
+   * suspension n'a été déclarée, affichée en lecture par
+   * `BoutonSuspendreTerrain` dans la coquille sans réseau. */
+  readonly motifSuspension: string | null;
+  readonly pieceAttendueRef: string | null;
+  readonly dateDispoPrevue: string | null;
 };
 
 /**
@@ -276,6 +282,9 @@ async function ficheEnJSON(
       signature?.issue ?? null,
     ),
     verdictDemarrer: peutDemarrerLeCompteur(statut),
+    motifSuspension: ligne.motif_suspension,
+    pieceAttendueRef: ligne.piece_attendue_ref,
+    dateDispoPrevue: ligne.date_dispo_prevue?.toISOString() ?? null,
   };
 }
 

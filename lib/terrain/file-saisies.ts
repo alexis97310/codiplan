@@ -215,6 +215,19 @@ export type GestePhoto = {
   readonly libelle: string;
 };
 export type GesteTerminer = { readonly type: "terminer" };
+/**
+ * « J'ATTENDS UNE PIÈCE » (9K13-TERRAIN-ATTENTE-PIECE, décision d'Alexis du
+ * 09/11/2026) — `pieceAttendueRef` et `dateDispoPrevue` voyagent TOUJOURS
+ * ENSEMBLE (RG-INT-06) : ce geste ne porte qu'un seul sens, jamais une
+ * suspension générale sans pièce. `motif` est un texte FIXE posé par l'écran
+ * terrain (jamais saisi) — voir `BoutonSuspendreTerrain`.
+ */
+export type GesteSuspendre = {
+  readonly type: "suspendre";
+  readonly motif: string;
+  readonly pieceAttendueRef: string;
+  readonly dateDispoPrevue: string;
+};
 
 export type Geste =
   | GesteCompteur
@@ -222,7 +235,8 @@ export type Geste =
   | GestePrestations
   | GesteSignature
   | GestePhoto
-  | GesteTerminer;
+  | GesteTerminer
+  | GesteSuspendre;
 
 export type EntreeFile = {
   readonly id: string;
@@ -238,12 +252,13 @@ export type EntreeFile = {
 
 type Identite = { readonly utilisateurId: string; readonly societeId: string };
 
-/** Les quatre gestes qui REMPLACENT, jamais ne s'empilent (voir l'en-tête). */
+/** Les cinq gestes qui REMPLACENT, jamais ne s'empilent (voir l'en-tête). */
 const TYPES_COALESCABLES: ReadonlySet<Geste["type"]> = new Set([
   "rapport",
   "prestations",
   "signature",
   "terminer",
+  "suspendre",
 ]);
 
 async function magasin(mode: IDBTransactionMode): Promise<{
@@ -387,6 +402,17 @@ function gesteReconnu(brut: unknown): Geste | null {
         : null;
     case "terminer":
       return { type: "terminer" };
+    case "suspendre":
+      return typeof g.motif === "string" &&
+        typeof g.pieceAttendueRef === "string" &&
+        typeof g.dateDispoPrevue === "string"
+        ? {
+            type: "suspendre",
+            motif: g.motif,
+            pieceAttendueRef: g.pieceAttendueRef,
+            dateDispoPrevue: g.dateDispoPrevue,
+          }
+        : null;
     default:
       return null;
   }

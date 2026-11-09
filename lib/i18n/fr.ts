@@ -3304,6 +3304,15 @@ export const fr = {
     "Les prestations ne sont pas encore enregistrées : ",
   "terrain.terminer.signature_non_enregistree":
     "La signature n'est pas encore enregistrée : ",
+  // ── « J'ATTENDS UNE PIÈCE » (9K13-TERRAIN-ATTENTE-PIECE, décision
+  // d'Alexis du 09/11/2026) — référence et date TOUJOURS ensemble
+  // (RG-INT-06) ; le motif n'est jamais saisi ici, voir `motif_auto`.
+  "terrain.suspendre.bouton": "J'attends une pièce",
+  "terrain.suspendre.aide":
+    "La référence et la date de disponibilité vont ensemble : l'intervention passe en attente, le bureau la voit et replanifie.",
+  "terrain.suspendre.enregistrer": "Enregistrer",
+  "terrain.suspendre.motif_auto":
+    "Attente de pièce signalée depuis le terrain.",
   // ── CONSULTATION SANS RÉSEAU (9F4H1-HORS-RESEAU-CONSULTATION) ────────────
   "terrain.hors_reseau.titre": "Journée hors connexion",
   "terrain.hors_reseau.aucune_copie":

@@ -29,6 +29,7 @@ import {
 import { BandeauReseau } from "./bandeau-reseau";
 import { BoutonCompteurTerrain } from "./compteur-terrain";
 import { RapportTerrainAutomatique } from "./rapport-automatique";
+import { BoutonSuspendreTerrain } from "./suspendre-terrain";
 import {
   heureLocale,
   libelleDatesSuite,
@@ -407,6 +408,19 @@ function Fiche({
           />
         )}
       </section>
+
+      {/* « J'ATTENDS UNE PIÈCE » (9K13-TERRAIN-ATTENTE-PIECE) — même
+          emplacement que `/terrain/[id]`, juste après le compteur. */}
+      <BoutonSuspendreTerrain
+        interventionId={fiche.id}
+        utilisateurId={utilisateurId}
+        societeId={societeId}
+        statut={fiche.statut as StatutIntervention}
+        motifSuspension={fiche.motifSuspension}
+        pieceAttendueRef={fiche.pieceAttendueRef}
+        dateDispoPrevue={fiche.dateDispoPrevue}
+        sansSession
+      />
 
       <section className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5">
         <p className="text-16 font-bold">
