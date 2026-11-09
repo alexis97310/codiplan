@@ -169,3 +169,35 @@ rejoué ici). Sept commits au total sur la branche, tous verts
 individuellement sur `pnpm format`/`typecheck`/`lint`/`test` ; le dernier
 ajoute le correctif L0-11 (une référence de pièce codée en dur dans une
 requête d'écran e2e, corrigée par deux clés `terrain.e2e.piece_ref_*`).
+
+## 8. Reprise 9K13A (10/11/2026)
+
+9K12A avait entre-temps corrigé la seule cause des deux échecs de
+vérification ci-dessus : les dates en dur de
+`tests/isolation/transmission-groupee.test.ts`, écrites le 09/11 et
+devenues passées (refus `date_passee`, D141) le 10/11. Cette reprise ne
+touche pas ce fichier — c'est le territoire de 9K12A, déjà livré sur
+`origin/main` (`9K12A-REPRISE-9K12 — point 2`, `a445a8cd5`).
+
+Sept commits de la branche `9K13-TERRAIN-ATTENTE-PIECE-garde` (tout ce qui
+dépasse le point commun `9K11-LIBELLES-SUITES-ITINERAIRE`) reportés par
+cherry-pick, sans modification, sur une branche neuve
+`9K13A-REPRISE-9K13` partant d'`origin/main` à jour. Aucun conflit — seule
+collision de ligne dans `lib/i18n/fr.ts`, résolue automatiquement par
+`git cherry-pick` (deux ajouts de clés à des endroits distincts du
+dictionnaire).
+
+Rejoué au premier plan, tous verts :
+
+- `pnpm test:isolation` en entier — 231 fichiers, 1997 tests,
+  `transmission-groupee.test.ts` compris.
+- Les deux épreuves unitaires de 9K13
+  (`terrain-route-suspendre.test.ts`, `suspendre-terrain.test.tsx`).
+- `tests/e2e/9k13-terrain-attente-piece.spec.ts` (2 tests).
+- `tests/e2e/tous-les-ecrans-rendent.spec.ts` (60 passés, 3 ignorés —
+  comme avant).
+- `CI=1 pnpm verify`, deux fois, code de sortie 0 les deux fois.
+
+Aucune épreuve de 9K13 n'a échoué après le report : aucun correctif n'a
+été nécessaire dans le périmètre du contrat. `verify:full` laissé à la
+file, non joué ici.
