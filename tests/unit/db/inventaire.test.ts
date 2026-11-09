@@ -85,6 +85,10 @@ function ligne(surcharge: Partial<LigneInventaire> = {}): LigneInventaire {
       notification: 0,
       notification_lecture: 0,
       suite_a_donner: 0,
+      checklist_modele: 0,
+      checklist_version: 0,
+      checklist_point: 0,
+      checklist_reponse: 0,
     },
     ...surcharge,
   };
@@ -142,6 +146,10 @@ function inventaire(surcharge: Partial<Inventaire> = {}): Inventaire {
         notification: 0,
         notification_lecture: 0,
         suite_a_donner: 0,
+        checklist_modele: 0,
+        checklist_version: 0,
+        checklist_point: 0,
+        checklist_reponse: 0,
       },
     }),
   ];
@@ -227,6 +235,12 @@ describe("inventaire à plat", () => {
       // 9J17-SUITE-A-DONNER-SCHEMA — même chemin : la suite à donner est
       // entrée le jour où la table est née.
       suite_a_donner: 0,
+      // 9K08-CHECKLIST-SCHEMA — même chemin : les quatre tables du socle des
+      // checklists sont entrées le jour où elles sont nées.
+      checklist_modele: 0,
+      checklist_version: 0,
+      checklist_point: 0,
+      checklist_reponse: 0,
     });
   });
 

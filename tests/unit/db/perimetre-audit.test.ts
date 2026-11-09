@@ -230,7 +230,7 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
     );
   });
 
-  it("les quarante-trois tables auditées aujourd'hui sont exactement celles attendues", () => {
+  it("les quarante-sept tables auditées aujourd'hui sont exactement celles attendues", () => {
     // Le décompte, écrit en toutes lettres, pour qu'un déclencheur posé
     // ailleurs — ou disparu — se voie. C'est la constitution confrontée aux
     // migrations, pas les migrations confrontées à elles-mêmes.
@@ -290,6 +290,17 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
       "calendrier",
       "calendrier_ferie",
       "calendrier_plage",
+      // Les quatre tables du socle des checklists s'y ajoutent au ticket
+      // 9K08-CHECKLIST-SCHEMA, et par le même chemin : première catégorie de
+      // I1, donc auditées à leur naissance. « Qui a publié cette version, qui
+      // a répondu à ce point, et quand » est exactement la question qu'un
+      // litige sur une checklist pose — y compris pour `checklist_modele` et
+      // `checklist_version`, de forme « interne », qu'aucun compte portail ne
+      // lit mais qui restent des tables métier cloisonnées au sens de I1.
+      "checklist_modele",
+      "checklist_point",
+      "checklist_reponse",
+      "checklist_version",
       "client",
       // `compteur_numerotation` s'y ajoute au ticket 9H2-NUMEROTATION-
       // INTERVENTIONS, et par le même chemin : première catégorie de I1,

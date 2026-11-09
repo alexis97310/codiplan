@@ -1071,6 +1071,16 @@ dans la table `parite` ci-dessous.*
 
 **suite_a_donner** — `societe_id`, intervention d'origine (obligatoire), intervention de reprise (nullable), statut (sept états fermés : `a_qualifier`, `qualifiee`, `accord_attendu`, `accord_recu`, `sans_suite`, `a_replanifier`, `cloturee`), motif de clôture sans suite (texte libre), référence de pièce attendue et date de disponibilité (nullables, ensemble), qui a qualifié et quand *(9J17-SUITE-A-DONNER-SCHEMA, D231)*. Le suivi, côté back-office, de ce qu'un technicien a signalé en texte libre dans `intervention.suite_a_donner` — qui RESTE inchangé, trace terrain brute. FLX-1 proposait huit états ; D231 en retient sept, juste ce dont FLX-2/FLX-3/FLX-8 ont besoin — l'attente de pièce n'en est pas un huitième, elle est portée par les deux colonnes nullables, même patron que `intervention.piece_attendue_ref`/`date_dispo_prevue` (RG-INT-06). Forme « filiation » (D103) : visible si l'intervention D'ORIGINE l'est, jamais l'intervention de reprise, qui ne fait que la nommer.
 
+**checklist_modele** — `societe_id`, code, libellé, rattachement à UN SEUL type d'intervention (nullable, jamais un tableau), à une famille de matériel et/ou un modèle de matériel (nullables), `exige_machine`, actif *(9K08-CHECKLIST-SCHEMA, D235)*. L'en-tête du gabarit de checklist. Forme « interne » (D94, D235) : aucun compte portail ne le lit, quel que soit son client — c'est la façon de travailler de la société. Jamais supprimé, seulement désactivé.
+
+**checklist_version** — `societe_id`, modèle, numéro (unique par modèle), date de publication *(9K08-CHECKLIST-SCHEMA, D235)*. Naît déjà publiée et n'est JAMAIS modifiée ensuite — « modifier » publie la version N+1 ; `UPDATE` et `DELETE` sont retirés au rôle applicatif (I8). Forme « filiation » (D103), chaînée sur `checklist_modele`.
+
+**checklist_point** — `societe_id`, version, section (texte libre, aucune table séparée), ordre, libellé, consigne (nullable), obligatoire, type de réponse (trois valeurs fermées : `conforme_non_conforme_sans_objet`, `valeur_mesuree`, `case_faite`), unité et tolérances min/max — réservées au type `valeur_mesuree`, facultatives et vides par défaut *(9K08-CHECKLIST-SCHEMA, D235)*. Un point de la version, immuable comme elle (`UPDATE`/`DELETE` retirés). Forme « filiation » (D103), chaînée sur `checklist_version`.
+
+**checklist_reponse** — `societe_id`, intervention, point, libellé/section/unité/obligatoire RECOPIÉS du point au moment de la réponse (patron `segment_travail.nom_technicien_affiche`, 9J22A), valeur (exactement une des trois selon le type, `num_nonnulls`), auteur, date de réponse *(9K08-CHECKLIST-SCHEMA, D235)*. La réponse FIGÉE par intervention — la SEULE des quatre tables de ce socle qu'un compte portail peut lire (décision verbatim d'Alexis du 09/11/2026 ~07h45) : le client voit tous les points de sa checklist remplie via cette table, jamais via `checklist_modele`/`checklist_version`/`checklist_point`. Forme « filiation » (D103) sur `intervention`. `DELETE` retiré (I6) : une correction passe par `UPDATE`.
+
+**`Intervention.checklist_version_id`** (nullable) — le gabarit PINNÉ, posé une seule fois à la première réponse (lot CK2, ultérieur) et jamais réévalué *(9K08-CHECKLIST-SCHEMA, D235)*.
+
 ### 11.3 Volumétrie estimée à 3 ans
 
 Révisée à la baisse compte tenu de l'effectif réel.

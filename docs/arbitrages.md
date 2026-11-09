@@ -8105,3 +8105,42 @@ Portée : `lib/suite-a-donner/depot.ts` (`marquerDevisEnvoye`,
 `tests/isolation/suite-a-donner-reprise.test.ts`,
 `tests/isolation/suite-a-donner-notifications.test.ts`,
 `tests/e2e/captures-9k05-suites-a-donner-debloquees.spec.ts`.
+
+## D235 — LES MODÈLES DE CHECKLIST SONT LUS PAR LE BUREAU SEUL ; LE CLIENT VOIT SA CHECKLIST RÉPONDUE PAR LES RÉPONSES, JAMAIS PAR LES MODÈLES (décision verbatim d'Alexis, 09/11/2026 ~07:45 ; 9K08-CHECKLIST-SCHEMA)
+
+*Lève, pour le seul MOTEUR, le gel du 05/11/2026 sur la checklist paramétrable — le CONTENU (la liste réelle des points, les tolérances, les gabarits de départ) reste gelé, il attend l'atelier. Tranche la question de cloisonnement que l'étude du 08/11 (`interventions-checklists-bon.md`, §2.1) posait à l'atelier : « ce qu'un client voit » est un point d'arrêt (§8 du `CLAUDE.md`), pas une décision de session.*
+
+### CE QUI A ÉTÉ MESURÉ
+
+Le 29/10/2026, Alexis avait déjà tranché deux points (réponses « A » et « B », reçues par le pilote) : un point OBLIGATOIRE non renseigné bloque « Terminer », un non conforme ne bloque JAMAIS (amende RG-INT-02) ; la checklist et les prestations du catalogue COEXISTENT, la première est un contrôle, elle ne facture rien. Le schéma qui les portait (ancien ticket 9J12) mêlait migration, RLS, cascade, blocage de « Terminer » et paramétrage dans un seul lot — l'étude du 08/11 l'a mesuré trop gros et l'a scindé en neuf tickets (CK1 à CK9) ; 9K08 reprend le premier (CK1 : le socle seul — tables, formes RLS, dépôt minimal), et REMPLACE l'ancien 9J12 à ce périmètre.
+
+Restait une question que ni le 29/10 ni l'étude du 08/11 ne tranchaient : SOUS QUELLE FORME RLS naissent `checklist_modele`/`checklist_version`/`checklist_point`, et qu'est-ce qu'un compte de portail client a le droit d'en lire. L'ancien brouillon (9J12) proposait la forme « société » pour `checklist_modele` (D4) ; l'étude du 08/11 (§2.1, choix de conception 1) mesurait que cela rendrait TOUS les gabarits d'une société lisibles par n'importe quel compte client de cette société — la « façon de travailler » de l'entreprise, pas le résultat d'une intervention — et écrivait explicitement que c'était une décision d'Alexis, pas de session.
+
+### LA DÉCISION
+
+**Les modèles — et leurs versions, et leurs points — sont lus par le BUREAU SEUL.** `checklist_modele` prend la forme « interne » (D94, même régime que `document_recu`/`import_lot`/`segment_travail`/`notification`) : société ET absence de `app.client_id`. `checklist_version` et `checklist_point` prennent la forme « filiation » (D103), CHAÎNÉE sur `checklist_modele` puis sur `checklist_version` — exactement comme `vgp_observation` se chaîne sur `vgp_verification` sur `machine` : aucune clause de société propre à aucun des deux étages, et la fermeture de `checklist_modele` se propage sans être réécrite.
+
+**Sur le bon du portail, le client voit TOUS les points de SA checklist remplie** (conformes, non conformes, mesures) — **via les RÉPONSES, jamais via les modèles.** `checklist_reponse` prend la forme « filiation » (D103) sur `intervention`, exactement le raisonnement que D103 avait tenu pour `intervention_machine` : c'est l'intervention qui décide qui a le droit de voir la ligne. Elle RECOPIE le libellé, la section, l'unité et le caractère obligatoire du point au moment de la réponse — même patron que `segment_travail.nom_technicien_affiche` (9J22A) — si bien que la lecture portail n'a **jamais** besoin d'ouvrir `checklist_point`, qui reste de forme « interne » par chaînage. `TABLES_INTERNES` (`scripts/lib/politiques-rls.ts`) gagne une septième entrée (`checklist_modele`) ; `TABLES_FILIATION` en gagne trois (`checklist_version` → `checklist_modele`, `checklist_point` → `checklist_version`, `checklist_reponse` → `intervention`).
+
+**Rattachement à un SEUL type d'intervention, jamais un tableau.** Mesuré au ticket 9K08 : aucune colonne de ce dépôt ne porte un tableau d'énumération typé (seul `contact.canaux` porte un `String[]`, non typé). Un contrôle qui s'appliquerait à plusieurs types se pose comme PLUSIEURS modèles, un code chacun — l'ancien brouillon (9J12) envisageait un tableau `TypeIntervention[]` sans précédent dans le dépôt ; cette décision le remplace par une colonne nullable scalaire.
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+Elle ne pose aucun gabarit de contenu, ni en production ni en démonstration — le contenu reste gelé jusqu'à l'atelier (CK4, ultérieur). Elle n'amende pas RG-INT-02 (le blocage de « Terminer » sur un point obligatoire est CK7, ultérieur, hors territoire de 9K08). Elle ne construit ni la cascade de résolution modèle > famille > type (CK2), ni l'écran de paramétrage (CK3), ni le rendu sur le bon (CK8). `Prestation.checklist_type` est déclarée inerte, et non supprimée.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où un écran de portail a besoin de lire un gabarit lui-même (son libellé, par exemple, pour expliquer à un client pourquoi telle checklist s'applique à sa machine) plutôt que les réponses qu'il porte, cette décision se rouvre : la forme « interne » SE RETIRE, elle ne s'assouplit pas (même discipline que D229 pour `notification`).
+
+**Règles amendées :** aucune — RG-INT-02 reste inchangée par cette décision (son amendement par la réponse « A » du 29/10/2026 est déjà écrit ; son blocage effectif est CK7, ultérieur). Aucune règle du chapitre 10 ne pose aujourd'hui de forme RLS pour la checklist : cette décision en écrit une pour la première fois.
+
+Portée : `prisma/migrations/20261109080000_checklists_socle_9k08`,
+`prisma/schema.prisma` (`ChecklistModele`, `ChecklistVersion`, `ChecklistPoint`, `ChecklistReponse`, `Intervention.checklist_version_id`),
+`scripts/lib/politiques-rls.ts` (`TABLES_INTERNES`, `TABLES_FILIATION`),
+`lib/checklists/depot.ts`,
+`lib/db/migrations-attendues.ts`,
+`docs/cahier-des-charges.md` (chapitre 11.2),
+`tests/isolation/checklists.test.ts`,
+`tests/unit/db/formes-du-lot-8.test.ts`,
+`tests/unit/db/perimetre-audit.test.ts`,
+`tests/unit/db/inventaire.test.ts`.

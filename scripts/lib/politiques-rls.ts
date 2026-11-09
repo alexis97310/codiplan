@@ -2148,6 +2148,14 @@ export const TABLES_INTERNES = [
   // — même comparaison que pour `segment_travail`, écrite dans
   // `ecartsTablesFilles`, pas supposée.
   "notification",
+  // D235 (9K08-CHECKLIST-SCHEMA, 09/11/2026) — LE MODÈLE DE CHECKLIST, et il
+  // prend cette forme à sa NAISSANCE, comme `notification` avant lui. *La
+  // liste des points qu'un technicien contrôle, et comment, est la FAÇON DE
+  // TRAVAILLER de la société* — même motif que D109 pour la durée standard
+  // d'une prestation. Décision verbatim d'Alexis du 09/11/2026 ~07h45 : le
+  // client voit sa checklist RÉPONDUE (`checklist_reponse`, forme
+  // « filiation »), jamais le modèle qui l'a produite.
+  "checklist_modele",
 ] as const;
 
 /** Les entrées que l'arbitrage D94 autorise. Recopiées : c'est la doctrine. */
@@ -2207,6 +2215,14 @@ const INTERNES_ARBITREES: ReadonlyArray<{
       "intervention ou de SA demande — par exemple qu'une signature a été " +
       "jugée absente ou refusée, une information interne sur le déroulement " +
       "du dossier, pas sur le parc",
+  },
+  {
+    table: "checklist_modele",
+    ceQueLeRetraitRouvre:
+      "un compte portail lirait le CATALOGUE des gabarits de checklist de sa " +
+      "société — la façon de travailler de l'entreprise, pas le résultat " +
+      "d'une intervention — et par filiation (checklist_version, checklist_" +
+      "point) jusqu'au contenu détaillé de chaque point",
   },
 ];
 
@@ -2516,6 +2532,36 @@ export const TABLES_FILIATION = [
     parent: "intervention",
     cle: "intervention_origine_id",
   },
+  // `checklist_version` et `checklist_point` REJOIGNENT LA FILIATION au
+  // ticket 9K08-CHECKLIST-SCHEMA, PAR L'ARBITRAGE D235 — 09/11/2026. La forme
+  // se CHAÎNE comme `vgp_observation` sur `vgp_verification` sur `machine` :
+  // `checklist_version` est fille de `checklist_modele` (forme « interne »),
+  // et `checklist_point` est fille de `checklist_version` — aucune clause de
+  // société propre n'est écrite à aucun des deux étages.
+  {
+    table: "checklist_version",
+    parent: "checklist_modele",
+    cle: "checklist_modele_id",
+  },
+  {
+    table: "checklist_point",
+    parent: "checklist_version",
+    cle: "checklist_version_id",
+  },
+  // `checklist_reponse` REJOINT LA FILIATION au même ticket, PAR LE MÊME
+  // ARBITRAGE D235 — mais sur `intervention`, PAS sur `checklist_point` : la
+  // décision verbatim d'Alexis du 09/11/2026 ~07h45 est que c'est l'
+  // INTERVENTION qui décide qui a le droit de voir la réponse, exactement le
+  // raisonnement de D103 pour `intervention_machine`. La réponse RECOPIE le
+  // libellé, la section, l'unité et le caractère obligatoire du point
+  // (patron `segment_travail.nom_technicien_affiche`, 9J22A) : la lecture
+  // portail n'a donc jamais besoin d'ouvrir `checklist_point`, qui reste de
+  // forme « interne » par chaînage.
+  {
+    table: "checklist_reponse",
+    parent: "intervention",
+    cle: "intervention_id",
+  },
 ] as const;
 
 /** Les entrées que l'arbitrage autorise. Recopiées : c'est la doctrine. */
@@ -2541,6 +2587,10 @@ const FILIATION_ARBITREE = [
   // Ticket 9J17-SUITE-A-DONNER-SCHEMA, D231, 06/11/2026 — le suivi de la
   // suite à donner d'une intervention.
   "suite_a_donner",
+  // Ticket 9K08-CHECKLIST-SCHEMA, D235, 09/11/2026 — le socle des checklists.
+  "checklist_version",
+  "checklist_point",
+  "checklist_reponse",
 ];
 
 /** Écarts de la liste « filiation » — additions comme retraits. */

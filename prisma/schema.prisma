@@ -227,6 +227,10 @@ model Societe {
   demandeStatutHistorique      DemandeStatutHistorique[]
   notificationLectures         NotificationLecture[]
   suitesADonner                SuiteADonner[]
+  checklistModeles             ChecklistModele[]
+  checklistVersions            ChecklistVersion[]
+  checklistPoints              ChecklistPoint[]
+  checklistReponses            ChecklistReponse[]
 
   @@map("societe")
 }
@@ -1708,6 +1712,11 @@ model Intervention {
   /// LES SUITES À DONNER qui NOMMENT cette intervention comme sa reprise —
   /// relation inverse de pure comptabilité, jamais un parent RLS (D231).
   suites_a_donner_reprise SuiteADonner[]                 @relation("SuiteADonnerReprise")
+  /// LES RÉPONSES DE CHECKLIST (9K08-CHECKLIST-SCHEMA, D235) — forme
+  /// « filiation » (D103), celle-ci décide qui les voit : c'est par elle, et
+  /// par elle seule, qu'un compte portail lit sa checklist, jamais par le
+  /// modèle ni la version (forme « interne »).
+  checklist_reponses      ChecklistReponse[]
 
   id         String @id @db.Uuid
   societe_id String @db.Uuid
@@ -1907,6 +1916,15 @@ model Intervention {
   /// seul, `NULL` tant que rien n'a été écrit.
   suite_a_donner String?
 
+  /// LE GABARIT DE CHECKLIST PINNÉ (9K08-CHECKLIST-SCHEMA, D235) — posé UNE
+  /// SEULE FOIS, à la première réponse (lot suivant, CK2), **jamais
+  /// réévalué** : modifier le modèle ou publier une version N+1 après coup ne
+  /// change rien à une intervention déjà pinnée. `NULL` est l'état normal
+  /// d'une intervention dont la machine ou le site ne sont pas encore
+  /// identifiés, ou dont aucun gabarit ne s'applique — aucune migration de
+  /// données sur les lignes existantes.
+  checklist_version_id String? @db.Uuid
+
   /// LA NOTE INTERNE (50-INTERVENTIONS-2) — visible et modifiable par les
   /// rôles BACK-OFFICE seulement. **Régime INVERSE de
   /// `commentaire_technicien`/`suite_a_donner`** : jamais sur le terrain, le
@@ -2000,6 +2018,10 @@ model Intervention {
   /// tous les autres liens de cette table : une demande dont une intervention
   /// dépend ne s'efface pas.
   demande          Demande?         @relation(fields: [societe_id, demande_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  /// Le gabarit pinné — voir `checklist_version_id` ci-dessus. `Restrict` :
+  /// une version, immuable, ne s'efface jamais sous une intervention qui l'a
+  /// pinnée.
+  checklist_version ChecklistVersion? @relation(fields: [societe_id, checklist_version_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
 
   @@unique([societe_id, id])
   @@unique([societe_id, annee, numero])
@@ -2008,6 +2030,7 @@ model Intervention {
   @@index([societe_id, client_id])
   @@index([societe_id, site_id])
   @@index([societe_id, demande_id])
+  @@index([societe_id, checklist_version_id])
   @@map("intervention")
 }
 
@@ -2625,6 +2648,200 @@ model SuiteADonner {
   @@map("suite_a_donner")
 }
 
+// ── LES CHECKLISTS — LE SOCLE (9K08-CHECKLIST-SCHEMA) ────────────────────────
+//
+// Le gabarit paramétrable qu'Alexis a demandé le 29/10/2026 (« checklist de
+// tous les points vérifiés ») : un modèle, des versions IMMUABLES (« modifier »
+// = publier N+1), des points typés. Le CONTENU — la liste réelle des points,
+// les tolérances, les gabarits de départ — attend l'atelier ; ce lot pose le
+// MOTEUR seul, aucun gabarit n'est semé en production (CK4, après l'atelier).
+//
+// DÉCISION D'ALEXIS DU 09/11/2026 ~07h45 (D235) : les MODÈLES — et leurs
+// versions, et leurs points — sont lus par le BUREAU SEUL, forme « interne »
+// (D94) : jamais par un compte portail, quel que soit son client. Sur le bon
+// du portail, le client voit TOUS les points de SA checklist remplie
+// (conformes, non conformes, mesures) — via les RÉPONSES, forme « filiation »
+// (D103) sur `intervention`, JAMAIS via les modèles : `ChecklistReponse`
+// RECOPIE le libellé, la section, l'unité et le caractère obligatoire du
+// point au moment de la réponse (même patron que `segment_travail.
+// nom_technicien_affiche`, 9J22A), si bien que la lecture portail n'a jamais
+// besoin d'ouvrir `ChecklistPoint`.
+
+/// Trois types de réponse SEULEMENT pour ce lot (9K08) — `choix_liste`,
+/// `texte` et `photo` sont DIFFÉRÉS (la photo passe par l'outil Photos
+/// existant de l'intervention, pas par la checklist).
+enum TypeReponseChecklist {
+  conforme_non_conforme_sans_objet
+  valeur_mesuree
+  case_faite
+}
+
+/// La réponse à un point `conforme_non_conforme_sans_objet`. Un NON CONFORME
+/// ne bloque JAMAIS « Terminer » (décision d'Alexis du 29/10/2026, réponse
+/// « A » à la question 3 — amende RG-INT-02) ; seul un point OBLIGATOIRE non
+/// renseigné bloquera, et c'est un lot ultérieur (CK7), hors territoire ici.
+enum ReponseConformite {
+  conforme
+  non_conforme
+  sans_objet
+}
+
+/// LE MODÈLE DE CHECKLIST — en-tête SEUL (D235). Forme « interne » (D94) :
+/// aucun compte portail ne le lit, quel que soit son client — c'est la FAÇON
+/// DE TRAVAILLER de la société (même motif que `Prestation.duree_standard_min`
+/// juste au-dessus).
+///
+/// Rattachement à un SEUL type d'intervention, nullable — jamais un tableau :
+/// aucune colonne de ce dépôt ne porte un tableau d'énumération (mesuré au
+/// ticket 9K08 ; seul `contact.canaux` porte un `String[]`, et il n'est pas
+/// typé). Un contrôle qui s'appliquerait à plusieurs types se pose donc comme
+/// PLUSIEURS modèles, un code chacun, plutôt qu'un modèle à rattachements
+/// multiples — la cascade de résolution (modèle précis > famille > type seul
+/// > aucun, CK2, hors territoire ici) n'en a pas besoin pour fonctionner.
+model ChecklistModele {
+  id         String @id @db.Uuid
+  societe_id String @db.Uuid
+
+  code    String
+  libelle String
+
+  type_intervention TypeIntervention?
+
+  /// La famille visée, FACULTATIVE — même régime que `Prestation.famille_id`.
+  famille_id String? @db.Uuid
+  /// Le modèle de matériel visé, FACULTATIF et PLUS PRÉCIS que la famille —
+  /// la cascade de résolution (CK2) le préfère à la famille quand les deux
+  /// rattachements existent sur le même contexte.
+  modele_id String? @db.Uuid
+
+  /// Si VRAI, ce modèle n'est proposé (CK2) qu'à une intervention qui PORTE
+  /// une machine (PARCOURS-1, D228) — sinon il reste éligible même sans
+  /// machine identifiée (ex. une checklist d'installation portant sur le
+  /// chantier, pas sur un exemplaire déjà en parc).
+  exige_machine Boolean @default(false)
+
+  /// JAMAIS SUPPRIMÉ, seulement désactivé : une version déjà publiée doit
+  /// rester lisible sur les interventions qui l'ont pinnée, même si le modèle
+  /// qui la porte n'est plus proposé pour une intervention neuve.
+  actif Boolean @default(true)
+
+  cree_le    DateTime @default(now()) @db.Timestamptz(3)
+  modifie_le DateTime @updatedAt @db.Timestamptz(3)
+
+  societe  Societe            @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  famille  FamilleMateriel?   @relation(fields: [societe_id, famille_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  modele   ModeleMateriel?    @relation(fields: [societe_id, modele_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  versions ChecklistVersion[]
+
+  @@unique([societe_id, id])
+  @@unique([societe_id, code])
+  @@index([societe_id, famille_id])
+  @@index([societe_id, modele_id])
+  @@map("checklist_modele")
+}
+
+/// UNE VERSION, JAMAIS MODIFIÉE UNE FOIS PUBLIÉE (D235) — « modifier » publie
+/// la version N+1. Naît déjà publiée : ce lot n'ouvre aucun état de
+/// brouillon. Forme « filiation » (D103) sur `checklist_modele`, qui porte
+/// lui-même la forme « interne » — la visibilité se CHAÎNE, exactement comme
+/// `vgp_observation` sur `vgp_verification` : aucune clause de société propre
+/// n'est écrite ici.
+model ChecklistVersion {
+  id                  String @id @db.Uuid
+  societe_id          String @db.Uuid
+  checklist_modele_id String @db.Uuid
+
+  /// Commence à 1, un de plus que la précédente — jamais réutilisé.
+  numero Int
+
+  publiee_le DateTime @default(now()) @db.Timestamptz(3)
+
+  societe       Societe          @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  modele        ChecklistModele  @relation(fields: [societe_id, checklist_modele_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  points        ChecklistPoint[]
+  /// Les interventions qui ont PINNÉ cette version — posée à la première
+  /// réponse, jamais réévaluée (lot suivant, CK2).
+  interventions Intervention[]
+
+  @@unique([societe_id, id])
+  @@unique([checklist_modele_id, numero])
+  @@map("checklist_version")
+}
+
+/// UN POINT DE LA VERSION — section, ordre, libellé, consigne, obligatoire,
+/// type de réponse. Jamais modifié ni supprimé, comme sa version (D235).
+/// AUCUNE table `checklist_section` séparée : la section est un simple
+/// LIBELLÉ porté par chaque point — la structure la plus simple qui rende le
+/// tableau d'un gabarit sans lui ajouter un niveau (mesuré au ticket 9K08).
+model ChecklistPoint {
+  id                   String @id @db.Uuid
+  societe_id           String @db.Uuid
+  checklist_version_id String @db.Uuid
+
+  section  String
+  ordre    Int
+  libelle  String
+  consigne String?
+
+  obligatoire  Boolean              @default(false)
+  type_reponse TypeReponseChecklist
+
+  /// Unité et tolérances — `valeur_mesuree` SEULEMENT (contrainte posée en
+  /// base). FACULTATIVES ET VIDES PAR DÉFAUT (9K08) : aucune tolérance
+  /// inventée, la notice du modèle les fournira à l'atelier.
+  unite         String?
+  tolerance_min Decimal? @db.Decimal(12, 3)
+  tolerance_max Decimal? @db.Decimal(12, 3)
+
+  societe  Societe            @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  version  ChecklistVersion   @relation(fields: [societe_id, checklist_version_id], references: [societe_id, id], onDelete: Cascade, onUpdate: Restrict)
+  reponses ChecklistReponse[]
+
+  @@unique([societe_id, id])
+  @@unique([checklist_version_id, ordre])
+  @@map("checklist_point")
+}
+
+/// LA RÉPONSE — FIGÉE PAR INTERVENTION (D235). Forme « filiation » (D103) sur
+/// `intervention` : c'est la SEULE des quatre tables de ce lot qu'un compte
+/// portail peut lire. Elle RECOPIE le libellé, la section, l'unité et le
+/// caractère obligatoire du point au moment de la réponse (même patron que
+/// `segment_travail.nom_technicien_affiche`, 9J22A) — ni le versionnement ni
+/// la lecture portail n'ont donc jamais besoin d'ouvrir `ChecklistPoint`.
+model ChecklistReponse {
+  id                 String @id @db.Uuid
+  societe_id         String @db.Uuid
+  intervention_id    String @db.Uuid
+  checklist_point_id String @db.Uuid
+
+  /// Recopiés du point au moment de la réponse — jamais relus depuis
+  /// `ChecklistPoint` (D235, patron 9J22A).
+  libelle     String
+  section     String
+  unite       String?
+  obligatoire Boolean
+
+  /// Exactement une des trois, selon le type de réponse du point — gardé par
+  /// `num_nonnulls` en base, même patron que `notification_cible_unique`.
+  valeur_conforme ReponseConformite?
+  valeur_mesuree  Decimal?           @db.Decimal(12, 3)
+  valeur_fait     Boolean?
+
+  /// QUI a répondu — une IDENTITÉ, aucune relation Prisma déclarée vers
+  /// `Utilisateur` (même choix que `Notification.destinataire_id`, D39) :
+  /// une relation ferait naître son inverse, que le gardien de D39 refuserait.
+  auteur_id  String   @db.Uuid
+  repondu_le DateTime @default(now()) @db.Timestamptz(3)
+
+  societe      Societe        @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  intervention Intervention   @relation(fields: [societe_id, intervention_id], references: [societe_id, id], onDelete: Cascade, onUpdate: Restrict)
+  point        ChecklistPoint @relation(fields: [societe_id, checklist_point_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([societe_id, id])
+  @@unique([societe_id, intervention_id, checklist_point_id])
+  @@map("checklist_reponse")
+}
+
 /// D'où vient la demande (chapitre 7/M3). Six sources, et elles ne se
 /// équivalent pas : `portail` est la seule qu'un compte de client écrit.
 enum SourceDemande {
@@ -2861,9 +3078,15 @@ model Prestation {
   /// par contrainte.
   duree_standard_min Int?
 
-  /// La checklist type, en texte LIBRE : le chapitre 10 ne pose aucune
-  /// structure, et en inventer une ici la figerait pour toutes les sociétés
-  /// avant que quiconque en ait écrit une seule.
+  /// La checklist type, en texte LIBRE — **INERTE depuis 9K08-CHECKLIST-
+  /// SCHEMA (D235)** : la vraie checklist paramétrable vit désormais dans
+  /// `ChecklistModele`/`ChecklistVersion`/`ChecklistPoint`, rattachée à un
+  /// type d'intervention et/ou une famille et/ou un modèle de matériel —
+  /// jamais à une prestation du catalogue (décision « B » du 29/10/2026 :
+  /// checklist et prestations COEXISTENT, la checklist ne facture rien).
+  /// Cette colonne reste NON SUPPRIMÉE et NON ÉCRITE (R3-15, `lib/
+  /// prestations/depot.ts`) : rien ne dit encore qu'elle ne sert jamais, et
+  /// la supprimer serait une seconde décision que ce ticket ne prend pas.
   checklist_type String?
 
   actif Boolean @default(true)
@@ -3022,11 +3245,12 @@ model FamilleMateriel {
 
   actif Boolean @default(true)
 
-  societe       Societe          @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  modeles       ModeleMateriel[]
-  forfaits      Forfait[]
-  prestations   Prestation[]
-  campagnes_vgp VgpCampagne[]
+  societe           Societe            @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  modeles           ModeleMateriel[]
+  forfaits          Forfait[]
+  prestations       Prestation[]
+  campagnes_vgp     VgpCampagne[]
+  checklist_modeles ChecklistModele[]
 
   /// Cible du chaînage composite de `modele_materiel` : elle rend le couple
   /// (société, famille) référençable d'un seul geste, de sorte qu'un modèle ne
@@ -3072,9 +3296,10 @@ model ModeleMateriel {
 
   actif Boolean @default(true)
 
-  societe  Societe         @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  famille  FamilleMateriel @relation(fields: [societe_id, famille_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
-  machines Machine[]
+  societe           Societe           @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  famille           FamilleMateriel   @relation(fields: [societe_id, famille_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  machines          Machine[]
+  checklist_modeles ChecklistModele[]
 
   /// La documentation COMMUNE à tous les exemplaires — notice, fiche technique,
   /// manuel d'atelier (L8-01). Elle se corrige une fois pour toutes : c'est ce
