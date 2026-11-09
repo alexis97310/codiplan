@@ -162,4 +162,10 @@ sans un motif propre à ce fichier.
 
 À signaler à Alexis / au pilote : cette suite bloque `pnpm test:isolation`
 (exit code 1) pour QUICONQUE joue la suite complète en ce moment, pas
-seulement cette session.
+seulement cette session. **Conséquence directe : `CI=1 pnpm verify`
+s'arrête au même point** (format, typecheck, lint, test unitaire tous
+verts ; `test:isolation` rouge arrête la chaîne avant `build`, jamais
+rejoué ici). Sept commits au total sur la branche, tous verts
+individuellement sur `pnpm format`/`typecheck`/`lint`/`test` ; le dernier
+ajoute le correctif L0-11 (une référence de pièce codée en dur dans une
+requête d'écran e2e, corrigée par deux clés `terrain.e2e.piece_ref_*`).
