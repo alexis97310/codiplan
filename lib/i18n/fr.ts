@@ -1580,29 +1580,34 @@ export const fr = {
   "suites_a_donner.statut.accord_attendu": "Accord attendu",
   "suites_a_donner.statut.accord_recu": "Accord reçu",
   "suites_a_donner.statut.sans_suite": "Sans suite",
-  // « À DÉPLACER », JAMAIS « À REPLANIFIER » (§8 du glossaire, D172) — le
-  // gardien `tests/unit/i18n/vocabulaire-impose.test.ts` ferme ce synonyme
-  // sans exemption : le mot imposé pour CE geste, partout dans le produit,
-  // est « Déplacer… » (`intervention.action.deplacer`,
-  // `interventions.colonne.deplacer`). Seul l'IDENTIFIANT technique — la clé
+  // « À PLANIFIER » (reprise d'une suite à donner), PAS « À DÉPLACER » —
+  // décision d'Alexis du 09/11/2026 (9K11-LIBELLES-SUITES-ITINERAIRE), qui
+  // REVIENT sur un des « cinq synonymes fermés » de D172/TR-52
+  // (« replanifier » → « Déplacer… », `docs/arbitrages.md`) — voir la
+  // passation du ticket pour la tension entre les deux, non résolue par le
+  // ticket lui-même. Le geste GÉNÉRIQUE de replanification d'une
+  // intervention déjà posée garde « Déplacer… »
+  // (`intervention.action.deplacer`, `interventions.colonne.deplacer`,
+  // `tableau_de_bord.priorite_action_deplacer`) — seule LA REPRISE d'un
+  // dossier change de mot ici. Seul l'IDENTIFIANT technique — la clé
   // `StatutSuiteADonner.a_replanifier` du schéma, le nom de fonction
-  // `creerReprise`, le segment de route `/replanifier` — porte encore ce
-  // mot : L0-11 ne l'interdit que dans ce qu'un humain LIT, jamais dans ce
-  // qu'un développeur ou une machine lit.
-  "suites_a_donner.statut.a_replanifier": "À déplacer",
+  // `creerReprise`, le segment de route `/replanifier` — porte encore le mot
+  // fermé « replanifier » : L0-11 ne l'interdit que dans ce qu'un humain LIT,
+  // jamais dans ce qu'un développeur ou une machine lit.
+  "suites_a_donner.statut.a_replanifier": "À planifier",
   "suites_a_donner.statut.cloturee": "Clôturée",
-  "suites_a_donner.action.qualifier": "Qualifier",
+  "suites_a_donner.action.qualifier": "Ouvrir le devis",
   "suites_a_donner.action.devis_envoye": "Devis envoyé",
   "suites_a_donner.action.accord": "Accord…",
   "suites_a_donner.action.piece_recue": "Pièce reçue",
-  "suites_a_donner.action.replanifier": "Déplacer…",
+  "suites_a_donner.action.replanifier": "Planifier la reprise…",
   "suites_a_donner.refus.inconnue": "Cette suite à donner n'existe pas.",
   "suites_a_donner.refus.deja_qualifiee":
     "Cette intervention porte déjà une suite à donner.",
   "suites_a_donner.refus.statut_invalide":
-    "Cette suite à donner n'est pas au statut « À déplacer ».",
+    "Cette suite à donner n'est pas au statut « À planifier ».",
   "suites_a_donner.refus.deja_replanifiee":
-    "Cette suite à donner a déjà été déplacée.",
+    "Cette suite à donner a déjà été planifiée.",
   // LES TROIS GARDES POSÉES PAR 9K05 — UNE PAR TRANSITION, JAMAIS LE MÊME
   // TEXTE : chacune nomme le statut qu'elle attendait, pour qu'un refus dise
   // où le dossier en est réellement, pas seulement qu'il a été refusé.
@@ -1620,7 +1625,7 @@ export const fr = {
   "suites_a_donner.devis_envoye": "Devis envoyé — accord en attente.",
   "suites_a_donner.accord_recu": "Accord reçu.",
   "suites_a_donner.sans_suite": "Classée sans suite.",
-  "suites_a_donner.piece_recue": "Pièce reçue — prête à déplacer.",
+  "suites_a_donner.piece_recue": "Pièce reçue — prête à planifier.",
   "suites_a_donner.reprise_creee": "Intervention de reprise créée.",
 
   // ── STATUER SUR L'ACCORD ATTENDU (9K05-SUITES-A-DONNER-DEBLOQUEES) ──────
@@ -1628,7 +1633,7 @@ export const fr = {
   "suites_a_donner.accord.titre": "Accord attendu",
   "suites_a_donner.accord.recu_titre": "Accord reçu",
   "suites_a_donner.accord.recu_aide":
-    "Laissez les deux champs vides si le client n'a rien à faire parvenir : la suite à donner passe directement à « À déplacer ».",
+    "Laissez les deux champs vides si le client n'a rien à faire parvenir : la suite à donner passe directement à « À planifier ».",
   "suites_a_donner.accord.piece_ref": "Référence de la pièce attendue",
   "suites_a_donner.accord.piece_date": "Date de disponibilité prévue",
   "suites_a_donner.accord.recu_confirmer": "Enregistrer l'accord",
@@ -1636,10 +1641,11 @@ export const fr = {
   "suites_a_donner.accord.motif": "Motif",
   "suites_a_donner.accord.sans_suite_confirmer": "Classer sans suite",
 
-  // ── LE DÉPLACEMENT DE LA REPRISE (9J18-SUITE-A-DONNER-ECRAN, FLX-6/7/11) ─
+  // ── LA PLANIFICATION DE LA REPRISE (9J18-SUITE-A-DONNER-ECRAN, FLX-6/7/11,
+  // libellé revu par 9K11-LIBELLES-SUITES-ITINERAIRE) ─────────────────────
   // `app/(back-office)/interventions/suites-a-donner/[id]/replanifier/` —
   // l'URL seule porte encore le mot fermé (identifiant technique, L0-11).
-  "suites_a_donner.replanifier.titre": "Déplacer…",
+  "suites_a_donner.replanifier.titre": "Planifier la reprise…",
   "suites_a_donner.replanifier.sous_titre":
     "Un créneau pour l'intervention de reprise — les mêmes refus qu'une pose ordinaire.",
   "suites_a_donner.replanifier.technicien": "Technicien",
@@ -1651,7 +1657,7 @@ export const fr = {
     "Aucun créneau disponible pour ce technicien, cette date et cette durée — choisissez-en d'autres.",
   "suites_a_donner.replanifier.technicien_absent":
     "Ce technicien est absent ce jour-là — choisissez-en un autre.",
-  "suites_a_donner.replanifier.confirmer": "Confirmer le déplacement",
+  "suites_a_donner.replanifier.confirmer": "Confirmer la planification",
   "suites_a_donner.replanifier.retour": "Retour aux suites à donner",
   // L0-11 (même discipline que `9i8f.e2e.numero_serie`) : le numéro de
   // série, le nom du contact et la référence client que
