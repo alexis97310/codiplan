@@ -35,6 +35,18 @@ const NOMBRE_DE_FICHES = 60;
 const idsCrees: string[] = [];
 let idSocieteB = "";
 
+/**
+ * UNE FICHE CLÔTURÉE AVEC LES SIX COLONNES WINPRO REMPLIES
+ * (9K12-EXPORT-WINPRO) — CLIENT_A1 porte déjà `code_externe = 'C-001'`
+ * (`tests/isolation/setup/global.ts`), aucun second client à poser.
+ */
+const TYPE_AVEC_VALEURS = "controle_reglementaire";
+const DATE_AVEC_VALEURS = "2097-07-09";
+const REFERENCE_CLIENT_DEDIEE = "BC-9K12";
+const CLOTUREE_LE_DEDIEE = "2097-07-10T00:00:00.000Z";
+const TEMPS_VALIDE_DEDIE = 125;
+let idAvecValeurs = "";
+
 beforeAll(async () => {
   const valeurs = Array.from(
     { length: NOMBRE_DE_FICHES },
@@ -64,6 +76,23 @@ beforeAll(async () => {
     DATE_DEDIEE,
   );
   idSocieteB = b!.id;
+
+  const [avecValeurs] = await clientOwner().$queryRawUnsafe<{ id: string }[]>(
+    `INSERT INTO "intervention"
+       ("id", "societe_id", "client_id", "site_id", "agence_id", "type",
+        "statut", "date_planifiee", "reference_client", "cloturee_le",
+        "temps_valide_min", "modifie_le")
+     VALUES (gen_random_uuid(), '${SOCIETE_A}'::uuid, '${CLIENT_A1}'::uuid,
+       '${SITE_A1_S1}'::uuid, '${AGENCE_A}'::uuid, $1::"TypeIntervention",
+       'cloturee', $2::date, $3, $4::timestamptz, $5::int, now())
+     RETURNING "id"`,
+    TYPE_AVEC_VALEURS,
+    DATE_AVEC_VALEURS,
+    REFERENCE_CLIENT_DEDIEE,
+    CLOTUREE_LE_DEDIEE,
+    TEMPS_VALIDE_DEDIE,
+  );
+  idAvecValeurs = avecValeurs!.id;
 });
 
 afterAll(async () => {
@@ -71,6 +100,11 @@ afterAll(async () => {
     `DELETE FROM "intervention" WHERE "type" = $1::"TypeIntervention" AND "date_planifiee" = $2::date`,
     TYPE_DEDIE,
     DATE_DEDIEE,
+  );
+  await clientOwner().$executeRawUnsafe(
+    `DELETE FROM "intervention" WHERE "type" = $1::"TypeIntervention" AND "date_planifiee" = $2::date`,
+    TYPE_AVEC_VALEURS,
+    DATE_AVEC_VALEURS,
   );
 });
 
@@ -134,6 +168,27 @@ describe("listerInterventionsPourExport — exactement le filtre, cloisonné, sa
     expect(exportees.map((l) => l.id).sort()).toEqual(
       [idsCrees[0]!, idsCrees[1]!].sort(),
     );
+  });
+
+  /**
+   * LES SIX COLONNES WINPRO (9K12-EXPORT-WINPRO) — code client, référence
+   * client, date de clôture, temps validé : `SELECTION_LIGNE_PLANNING` les
+   * porte maintenant, et cette fiche dédiée en a une valeur CONNUE de
+   * chacune, jamais `null` par accident de fixture.
+   */
+  it("une fiche clôturée rend son code client (fixture), sa référence client, sa date de clôture et son temps validé", async () => {
+    const criteres = schemaRechercheInterventions.parse({
+      id: [idAvecValeurs],
+    });
+    const [exportee] = await listerInterventionsPourExport(
+      INTERNE_A,
+      criteres,
+      clientApp(),
+    );
+    expect(exportee?.client.code_externe).toBe("C-001");
+    expect(exportee?.reference_client).toBe(REFERENCE_CLIENT_DEDIEE);
+    expect(exportee?.cloturee_le?.toISOString()).toBe(CLOTUREE_LE_DEDIEE);
+    expect(exportee?.temps_valide_min).toBe(TEMPS_VALIDE_DEDIE);
   });
 });
 
@@ -205,15 +260,54 @@ describe("GET /api/interventions/exporter — deux capacités, comme D150 (MO-9,
       "Date planifiée",
       "Priorité",
       "Statut",
+      "Nature",
+      "Code externe",
+      "Référence client / n° de bon de commande",
+      "Clôturée le",
+      "Temps validé",
+      "Temps validé (minutes)",
     ]);
-    expect(
-      entetes.some((e) =>
-        (e ?? "").toLocaleLowerCase("fr").includes("montant"),
-      ),
-    ).toBe(false);
+    // AUCUN MONTANT, AUCUN TAUX, AUCUN FORFAIT CHIFFRÉ (décision d'Alexis du
+    // 09/11/2026, 9K12-EXPORT-WINPRO) — Winpro calcule le prix, ce fichier ne
+    // le fait jamais. Un gardien qui FIGE l'absence, pas seulement « montant »
+    // comme avant ce ticket.
+    for (const motInterdit of ["montant", "taux", "forfait"]) {
+      expect(
+        entetes.some((e) =>
+          (e ?? "").toLocaleLowerCase("fr").includes(motInterdit),
+        ),
+      ).toBe(false);
+    }
     // En-têtes + 60 lignes — aucun marqueur de rechargement (D169, un export
     // ne se réimporte jamais, à la différence de `classeurDesRejets`).
     expect(lignes.length).toBe(1 + NOMBRE_DE_FICHES);
+  });
+
+  it("la fiche clôturée dédiée porte ses six colonnes Winpro dans le classeur, sans aucun montant", async () => {
+    vi.mocked(exigerCapacite).mockResolvedValueOnce({
+      ...INTERNE_A,
+      societeId: SOCIETE_A,
+      role: Role.admin_societe,
+    });
+    const reponse = await getExport(
+      new Request(
+        `https://codiplan.test/api/interventions/exporter?id=${idAvecValeurs}`,
+      ),
+    );
+    expect(reponse.status).toBe(200);
+    const classeur = Buffer.from(await reponse.arrayBuffer());
+    const feuilles = await lireClasseur(classeur);
+    const lignes = feuilles[0]?.lignes ?? [];
+    expect(lignes.length).toBe(2);
+    const valeurs = lignes[1]?.map((c) => c?.texte) ?? [];
+    expect(valeurs.slice(8)).toEqual([
+      "Contrôle réglementaire",
+      "C-001",
+      REFERENCE_CLIENT_DEDIEE,
+      "10/07/2097",
+      "2 h 05",
+      "125",
+    ]);
   });
 
   it("un `id` non-UUID fait échouer TOUT le filtre (schemaRechercheInterventions) — jamais une liste partielle silencieuse", async () => {
