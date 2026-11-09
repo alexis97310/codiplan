@@ -1653,6 +1653,13 @@ export const fr = {
     "Ce technicien est absent ce jour-là — choisissez-en un autre.",
   "suites_a_donner.replanifier.confirmer": "Confirmer le déplacement",
   "suites_a_donner.replanifier.retour": "Retour aux suites à donner",
+  // L0-11 (même discipline que `9i8f.e2e.numero_serie`) : le numéro de
+  // série, le nom du contact et la référence client que
+  // `tests/e2e/9k10-reprise-complete.spec.ts` interroge à l'écran de la
+  // reprise passent par ici plutôt que par une chaîne en dur.
+  "9k10.e2e.numero_serie": "SN-9K10-MACHINE",
+  "9k10.e2e.contact_nom": "9K10 contact origine",
+  "9k10.e2e.reference_client": "BON-9K10",
 
   // ── LES COLONNES DU REGISTRE, PAR ONGLET (TP-UX3-1-REGISTRE-2, QE-8 (a))
   // ─────────────────────────────────────────────────────────────────────

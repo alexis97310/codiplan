@@ -25,7 +25,12 @@ import { ouvrirUneSession } from "./setup/session";
  * « e2e-semis-partage-parallele »). Seule l'origine porte ici une machine,
  * un contact et une référence client, pour éprouver que la reprise les
  * recopie (`lib/suite-a-donner/reprise.ts`).
+ *
+ * UN SEUL TEST, mais `mode: "serial"` quand même (gardien `tests/unit/
+ * e2e-mise-en-scene.test.ts`) : son `beforeAll` écrit en base, et le
+ * gardien ne distingue pas « un seul test » de « plusieurs ».
  */
+test.describe.configure({ mode: "serial" });
 
 const CLIENT_9K10 = uuidv7();
 const SITE_9K10 = uuidv7();
@@ -33,9 +38,9 @@ const FAMILLE_9K10 = uuidv7();
 const MODELE_9K10 = uuidv7();
 const MACHINE_9K10 = uuidv7();
 const CONTACT_9K10 = uuidv7();
-const NUMERO_SERIE_9K10 = "SN-9K10-MACHINE";
-const REFERENCE_CLIENT_9K10 = "BON-9K10";
-const NOM_CONTACT_9K10 = "9K10 contact origine";
+const NUMERO_SERIE_9K10 = fr["9k10.e2e.numero_serie"];
+const REFERENCE_CLIENT_9K10 = fr["9k10.e2e.reference_client"];
+const NOM_CONTACT_9K10 = fr["9k10.e2e.contact_nom"];
 
 function admin(): PrismaClient {
   return new PrismaClient({
