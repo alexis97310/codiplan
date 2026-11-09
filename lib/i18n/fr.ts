@@ -7537,6 +7537,10 @@ export const fr = {
   // un texte composé depuis son nom technique (L0-11).
   "notifications.evenement.signature_absente_ou_refusee":
     "Signature absente ou refusée",
+  "notifications.evenement.devis_en_retard": "Devis sans réponse",
+  "notifications.evenement.accord_attendu_en_retard":
+    "Accord en attente de réponse",
+  "notifications.evenement.piece_recue": "Pièce reçue",
 
   // ── 9J04-PORTAIL-DEMANDES — le client dépose une demande (CLI-4) ────────
   "portail.demandes.titre": "Vos demandes",

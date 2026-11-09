@@ -12,6 +12,9 @@ import { t, type CleTraduction } from "@/lib/i18n/fr";
 const LIBELLES_EVENEMENT: Partial<Record<string, CleTraduction>> = {
   signature_absente_ou_refusee:
     "notifications.evenement.signature_absente_ou_refusee",
+  devis_en_retard: "notifications.evenement.devis_en_retard",
+  accord_attendu_en_retard: "notifications.evenement.accord_attendu_en_retard",
+  piece_recue: "notifications.evenement.piece_recue",
 };
 
 export function libelleEvenement(evenement: string): string {
