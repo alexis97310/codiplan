@@ -54,4 +54,24 @@
 
 ## 4. État à la fin de la session
 
-Voir le bas de ce fichier, mis à jour avant de rendre la main.
+- Branche dédiée `9K10-REPRISE-COMPLETE`, partant d'`origin/main` — HEAD
+  était détaché sur `origin/main` au démarrage, jamais `main` lui-même.
+- Les trois points sont LIVRÉS et commités :
+  1. mesure (`a90cd7338`) ;
+  2. `creerReprise` recopie la machine active, le contact et la référence
+     client de l'origine, dans la MÊME transaction, en réutilisant la forme
+     d'écriture de `creerIntervention` (`e4670f88d`) ;
+  3. épreuves d'isolation (`7d355939a`) et e2e (`5b60474a9`) — toutes
+     vertes.
+- `pnpm test`, `pnpm test:isolation`, `pnpm typecheck`, `pnpm lint` :
+  verts, joués au premier plan à chaque commit.
+- `pnpm test:e2e -- 9k10-reprise-complete` : vert, aucune ligne orpheline
+  après coup (vérifié par requête directe sur `codiplan_test`).
+- `CI=1 pnpm verify` : voir la fin de ce fichier.
+- Rien à signaler sur les interdits du ticket : aucune migration, aucune
+  politique RLS, aucun montant, aucune dépendance nouvelle ; ni
+  `app/(back-office)/interventions/[id]/page.tsx`, ni `depot/`, ni
+  `11-FILE.sh`, ni `CLAUDE.md` touchés.
+- Prochaine étape pour un lecteur qui reprend ce ticket : rien — le point
+  6 (passation) achève le travail demandé par 9K10. `verify:full` est
+  laissé à la file, comme demandé.
