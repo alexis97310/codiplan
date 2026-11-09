@@ -274,7 +274,11 @@ for (const largeur of [1280, 375] as const) {
         page.getByText(fr["portail.interventions.temps_par_etat.titre"]),
       ).toBeVisible();
       // DEUX DURÉES, l'une close (planifiée), l'autre OUVERTE (en_cours).
-      await expect(page.getByText(fr["statut.planifiee"])).toBeVisible();
+      // `exact: true` depuis 9K06 : le `<dt>Date planifiée</dt>` de la fiche
+      // (9K06-PORTAIL-COMPTE-TELEPHONE) résout sinon aussi « Planifiée ».
+      await expect(
+        page.getByText(fr["statut.planifiee"], { exact: true }),
+      ).toBeVisible();
       await expect(page.getByText(fr["statut.affectee"])).toBeVisible();
       await expect(
         page.getByText(
