@@ -81,6 +81,70 @@ describe("corpsDe — `pieces_remplacees` (9I7B2, correctif de revue : ABSENT �
   });
 });
 
+describe("corpsDe — « suspendre » (9K13-TERRAIN-ATTENTE-PIECE)", () => {
+  it("poste motif, piece_attendue_ref, date_dispo_prevue et operation_id sur /suspendre", async () => {
+    await ajouterSaisie({
+      ...IDENTITE,
+      interventionId: "i1",
+      geste: {
+        type: "suspendre",
+        motif: "Attente de pièce signalée depuis le terrain.",
+        pieceAttendueRef: "REF-42",
+        dateDispoPrevue: "2026-12-01",
+      },
+    });
+    const appels: string[] = [];
+    const corps: FormData[] = [];
+    vi.stubGlobal("fetch", async (url: string | URL, init?: RequestInit) => {
+      appels.push(String(url));
+      corps.push(init?.body as FormData);
+      return { json: async () => ({ ok: true, motif: null }) } as Response;
+    });
+    await envoyerFile(IDENTITE);
+    expect(appels).toEqual(["/api/terrain/i1/suspendre"]);
+    expect(corps[0].get("motif")).toBe(
+      "Attente de pièce signalée depuis le terrain.",
+    );
+    expect(corps[0].get("piece_attendue_ref")).toBe("REF-42");
+    expect(corps[0].get("date_dispo_prevue")).toBe("2026-12-01");
+    expect(typeof corps[0].get("operation_id")).toBe("string");
+  });
+
+  // ORDRE_PIPELINE (9K13) — APRÈS le rapport et les prestations, AVANT
+  // « terminer » qu'il rend impossible (une intervention SUSPENDUE n'est
+  // plus EN_COURS).
+  it("part APRÈS prestations et AVANT terminer, quel que soit l'ordre d'insertion", async () => {
+    await ajouterSaisie({
+      ...IDENTITE,
+      interventionId: "i1",
+      geste: { type: "terminer" },
+    });
+    await ajouterSaisie({
+      ...IDENTITE,
+      interventionId: "i1",
+      geste: {
+        type: "suspendre",
+        motif: "Attente de pièce signalée depuis le terrain.",
+        pieceAttendueRef: "REF-42",
+        dateDispoPrevue: "2026-12-01",
+      },
+    });
+    await ajouterSaisie({
+      ...IDENTITE,
+      interventionId: "i1",
+      geste: { type: "prestations", ajouterIds: ["p1"], retirerIds: [] },
+    });
+    const appels: string[] = [];
+    vi.stubGlobal("fetch", fetchFactice(appels));
+    await envoyerFile(IDENTITE);
+    expect(appels).toEqual([
+      "/api/terrain/i1/prestations",
+      "/api/terrain/i1/suspendre",
+      "/api/terrain/i1/terminer",
+    ]);
+  });
+});
+
 describe("envoyerFile — l'ancien format de prestations n'est jamais gelé (point 1)", () => {
   it("une entrée au format d'avant 9F4H6A est envoyée et retirée de la file, « terminer » passe ensuite", async () => {
     await ajouterSaisie({

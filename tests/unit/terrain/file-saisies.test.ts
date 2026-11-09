@@ -80,6 +80,40 @@ describe("ajouterSaisie — coalescence atomique (point 1)", () => {
     expect(file).toHaveLength(2);
   });
 
+  // 9K13-TERRAIN-ATTENTE-PIECE — une seule attente active a du sens : la
+  // seconde déclaration (référence corrigée, par exemple) REMPLACE la
+  // première, comme « rapport », « prestations », « signature », « terminer ».
+  it("suspendre — une seconde déclaration remplace la première, jamais ne s'empile", async () => {
+    await ajouterSaisie({
+      ...IDENTITE,
+      interventionId: "i1",
+      geste: {
+        type: "suspendre",
+        motif: "Attente de pièce signalée depuis le terrain.",
+        pieceAttendueRef: "REF-1",
+        dateDispoPrevue: "2026-12-01",
+      },
+    });
+    await ajouterSaisie({
+      ...IDENTITE,
+      interventionId: "i1",
+      geste: {
+        type: "suspendre",
+        motif: "Attente de pièce signalée depuis le terrain.",
+        pieceAttendueRef: "REF-2",
+        dateDispoPrevue: "2026-12-15",
+      },
+    });
+    const file = await listerFilePourIntervention("i1", IDENTITE);
+    expect(file).toHaveLength(1);
+    expect(file[0].geste).toEqual({
+      type: "suspendre",
+      motif: "Attente de pièce signalée depuis le terrain.",
+      pieceAttendueRef: "REF-2",
+      dateDispoPrevue: "2026-12-15",
+    });
+  });
+
   it("la coalescence ne touche jamais une AUTRE intervention", async () => {
     await ajouterSaisie({
       ...IDENTITE,
