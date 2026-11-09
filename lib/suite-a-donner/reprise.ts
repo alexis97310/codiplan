@@ -15,6 +15,7 @@ import {
   prochainNumero,
 } from "@/lib/interventions/numerotation";
 import { type Deplacement } from "@/lib/interventions/saisie";
+import { STATUTS_HORS_PARC_ACTIF } from "@/lib/machines/depot";
 
 import { cloturer } from "./depot";
 
@@ -85,6 +86,11 @@ export async function creerReprise(
                 duree_estimee_min: true,
                 forfait_deplacement_id: true,
                 suite_a_donner: true,
+                contact_id: true,
+                reference_client: true,
+                machines: {
+                  select: { machine: { select: { id: true, statut: true } } },
+                },
               },
             },
           },
@@ -102,6 +108,17 @@ export async function creerReprise(
           };
         }
         const origine = suite.intervention_origine;
+
+        // LA MACHINE DE L'ORIGINE (I6, une au plus — PARCOURS-1). Hors parc
+        // actif (`STATUTS_HORS_PARC_ACTIF`, seule source, `lib/machines/
+        // depot.ts`) : pas reprise, et ce n'est pas un refus — la reprise se
+        // crée quand même, sans machine.
+        const machineOrigine = origine.machines[0]?.machine ?? null;
+        const machineAReprendre =
+          machineOrigine !== null &&
+          !STATUTS_HORS_PARC_ACTIF.has(machineOrigine.statut)
+            ? machineOrigine.id
+            : null;
 
         // ── LE JUGEMENT, PARTAGÉ AVEC LA POSE ORDINAIRE (PG-B1) ─────────────
         const nouvelId = uuidv7();
@@ -175,6 +192,10 @@ export async function creerReprise(
             statut: jugement.statutApres,
             description,
             demande_id: null,
+            // I6 : LE CONTACT ET LA RÉFÉRENCE CLIENT DE L'ORIGINE, RECOPIÉS
+            // TELS QUELS — l'ADV ne les ressaisit pas à la reprise.
+            contact_id: origine.contact_id,
+            reference_client: origine.reference_client,
             mode_valorisation: "temps_passe",
             forfait_deplacement_id: origine.forfait_deplacement_id,
             duree_estimee_min: saisie.duree_min,
@@ -185,6 +206,22 @@ export async function creerReprise(
           },
           select: CHAMPS_LIGNE,
         });
+
+        // LA MACHINE, DANS LA MÊME TRANSACTION — même forme d'écriture que
+        // `creerIntervention` (`lib/interventions/depot.ts`), réutilisée,
+        // jamais dupliquée (voir la mesure de ce ticket).
+        if (machineAReprendre !== null) {
+          await tx.interventionMachine.createMany({
+            data: [
+              {
+                id: uuidv7(),
+                societe_id: societeId,
+                intervention_id: ligne.id,
+                machine_id: machineAReprendre,
+              },
+            ],
+          });
+        }
 
         // LE LIEN, APRÈS LA CRÉATION — voir le docblock de ce fichier.
         const lien = await tx.suiteADonner.updateMany({
@@ -201,7 +238,10 @@ export async function creerReprise(
 
         return {
           accepte: true,
-          fiche: ligne,
+          fiche:
+            machineAReprendre !== null
+              ? { ...ligne, machines: [{ machine_id: machineAReprendre }] }
+              : ligne,
           avertissements: jugement.avertissements,
         };
       },
