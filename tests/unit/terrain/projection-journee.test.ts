@@ -50,10 +50,11 @@ const LIGNE_COMPLETE: LignePlanning = {
   suspendue_le: null,
   machines: [{ machine_id: "0199999-0000-7000-8000-000000000008" }],
   vue_technicien_le: null,
-  client: { raison_sociale: "CODIMA" },
+  client: { raison_sociale: "CODIMA", code_externe: "CLI-SECRET" },
   site: { libelle: "Atelier Ducos", commune: "Nouméa" },
   cree_le: new Date("2026-10-01T00:00:00.000Z"),
   deplanifiee_date: null,
+  cloturee_le: null,
 };
 
 const CLES_INTERDITES = [

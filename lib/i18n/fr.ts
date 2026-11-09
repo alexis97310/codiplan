@@ -2695,6 +2695,12 @@ export const fr = {
   "intervention.realisation.en_cours": "En cours",
   "intervention.realisation.temps_mesure": "Temps mesuré par le compteur",
   "intervention.realisation.temps_valide": "Temps validé",
+  // LA MÊME DURÉE, EN MINUTES ENTIÈRES (9K12-EXPORT-WINPRO) — pour la seule
+  // colonne de `/api/interventions/exporter` qui en a besoin : la saisie
+  // Winpro part d'un nombre, pas de « 1 h 30 ». `intervention.realisation.
+  // temps_valide` reste le libellé LISIBLE, réutilisé tel quel pour l'autre
+  // colonne du même export (jamais une seconde chaîne pour un même sens).
+  "intervention.export_colonne_temps_valide_minutes": "Temps validé (minutes)",
   "intervention.realisation.valide_par": "Validé par",
   "intervention.realisation.valide_le": "Validé le",
   "intervention.realisation.prestations_titre": "Prestations réalisées",

@@ -2665,7 +2665,7 @@ function filtreClientActif(
 
 /** Une ligne de planning, avec ce qu'il faut pour la lire sans l'ouvrir. */
 export type LignePlanning = LigneIntervention & {
-  readonly client: { raison_sociale: string };
+  readonly client: { raison_sociale: string; code_externe: string | null };
   readonly site: { libelle: string; commune: string | null };
   /**
    * L'ANCIENNETÉ (TP-UX3-1-REGISTRE-2) — colonne « Ancienneté » de l'onglet
@@ -2681,6 +2681,8 @@ export type LignePlanning = LigneIntervention & {
    * n'est montré que sur la fiche).
    */
   readonly deplanifiee_date: Date | null;
+  /** LA DATE DE CLÔTURE (9K12-EXPORT-WINPRO) — `null` tant que l'intervention n'est pas clôturée. */
+  readonly cloturee_le: Date | null;
 };
 
 /**
@@ -4177,7 +4179,13 @@ const SELECTION_LIGNE_PLANNING = {
   ...CHAMPS_LIGNE,
   cree_le: true,
   deplanifiee_date: true,
-  client: { select: { raison_sociale: true } },
+  /**
+   * LA DATE DE CLÔTURE (9K12-EXPORT-WINPRO) — pour la seule colonne
+   * d'export qui en a besoin ; une lecture bon marché, même raison que
+   * `cree_le`/`deplanifiee_date` ci-dessus.
+   */
+  cloturee_le: true,
+  client: { select: { raison_sociale: true, code_externe: true } },
   site: { select: { libelle: true, commune: true } },
 } as const;
 

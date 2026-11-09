@@ -8,6 +8,8 @@ import {
   maintenant,
   schemaFuseau,
 } from "@/lib/calendar/fuseau";
+import { enDuree } from "@/lib/calendar/duree";
+import { libelleCodeExterne } from "@/lib/clients/code-externe";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { classeurDUneFeuille, nomDuFichierExport } from "@/lib/excel/export";
 import { t } from "@/lib/i18n/fr";
@@ -18,9 +20,11 @@ import { personnesANommer, quiTravaille } from "@/lib/interventions/personnes";
 import { schemaRechercheInterventions } from "@/lib/interventions/saisie";
 import { libellesDesMachines } from "@/lib/machines/depot";
 
+import { ouTiret } from "@/app/(back-office)/presentation";
 import {
   machinesAffichees,
   motifCriteresInvalides,
+  objetDuBloc,
   referenceAffichee,
 } from "@/app/(back-office)/interventions/presentation";
 
@@ -99,7 +103,7 @@ async function traiter(requete: Request): Promise<Response> {
     avecContexteApplicatif(contexte, (tx) =>
       tx.societe.findFirst({
         where: { id: contexte.societeId },
-        select: { fuseau_horaire: true },
+        select: { fuseau_horaire: true, libelle_code_externe: true },
       }),
     ),
     libellesDesMachines(
@@ -112,6 +116,11 @@ async function traiter(requete: Request): Promise<Response> {
     annuaireDesPersonnes(tx, personnesANommer(lignes, [])),
   );
 
+  // LES COLONNES DE SAISIE WINPRO (9K12-EXPORT-WINPRO), SANS AUCUN MONTANT —
+  // décision d'Alexis du 09/11/2026 : Winpro calcule le prix, ce fichier ne
+  // porte ni montant, ni taux, ni forfait chiffré. Ajoutées APRÈS les huit
+  // colonnes existantes, jamais insérées entre elles : un export déjà en
+  // usage ne doit pas voir une colonne connue changer de position.
   const entetes = [
     t("intervention.reference"),
     t("intervention.client"),
@@ -121,6 +130,12 @@ async function traiter(requete: Request): Promise<Response> {
     t("intervention.date"),
     t("intervention.priorite"),
     t("intervention.statut"),
+    t("intervention.type"),
+    libelleCodeExterne(societe?.libelle_code_externe),
+    t("intervention.reference_client"),
+    t("intervention.realisation.cloturee_le"),
+    t("intervention.realisation.temps_valide"),
+    t("intervention.export_colonne_temps_valide_minutes"),
   ];
   const corps = lignes.map((ligne) => [
     referenceAffichee(ligne),
@@ -135,6 +150,14 @@ async function traiter(requete: Request): Promise<Response> {
       : dateCivile(ligne.date_planifiee),
     t(`priorite.${ligne.priorite}`),
     t(`statut.${ligne.statut}`),
+    objetDuBloc(ligne),
+    ouTiret(ligne.client.code_externe),
+    ouTiret(ligne.reference_client),
+    ligne.cloturee_le === null ? ouTiret(null) : dateCivile(ligne.cloturee_le),
+    ligne.temps_valide_min === null
+      ? ouTiret(null)
+      : enDuree(ligne.temps_valide_min),
+    ouTiret(ligne.temps_valide_min),
   ]);
 
   const classeur = await classeurDUneFeuille(entetes, corps);

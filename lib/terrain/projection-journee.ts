@@ -1,7 +1,6 @@
 import type { TypeIntervention } from "@prisma/client";
 
 import { premiereLignePanne } from "@/components/terrain/presentation";
-import type { LignePlanning } from "@/lib/interventions/depot";
 import {
   jourEtDateAbregee,
   machinesAffichees,
@@ -31,7 +30,33 @@ import type { Priorite, StatutIntervention } from "@/lib/interventions/saisie";
  * `panneResume`) le sont ICI, côté serveur — jamais par la carte — pour que
  * celle-ci n'ait plus besoin d'importer `machinesAffichees` ni
  * `jourEtDateAbregee` depuis le back-office (point 4 du même ticket).
+ *
+ * **Le paramètre d'entrée est une forme STRUCTURELLE, jamais `LignePlanning`
+ * (9K12-EXPORT-WINPRO).** `app/(mobile)/terrain/page.tsx` appelle cette
+ * projection aussi bien sur des lignes de `listerPlanning` (`LignePlanning`)
+ * que sur celles de `interventionsEnRetard`/la file « à traiter »
+ * (`LigneFileATraiter`, `SELECTION_LIGNE_FILE_A_TRAITER`) : deux sélections
+ * Prisma distinctes, qui ne portent pas les mêmes colonnes au-delà de ce que
+ * cette carte affiche. Nommer `LignePlanning` ici couplait les deux
+ * sélections au premier champ que l'une ajoutait sans l'autre — exactement
+ * ce que ce fichier reproche à `app/(mobile)/terrain/page.tsx` plus haut,
+ * en sens inverse.
  */
+type LigneSource = {
+  readonly id: string;
+  readonly statut: StatutIntervention;
+  readonly type: TypeIntervention;
+  readonly priorite: Priorite;
+  readonly creneau_debut: Date | null;
+  readonly creneau_fin: Date | null;
+  readonly vue_technicien_le: Date | null;
+  readonly client: { readonly raison_sociale: string };
+  readonly site: { readonly libelle: string };
+  readonly description: string | null;
+  readonly machines: readonly { readonly machine_id: string }[];
+  readonly date_planifiee: Date | null;
+};
+
 export type LigneJourneeAffichee = {
   readonly id: string;
   readonly statut: StatutIntervention;
@@ -53,7 +78,7 @@ export type LigneJourneeAffichee = {
 
 /** Projette une ligne lue par `listerPlanning`/`interventionsEnRetard` vers ce que la carte affiche. */
 export function projeterLigneJournee(
-  ligne: LignePlanning,
+  ligne: LigneSource,
   libellesMachines: ReadonlyMap<string, string>,
 ): LigneJourneeAffichee {
   return {
