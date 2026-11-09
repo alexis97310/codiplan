@@ -54,6 +54,20 @@ export function creneauDeLaFiche(
 }
 
 /**
+ * LE LIEN D'ITINÉRAIRE (9K11-LIBELLES-SUITES-ITINERAIRE) — un URI `geo:`,
+ * générique : l'appareil propose son propre choix d'application de
+ * navigation (Google Maps, Waze…), jamais une application imposée par le
+ * produit. `null` sans adresse — aucun lieu à pointer. Ne lit jamais le
+ * réseau lui-même : le lien reste posé hors connexion, et s'ouvrira quand le
+ * téléphone le pourra (I4).
+ */
+export function lienItineraire(adresseSite: string | null): string | null {
+  return adresseSite === null
+    ? null
+    : `geo:0,0?q=${encodeURIComponent(adresseSite)}`;
+}
+
+/**
  * LA PREMIÈRE LIGNE D'UNE PANNE SIGNALÉE — pour la carte de Ma journée, où
  * le texte complet déborderait. `null` dès que la description est vide ou
  * absente : une carte ne montre jamais un bloc muet.

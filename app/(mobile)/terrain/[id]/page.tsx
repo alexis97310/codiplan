@@ -14,6 +14,7 @@ import {
   contactAffiche,
   creneauDeLaFiche,
   heureLocale,
+  lienItineraire,
 } from "@/components/terrain/presentation";
 import {
   jourDe,
@@ -24,6 +25,7 @@ import {
 import { PhotosTerrain } from "@/components/interventions/photos-terrain";
 import { RapportTerrainAutomatique } from "@/components/terrain/rapport-automatique";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
+import { Button } from "@/components/ui/button";
 import { Priorite } from "@/components/ui/priorite";
 import { type ContexteActif } from "@/lib/auth/contexte";
 import { obtenirSession } from "@/lib/auth/session";
@@ -274,6 +276,7 @@ export default async function PageInterventionTerrain({
     site?.adresse ?? null,
     site?.commune ?? null,
   );
+  const itineraire = lienItineraire(adresseSite);
   const consignesAcces = site?.consignes_acces ?? null;
 
   // TERMINER (9DE-TP-CY1) — jugé ici, à l'écran, exactement comme le fait
@@ -517,6 +520,16 @@ export default async function PageInterventionTerrain({
             valeur={creneauDeLaFiche(ligne, fiche.fuseau)}
           />
         </dl>
+        {itineraire === null ? null : (
+          <Button
+            asChild
+            variant="outline"
+            size="lg"
+            className="mt-3 w-full text-16"
+          >
+            <a href={itineraire}>{t("terrain.itineraire")}</a>
+          </Button>
+        )}
       </section>
 
       {consignesAcces === null ? null : (

@@ -3105,6 +3105,10 @@ export const fr = {
   "terrain.reserve.retour": "Retour au planning",
   "terrain.date": "Date",
   "terrain.creneau": "Créneau",
+  // ITINÉRAIRE (9K11-LIBELLES-SUITES-ITINERAIRE) — un lien `geo:` générique
+  // (`lienItineraire`, `components/terrain/presentation.ts`) : l'appareil
+  // choisit l'application de navigation, jamais le produit.
+  "terrain.itineraire": "Itinéraire",
   "terrain.inconnu": "—",
   "terrain.client_inconnu": "Client",
   "terrain.compteur": "Compteur",

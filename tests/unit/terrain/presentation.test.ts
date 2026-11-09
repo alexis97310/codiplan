@@ -7,6 +7,7 @@ import {
   libelleJourLong,
   libelleJourLongEnTeteDePhrase,
   libelleJoursSuivantsVide,
+  lienItineraire,
   premiereLignePanne,
 } from "@/components/terrain/presentation";
 import { t } from "@/lib/i18n/fr";
@@ -182,5 +183,23 @@ describe("libelleJourLongEnTeteDePhrase — le titre de Ma journée porte le jou
     const enTete = libelleJourLongEnTeteDePhrase(LUNDI_28_SEPTEMBRE);
     expect(miPhrase).toBe("lundi 28 septembre");
     expect(enTete).toBe(miPhrase.charAt(0).toUpperCase() + miPhrase.slice(1));
+  });
+});
+
+describe("lienItineraire — un URI générique, jamais une application imposée (9K11-LIBELLES-SUITES-ITINERAIRE)", () => {
+  it("`null` sans adresse : rien à pointer", () => {
+    expect(lienItineraire(null)).toBeNull();
+  });
+
+  it("un URI `geo:`, l'adresse encodée en requête", () => {
+    expect(lienItineraire("12 rue des Palétuviers, Nouméa")).toBe(
+      "geo:0,0?q=12%20rue%20des%20Pal%C3%A9tuviers%2C%20Noum%C3%A9a",
+    );
+  });
+
+  it("une adresse qui porte déjà des caractères spéciaux d'URI reste encodée", () => {
+    expect(lienItineraire("Lot 3 & 4, ZI")).toBe(
+      "geo:0,0?q=Lot%203%20%26%204%2C%20ZI",
+    );
   });
 });

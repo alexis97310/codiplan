@@ -255,7 +255,7 @@ describe("retouches typographiques du 30/09/2026 (D143)", () => {
       );
     });
 
-    it("chaque <Button des 7 fichiers du terrain porte text-16 — 20 au total (constat du 30/09/2026, étendu par 9DE-TP-CY1, redistribué par 9EWB-PHOTOS-EN-BASE, 9F4-TERRAIN-ENREGISTREMENT-AUTO, 9F4H3-HORS-RESEAU-ENVOYER, 9F4H6C-FILE-ROBUSTESSE, D219, D220 puis 9I7B (voir `tests/unit/ui/composants-base.test.tsx`))", () => {
+    it("chaque <Button des 7 fichiers du terrain porte text-16 — 21 au total (constat du 30/09/2026, étendu par 9DE-TP-CY1, redistribué par 9EWB-PHOTOS-EN-BASE, 9F4-TERRAIN-ENREGISTREMENT-AUTO, 9F4H3-HORS-RESEAU-ENVOYER, 9F4H6C-FILE-ROBUSTESSE, D219, D220, 9I7B puis 9K11-LIBELLES-SUITES-ITINERAIRE (voir `tests/unit/ui/composants-base.test.tsx`))", () => {
       let total = 0;
       for (const chemin of FICHIERS_TERRAIN) {
         const f = FICHIERS.find((x) => x.chemin === chemin);
@@ -280,9 +280,11 @@ describe("retouches typographiques du 30/09/2026 (D143)", () => {
       // D220 (même ticket) — la question « Rouvrir l'intervention ? »
       // ajoute « Non » et « Oui, rouvrir » : 16 + 2 = 18. PUIS 9I7B — la
       // section « Pièces remplacées » ajoute « Ajouter une pièce » et
-      // « Retirer cette pièce » : 18 + 2 = 20.
+      // « Retirer cette pièce » : 18 + 2 = 20. PUIS 9K11-LIBELLES-SUITES-
+      // ITINERAIRE — le bouton « Itinéraire » sous l'adresse du site :
+      // 20 + 1 = 21.
       // Même arithmétique que `composants-base.test.tsx`.
-      expect(total).toBe(20);
+      expect(total).toBe(21);
     });
   });
 
