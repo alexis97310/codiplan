@@ -143,3 +143,39 @@ lien-d-acces.ts`, `depot/`, `11-FILE.sh`, `CLAUDE.md` non touchés.
 - Reste à faire avant de rendre la main : `git fetch origin` + `git rebase origin/main`,
   `CI=1 pnpm verify`, vérifier l'arbre propre. `verify:full` est laissé à la file (non
   joué ici, conformément à la consigne).
+
+## Reprise 9K06A-REPRISE-9K06
+
+Premier passage de `verify:full` sur 9K06 (`9K06-PORTAIL-COMPTE-TELEPHONE-verify-1.txt`) :
+1 seul échec, `tests/e2e/captures-9j08b-portail-temps-par-etat.spec.ts:277` — même classe
+que 9K02A.
+
+- **Constat** : le `<dl>` de la fiche intervention posé par ce ticket (point I8 ci-dessus)
+  étiquette la date avec le texte fixe `"Date planifiée"` (`intervention.date`,
+  `lib/i18n/fr.ts`). L'épreuve 9J08B, elle, cherchait `fr["statut.planifiee"]`
+  (`"Planifiée"`) sans `exact: true` sur la même page — `getByText('Planifiée')` résout
+  désormais le `<dt>Date planifiée</dt>` **et** le `<span>Planifiée</span>` du temps par
+  état (« strict mode violation »).
+- **Correctif** : `exact: true` posé sur cette seule recherche
+  (`tests/e2e/captures-9j08b-portail-temps-par-etat.spec.ts:277`) — pas un assouplissement
+  (règle du ticket) : la recherche vise toujours le même texte, juste sans correspondance
+  partielle.
+- **Recherche élargie** (consigne du ticket) : passage de `tests/e2e/**` pour toute
+  recherche par texte NON exacte d'un mot que les nouvelles étiquettes de 9K06 contiennent
+  (« Planifiée », « Statut », « Nature », « Numéro », « Date ») sur un écran du portail.
+  Aucune autre occurrence trouvée : `9k06-portail-compte-telephone.spec.ts` et
+  `captures-9k06-portail-compte-telephone.spec.ts` posaient déjà `exact: true` sur
+  `intervention.statut`/`.type`/`.date`/`.numero` (écrits avec le ticket). Les autres
+  occurrences de `getByText` non exactes sur des écrans du portail (`demande.statut.*`
+  sur `/portail/demandes`, `portail.machine.serie` sur la fiche machine) visent des
+  textes qui ne partagent aucune sous-chaîne avec les quatre étiquettes neuves et n'ont
+  pas échoué.
+- **Rejoué, `CI=1 --workers=1`** : `captures-9j08b-portail-temps-par-etat.spec.ts` (4/4),
+  les 14 fichiers `*portail*.spec.ts` (83/83), `tous-les-ecrans-rendent.spec.ts`
+  (60/60, 3 skip attendus) ; puis `CI=1 pnpm verify` (format/typecheck/lint/test/
+  test:isolation/build), vert.
+- Aucun code d'application modifié — seule l'épreuve était fausse, la fiche intervention
+  est correcte.
+- Branche `9K06A-REPRISE-9K06`, créée depuis `9K06-PORTAIL-COMPTE-TELEPHONE-garde`
+  (identique à `origin/main` + les 4 commits de 9K06, aucune divergence à reporter par
+  cherry-pick). Un commit. `verify:full` laissé à la file.
