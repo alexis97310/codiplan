@@ -3,7 +3,7 @@
 import { useId, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { estCleTraduction, t } from "@/lib/i18n/fr";
+import { estCleTraduction, t, type CleTraduction } from "@/lib/i18n/fr";
 
 type EtatCopie =
   | { readonly etape: "repos" }
@@ -39,13 +39,20 @@ type EtatCopie =
  * compte de bureau, dont les motifs ne sont pas tous les mêmes
  * (`cible_protegee`, décision B, D223, n'existe que pour un compte de
  * bureau).
+ *
+ * `libelle` — le texte du bouton lui-même (9K14-PORTAIL-COPIER-NOUVEAU-LIEN) :
+ * le portail nomme son geste « Copier un nouveau lien », distinct du PREMIER
+ * lien (« Copier le lien d'accès », le défaut, inchangé pour technicien et
+ * bureau).
  */
 export function BoutonCopierLien({
   action,
   prefixeMotifRefus = "equipe.acces.refus.",
+  libelle = "equipe.acces.copier_lien",
 }: Readonly<{
   readonly action: string;
   readonly prefixeMotifRefus?: string;
+  readonly libelle?: CleTraduction;
 }>) {
   const [etat, setEtat] = useState<EtatCopie>({ etape: "repos" });
   const idChamp = useId();
@@ -97,7 +104,7 @@ export function BoutonCopierLien({
         disabled={etat.etape === "en_cours"}
         onClick={() => void copier()}
       >
-        {t("equipe.acces.copier_lien")}
+        {t(libelle)}
       </Button>
       {etat.etape === "copie" ? (
         <p role="status" className="text-app-encre-faible text-12 font-bold">

@@ -849,6 +849,93 @@ export async function inviterClientAuPortail(
   return { accepte: true, url, dejaActif };
 }
 
+/**
+ * Ce que la trace nomme avant la virgule, pour la SEULE copie d'un NOUVEAU
+ * lien d'un compte du portail — voir `copierNouveauLienDAccesPortail`.
+ */
+const LIBELLE_CHEMIN_NOUVEAU_LIEN_PORTAIL =
+  "nouveau lien (mot de passe oublié) copié par l'administrateur de la " +
+  "société ou la direction — compte du portail client (D96/D230, D223/D226)";
+
+/** Ce qu'un refus NOMMÉ dit — les motifs partagés plus ceux du portail (D50). */
+export type MotifRefusCopieNouveauLienPortail =
+  | MotifRefusAccesPartage
+  | "revoque"
+  | "autre_societe";
+
+export type ResultatCopieNouveauLienPortail =
+  | { readonly accepte: true; readonly url: string }
+  | {
+      readonly accepte: false;
+      readonly motif: MotifRefusCopieNouveauLienPortail;
+    };
+
+/**
+ * COPIE UN NOUVEAU LIEN D'ACCÈS (mot de passe oublié) D'UN COMPTE DU PORTAIL
+ * CLIENT DONT L'ACCÈS EST DÉJÀ ACTIF (9K14-PORTAIL-COPIER-NOUVEAU-LIEN) —
+ * variante portail de `copierNouveauLienDAccesBureau`
+ * (`lib/auth/acces-bureau.ts`), D86/9I6B : Alexis ne reçoit pas les courriels
+ * et veut, comme administrateur, voir et copier le lien d'un compte du
+ * portail depuis la fiche du client (backlog B7).
+ *
+ * **D223 et D226 appliquées comme pour un compte de bureau** (étude du
+ * 08/11, §5.1 : sans elles, ce geste recrée C1 — une identité du portail
+ * partagée avec une autre société pourrait recevoir ici un lien utilisable
+ * par qui ne la contrôle pas entièrement). Ordre des contrôles, chacun avec
+ * son motif : capacité `administrer_utilisateurs` (défense en profondeur,
+ * D230) → rattachement de CE compte à CE client, dans la société active
+ * (`introuvable` sinon, sans rien dire de plus) → rattachement ACTIF
+ * (`revoque` : un compte révoqué se RÉ-INVITE, il ne reçoit pas de nouveau
+ * lien) → exclusivité D226 (`autre_societe`, fail-closed comme 9I8D2).
+ * Aucune lecture cross-société hors `identiteExclusiveALaSociete`.
+ *
+ * **Aucune « cible protégée » (D223) ici** : un compte du portail ne porte
+ * jamais le rôle `direction` ni `admin_societe` — ces deux rôles n'existent
+ * que dans `utilisateur_societe`, jamais dans `utilisateur_client` (D96). Ce
+ * que D223 apporte à ce geste est sa DISCIPLINE (capacité, puis D226),
+ * jamais une liste de rôles protégés à recopier ici.
+ *
+ * @param contexteAdmin voir `inviterClientAuPortail` — même garde (D230).
+ * @param clientId le client visé, dans la société active.
+ * @param utilisateurId le compte du portail visé.
+ */
+export async function copierNouveauLienDAccesPortail(
+  contexteAdmin: ContexteSession,
+  clientId: string,
+  utilisateurId: string,
+  client: PrismaClient = prisma,
+): Promise<ResultatCopieNouveauLienPortail> {
+  const societeId = exigerSocieteActive(contexteAdmin);
+  exigerCapaciteInvitationClient(contexteAdmin);
+
+  const rattachement = await avecSociete(client, societeId, (tx) =>
+    tx.utilisateurClient.findFirst({
+      where: { client_id: clientId, utilisateur_id: utilisateurId },
+      select: { actif: true },
+    }),
+  );
+  if (rattachement === null) {
+    return { accepte: false, motif: "introuvable" };
+  }
+  if (!rattachement.actif) {
+    return { accepte: false, motif: "revoque" };
+  }
+
+  if (
+    !(await identiteExclusiveALaSociete(contexteAdmin, utilisateurId, client))
+  ) {
+    return { accepte: false, motif: "autre_societe" };
+  }
+
+  return copierLienDAccesPartage(
+    contexteAdmin,
+    utilisateurId,
+    LIBELLE_CHEMIN_NOUVEAU_LIEN_PORTAIL,
+    client,
+    { nouveauLien: true },
+  );
+}
+
 /** Ce qu'un refus NOMMÉ dit — la ligne n'existait pas (D50). */
 export type ResultatRevocationAccesPortail =
   | { readonly accepte: true }
@@ -943,6 +1030,8 @@ export async function revoquerAccesPortailClient(
 /** Un compte du portail, tel que la fiche client le montre. */
 export type CompteDuPortailClient = {
   readonly id: string;
+  /** L'IDENTITÉ — distincte de `id` (D10) : `id` désigne le RATTACHEMENT. */
+  readonly utilisateurId: string;
   readonly email: string;
   readonly actif: boolean;
 };
@@ -967,6 +1056,7 @@ export async function comptesDuPortailDuClient(
       select: {
         id: true,
         actif: true,
+        utilisateur_id: true,
         utilisateur: { select: { email: true } },
       },
       orderBy: { id: "asc" },
@@ -974,6 +1064,7 @@ export async function comptesDuPortailDuClient(
   );
   return lignes.map((ligne) => ({
     id: ligne.id,
+    utilisateurId: ligne.utilisateur_id,
     email: ligne.utilisateur.email,
     actif: ligne.actif,
   }));

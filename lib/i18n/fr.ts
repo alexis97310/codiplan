@@ -7104,6 +7104,14 @@ export const fr = {
   "clients.acces.deja_actif":
     "Ce compte a déjà un mot de passe — l'accès à ce client est immédiat, aucun lien à transmettre.",
   "clients.acces.copier_lien_erreur": "Le lien n'a pas pu être copié.",
+  // « COPIER UN NOUVEAU LIEN » (mot de passe oublié, 9K14-PORTAIL-COPIER-
+  // NOUVEAU-LIEN, backlog B7) — distinct du PREMIER lien ci-dessus : visible
+  // seulement sur un compte DÉJÀ ACTIF, jamais en attente.
+  "clients.acces.copier_nouveau_lien": "Copier un nouveau lien",
+  "clients.acces.refus.revoque":
+    "Cet accès a été révoqué : ré-invitez le contact plutôt que de lui transmettre un lien.",
+  "clients.acces.refus.autre_societe":
+    "Ce compte est aussi rattaché à une autre société : un nouveau lien ne peut pas lui être transmis d'ici.",
   "clients.acces.revoquer": "Révoquer l'accès",
   "clients.acces.revoque": "Accès révoqué.",
   "clients.acces.etat.actif": "Accès actif",

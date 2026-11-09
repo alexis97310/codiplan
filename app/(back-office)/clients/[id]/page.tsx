@@ -7,6 +7,7 @@ import { cache, type ReactNode } from "react";
 import { z } from "zod";
 
 import { FormulaireInvitationPortail } from "@/components/clients/formulaire-invitation-portail";
+import { BoutonCopierLien } from "@/components/equipe/bouton-copier-lien";
 import { Page } from "@/components/mise-en-page/page";
 import {
   ActionPrimaire,
@@ -1249,19 +1250,30 @@ export default async function PageClient({
                       </span>
                     </div>
                     {compte.actif ? (
-                      <form
-                        method="post"
-                        action={`/api/clients/${compte.id}/revoquer-acces`}
-                      >
-                        <input
-                          type="hidden"
-                          name="retour"
-                          value={`/clients/${client.id}?onglet=identite`}
+                      <div className="flex flex-wrap items-center gap-2">
+                        {/* « COPIER UN NOUVEAU LIEN » (9K14-PORTAIL-COPIER-
+                            NOUVEAU-LIEN, backlog B7) — Alexis ne reçoit pas
+                            les courriels : même geste que pour un compte de
+                            bureau, D223/D226 appliquées côté serveur. */}
+                        <BoutonCopierLien
+                          action={`/api/clients/${client.id}/comptes/${compte.utilisateurId}/copier-nouveau-lien`}
+                          prefixeMotifRefus="clients.acces.refus."
+                          libelle="clients.acces.copier_nouveau_lien"
                         />
-                        <Button type="submit" variant="outline" size="sm">
-                          {t("clients.acces.revoquer")}
-                        </Button>
-                      </form>
+                        <form
+                          method="post"
+                          action={`/api/clients/${compte.id}/revoquer-acces`}
+                        >
+                          <input
+                            type="hidden"
+                            name="retour"
+                            value={`/clients/${client.id}?onglet=identite`}
+                          />
+                          <Button type="submit" variant="outline" size="sm">
+                            {t("clients.acces.revoquer")}
+                          </Button>
+                        </form>
+                      </div>
                     ) : null}
                   </li>
                 ))}

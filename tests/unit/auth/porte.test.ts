@@ -97,6 +97,10 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   // (technicien, compte de bureau), PAS `gerer_client_site` malgré D130.
   "app/api/clients/[id]/inviter/route.ts": "administrer_utilisateurs",
   "app/api/clients/[id]/revoquer-acces/route.ts": "administrer_utilisateurs",
+  // D223/D226 appliquées (9K14-PORTAIL-COPIER-NOUVEAU-LIEN, backlog B7) —
+  // même capacité que l'invitation et la révocation ci-dessus.
+  "app/api/clients/[id]/comptes/[utilisateurId]/copier-nouveau-lien/route.ts":
+    "administrer_utilisateurs",
   "app/api/sites/creer/route.ts": "gerer_client_site",
   "app/api/sites/[id]/modifier/route.ts": "gerer_client_site",
   // Un interlocuteur est un attribut du client, pas un objet à part
@@ -660,7 +664,10 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
     // `.../[id]/piece-recue/route.ts`.
     // 103 depuis 9K13-TERRAIN-ATTENTE-PIECE — `app/api/terrain/[id]/
     // suspendre/route.ts`.
-    expect(Object.keys(ROUTE_CAPACITE).length).toBe(103);
+    // 104 depuis 9K14-PORTAIL-COPIER-NOUVEAU-LIEN (backlog B7) — la route
+    // neuve `app/api/clients/[id]/comptes/[utilisateurId]/copier-nouveau-
+    // lien/route.ts`.
+    expect(Object.keys(ROUTE_CAPACITE).length).toBe(104);
   });
 
   it("aucune exemption ne survit à son objet — adossement dans les deux sens", () => {
