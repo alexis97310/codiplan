@@ -8146,3 +8146,36 @@ Portée : `prisma/migrations/20261109080000_checklists_socle_9k08`,
 `tests/unit/db/formes-du-lot-8.test.ts`,
 `tests/unit/db/perimetre-audit.test.ts`,
 `tests/unit/db/inventaire.test.ts`.
+
+## D236 — « J'ATTENDS UNE PIÈCE » CÔTÉ TERRAIN : RÉFÉRENCE ET DATE TOUJOURS ENSEMBLE, LE MOTIF EST UN TEXTE FIXE (décision verbatim d'Alexis, 09/11/2026 ~10:30 ; 9K13-TERRAIN-ATTENTE-PIECE)
+
+*Ouvre au technicien, pour la première fois, la capacité `suspendre_reprendre_intervention` qu'il portait déjà (D131, 23/09/2026) mais qu'aucun écran terrain ne lui offrait — et tranche un écart entre le ticket et RG-INT-06 que le ticket lui-même ne voyait pas.*
+
+### CE QUI A ÉTÉ MESURÉ
+
+Le domaine existait déjà, entièrement, avant ce ticket : `suspendreIntervention`, `schemaSuspension`, `peutSuspendre` (`lib/interventions/depot.ts`, `lib/interventions/saisie.ts`, `lib/interventions/cycle-de-vie.ts`), la route `app/api/interventions/[id]/suspendre/route.ts`, et la capacité `suspendre_reprendre_intervention` restreinte au technicien affecté (D131). Seul manquait un CHEMIN terrain : aucun bouton, aucune route sous `app/api/terrain/`, aucun geste dans la file hors réseau.
+
+Le ticket demandait, en même temps, deux choses incompatibles : sa décision rapportée d'Alexis dit « référence + date prévue » (les deux, sans réserve), mais son point 2 ajoute « référence obligatoire, date prévue facultative » — alors que RG-INT-06 (chapitre 10) et `schemaSuspension` (`.refine`, déjà en place pour le bureau) exigent les deux ENSEMBLE ou aucune : *« pour une attente de pièce, la référence attendue et la date de disponibilité prévisionnelle »*. Une référence sans date ferait une file d'attente sans horizon, que l'alerte du chapitre 16.1 ne saurait pas trier — exactement ce que RG-INT-06 refuse déjà pour le bureau. Le texte du ticket l'emporte quand il ne contredit rien ; ici il contredisait une règle de rang 2, qui gagne (§1 du `CLAUDE.md`).
+
+### LA DÉCISION
+
+**Le geste terrain « J'attends une pièce » porte TOUJOURS la référence ET la date de disponibilité, jamais l'une sans l'autre** — aucun assouplissement de `schemaSuspension`, qui reste le même pour le bureau et pour le terrain. **Le motif n'est jamais saisi par le technicien** : un texte fixe (`terrain.suspendre.motif_auto`) remplit la colonne que RG-INT-06 exige pour TOUTE suspension, bureau comme terrain — la référence et la date suffisent à dire pourquoi l'intervention s'arrête, retaper un motif serait une seconde saisie du même fait. L'intervention passe `suspendue` dans la même transaction que l'écriture de la pièce (inchangé, déjà le cas pour le bureau) ; le bureau la voit là où il voit déjà les pauses (`Pauses`, onglet Temps de la fiche intervention) — aucun écran neuf côté bureau.
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+Elle n'ouvre pas au technicien une suspension SANS pièce (motif libre) : ce geste-là reste un geste du bureau (`DialogueSuspendre`), jamais du terrain. Elle n'ajoute aucune capacité : `suspendre_reprendre_intervention` et son périmètre restreint (D131) sont inchangés. Elle ne touche à aucune migration, aucune politique RLS : les quatre colonnes (`motif_suspension`, `piece_attendue_ref`, `date_dispo_prevue`, `suspendue_le`) existaient déjà.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où le terrain a besoin de suspendre SANS pièce (un motif libre, comme le bureau), cette décision se rouvre : il faudra alors un second geste terrain, ou un champ motif redevenu saisissable — jamais assouplir le motif fixe en place pour l'attente de pièce, qui resterait vrai pour elle.
+
+**Règles amendées :** aucune — RG-INT-06 reste inchangée ; cette décision l'applique au terrain, elle ne la modifie pas.
+
+Portée : `app/api/terrain/[id]/suspendre/route.ts`,
+`lib/terrain/file-saisies.ts` (`GesteSuspendre`),
+`lib/terrain/envoi-file.ts` (`ORDRE_PIPELINE`),
+`components/terrain/suspendre-terrain.tsx`,
+`app/(mobile)/terrain/[id]/page.tsx`,
+`components/terrain/consultation-hors-reseau.tsx`,
+`app/api/terrain/instantane/route.ts`,
+`lib/i18n/fr.ts` (bloc `terrain.suspendre.*`).
