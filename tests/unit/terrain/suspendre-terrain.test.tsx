@@ -220,11 +220,9 @@ describe("la coquille sans réseau — un refus d'authentification n'est jamais 
     });
     vi.stubGlobal(
       "fetch",
-      vi
-        .fn()
-        .mockResolvedValue({
-          json: async () => ({ ok: false, motif: "auth.refus" }),
-        }),
+      vi.fn().mockResolvedValue({
+        json: async () => ({ ok: false, motif: "auth.refus" }),
+      }),
     );
 
     scene({ sansSession: true });
