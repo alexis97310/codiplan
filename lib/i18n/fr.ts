@@ -6276,6 +6276,10 @@ export const fr = {
   "terrain.e2e.suite_a_donner": "Revoir le compresseur dans 3 mois.",
   "terrain.e2e.signataire_nom": "Épreuve — Signataire",
   "terrain.e2e.prestation_libelle": "Filtre à air",
+  // 9K13-TERRAIN-ATTENTE-PIECE — la référence de pièce attendue par
+  // `9k13-terrain-attente-piece.spec.ts`, en ligne et hors réseau.
+  "terrain.e2e.piece_ref_en_ligne": "REF-E2E-123",
+  "terrain.e2e.piece_ref_hors_reseau": "REF-AVION-9",
 
   // ── FIXTURES DE L'ÉPREUVE 9I7B0 (tests/e2e/9i7b-pieces-remplacees.spec.ts)
   // — même raison que ci-dessus : une désignation ou une référence de pièce

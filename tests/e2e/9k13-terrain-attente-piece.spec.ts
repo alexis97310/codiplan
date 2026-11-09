@@ -30,6 +30,9 @@ function admin(): PrismaClient {
   });
 }
 
+const REFERENCE_EN_LIGNE = fr["terrain.e2e.piece_ref_en_ligne"];
+const REFERENCE_HORS_RESEAU = fr["terrain.e2e.piece_ref_hors_reseau"];
+
 const DOSSIER_CAPTURES = join(
   process.cwd(),
   "docs/propositions/9K13-TERRAIN-ATTENTE-PIECE/captures",
@@ -150,7 +153,7 @@ test("375 px, en ligne — le technicien déclare l'attente, le bureau la voit",
     await bouton.click();
     await page
       .getByLabel(fr["intervention.suspension.piece"])
-      .fill("REF-E2E-123");
+      .fill(REFERENCE_EN_LIGNE);
     await page
       .getByLabel(fr["intervention.suspension.date_dispo"])
       .fill("2026-12-15");
@@ -159,7 +162,7 @@ test("375 px, en ligne — le technicien déclare l'attente, le bureau la voit",
       .getByRole("button", { name: fr["terrain.suspendre.enregistrer"] })
       .click();
 
-    await expect(page.getByText(/REF-E2E-123/)).toBeVisible();
+    await expect(page.getByText(REFERENCE_EN_LIGNE)).toBeVisible();
     await capturer(page, "terrain-fiche-apres");
 
     const ligne = await client.intervention.findUniqueOrThrow({
@@ -171,7 +174,7 @@ test("375 px, en ligne — le technicien déclare l'attente, le bureau la voit",
       },
     });
     expect(ligne.statut).toBe("suspendue");
-    expect(ligne.piece_attendue_ref).toBe("REF-E2E-123");
+    expect(ligne.piece_attendue_ref).toBe(REFERENCE_EN_LIGNE);
     expect(ligne.date_dispo_prevue?.toISOString().slice(0, 10)).toBe(
       "2026-12-15",
     );
@@ -190,7 +193,7 @@ test("375 px, en ligne — le technicien déclare l'attente, le bureau la voit",
       // la référence, sous une autre forme, ailleurs sur le même écran.
       await expect(
         pageBureau.getByText(
-          `${fr["intervention.pauses.piece"]} : REF-E2E-123`,
+          `${fr["intervention.pauses.piece"]}${fr["ponctuation.deux_points"]}${REFERENCE_EN_LIGNE}`,
         ),
       ).toBeVisible();
       await capturer(pageBureau, "bureau-intervention-suspendue");
@@ -222,7 +225,7 @@ test("375 px, mode avion — la déclaration reste gardée hors connexion, puis 
       .click();
     await page
       .getByLabel(fr["intervention.suspension.piece"])
-      .fill("REF-AVION-9");
+      .fill(REFERENCE_HORS_RESEAU);
     await page
       .getByLabel(fr["intervention.suspension.date_dispo"])
       .fill("2026-12-20");
@@ -254,13 +257,13 @@ test("375 px, mode avion — la déclaration reste gardée hors connexion, puis 
       .click();
     await expect(page.getByText(fr["terrain.file.tout_envoye"])).toBeVisible();
 
-    await expect(page.getByText(/REF-AVION-9/)).toBeVisible();
+    await expect(page.getByText(REFERENCE_HORS_RESEAU)).toBeVisible();
     const ligne = await client.intervention.findUniqueOrThrow({
       where: { id: scene.interventionId },
       select: { statut: true, piece_attendue_ref: true },
     });
     expect(ligne.statut).toBe("suspendue");
-    expect(ligne.piece_attendue_ref).toBe("REF-AVION-9");
+    expect(ligne.piece_attendue_ref).toBe(REFERENCE_HORS_RESEAU);
   } finally {
     await nettoyer(client, scene);
   }
