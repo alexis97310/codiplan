@@ -10,14 +10,14 @@ import { obtenirSession } from "@/lib/auth/session";
 import { lireFuseau, maintenant } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
-import {
-  demandesOuvertes,
-  demandesTraitees,
-  type LigneDemande,
-} from "@/lib/demandes/depot";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { ENTREES_PORTAIL } from "@/lib/navigation/entrees";
 import { parcDuClient, rattachementsDuCompte } from "@/lib/portail/depot";
+import {
+  demandesOuvertesDuPortail,
+  demandesTraiteesDuPortail,
+  type LigneDemandePortail,
+} from "@/lib/portail/demandes";
 import { historiquesDemandesDuClient } from "@/lib/portail/historique-etats";
 
 import {
@@ -91,8 +91,8 @@ export default async function PageDemandesPortail({
 
   const contexte = { ...session.contexte, clientId: premier.clientId };
   const [ouvertes, traitees, parc, societe] = await Promise.all([
-    demandesOuvertes(contexte),
-    demandesTraitees(contexte, { page: 1 }),
+    demandesOuvertesDuPortail(contexte),
+    demandesTraiteesDuPortail(contexte, { page: 1 }),
     parcDuClient(contexte),
     avecContexteApplicatif(contexte, (tx) =>
       tx.societe.findFirst({
@@ -105,9 +105,10 @@ export default async function PageDemandesPortail({
 
   // LA PLUS RÉCENTE D'ABORD — voir l'en-tête de ce fichier pour le motif de
   // ce second tri, délibérément distinct de celui des deux lectures.
-  const demandes: readonly LigneDemande[] = [...ouvertes, ...traitees].sort(
-    (a, b) => b.depose_le.getTime() - a.depose_le.getTime(),
-  );
+  const demandes: readonly LigneDemandePortail[] = [
+    ...ouvertes,
+    ...traitees,
+  ].sort((a, b) => b.depose_le.getTime() - a.depose_le.getTime());
 
   // LE TEMPS PAR ÉTAT DE CHAQUE DEMANDE (9J08B-PORTAIL-TEMPS-PAR-ETAT) — UN
   // SEUL aller pour toutes les demandes de la liste (`historiquesDemandesDu

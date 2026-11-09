@@ -455,10 +455,7 @@ describe("MATRICE D'ÉCRITURE — INSERT / UPDATE / DELETE, annulés, table par 
     contexte: { societeId: string; clientId: string },
     ecriture: (tx: PrismaClient) => Promise<unknown>,
   ): Promise<string | null> {
-    return tentativeAvec(
-      (travail) => avecPortail(contexte, travail),
-      ecriture,
-    );
+    return tentativeAvec((travail) => avecPortail(contexte, travail), ecriture);
   }
 
   async function tentativeAvec(
@@ -544,7 +541,10 @@ describe("MATRICE D'ÉCRITURE — INSERT / UPDATE / DELETE, annulés, table par 
 
     it("DELETE (sa propre demande) est accepté — la base ne l'interdit pas, l'application ne l'exerce pas", async () => {
       const refus = await tentative(CONTEXTE_A1, (tx) =>
-        tx.$executeRawUnsafe(`DELETE FROM "demande" WHERE "id" = $1::uuid`, DEMANDE_A1),
+        tx.$executeRawUnsafe(
+          `DELETE FROM "demande" WHERE "id" = $1::uuid`,
+          DEMANDE_A1,
+        ),
       );
       expect(refus).toBeNull();
     });
@@ -606,7 +606,8 @@ describe("MATRICE D'ÉCRITURE — INSERT / UPDATE / DELETE, annulés, table par 
       // insérée. Un compte du client A1 peut donc, par ce seul geste,
       // s'ouvrir le parc d'A2 — le voisin de la MÊME société.
       const refus = await tentativeAvec(
-        (travail) => avecPortailIdentifie(PORTAIL_A_CLIENT, CONTEXTE_A1, travail),
+        (travail) =>
+          avecPortailIdentifie(PORTAIL_A_CLIENT, CONTEXTE_A1, travail),
         (tx) =>
           tx.$executeRawUnsafe(
             `INSERT INTO "utilisateur_client" ("id","utilisateur_id","client_id","societe_id")
@@ -623,7 +624,8 @@ describe("MATRICE D'ÉCRITURE — INSERT / UPDATE / DELETE, annulés, table par 
   describe("« utilisateur_client_site » — OUVERTE À TORT (étude §4 I2) — 9K16 : à fermer", () => {
     it("INSERT est ACCEPTÉ par la base, pour sa propre habilitation — l'identité posée (D92)", async () => {
       const refus = await tentativeAvec(
-        (travail) => avecPortailIdentifie(PORTAIL_A_CLIENT, CONTEXTE_A1, travail),
+        (travail) =>
+          avecPortailIdentifie(PORTAIL_A_CLIENT, CONTEXTE_A1, travail),
         (tx) =>
           tx.$executeRawUnsafe(
             `INSERT INTO "utilisateur_client_site" ("id","societe_id","utilisateur_client_id","site_id")
@@ -661,10 +663,12 @@ describe("MATRICE D'ÉCRITURE — INSERT / UPDATE / DELETE, annulés, table par 
   });
 
   it("TÉMOIN GÉNÉRAL — aucune des tentatives ci-dessus n'a laissé de ligne (toutes annulées)", async () => {
-    expect(await compteProprietaireSociete("demande", SOCIETE_A)).toBeGreaterThanOrEqual(
-      1,
-    );
-    const demandes = await clientOwner().$queryRawUnsafe<{ description: string }[]>(
+    expect(
+      await compteProprietaireSociete("demande", SOCIETE_A),
+    ).toBeGreaterThanOrEqual(1);
+    const demandes = await clientOwner().$queryRawUnsafe<
+      { description: string }[]
+    >(
       `SELECT "description" FROM "demande" WHERE "societe_id" = $1::uuid`,
       SOCIETE_A,
     );

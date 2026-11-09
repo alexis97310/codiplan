@@ -4,7 +4,7 @@ import {
   CLASSE_DEPLIANT_PORTAIL,
 } from "@/components/portail/gabarit";
 import type { Fuseau } from "@/lib/calendar/fuseau";
-import type { LigneDemande } from "@/lib/demandes/depot";
+import type { LigneDemandePortail } from "@/lib/portail/demandes";
 import type { StatutDemande } from "@/lib/demandes/saisie";
 import { t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
@@ -46,7 +46,7 @@ export function ListeDemandes({
   tempsParEtatParDemande,
   machinePreselectionnee,
 }: {
-  readonly demandes: readonly LigneDemande[];
+  readonly demandes: readonly LigneDemandePortail[];
   readonly sites: readonly SiteDuPortail[];
   readonly machines: readonly MachineDuPortail[];
   readonly fuseau: Fuseau;
@@ -109,7 +109,7 @@ function LigneDemandeVue({
   fuseau,
   tempsParEtat,
 }: {
-  readonly demande: LigneDemande;
+  readonly demande: LigneDemandePortail;
   readonly siteParId: ReadonlyMap<string, string>;
   readonly machineParId: ReadonlyMap<string, MachineDuPortail>;
   readonly fuseau: Fuseau;
