@@ -1,7 +1,15 @@
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { type ContexteSession } from "@/lib/auth/contexte";
 import { Role } from "@/lib/auth/roles";
+import {
+  chargerCalendrierAgence,
+  cleJour,
+  jourDe,
+  jourSuivant,
+  maintenant,
+  prochainJourOuvert,
+} from "@/lib/calendar";
 import { uuidv7 } from "@/lib/db/uuid";
 import {
   enregistrerAccord,
@@ -14,9 +22,11 @@ import {
   creerReprise,
 } from "@/lib/suite-a-donner/reprise";
 
-import { clientApp, clientOwner, fermerClients } from "./setup/db";
+import { clientApp, clientOwner, fermerClients, sousSociete } from "./setup/db";
 import {
+  AGENCE_A,
   CONTACT_A1_COMPTABLE,
+  FUSEAU_SOCIETE_A,
   INTERVENTION_A1,
   MACHINE_A1,
   SOCIETE_A,
@@ -39,10 +49,14 @@ import {
  * sa reprise.
  *
  * `AGENCE_A`/`DEBUT_MINUTES` (09:00) reprennent la même agence que
- * `verdict-pose-lecture.test.ts` ; `LUNDI` (23/11/2026) est un lundi futur
- * dédié à CE fichier — ni le `14/09/2026` de `verdict-pose-lecture.test.ts`
- * (tombé dans le passé au fil des exécutions de ce dépôt), ni le `07/12/2026`
- * (« Férié fictif de décembre ZZ », `tests/isolation/setup/global.ts`).
+ * `verdict-pose-lecture.test.ts`. `LUNDI` est CALCULÉ — le prochain jour ouvert
+ * du calendrier de l'agence A à partir d'aujourd'hui (9K12A, 10/11/2026) —
+ * jamais écrit en dur : le `23/11/2026` qui l'a précédé n'aurait fait que
+ * reproduire, un peu plus loin, le sort du `14/09/2026` de
+ * `verdict-pose-lecture.test.ts` (tombé dans le passé au fil des exécutions de
+ * ce dépôt) ou du « Férié fictif de décembre ZZ »
+ * (`tests/isolation/setup/fixtures.ts`) qu'il visait justement à éviter —
+ * l'oracle du calendrier écarte l'un comme l'autre de lui-même.
  */
 
 afterAll(fermerClients);
@@ -57,9 +71,32 @@ const INTERNE_ADV: ContexteSession = {
 };
 
 const TECHNICIEN = UTILISATEUR_PAR_ROLE[Role.technicien];
-const LUNDI = new Date("2026-11-23T00:00:00.000Z");
 const DEBUT_MINUTES = 9 * 60;
 const DUREE_MIN = 60;
+
+let LUNDI: Date;
+
+beforeAll(async () => {
+  const aujourdhui = jourDe(maintenant(FUSEAU_SOCIETE_A).local);
+  const fenetre = { du: aujourdhui, au: jourSuivant(aujourdhui, 180) };
+
+  const calendrierA = await sousSociete(SOCIETE_A, (tx) =>
+    chargerCalendrierAgence(tx, {
+      societeId: SOCIETE_A,
+      agenceId: AGENCE_A,
+      fenetre,
+    }),
+  );
+  if (calendrierA === null) {
+    throw new Error(
+      "suite-a-donner-reprise.test.ts : calendrier de l'agence A introuvable " +
+        "— la fixture a changé, l'oracle de date ne peut plus se calculer.",
+    );
+  }
+
+  const jourLocal = prochainJourOuvert([calendrierA], aujourdhui, 120);
+  LUNDI = new Date(`${cleJour(jourLocal)}T00:00:00.000Z`);
+});
 
 /**
  * Une intervention jetable, clonée de `INTERVENTION_A1` — même agence/site/
@@ -276,8 +313,8 @@ describe("creerReprise — les mêmes refus qu'une pose ordinaire", () => {
     // (Nouméa, UTC+11 : la veille 22:00Z–23:00Z).
     const occupanteId = await interventionOccupante(
       TECHNICIEN,
-      new Date("2026-11-22T22:00:00.000Z"),
-      new Date("2026-11-22T23:00:00.000Z"),
+      new Date(LUNDI.getTime() - 2 * 60 * 60 * 1000),
+      new Date(LUNDI.getTime() - 1 * 60 * 60 * 1000),
     );
     const origineId = await interventionJetable();
     try {

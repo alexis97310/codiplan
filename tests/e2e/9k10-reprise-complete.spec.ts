@@ -3,6 +3,9 @@ import { expect, test } from "@playwright/test";
 
 import { type ContexteSession } from "@/lib/auth/contexte";
 import { Role } from "@/lib/auth/roles";
+import { prochainJourOuvert } from "@/lib/calendar";
+import { chargerCalendrierAgence } from "@/lib/calendar/agence";
+import { jourDe, jourSuivant, maintenant } from "@/lib/calendar/fuseau";
 import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
 import {
@@ -12,6 +15,7 @@ import {
 } from "@/lib/suite-a-donner/depot";
 
 import { urlAdministration, urlApplicative } from "./setup/base";
+import { cleDeJour } from "./setup/scene";
 import { ouvrirUneSession } from "./setup/session";
 
 /**
@@ -51,6 +55,7 @@ function admin(): PrismaClient {
 let interventionOrigineId = "";
 let suiteADonnerId = "";
 let nouvelleInterventionId = "";
+let JOUR_CIBLE = "";
 
 test.beforeAll(async () => {
   const client = admin();
@@ -74,6 +79,33 @@ test.beforeAll(async () => {
       where: { email: "garnier@codima.test" },
       select: { id: true },
     });
+
+    // `JOUR_CIBLE` EST CALCULÉ (9K12A, 10/11/2026), même oracle que
+    // `pg-g14b-transmettre-groupe.spec.ts` — un `2026-12-01` en dur serait
+    // devenu `date_passee` (D141) après cette date.
+    const societe = await client.societe.findUniqueOrThrow({
+      where: { id: societeId },
+      select: { fuseau_horaire: true },
+    });
+    const aujourdhui = jourDe(maintenant(societe.fuseau_horaire).local);
+    const fenetre = {
+      du: jourSuivant(aujourdhui),
+      au: jourSuivant(aujourdhui, 60),
+    };
+    const calendrierDucos = await chargerCalendrierAgence(client, {
+      societeId,
+      agenceId: agence.id,
+      fenetre,
+    });
+    if (calendrierDucos === null) {
+      throw new Error(
+        "9k10-reprise-complete.spec.ts : calendrier de l'agence DUCOS " +
+          "introuvable — l'oracle de date ne peut plus se calculer.",
+      );
+    }
+    JOUR_CIBLE = cleDeJour(
+      prochainJourOuvert([calendrierDucos], fenetre.du, 60),
+    );
 
     await client.client.create({
       data: {
@@ -237,7 +269,7 @@ test("la fiche de la reprise affiche la machine, le contact et la référence cl
 
   await page
     .getByLabel(fr["suites_a_donner.replanifier.date"])
-    .fill("2026-12-01");
+    .fill(JOUR_CIBLE);
   await page.getByLabel(fr["suites_a_donner.replanifier.duree"]).fill("60");
   await page
     .getByRole("button", {

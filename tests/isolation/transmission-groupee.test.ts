@@ -1,6 +1,23 @@
-import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from "vitest";
 
 import { Role } from "@/lib/auth/roles";
+import {
+  chargerCalendrierAgence,
+  cleJour,
+  jourDe,
+  jourSuivant,
+  maintenant,
+  prochainJourOuvert,
+  type Calendrier,
+} from "@/lib/calendar";
 import { uuidv7 } from "@/lib/db/uuid";
 import {
   listerPlanifieesATransmettre,
@@ -8,12 +25,13 @@ import {
   transmettreIntervention,
 } from "@/lib/interventions/depot";
 
-import { clientApp, clientOwner, fermerClients } from "./setup/db";
+import { clientApp, clientOwner, fermerClients, sousSociete } from "./setup/db";
 import {
   AGENCE_A,
   AGENCE_B,
   CLIENT_A1,
   CLIENT_B1,
+  FUSEAU_SOCIETE_A,
   SITE_A1_S1,
   SITE_B1_S1,
   SOCIETE_A,
@@ -55,10 +73,55 @@ const SESSION_B = {
   clientId: null,
 };
 
-const JOUR_SQL = "2026-11-09";
-const JOUR = { annee: 2026, mois: 11, jour: 9 };
-const AUTRE_JOUR_SQL = "2026-11-16";
-const CRENEAU = new Date("2026-11-09T08:00:00.000Z");
+/**
+ * Les deux jours sont CALCULÉS sur le calendrier réel de l'agence A, jamais
+ * écrits en dur : une date en dur devient `date_passee` (D141) le jour où
+ * elle tombe derrière « aujourd'hui », et casse l'épreuve sans aucun rapport
+ * avec ce qu'elle éprouve (9K12A, mesuré le 10/11/2026). `JOUR` est le
+ * prochain jour ouvré à partir de demain, `AUTRE_JOUR` le premier jour ouvré
+ * au moins sept jours après — le calendrier fixture de l'agence A n'ouvrant
+ * que le lundi, les deux tombent sur des lundis distincts, ce que
+ * `listerPlanifieesATransmettre({ jour })` doit continuer à distinguer.
+ */
+let JOUR_SQL: string;
+let JOUR: { annee: number; mois: number; jour: number };
+let AUTRE_JOUR_SQL: string;
+let CRENEAU: Date;
+let CRENEAU_AUTRE_JOUR: Date;
+
+beforeAll(async () => {
+  const aujourdhui = jourDe(maintenant(FUSEAU_SOCIETE_A).local);
+  const demain = jourSuivant(aujourdhui);
+  const fenetre = { du: aujourdhui, au: jourSuivant(aujourdhui, 180) };
+
+  const calendrierA = await sousSociete(SOCIETE_A, (tx) =>
+    chargerCalendrierAgence(tx, {
+      societeId: SOCIETE_A,
+      agenceId: AGENCE_A,
+      fenetre,
+    }),
+  );
+  if (calendrierA === null) {
+    throw new Error(
+      "transmission-groupee.test.ts : calendrier de l'agence A introuvable " +
+        "— la fixture a changé, l'oracle de date ne peut plus se calculer.",
+    );
+  }
+  const calendriers: Calendrier[] = [calendrierA];
+
+  const jourLocal = prochainJourOuvert(calendriers, demain, 120);
+  const autreJourLocal = prochainJourOuvert(
+    calendriers,
+    jourSuivant(jourLocal, 7),
+    120,
+  );
+
+  JOUR = jourLocal;
+  JOUR_SQL = cleJour(jourLocal);
+  AUTRE_JOUR_SQL = cleJour(autreJourLocal);
+  CRENEAU = new Date(`${JOUR_SQL}T08:00:00.000Z`);
+  CRENEAU_AUTRE_JOUR = new Date(`${AUTRE_JOUR_SQL}T08:00:00.000Z`);
+});
 
 type Ligne = {
   readonly id: string;
@@ -157,7 +220,7 @@ beforeEach(async () => {
     statut: "planifiee",
     datePlanifiee: AUTRE_JOUR_SQL,
     technicienId: TECHNICIEN,
-    creneauDebut: new Date("2026-11-16T08:00:00.000Z"),
+    creneauDebut: CRENEAU_AUTRE_JOUR,
     dureeEstimeeMin: 60,
   });
   // DÉJÀ AFFECTÉE — jamais rendue par `listerPlanifieesATransmettre`, et

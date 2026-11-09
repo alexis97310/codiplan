@@ -4,11 +4,15 @@ import { join } from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { expect, test, type Page } from "@playwright/test";
 
+import { chargerCalendrierAgence } from "@/lib/calendar/agence";
+import { jourDe, jourSuivant, maintenant } from "@/lib/calendar/fuseau";
+import { prochainJourOuvert } from "@/lib/calendar";
 import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
 import { reperesDeLaScene } from "./setup/reperes";
+import { cleDeJour } from "./setup/scene";
 import { ouvrirUneSession } from "./setup/session";
 
 /**
@@ -23,6 +27,11 @@ import { ouvrirUneSession } from "./setup/session";
  * `terminee`) — créées en `beforeAll` par `INSERT` direct (ne déclenche pas
  * `intervention_cycle_de_vie`, qui ne surveille que l'`UPDATE`), supprimées
  * en `afterAll`, aucune ligne ajoutée au semis.
+ *
+ * `JOUR_CIBLE` EST CALCULÉ (9K12A, 10/11/2026), MÊME ORACLE QUE
+ * `pg-g14b-transmettre-groupe.spec.ts` — le `15/12/2026` écrit en dur serait
+ * devenu `date_passee` (D141) après cette date, et le dialogue « Déplacer »
+ * ne propose aucune confirmation : il refuse purement et simplement.
  */
 test.describe.configure({ mode: "serial" });
 
@@ -31,6 +40,8 @@ const SITE_D84 = uuidv7();
 const INTERVENTION_SUSPENDUE = uuidv7();
 const INTERVENTION_EN_COURS = uuidv7();
 const INTERVENTION_TERMINEE = uuidv7();
+
+let JOUR_CIBLE = "";
 
 function admin(): PrismaClient {
   return new PrismaClient({
@@ -46,6 +57,26 @@ test.beforeAll(async () => {
       where: { societe_id: reperes.societeId, code: "DUCOS" },
       select: { id: true },
     });
+
+    const aujourdhui = jourDe(maintenant(reperes.fuseau).local);
+    const fenetre = {
+      du: jourSuivant(aujourdhui),
+      au: jourSuivant(aujourdhui, 60),
+    };
+    const calendrierDucos = await chargerCalendrierAgence(client, {
+      societeId: reperes.societeId,
+      agenceId: agence.id,
+      fenetre,
+    });
+    if (calendrierDucos === null) {
+      throw new Error(
+        "fiche-suspendue-gestes.spec.ts : calendrier de l'agence DUCOS " +
+          "introuvable — l'oracle de date ne peut plus se calculer.",
+      );
+    }
+    JOUR_CIBLE = cleDeJour(
+      prochainJourOuvert([calendrierDucos], fenetre.du, 60),
+    );
 
     await client.client.create({
       data: {
@@ -154,7 +185,7 @@ test("suspendue : « Déplacer » et « Changer de technicien… » sont tous le
   await boutonDeplacer.click();
   const dialogueDeplacer = page.locator("dialog[open]");
   await expect(dialogueDeplacer).toBeVisible();
-  await dialogueDeplacer.getByLabel(fr["intervention.date"]).fill("2026-12-15");
+  await dialogueDeplacer.getByLabel(fr["intervention.date"]).fill(JOUR_CIBLE);
   await dialogueDeplacer
     .getByLabel(fr["intervention.deplacement.heure"])
     .fill("09:00");
@@ -169,7 +200,7 @@ test("suspendue : « Déplacer » et « Changer de technicien… » sont tous le
       where: { id: INTERVENTION_SUSPENDUE },
       select: { date_planifiee: true },
     });
-    expect(ligne.date_planifiee?.toISOString().slice(0, 10)).toBe("2026-12-15");
+    expect(ligne.date_planifiee?.toISOString().slice(0, 10)).toBe(JOUR_CIBLE);
   } finally {
     await client.$disconnect();
   }

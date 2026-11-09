@@ -6,6 +6,9 @@ import { expect, test, type Page } from "@playwright/test";
 
 import { type ContexteSession } from "@/lib/auth/contexte";
 import { Role } from "@/lib/auth/roles";
+import { prochainJourOuvert } from "@/lib/calendar";
+import { chargerCalendrierAgence } from "@/lib/calendar/agence";
+import { jourDe, jourSuivant, maintenant } from "@/lib/calendar/fuseau";
 import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
 import {
@@ -15,6 +18,7 @@ import {
 } from "@/lib/suite-a-donner/depot";
 
 import { urlAdministration, urlApplicative } from "./setup/base";
+import { cleDeJour } from "./setup/scene";
 import { ouvrirUneSession } from "./setup/session";
 
 /**
@@ -24,10 +28,13 @@ import { ouvrirUneSession } from "./setup/session";
  * jamais celle de `tests/e2e/setup/scene.ts` — mémoire « e2e-semis-partage-
  * parallele ».
  *
- * **Le 1ᵉʳ décembre 2026** (mardi) — un jour ouvert du calendrier de
- * démonstration de DUCOS (`DEMO-NOUMEA`, `prisma/seed-data.ts` : lundi à
- * samedi, 07:30–11:30 puis 13:00–17:00), et aucun des fériés NC fixes ou
- * mobiles de cette année.
+ * **`JOUR_CIBLE` EST CALCULÉ** (9K12A, 10/11/2026), même oracle que
+ * `pg-g14b-transmettre-groupe.spec.ts` — le prochain jour ouvert du
+ * calendrier de démonstration de DUCOS (`DEMO-NOUMEA`, `prisma/seed-data.ts` :
+ * lundi à samedi, 07:30–11:30 puis 13:00–17:00), fériés NC compris. Le
+ * `1ᵉʳ décembre 2026` qui l'a précédé était vérifié ouvert à l'écriture de ce
+ * fichier, mais écrit en dur il serait devenu `date_passee` (D141) après
+ * cette date, comme `transmission-groupee.test.ts` (mesuré le 10/11/2026).
  *
  * **`qualifierSuite`/`marquerDevisEnvoye`/`enregistrerAccord` sont appelées
  * directement**, comme bibliothèque — même geste que `preparerLaScene` de
@@ -47,6 +54,7 @@ let interventionAQualifierId = "";
 let interventionOrigineId = "";
 let suiteADonnerId = "";
 let nouvelleInterventionId = "";
+let JOUR_CIBLE = "";
 
 async function capturer(
   page: Page,
@@ -81,6 +89,31 @@ async function preparerLaScene(): Promise<void> {
       where: { societe_id: societeId, code: "DUCOS" },
       select: { id: true },
     });
+    const societe = await admin.societe.findUniqueOrThrow({
+      where: { id: societeId },
+      select: { fuseau_horaire: true },
+    });
+
+    const aujourdhui = jourDe(maintenant(societe.fuseau_horaire).local);
+    const fenetre = {
+      du: jourSuivant(aujourdhui),
+      au: jourSuivant(aujourdhui, 60),
+    };
+    const calendrierDucos = await chargerCalendrierAgence(admin, {
+      societeId,
+      agenceId: agence.id,
+      fenetre,
+    });
+    if (calendrierDucos === null) {
+      throw new Error(
+        "captures-9j18-suite-a-donner.spec.ts : calendrier de l'agence " +
+          "DUCOS introuvable — l'oracle de date ne peut plus se calculer.",
+      );
+    }
+    JOUR_CIBLE = cleDeJour(
+      prochainJourOuvert([calendrierDucos], fenetre.du, 60),
+    );
+
     const site = await admin.site.findFirstOrThrow({
       where: { societe_id: societeId, agence_id: agence.id },
       select: { id: true, client_id: true },
@@ -243,14 +276,14 @@ test("l'écran de déplacement propose un créneau, pré-sélectionne le technic
 
   await page
     .getByLabel(fr["suites_a_donner.replanifier.date"])
-    .fill("2026-12-01");
+    .fill(JOUR_CIBLE);
   await page.getByLabel(fr["suites_a_donner.replanifier.duree"]).fill("60");
   await page
     .getByRole("button", {
       name: fr["suites_a_donner.replanifier.voir_creneaux"],
     })
     .click();
-  await expect(page).toHaveURL(/date=2026-12-01/);
+  await expect(page).toHaveURL(new RegExp(`date=${JOUR_CIBLE}`));
   await expect(
     page.getByRole("heading", {
       name: fr["suites_a_donner.replanifier.creneaux_titre"],
