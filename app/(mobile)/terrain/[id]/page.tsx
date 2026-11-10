@@ -23,6 +23,10 @@ import {
   type JourLocal,
 } from "@/lib/calendar/fuseau";
 import { PhotosTerrain } from "@/components/interventions/photos-terrain";
+import {
+  ChecklistTerrain,
+  type PointChecklistEcran,
+} from "@/components/terrain/checklist-terrain";
 import { RapportTerrainAutomatique } from "@/components/terrain/rapport-automatique";
 import { BoutonSuspendreTerrain } from "@/components/terrain/suspendre-terrain";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
@@ -31,6 +35,10 @@ import { Priorite } from "@/components/ui/priorite";
 import { type ContexteActif } from "@/lib/auth/contexte";
 import { obtenirSession } from "@/lib/auth/session";
 import { enDuree } from "@/lib/calendar/duree";
+import {
+  checklistDeLIntervention,
+  type ReponseDeChecklist,
+} from "@/lib/checklists/depot";
 import { photosDeLIntervention } from "@/lib/documents/depot";
 import { estUuid } from "@/lib/identifiant";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
@@ -247,6 +255,7 @@ export default async function PageInterventionTerrain({
     site,
     pieces,
     conditionsFacturation,
+    checklist,
   ] = await Promise.all([
     lireRapportTexte(contexte, id),
     listerLesPrestations(contexte),
@@ -268,6 +277,11 @@ export default async function PageInterventionTerrain({
     // `lignesConditionsFacturation`, qui est le seul endroit du dépôt qui
     // nomme ce que ce fichier n'a pas le droit de nommer).
     lignesConditionsFacturation(contexte, ligne, fiche.forfait),
+    // LA CHECKLIST RÉSOLUE (9K21-CHECKLIST-TERRAIN-SAISIE, CK5) —
+    // `disponible: false` si aucun gabarit ne s'applique : la tuile ne se
+    // rend alors pas du tout (voir plus bas), rien ne change pour les
+    // interventions sans checklist.
+    checklistDeLIntervention(contexte, id),
   ]);
   const prestationsActives = prestationsCatalogue.filter((p) => p.actif);
   const idsRealises = new Set(
@@ -279,6 +293,29 @@ export default async function PageInterventionTerrain({
   );
   const itineraire = lienItineraire(adresseSite);
   const consignesAcces = site?.consignes_acces ?? null;
+
+  // LA CHECKLIST, APLATIE EN PROPS CLIENT-SAFE (9K21-CHECKLIST-TERRAIN-
+  // SAISIE, CK5) — `ChecklistTerrain` est un composant client : ni
+  // `Prisma.Decimal` (`valeurMesuree`) ni `Date` (`reponduLe`, jamais utile
+  // à l'écran) ne traversent la frontière serveur/client, seule la valeur
+  // UTILE à chaque type de point le fait.
+  const pointsChecklist: readonly PointChecklistEcran[] =
+    checklist !== null && checklist.disponible
+      ? checklist.points.map((point) => ({
+          id: point.id,
+          section: point.section,
+          libelle: point.libelle,
+          consigne: point.consigne,
+          obligatoire: point.obligatoire,
+          typeReponse: point.typeReponse,
+          unite: point.unite,
+          choix: point.choix,
+          valeurInitiale: valeurChecklistAffichee(
+            point.typeReponse,
+            checklist.reponses.find((r) => r.checklistPointId === point.id),
+          ),
+        }))
+      : [];
 
   // TERMINER (9DE-TP-CY1) — jugé ici, à l'écran, exactement comme le fait
   // `peutDemarrerLeCompteur` plus haut : le refus s'affiche À LA PLACE du
@@ -617,6 +654,16 @@ export default async function PageInterventionTerrain({
         </section>
       )}
 
+      {checklist === null || !checklist.disponible ? null : (
+        <ChecklistTerrain
+          interventionId={id}
+          utilisateurId={contexte.utilisateurId}
+          societeId={contexte.societeId}
+          checklistModeleLibelle={checklist.checklistModeleLibelle}
+          points={pointsChecklist}
+        />
+      )}
+
       <RapportTerrainAutomatique
         interventionId={id}
         utilisateurId={contexte.utilisateurId}
@@ -684,6 +731,38 @@ export default async function PageInterventionTerrain({
       />
     </main>
   );
+}
+
+/**
+ * LA RÉPONSE CONNUE DU SERVEUR, RAMENÉE À LA SEULE VALEUR UTILE À SON TYPE
+ * (9K21-CHECKLIST-TERRAIN-SAISIE, CK5) — `ReponseDeChecklist` porte les cinq
+ * colonnes à la fois (une seule non nulle, I1 §3) ; l'écran n'a besoin que
+ * de celle que `typeReponse` désigne. `null` si aucune réponse n'existe
+ * encore pour ce point.
+ */
+function valeurChecklistAffichee(
+  typeReponse: string,
+  reponse: ReponseDeChecklist | undefined,
+): string | number | boolean | null {
+  if (reponse === undefined) {
+    return null;
+  }
+  switch (typeReponse) {
+    case "conforme_non_conforme_sans_objet":
+      return reponse.valeurConforme;
+    case "valeur_mesuree":
+      return reponse.valeurMesuree === null
+        ? null
+        : Number(reponse.valeurMesuree);
+    case "case_faite":
+      return reponse.valeurFait ?? null;
+    case "choix_dans_une_liste":
+      return reponse.valeurChoix;
+    case "texte_libre":
+      return reponse.valeurTexte;
+    default:
+      return null;
+  }
 }
 
 /** Le libellé du type, ou son code si le dictionnaire l'ignore. */

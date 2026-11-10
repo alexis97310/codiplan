@@ -5038,6 +5038,34 @@ export const fr = {
   "checklist.parametrage.aucun_point":
     "Au moins un point est nécessaire pour publier une version.",
 
+  // ── LA SAISIE TERRAIN (9K21-CHECKLIST-TERRAIN-SAISIE, CK5) ───────────────
+  "checklist.terrain.provenance_prefixe": "Checklist",
+  "checklist.terrain.points": "points",
+  "checklist.terrain.non_conforme": "non conforme",
+  "checklist.terrain.afficher_detail": "Afficher le détail",
+  "checklist.terrain.masquer_detail": "Masquer le détail",
+  "checklist.terrain.option_conforme": "Conforme",
+  "checklist.terrain.option_sans_objet": "Sans objet",
+  "checklist.terrain.choisir": "Choisir…",
+  // Clés déjà nommées par le domaine et la route (9K18-CHECKLIST-DOMAINE,
+  // `lib/checklists/validation-reponse.ts`, `lib/checklists/depot.ts`,
+  // `app/api/terrain/[id]/checklist/route.ts`) — aucun écran ne les rendait
+  // encore, donc le dictionnaire ne les portait pas. CK5 leur donne leur
+  // premier lecteur (`BoutonEnvoyer`, par `LigneRefus`, sur un refus resté en
+  // file).
+  "checklist.enregistree": "Checklist enregistrée.",
+  "checklist.refus.differences_invalides":
+    "Cette saisie de checklist n'est pas valide.",
+  "checklist.refus.valeur_invalide": "Cette réponse n'est pas valide.",
+  "checklist.refus.choix_inconnu":
+    "Ce choix ne fait pas partie de la liste proposée.",
+  "checklist.refus.aucun_gabarit":
+    "Aucune checklist ne s'applique à cette intervention.",
+  "checklist.refus.point_hors_version":
+    "Ce point ne fait plus partie de la version en cours — rechargez la fiche.",
+  "checklist.refus.refus":
+    "Cette action n'est pas autorisée sur cette intervention.",
+
   // REPRIS MOT POUR MOT DE LA MAQUETTE (9EWD1-PARAMETRES-HUB-SOLDE, page
   // Paramètres, M:4385) — clé propre à ce hub (confronté par grep).
   "parametres.index_prestations_titre": "Prestations",
@@ -6412,6 +6440,14 @@ export const fr = {
   // `9k13-terrain-attente-piece.spec.ts`, en ligne et hors réseau.
   "terrain.e2e.piece_ref_en_ligne": "REF-E2E-123",
   "terrain.e2e.piece_ref_hors_reseau": "REF-AVION-9",
+
+  // ── FIXTURES DE L'ÉPREUVE 9K21 (tests/e2e/9k21-checklist-terrain-saisie.
+  // spec.ts) — même raison que `terrain.e2e.*` ci-dessus : le libellé d'un
+  // point de checklist, semé par l'épreuve puis relu à l'écran (le champ, le
+  // résumé), est du texte affiché.
+  "checklist.terrain.e2e.point_mesure": "Pression des pneus",
+  "checklist.terrain.e2e.point_choix": "État général",
+  "checklist.terrain.e2e.point_texte": "Observations",
 
   // ── FIXTURES DE L'ÉPREUVE 9I7B0 (tests/e2e/9i7b-pieces-remplacees.spec.ts)
   // — même raison que ci-dessus : une désignation ou une référence de pièce

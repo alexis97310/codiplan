@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { CaseACocher } from "@/components/ui/case-a-cocher";
 import { enDuree } from "@/lib/calendar/duree";
+import { suiteAvecLigne } from "@/lib/checklists/suite-preremplie";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { peutTerminer } from "@/lib/interventions/cycle-de-vie";
 import type {
@@ -20,15 +21,18 @@ import {
 import { cleBrouillon } from "@/lib/terrain/brouillon";
 import {
   ajouterSaisie,
+  type DetailChecklistNonConforme,
   type DetailCompteurDemarreEnLigne,
   type DetailPrestationsEnvoyees,
   differencePrestations,
+  EVENEMENT_CHECKLIST_NON_CONFORME,
   EVENEMENT_COMPTEUR_DEMARRE_EN_LIGNE,
   EVENEMENT_FILE_MODIFIEE,
   EVENEMENT_PRESTATIONS_ENVOYEES,
   type EntreeFile,
   instantAvantEnvoi,
   listerFilePourIntervention,
+  marquerRefusee,
   nouvelleOperation,
   retirerSaisieCoalescable,
 } from "@/lib/terrain/file-saisies";
@@ -1194,20 +1198,85 @@ export function RapportTerrainAutomatique({
   }
 
   /**
+   * LA CHECKLIST EN ATTENTE, SI ELLE EXISTE (9K21-CHECKLIST-TERRAIN-SAISIE,
+   * CK5) — à la différence du rapport, des prestations et de la signature,
+   * ce bloc ne vit dans AUCUN état local de ce composant : `checklist-
+   * terrain.tsx` écrit directement dans la file (voir son en-tête), jamais
+   * en ligne elle-même. `flushTout` relit donc la file plutôt qu'une ref
+   * locale, pour tenter de vider CETTE saisie précise avant un « Terminer ».
+   * Un refus ici ne bloque JAMAIS « Terminer » (D235 : un non conforme, et
+   * plus largement une réponse de checklist, ne juge jamais la fin de
+   * l'intervention — seul CK7, hors territoire ici, lira la complétude) ;
+   * la saisie refusée reste en file avec son motif, comme toute autre
+   * (point 3, 9F4H6C-FILE-ROBUSTESSE).
+   */
+  async function envoyerChecklist(): Promise<VerdictBloc> {
+    const enAttente = (
+      await listerFilePourIntervention(interventionId, {
+        utilisateurId,
+        societeId,
+      })
+    ).find((e) => e.geste.type === "checklist");
+    if (enAttente === undefined || enAttente.geste.type !== "checklist") {
+      return { etat: "accepte" };
+    }
+    // Voir `envoyerRapport` — même repère, même raison (point 2, 9F4H3AC).
+    const pasApresInstant = instantAvantEnvoi();
+    const corps = new FormData();
+    corps.set(
+      "reponses",
+      JSON.stringify(
+        Object.entries(enAttente.geste.difference).map(
+          ([checklist_point_id, valeur]) => ({ checklist_point_id, valeur }),
+        ),
+      ),
+    );
+    const resultat = await envoyerJson(
+      `/api/terrain/${interventionId}/checklist`,
+      corps,
+      sansSession,
+    );
+    if (resultat === null) {
+      return { etat: "hors_ligne" };
+    }
+    if (resultat.ok) {
+      // Voir `envoyerRapport` — même retrait, même raison (point 1, C1).
+      await retirerSaisieCoalescable({
+        interventionId,
+        utilisateurId,
+        societeId,
+        type: "checklist",
+        pasApresInstant,
+      });
+      return { etat: "accepte" };
+    }
+    await marquerRefusee(enAttente.id, resultat.motif);
+    return { etat: "echec", motifCle: resultat.motif };
+  }
+
+  /**
    * TOUT ENVOYER, ET RENDRE LE VERDICT DE CHAQUE BLOC (point 1,
    * 9F4A-TERMINER-SANS-PERTE) — `onClickTerminer` ne peut décider d'appeler
    * `/terminer` qu'en connaissant l'issue exacte des trois blocs, jamais sur
    * la seule foi que l'attente s'est terminée sans lever d'exception.
+   *
+   * **`checklist` VOYAGE DANS LE MÊME VERDICT, MAIS NE GARDE JAMAIS
+   * `onClickTerminer`** (9K21-CHECKLIST-TERRAIN-SAISIE, CK5) — voir le
+   * docblock d'`envoyerChecklist` : son issue n'entre dans AUCUNE des
+   * conditions qui retiennent « Terminer » plus bas, à la différence du
+   * rapport, des prestations et de la signature.
    */
   async function flushTout(): Promise<{
     readonly rapport: VerdictBloc;
     readonly prestations: VerdictBloc;
+    readonly checklist: VerdictBloc;
     readonly signature: VerdictBloc;
   }> {
     const rapport = await envoyerRapport();
     const prestations = await envoyerPrestations();
+    const checklist = await envoyerChecklist();
     const signature = await tenterEnvoiSignature();
-    return { rapport, prestations, signature };
+    return { rapport, prestations, checklist, signature };
   }
 
   // LE BROUILLON LOCAL, REPRIS AU MONTAGE — voir l'en-tête du fichier.
@@ -1347,6 +1416,41 @@ export function RapportTerrainAutomatique({
         EVENEMENT_PRESTATIONS_ENVOYEES,
         surPrestationsEnvoyees,
       );
+  }, [interventionId]);
+
+  // UN POINT DE CHECKLIST VIENT DE PASSER « NON CONFORME » (9K21-CHECKLIST-
+  // TERRAIN-SAISIE, CK5, point 3) — `checklist-terrain.tsx`, un composant
+  // FRÈRE, pose ce signal plutôt que d'écrire directement dans « Suite à
+  // donner », qui vit ICI. `suiteAvecLigne` (lib/checklists/suite-
+  // preremplie.ts) ne l'ajoute jamais en double : revenir deux fois au même
+  // point, ou rouvrir la fiche avec la ligne déjà écrite par une session
+  // précédente, laisse le texte inchangé.
+  useEffect(() => {
+    function surChecklistNonConforme(evenement: Event): void {
+      const detail = (evenement as CustomEvent<DetailChecklistNonConforme>)
+        .detail;
+      if (detail.interventionId !== interventionId) {
+        return;
+      }
+      const suivante = suiteAvecLigne(suiteRef.current, detail.ligne);
+      if (suivante === suiteRef.current) {
+        return;
+      }
+      suiteRef.current = suivante;
+      setSuite(suivante);
+      ecrireBrouillonCourant();
+      demarrerMinuteurRapport();
+    }
+    window.addEventListener(
+      EVENEMENT_CHECKLIST_NON_CONFORME,
+      surChecklistNonConforme,
+    );
+    return () =>
+      window.removeEventListener(
+        EVENEMENT_CHECKLIST_NON_CONFORME,
+        surChecklistNonConforme,
+      );
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `ecrireBrouillonCourant`/`demarrerMinuteurRapport` lisent l'état COURANT par leurs refs, jamais une fermeture périmée (voir leur en-tête) ; seul `interventionId` doit réabonner cet écouteur.
   }, [interventionId]);
 
   // L'AUTRE SOURCE : LE RAFRAÎCHISSEMENT DES PROPS SERVEUR (même point) —
