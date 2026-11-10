@@ -695,16 +695,49 @@ export default async function PagePlanning({
   // planifiées prêtes » (décision d'Alexis du 02/10/2026, point 7, D141)
   // lisent la MÊME civile, jamais deux lectures d'un même critère (§9, 01/09).
   const debutDuJourSociete = instantDuJour(jourDe(aujourdhui));
-  // LE PROCHAIN JOUR OUVERT (PG-C6-FILTRES-AUJOURDHUI) — pour le bouton
-  // « Aujourd'hui » de la vue JOUR : si aujourd'hui est un jour fermé de
-  // TOUTES les agences (dimanche, férié), il ouvre le premier jour suivant où
-  // AU MOINS UNE agence est ouverte (`prochainJourOuvert`,
+  // LE PROCHAIN JOUR OUVERT (PG-C6-FILTRES-AUJOURDHUI, reprise 9K18B) — pour
+  // le bouton « Aujourd'hui » de la vue JOUR : si aujourd'hui est un jour
+  // fermé de TOUTES les agences (dimanche, férié), il ouvre le premier jour
+  // suivant où AU MOINS UNE agence est ouverte (`prochainJourOuvert`,
   // `lib/calendar/ouverture.ts`), jamais une règle « dimanche » écrite ici
-  // (I7).
+  // (I7). Les calendriers sont RECHARGÉS sur une fenêtre dédiée
+  // [aujourd'hui, aujourd'hui + 16[ — jamais lus sur `pourGrille`, qui ne
+  // porte que `fenetreEnJours`, la fenêtre AFFICHÉE : en vue Jour, un seul
+  // jour, celui demandé par `?jour=` ; si ce jour n'est pas aujourd'hui (ex.
+  // la page a été ouverte sur un autre jour), le férié du jour COURANT n'est
+  // pas chargé et celui-ci passe pour ouvert à tort.
+  //
+  // UNE SEULE LECTURE, réutilisée pour « Demain » ci-dessous (même fenêtre,
+  // sans changer son résultat : [J+1, J+16[ est inclus dans
+  // [aujourd'hui, aujourd'hui + 16[).
+  const fenetreOuverture: FenetreJours = {
+    du: jourDe(aujourdhui),
+    au: jourSuivant(jourDe(aujourdhui), 16),
+  };
+  const calendriersOuverture = await avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const cache: CacheCalendrierAgence = new Map();
+      const calendriers = await Promise.all(
+        cadre.detaillees.map(({ agence }) =>
+          chargerCalendrierAgence(
+            tx,
+            {
+              societeId: contexte.societeId as string,
+              agenceId: agence.id,
+              fenetre: fenetreOuverture,
+            },
+            cache,
+          ),
+        ),
+      );
+      return calendriers.filter(
+        (calendrier): calendrier is Calendrier => calendrier !== null,
+      );
+    },
+  );
   const jourOuvertLePlusProche = prochainJourOuvert(
-    pourGrille
-      .map((agence) => agence.calendrier)
-      .filter((calendrier): calendrier is Calendrier => calendrier !== null),
+    calendriersOuverture,
     jourDe(aujourdhui),
   );
 
@@ -717,37 +750,13 @@ export default async function PagePlanning({
   //
   // « Demain » = le prochain jour ouvert d'AU MOINS UNE agence À PARTIR DE
   // J+1 — même règle que `jourOuvertLePlusProche` ci-dessus, un DÉPART
-  // différent. Les calendriers sont RECHARGÉS sur une fenêtre dédiée
-  // [J+1, J+15] : `fenetreEnJours`, juste en dessous, ne couvre que la
-  // fenêtre AFFICHÉE — un seul jour en vue Jour — et chercherait l'ouverture
-  // dans le vide.
+  // différent, sur les MÊMES calendriers (`calendriersOuverture`, déjà
+  // chargés sur une fenêtre qui couvre aussi J+1..J+15).
   const fenetreDemain: FenetreJours = {
     du: jourSuivant(jourDe(aujourdhui)),
     au: jourSuivant(jourDe(aujourdhui), 16),
   };
-  const calendriersDemain = await avecContexteApplicatif(
-    contexte,
-    async (tx) => {
-      const cache: CacheCalendrierAgence = new Map();
-      const calendriers = await Promise.all(
-        cadre.detaillees.map(({ agence }) =>
-          chargerCalendrierAgence(
-            tx,
-            {
-              societeId: contexte.societeId as string,
-              agenceId: agence.id,
-              fenetre: fenetreDemain,
-            },
-            cache,
-          ),
-        ),
-      );
-      return calendriers.filter(
-        (calendrier): calendrier is Calendrier => calendrier !== null,
-      );
-    },
-  );
-  const demain = prochainJourOuvert(calendriersDemain, fenetreDemain.du);
+  const demain = prochainJourOuvert(calendriersOuverture, fenetreDemain.du);
 
   const [
     { pretes: pretesDemain, laissees: laisseesDemain },
