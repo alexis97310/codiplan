@@ -228,20 +228,29 @@ describe("la forme « interne » (D94, D235) : checklist_modele, checklist_versi
   it("PREUVE — les clauses CHAÎNENT, aucune ne recopie une clause de société propre à l'étage fille", async () => {
     const [modele] = await clientOwner().$queryRawUnsafe<
       Array<{ qual: string }>
-    >(`SELECT "qual" FROM pg_policies WHERE tablename = 'checklist_modele'`);
+    >(
+      `SELECT "qual" FROM pg_policies
+        WHERE tablename = 'checklist_modele' AND policyname = 'cloisonnement_interne'`,
+    );
     expect(modele?.qual).toContain("app.societe_id");
     expect(modele?.qual).toContain("app.client_id");
 
     const [version] = await clientOwner().$queryRawUnsafe<
       Array<{ qual: string }>
-    >(`SELECT "qual" FROM pg_policies WHERE tablename = 'checklist_version'`);
+    >(
+      `SELECT "qual" FROM pg_policies
+        WHERE tablename = 'checklist_version' AND policyname = 'cloisonnement_filiation'`,
+    );
     expect(version?.qual).toContain("checklist_modele");
     expect(version?.qual).not.toContain("client_id");
     expect(version?.qual).not.toContain("societe_id");
 
     const [point] = await clientOwner().$queryRawUnsafe<
       Array<{ qual: string }>
-    >(`SELECT "qual" FROM pg_policies WHERE tablename = 'checklist_point'`);
+    >(
+      `SELECT "qual" FROM pg_policies
+        WHERE tablename = 'checklist_point' AND policyname = 'cloisonnement_filiation'`,
+    );
     expect(point?.qual).toContain("checklist_version");
     expect(point?.qual).not.toContain("client_id");
     expect(point?.qual).not.toContain("societe_id");
@@ -370,7 +379,8 @@ describe("la forme « filiation » (D103, D235) : checklist_reponse sur interven
     const [politique] = await clientOwner().$queryRawUnsafe<
       Array<{ qual: string; with_check: string }>
     >(
-      `SELECT "qual", "with_check" FROM pg_policies WHERE tablename = 'checklist_reponse'`,
+      `SELECT "qual", "with_check" FROM pg_policies
+        WHERE tablename = 'checklist_reponse' AND policyname = 'cloisonnement_filiation'`,
     );
     expect(politique?.qual).toContain("intervention");
     expect(politique?.qual).not.toContain("client_id");

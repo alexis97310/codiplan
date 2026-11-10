@@ -441,7 +441,8 @@ describe("LE MÊME PDF DANS DEUX SOCIÉTÉS — chacune garde le sien (N-06)", (
         "le verrou laisserait tous les scénarios suivants verts sur une base " +
         "ouverte.",
     ).$queryRawUnsafe<Array<{ qual: string }>>(
-      `SELECT qual FROM pg_policies WHERE tablename = 'document_recu'`,
+      `SELECT qual FROM pg_policies
+        WHERE tablename = 'document_recu' AND policyname = 'cloisonnement_interne'`,
     );
     expect(lignes[0]?.qual ?? "").toContain("app.societe_id");
     expect(lignes[0]?.qual ?? "").toContain("app.client_id");

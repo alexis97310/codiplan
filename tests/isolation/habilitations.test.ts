@@ -259,11 +259,14 @@ describe("LA FILIATION — un compte portail ne voit que les exigences de SON p�
     expect(vues).toHaveLength(2);
 
     // Et la transaction annulée n'a rien laissé derrière elle.
-    const [restante] = await clientOwner().$queryRawUnsafe<{ nom: string }[]>(
+    const restantes = await clientOwner().$queryRawUnsafe<
+      Array<{ nom: string }>
+    >(
       `SELECT policyname AS "nom" FROM pg_policies
-        WHERE tablename = 'site_habilitation_requise'`,
+        WHERE tablename = 'site_habilitation_requise'
+          AND policyname IN ('cloisonnement_filiation', 'jumeau_societe')`,
     );
-    expect(restante?.nom).toBe("cloisonnement_filiation");
+    expect(restantes.map((r) => r.nom)).toEqual(["cloisonnement_filiation"]);
   });
 });
 

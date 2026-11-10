@@ -139,7 +139,8 @@ describe("la forme « filiation » : la fille suit son parent (D103)", () => {
     const [politique] = await clientOwner().$queryRawUnsafe<
       Array<{ qual: string; with_check: string }>
     >(
-      `SELECT "qual", "with_check" FROM pg_policies WHERE tablename = 'intervention_machine'`,
+      `SELECT "qual", "with_check" FROM pg_policies
+        WHERE tablename = 'intervention_machine' AND policyname = 'cloisonnement_filiation'`,
     );
     expect(politique?.qual).toContain("intervention");
     expect(politique?.qual).not.toContain("client_id");

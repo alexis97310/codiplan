@@ -175,7 +175,8 @@ describe("la forme « filiation » : la fille suit son intervention d'origine (D
     const [politique] = await clientOwner().$queryRawUnsafe<
       Array<{ qual: string; with_check: string }>
     >(
-      `SELECT "qual", "with_check" FROM pg_policies WHERE tablename = 'suite_a_donner'`,
+      `SELECT "qual", "with_check" FROM pg_policies
+        WHERE tablename = 'suite_a_donner' AND policyname = 'cloisonnement_filiation'`,
     );
     expect(politique?.qual).toContain("intervention");
     expect(politique?.qual).not.toContain("client_id");
