@@ -80,7 +80,12 @@ async function traiter(requete: Request, id: string): Promise<Response> {
     const formulaire = await requete.formData();
     const brut = formulaire.get("reponses");
     if (typeof brut !== "string") {
-      return reponse(requete, id, false, "checklist.refus.differences_invalides");
+      return reponse(
+        requete,
+        id,
+        false,
+        "checklist.refus.differences_invalides",
+      );
     }
     let analyse: z.infer<typeof schemaDifference>;
     try {
@@ -95,7 +100,12 @@ async function traiter(requete: Request, id: string): Promise<Response> {
       }
       analyse = verdict.data;
     } catch {
-      return reponse(requete, id, false, "checklist.refus.differences_invalides");
+      return reponse(
+        requete,
+        id,
+        false,
+        "checklist.refus.differences_invalides",
+      );
     }
 
     const ecrite = await enregistrerReponses(

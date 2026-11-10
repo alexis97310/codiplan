@@ -13,7 +13,9 @@ import {
  * base, des parcs FABRIQUÉS.
  */
 
-function candidat(partiel: Partial<CandidatGabarit> & { readonly code: string }): CandidatGabarit {
+function candidat(
+  partiel: Partial<CandidatGabarit> & { readonly code: string },
+): CandidatGabarit {
   return {
     checklistModeleId: `modele-${partiel.code}`,
     typeIntervention: null,
@@ -126,7 +128,11 @@ describe("le filtre par NATURE vient d'abord, indépendamment du niveau matérie
 
   it("un candidat SANS nature déclarée est UNIVERSEL — il passe pour toute nature", () => {
     const candidats = [
-      candidat({ code: "UNIVERSEL", familleId: "famille-1", typeIntervention: null }),
+      candidat({
+        code: "UNIVERSEL",
+        familleId: "famille-1",
+        typeIntervention: null,
+      }),
     ];
     expect(
       resoudreGabarit(
@@ -179,11 +185,11 @@ describe("à égalité de niveau — le CODE, par ordre alphabétique, jamais le
     });
     // Rejoué avec l'ORDRE INVERSE des mêmes candidats : même résultat — la
     // règle ne dépend jamais de l'ordre dans lequel ils sont fournis.
-    expect(resoudreGabarit(CONTEXTE_AVEC_MACHINE, [...candidats].reverse())).toEqual(
-      {
-        checklistModeleId: "modele-AAA-FAMILLE",
-        provenance: "famille",
-      },
-    );
+    expect(
+      resoudreGabarit(CONTEXTE_AVEC_MACHINE, [...candidats].reverse()),
+    ).toEqual({
+      checklistModeleId: "modele-AAA-FAMILLE",
+      provenance: "famille",
+    });
   });
 });

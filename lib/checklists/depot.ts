@@ -20,7 +20,10 @@ import {
   type ContexteResolutionGabarit,
   type GabaritResolu,
 } from "@/lib/checklists/cascade";
-import { etatDeCompletude, type EtatCompletude } from "@/lib/checklists/completude";
+import {
+  etatDeCompletude,
+  type EtatCompletude,
+} from "@/lib/checklists/completude";
 import {
   validerReponsePoint,
   type SaisieReponsePoint,
@@ -455,8 +458,7 @@ export type SaisieDifferenceReponse = {
 };
 
 export type EcritureReponses =
-  | { readonly id: string }
-  | { readonly refuse: true; readonly cle: string };
+  { readonly id: string } | { readonly refuse: true; readonly cle: string };
 
 function valeursDeLaSaisie(saisie: SaisieReponsePoint): {
   readonly valeur_conforme: ReponseConformite | null;

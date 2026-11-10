@@ -1,7 +1,10 @@
 import { afterAll, describe, expect, it } from "vitest";
 
 import { type ContexteSession } from "@/lib/auth/contexte";
-import { checklistDeLIntervention, enregistrerReponses } from "@/lib/checklists/depot";
+import {
+  checklistDeLIntervention,
+  enregistrerReponses,
+} from "@/lib/checklists/depot";
 import { Role } from "@/lib/auth/roles";
 import { uuidv7 } from "@/lib/db/uuid";
 
@@ -49,7 +52,11 @@ function session(
 }
 
 const TERRAIN_A = session(TECHNICIEN_A, SOCIETE_A, Role.technicien);
-const COMPLET_B = session(UTILISATEUR_INTERNE_A, SOCIETE_B, Role.responsable_materiel);
+const COMPLET_B = session(
+  UTILISATEUR_INTERNE_A,
+  SOCIETE_B,
+  Role.responsable_materiel,
+);
 
 /** Pose un modèle + une version — SANS point, ni rattachement (générique) par défaut. */
 async function poserModeleEtVersion(
@@ -62,7 +69,9 @@ async function poserModeleEtVersion(
   await clientOwner().$executeRawUnsafe(
     `INSERT INTO "checklist_modele" ("id", "societe_id", "code", "libelle", "famille_id", "modifie_le")
      VALUES ('${modeleId}', '${societeId}', '${code}', 'Modèle de test', ${
-       rattachement.famille_id === undefined ? "NULL" : `'${rattachement.famille_id}'`
+       rattachement.famille_id === undefined
+         ? "NULL"
+         : `'${rattachement.famille_id}'`
      }, now())`,
   );
   await clientOwner().$executeRawUnsafe(
@@ -218,12 +227,7 @@ describe("le PIN — posé à la première réponse acceptée, jamais avant", ()
       SOCIETE_A,
       "ISO-PIN",
     );
-    const pointId = await poserPoint(
-      SOCIETE_A,
-      versionId,
-      "case_faite",
-      false,
-    );
+    const pointId = await poserPoint(SOCIETE_A, versionId, "case_faite", false);
     try {
       await surUneInterventionJetable(
         {
@@ -267,12 +271,7 @@ describe("`checklist.refus.point_hors_version` — un point d'une AUTRE version 
       SOCIETE_A,
       "ISO-HORS-VERSION",
     );
-    const pointUn = await poserPoint(
-      SOCIETE_A,
-      versionUn,
-      "case_faite",
-      false,
-    );
+    const pointUn = await poserPoint(SOCIETE_A, versionUn, "case_faite", false);
     const versionDeux = await publierSecondeVersion(SOCIETE_A, modeleId);
     const pointDeux = await poserPoint(
       SOCIETE_A,
@@ -340,12 +339,7 @@ describe("une réponse modifiée remet à zéro la validation du rapport (RG-INT
       SOCIETE_A,
       "ISO-VALIDATION",
     );
-    const pointId = await poserPoint(
-      SOCIETE_A,
-      versionId,
-      "case_faite",
-      false,
-    );
+    const pointId = await poserPoint(SOCIETE_A, versionId, "case_faite", false);
     try {
       await surUneInterventionJetable(
         {
@@ -389,12 +383,7 @@ describe("un technicien NON AFFECTÉ est refusé — même refus que l'intervent
       SOCIETE_A,
       "ISO-NON-AFFECTE",
     );
-    const pointId = await poserPoint(
-      SOCIETE_A,
-      versionId,
-      "case_faite",
-      false,
-    );
+    const pointId = await poserPoint(SOCIETE_A, versionId, "case_faite", false);
     try {
       await surUneInterventionJetable(
         {
@@ -431,12 +420,7 @@ describe("une intervention FIGÉE (annulée, clôturée) refuse nommément — j
       SOCIETE_A,
       `ISO-FIGEE-${statut}`,
     );
-    const pointId = await poserPoint(
-      SOCIETE_A,
-      versionId,
-      "case_faite",
-      false,
-    );
+    const pointId = await poserPoint(SOCIETE_A, versionId, "case_faite", false);
     try {
       await surUneInterventionJetable(
         {
@@ -516,4 +500,3 @@ describe("la cascade, de bout en bout, via le dépôt — niveau FAMILLE", () =>
     }
   });
 });
-

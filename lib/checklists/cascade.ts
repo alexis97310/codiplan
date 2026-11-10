@@ -47,11 +47,7 @@ import type { TypeIntervention } from "@/lib/interventions/saisie";
  * D239.
  */
 export type ProvenanceGabarit =
-  | "modele"
-  | "sous_type"
-  | "famille"
-  | "type_seul"
-  | "generique";
+  "modele" | "sous_type" | "famille" | "type_seul" | "generique";
 
 /** Un candidat tel que le dépôt le lit — les modèles ACTIFS de la société. */
 export type CandidatGabarit = {
@@ -128,7 +124,9 @@ export function resoudreGabarit(
       niveau: niveauDuCandidat(candidat, contexte),
     }))
     .filter(
-      (entree): entree is { candidat: CandidatGabarit; niveau: ProvenanceGabarit } =>
+      (
+        entree,
+      ): entree is { candidat: CandidatGabarit; niveau: ProvenanceGabarit } =>
         entree.niveau !== null,
     );
 
@@ -138,7 +136,9 @@ export function resoudreGabarit(
 
   eligibles.sort((a, b) => {
     const parRang = RANG[a.niveau] - RANG[b.niveau];
-    return parRang !== 0 ? parRang : a.candidat.code.localeCompare(b.candidat.code);
+    return parRang !== 0
+      ? parRang
+      : a.candidat.code.localeCompare(b.candidat.code);
   });
 
   const meilleur = eligibles[0]!;

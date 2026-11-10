@@ -601,12 +601,7 @@ describe("9K18-CHECKLIST-DOMAINE — les cinq types de réponse, les contraintes
         SOCIETE_A,
         "VALEUR-DOUBLE",
       );
-      const pointId = await poserPoint(
-        SOCIETE_A,
-        versionId,
-        "texte_libre",
-        [],
-      );
+      const pointId = await poserPoint(SOCIETE_A, versionId, "texte_libre", []);
       try {
         await expect(
           poserReponseBrute(
@@ -627,12 +622,7 @@ describe("9K18-CHECKLIST-DOMAINE — les cinq types de réponse, les contraintes
         SOCIETE_A,
         "VALEUR-ZERO",
       );
-      const pointId = await poserPoint(
-        SOCIETE_A,
-        versionId,
-        "texte_libre",
-        [],
-      );
+      const pointId = await poserPoint(SOCIETE_A, versionId, "texte_libre", []);
       try {
         await expect(
           poserReponseBrute(
@@ -681,12 +671,7 @@ describe("9K18-CHECKLIST-DOMAINE — les cinq types de réponse, les contraintes
         SOCIETE_A,
         "VALEUR-JUMEAU",
       );
-      const pointId = await poserPoint(
-        SOCIETE_A,
-        versionId,
-        "texte_libre",
-        [],
-      );
+      const pointId = await poserPoint(SOCIETE_A, versionId, "texte_libre", []);
       try {
         await clientOwner().$executeRawUnsafe(
           `ALTER TABLE "checklist_reponse" DROP CONSTRAINT "checklist_reponse_valeur_unique"`,
@@ -722,12 +707,7 @@ describe("9K18-CHECKLIST-DOMAINE — les cinq types de réponse, les contraintes
         SOCIETE_A,
         "TEXTE-VIDE",
       );
-      const pointId = await poserPoint(
-        SOCIETE_A,
-        versionId,
-        "texte_libre",
-        [],
-      );
+      const pointId = await poserPoint(SOCIETE_A, versionId, "texte_libre", []);
       try {
         await expect(
           poserReponseBrute(
@@ -748,12 +728,7 @@ describe("9K18-CHECKLIST-DOMAINE — les cinq types de réponse, les contraintes
         SOCIETE_A,
         "TEXTE-TROP-LONG",
       );
-      const pointId = await poserPoint(
-        SOCIETE_A,
-        versionId,
-        "texte_libre",
-        [],
-      );
+      const pointId = await poserPoint(SOCIETE_A, versionId, "texte_libre", []);
       try {
         await expect(
           poserReponseBrute(
@@ -774,12 +749,7 @@ describe("9K18-CHECKLIST-DOMAINE — les cinq types de réponse, les contraintes
         SOCIETE_A,
         "TEXTE-JUMEAU",
       );
-      const pointId = await poserPoint(
-        SOCIETE_A,
-        versionId,
-        "texte_libre",
-        [],
-      );
+      const pointId = await poserPoint(SOCIETE_A, versionId, "texte_libre", []);
       try {
         await clientOwner().$executeRawUnsafe(
           `ALTER TABLE "checklist_reponse" DROP CONSTRAINT "checklist_reponse_valeur_texte_bornee"`,

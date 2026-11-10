@@ -22,7 +22,10 @@ export type SaisieReponsePoint =
     }
   | { readonly typeReponse: "valeur_mesuree"; readonly valeurMesuree: number }
   | { readonly typeReponse: "case_faite"; readonly valeurFait: true }
-  | { readonly typeReponse: "choix_dans_une_liste"; readonly valeurChoix: string }
+  | {
+      readonly typeReponse: "choix_dans_une_liste";
+      readonly valeurChoix: string;
+    }
   | { readonly typeReponse: "texte_libre"; readonly valeurTexte: string };
 
 export type PointPourValidation = {
@@ -39,7 +42,11 @@ const schemaValeurConforme = z.enum(["conforme", "non_conforme", "sans_objet"]);
 // BORNE (9K18) : `numeric(12, 3)` en base — 999999999.999 est le plus grand
 // absolu qu'elle peut porter ; au-delà, la base refuserait avec une erreur
 // technique plutôt que ce refus nommé.
-const schemaValeurMesuree = z.number().finite().min(-999999999.999).max(999999999.999);
+const schemaValeurMesuree = z
+  .number()
+  .finite()
+  .min(-999999999.999)
+  .max(999999999.999);
 const schemaValeurFait = z.literal(true);
 const schemaValeurChoixBrute = z.string().trim().min(1).max(200);
 const schemaValeurTexte = z.string().trim().min(1).max(2000);
@@ -78,7 +85,10 @@ export function validerReponsePoint(
       if (!verdict.success) {
         return { valide: false, cle: "checklist.refus.valeur_invalide" };
       }
-      return { valide: true, saisie: { typeReponse: "case_faite", valeurFait: true } };
+      return {
+        valide: true,
+        saisie: { typeReponse: "case_faite", valeurFait: true },
+      };
     }
     case "choix_dans_une_liste": {
       const verdict = schemaValeurChoixBrute.safeParse(valeurBrute);
@@ -90,7 +100,10 @@ export function validerReponsePoint(
       }
       return {
         valide: true,
-        saisie: { typeReponse: "choix_dans_une_liste", valeurChoix: verdict.data },
+        saisie: {
+          typeReponse: "choix_dans_une_liste",
+          valeurChoix: verdict.data,
+        },
       };
     }
     case "texte_libre": {
