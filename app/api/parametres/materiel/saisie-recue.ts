@@ -6,7 +6,11 @@ import {
   type SaisieModeleMateriel,
   type SaisieSousTypeMateriel,
 } from "@/lib/materiel/saisie";
-import { paramsDeLaSuite, type Suite, type TypeVolet } from "@/lib/materiel/suite";
+import {
+  paramsDeLaSuite,
+  type Suite,
+  type TypeVolet,
+} from "@/lib/materiel/suite";
 
 import { champ } from "../../interventions/actions";
 

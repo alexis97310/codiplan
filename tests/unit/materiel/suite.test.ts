@@ -25,7 +25,10 @@ const LIGNE = "0192f0a0-0000-7000-8000-00000000f002";
 describe("suiteRecue", () => {
   it("un formulaire sans aucun champ `suite_*` rend le défaut — Familles, actifs", () => {
     const suite = suiteRecue(new FormData());
-    expect(suite).toEqual({ onglet: "familles", filtres: { q: "", etat: "actifs" } });
+    expect(suite).toEqual({
+      onglet: "familles",
+      filtres: { q: "", etat: "actifs" },
+    });
   });
 
   it("lit l'onglet, la recherche, l'état et la famille filtrée", () => {
@@ -68,7 +71,10 @@ describe("suiteRecue", () => {
 
 describe("paramsDeLaSuite", () => {
   it("Familles, actifs, sans recherche — aucun paramètre (le défaut de l'écran)", () => {
-    const suite: Suite = { onglet: "familles", filtres: { q: "", etat: "actifs" } };
+    const suite: Suite = {
+      onglet: "familles",
+      filtres: { q: "", etat: "actifs" },
+    };
     expect(paramsDeLaSuite(suite).toString()).toBe("");
   });
 

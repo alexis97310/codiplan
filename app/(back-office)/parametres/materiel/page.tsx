@@ -1105,11 +1105,7 @@ function ChampsSuite({ suite }: { readonly suite: Suite }) {
       <input type="hidden" name="suite_q" value={suite.filtres.q} />
       <input type="hidden" name="suite_etat" value={suite.filtres.etat} />
       {suite.familleFiltre === undefined ? null : (
-        <input
-          type="hidden"
-          name="suite_famille"
-          value={suite.familleFiltre}
-        />
+        <input type="hidden" name="suite_famille" value={suite.familleFiltre} />
       )}
     </>
   );

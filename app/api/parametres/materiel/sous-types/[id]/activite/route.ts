@@ -33,7 +33,11 @@ async function traiter(
   }
   const vise = champ(formulaire, "actif");
   if (vise !== ACTIF && vise !== INACTIF) {
-    return versLeReferentiel({ suite, motif: "materiel.refus.saisie", ligne: id });
+    return versLeReferentiel({
+      suite,
+      motif: "materiel.refus.saisie",
+      ligne: id,
+    });
   }
   const resultat = await basculerActiviteSousType(contexte, id, vise === ACTIF);
   return versLeReferentiel({

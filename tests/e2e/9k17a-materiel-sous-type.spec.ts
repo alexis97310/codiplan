@@ -134,7 +134,9 @@ test("« Ajouter un sous-type », puis « Modifier » depuis le volet, valeur re
 
   // 9K18A-MATERIEL-RETOUR-ONGLET — le retour reste sur « Sous-types », PAS
   // sur « Familles » (le défaut), et repère la ligne créée.
-  await expect(page).toHaveURL(/\/parametres\/materiel\?onglet=sous-types&ligne=/);
+  await expect(page).toHaveURL(
+    /\/parametres\/materiel\?onglet=sous-types&ligne=/,
+  );
   await page.goto("/parametres/materiel?onglet=sous-types");
   const table = page.locator("table").first();
   await expect(table.locator("tr", { hasText: LIBELLE_SOUS_TYPE })).toHaveCount(
@@ -155,7 +157,9 @@ test("« Ajouter un sous-type », puis « Modifier » depuis le volet, valeur re
     .getByRole("button", { name: fr["materiel.enregistrer"] })
     .click();
 
-  await expect(page).toHaveURL(/\/parametres\/materiel\?onglet=sous-types&ligne=/);
+  await expect(page).toHaveURL(
+    /\/parametres\/materiel\?onglet=sous-types&ligne=/,
+  );
   await page.goto("/parametres/materiel?onglet=sous-types");
   await expect(
     table.locator("tr", { hasText: LIBELLE_SOUS_TYPE_MODIFIE }),

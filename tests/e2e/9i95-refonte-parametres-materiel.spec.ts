@@ -287,12 +287,10 @@ test("« Ajouter un modèle » depuis l'onglet Modèles — revient sur Modèles
   // (le défaut), et la ligne créée est repérée.
   await expect(page).toHaveURL(/\/parametres\/materiel\?onglet=modeles&ligne=/);
   const table = page.locator("table").first();
-  await expect(table.locator("tr", { hasText: REFERENCE_CREE })).toHaveCount(
-    1,
+  await expect(table.locator("tr", { hasText: REFERENCE_CREE })).toHaveCount(1);
+  await expect(table.locator("tr", { hasText: REFERENCE_CREE })).toHaveClass(
+    /ligne-reperee-active/,
   );
-  await expect(
-    table.locator("tr", { hasText: REFERENCE_CREE }),
-  ).toHaveClass(/ligne-reperee-active/);
 });
 
 test("un compte sans « parametrer_societe » complet ne voit aucun bouton d'écriture", async ({

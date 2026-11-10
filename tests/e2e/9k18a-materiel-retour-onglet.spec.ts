@@ -141,9 +141,7 @@ test("LE CAS D'ALEXIS — onglet Modèles filtré sur une famille, ajouter un so
   await volet
     .getByLabel(fr["materiel.sous_type"])
     .selectOption({ label: LIBELLE_SOUS_TYPE_EXISTANT });
-  await volet
-    .getByRole("button", { name: fr["materiel.enregistrer"] })
-    .click();
+  await volet.getByRole("button", { name: fr["materiel.enregistrer"] }).click();
 
   // LA CAPTURE D'ABORD — même sur l'ANCIEN code (rouge attendu ensuite), elle
   // montre déjà où la page est retombée (`captures-avant-apres-e2e`).
