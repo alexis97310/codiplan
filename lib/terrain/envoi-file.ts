@@ -36,10 +36,18 @@ type Identite = { readonly utilisateurId: string; readonly societeId: string };
 // « suspendre » (9K13-TERRAIN-ATTENTE-PIECE) vient APRÈS le rapport et les
 // prestations, AVANT « terminer » qu'il rend impossible — une intervention
 // SUSPENDUE n'est plus EN_COURS, condition que `peutTerminer` exige.
+//
+// « checklist » (9K21-CHECKLIST-TERRAIN-SAISIE, CK5) PARTAGE LE RANG DES
+// PRESTATIONS — les deux sont indépendantes l'une de l'autre (aucune ne
+// conditionne l'autre), donc aucun ordre fixe ne s'impose entre elles ;
+// seul compte qu'elles partent toutes deux APRÈS le rapport et AVANT
+// « terminer ». À rang égal, `trieeParPipeline` ci-dessous départage par
+// `id` (l'ordre chronologique d'écriture), comme pour tout autre ex æquo.
 const ORDRE_PIPELINE: Readonly<Record<Geste["type"], number>> = {
   compteur: 0,
   rapport: 1,
   prestations: 2,
+  checklist: 2,
   suspendre: 3,
   photo: 4,
   signature: 5,
@@ -121,6 +129,23 @@ function corpsDe(entree: EntreeFile): FormData {
       corps.set("piece_attendue_ref", geste.pieceAttendueRef);
       corps.set("date_dispo_prevue", geste.dateDispoPrevue);
       corps.set("operation_id", entree.id);
+      return corps;
+    case "checklist":
+      // MÊME FORME QUE LE SCHÉMA DE LA ROUTE (`schemaDifference`,
+      // `app/api/terrain/[id]/checklist/route.ts`) — un tableau de
+      // `{checklist_point_id, valeur}`, jamais le `Record` lui-même : la
+      // route ne connaît que cette forme, identique à un envoi EN LIGNE.
+      corps.set(
+        "reponses",
+        JSON.stringify(
+          Object.entries(geste.difference).map(
+            ([checklist_point_id, valeur]) => ({
+              checklist_point_id,
+              valeur,
+            }),
+          ),
+        ),
+      );
       return corps;
   }
 }

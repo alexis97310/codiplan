@@ -129,6 +129,35 @@ export function nouvelleOperation(): {
 }
 
 /**
+ * UN POINT DE CHECKLIST VIENT DE PASSER « NON CONFORME » (9K21-CHECKLIST-
+ * TERRAIN-SAISIE, CK5, point 3) — `checklist-terrain.tsx` pose ce signal
+ * plutôt que d'écrire directement dans le champ « Suite à donner » : ce
+ * champ vit dans `RapportTerrainAutomatique`, un composant FRÈRE, jamais un
+ * parent de la tuile checklist. Même patron que `EVENEMENT_PRESTATIONS_
+ * ENVOYEES` ci-dessus — deux composants qui ne se parlent pas directement.
+ */
+export const EVENEMENT_CHECKLIST_NON_CONFORME =
+  "codiplan:checklist-non-conforme";
+
+export type DetailChecklistNonConforme = {
+  readonly interventionId: string;
+  readonly ligne: string;
+};
+
+export function signalerChecklistNonConforme(
+  detail: DetailChecklistNonConforme,
+): void {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent<DetailChecklistNonConforme>(
+        EVENEMENT_CHECKLIST_NON_CONFORME,
+        { detail },
+      ),
+    );
+  }
+}
+
+/**
  * L'HEURE DE L'APPAREIL, RELEVÉE AVANT UNE TENTATIVE D'ENVOI (point 2,
  * 9F4H3AC) — même fait que `nouvelleOperation`, sans fabriquer d'identifiant
  * d'opération inutile : le rapport et les prestations n'ont pas besoin d'un
@@ -229,6 +258,23 @@ export type GesteSuspendre = {
   readonly dateDispoPrevue: string;
 };
 
+/**
+ * LES RÉPONSES DE CHECKLIST (9K21-CHECKLIST-TERRAIN-SAISIE, CK5) —
+ * `difference` est la DIFFÉRENCE CUMULÉE depuis la dernière base connue de
+ * CET appareil (la dernière version envoyée avec succès, ou l'instantané au
+ * premier chargement de la fiche) : un `Record<checklistPointId, valeur>`
+ * sérialisable, JAMAIS une `Map` — IndexedDB (`structuredClone` sous le
+ * capot) et `JSON.stringify` (l'envoi, `envoi-file.ts`) ne portent tous deux
+ * que des objets simples. `checklist-terrain.tsx` fusionne chaque nouvelle
+ * réponse dans cette même différence AVANT de rappeler `ajouterSaisie` — la
+ * coalescence (voir `TYPES_COALESCABLES` ci-dessous) REMPLACE l'entrée
+ * précédente, elle ne la fusionne pas elle-même.
+ */
+export type GesteChecklist = {
+  readonly type: "checklist";
+  readonly difference: Readonly<Record<string, unknown>>;
+};
+
 export type Geste =
   | GesteCompteur
   | GesteRapport
@@ -236,7 +282,8 @@ export type Geste =
   | GesteSignature
   | GestePhoto
   | GesteTerminer
-  | GesteSuspendre;
+  | GesteSuspendre
+  | GesteChecklist;
 
 export type EntreeFile = {
   readonly id: string;
@@ -252,13 +299,14 @@ export type EntreeFile = {
 
 type Identite = { readonly utilisateurId: string; readonly societeId: string };
 
-/** Les cinq gestes qui REMPLACENT, jamais ne s'empilent (voir l'en-tête). */
+/** Les six gestes qui REMPLACENT, jamais ne s'empilent (voir l'en-tête). */
 const TYPES_COALESCABLES: ReadonlySet<Geste["type"]> = new Set([
   "rapport",
   "prestations",
   "signature",
   "terminer",
   "suspendre",
+  "checklist",
 ]);
 
 async function magasin(mode: IDBTransactionMode): Promise<{
@@ -411,6 +459,20 @@ function gesteReconnu(brut: unknown): Geste | null {
             motif: g.motif,
             pieceAttendueRef: g.pieceAttendueRef,
             dateDispoPrevue: g.dateDispoPrevue,
+          }
+        : null;
+    case "checklist":
+      // UN OBJET, JAMAIS UN TABLEAU (9K21-CHECKLIST-TERRAIN-SAISIE) — un
+      // `Record` sérialisable, voir `GesteChecklist` ci-dessus ; les VALEURS
+      // elles-mêmes ne sont jamais revalidées ici, exactement comme le corps
+      // reçu par la route : `validerReponsePoint` (lib/checklists/
+      // validation-reponse.ts) les confronte au type du point, côté serveur.
+      return typeof g.difference === "object" &&
+        g.difference !== null &&
+        !Array.isArray(g.difference)
+        ? {
+            type: "checklist",
+            difference: g.difference as Record<string, unknown>,
           }
         : null;
     default:
