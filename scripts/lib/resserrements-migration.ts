@@ -382,6 +382,34 @@ export const TABLES_VIDES_AU_RESSERREMENT: readonly {
       "n'a jamais pu y écrire, et ni sa clé étrangère vers `sous_type_materiel` " +
       "ni sa contrainte d'exclusivité ne peuvent rien refuser.",
   },
+  {
+    migration: "20261110140000_checklist_cinq_types_reponse_9k18",
+    table: "checklist_point",
+    mesure:
+      "Créée par `20261109080000_checklists_socle_9k08` (D235), qui ne " +
+      "livre que le socle. `publierVersion` (`lib/checklists/depot.ts`) " +
+      "est son SEUL écrivain, et il n'a toujours AUCUN appelant depuis " +
+      "`app/` (exemption `FONCTIONS_SANS_CHEMIN`, écran de paramétrage CK3 " +
+      "hors territoire) — mesuré par `tests/unit/gardiens/chemins-de-" +
+      "depot.test.ts` à la date de cette migration, dans le MÊME ticket " +
+      "qui la pose. La table est donc prouvée vide à ce point de " +
+      "l'histoire : aucun déploiement antérieur n'a jamais pu y écrire, et " +
+      "la contrainte neuve sur `choix` ne peut rien refuser.",
+  },
+  {
+    migration: "20261110140000_checklist_cinq_types_reponse_9k18",
+    table: "checklist_reponse",
+    mesure:
+      "Créée par `20261109080000_checklists_socle_9k08` (D235). " +
+      "`enregistrerReponses` (`lib/checklists/depot.ts`) est son PREMIER " +
+      "écrivain applicatif, ouvert par la route neuve `app/api/terrain/" +
+      "[id]/checklist/route.ts` — l'une et l'autre naissent dans CE MÊME " +
+      "ticket (9K18), au même déploiement que cette migration : aucun " +
+      "déploiement antérieur n'a jamais pu écrire une ligne. La table est " +
+      "donc prouvée vide à ce point de l'histoire, et ni la contrainte " +
+      "d'exclusivité reposée sur cinq colonnes ni les deux contraintes " +
+      "neuves (`valeur_choix`, `valeur_texte`) ne peuvent rien refuser.",
+  },
 ] as const;
 
 /**
