@@ -111,6 +111,48 @@ async function surUneInterventionAvecSegment(
   }
 }
 
+/**
+ * MÊME FIXTURE, mais l'intervention est EN COURS — `cloturee_le` reste NULL
+ * (9K16, M3, D237). Le bon du portail ne l'affiche de toute façon qu'après
+ * clôture (`app/(portail)/portail/interventions/depot.ts:160-171`) ; cette
+ * fixture éprouve que la BASE porte désormais la même borne, pas seulement
+ * l'écran.
+ */
+async function surUneInterventionEnCoursAvecSegment(
+  travail: (id: string) => Promise<void>,
+): Promise<void> {
+  const id = uuidv7();
+  const segmentId = uuidv7();
+  await clientOwner().$executeRawUnsafe(
+    `INSERT INTO "intervention" ("id", "societe_id", "client_id", "site_id",
+       "agence_id", "type", "statut", "technicien_id", "duree_estimee_min",
+       "modifie_le", "cloturee_le")
+     SELECT '${id}', "societe_id", "client_id", "site_id", "agence_id",
+            'curatif'::"TypeIntervention", 'en_cours', "technicien_id", 60,
+            now(), NULL
+       FROM "intervention" WHERE "id" = '${INTERVENTION_A1}'`,
+  );
+  await clientOwner().$executeRawUnsafe(
+    `INSERT INTO "segment_travail"
+       ("id", "societe_id", "intervention_id", "utilisateur_id",
+        "nom_technicien_affiche", "debut", "fin", "modifie_le")
+     VALUES ('${segmentId}', '${SOCIETE_A}', '${id}', '${TECHNICIEN}',
+             '${NOM_TECHNICIEN}',
+             TIMESTAMPTZ '2026-09-20T08:00:00.000Z',
+             TIMESTAMPTZ '2026-09-20T09:00:00.000Z', now())`,
+  );
+  try {
+    await travail(id);
+  } finally {
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "segment_travail" WHERE "id" = '${segmentId}'`,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "intervention" WHERE "id" = '${id}'`,
+    );
+  }
+}
+
 describe("le bon du portail — ce que la brèche de filiation OUVRE", () => {
   it("le client DE l'intervention lit le nom du technicien et ses segments", async () => {
     await surUneInterventionAvecSegment(async (id) => {
@@ -187,11 +229,36 @@ describe("le bon du portail — ce que la brèche de filiation NE ROUVRE PAS", (
   });
 });
 
+describe("M3 (9K16, D237) — le client suit SON technicien, jamais en direct", () => {
+  it("une intervention EN COURS (non clôturée) : AUCUN segment visible, même la sienne", async () => {
+    await surUneInterventionEnCoursAvecSegment(async (id) => {
+      const segments = await avecPortail(
+        { societeId: SOCIETE_A, clientId: CLIENT_A1 },
+        (tx) => tx.segmentTravail.count({ where: { intervention_id: id } }),
+      );
+      expect(segments).toBe(0);
+    });
+  });
+
+  it("TÉMOIN — la même intervention, CLÔTURÉE, rend le segment visible", async () => {
+    // Sans ce témoin, le zéro ci-dessus serait aussi bien la preuve qu'une
+    // mauvaise fixture ne rend jamais rien.
+    await surUneInterventionAvecSegment(async (id) => {
+      const segments = await avecPortail(
+        { societeId: SOCIETE_A, clientId: CLIENT_A1 },
+        (tx) => tx.segmentTravail.count({ where: { intervention_id: id } }),
+      );
+      expect(segments).toBe(1);
+    });
+  });
+});
+
 describe("la clause RÉELLE de la politique de segment_travail, ET la brèche de utilisateur retirée (9J22A)", () => {
-  it("« cloisonnement_filiation_lecture_portail » (segment_travail) lit app.client_id ET s'adosse à intervention", async () => {
+  it("« cloisonnement_filiation_lecture_portail » (segment_travail) lit app.client_id, s'adosse à intervention, ET exige sa clôture (9K16, M3)", async () => {
     const [politique] = await observerSousProprietaire(
-      "lire la clause RÉELLE de la politique ajoutée par 9J22, plutôt que " +
-        "de la supposer conforme à ce que la migration voulait écrire.",
+      "lire la clause RÉELLE de la politique ajoutée par 9J22, puis " +
+        "resserrée par 9K16/M3, plutôt que de la supposer conforme à ce " +
+        "que la migration voulait écrire.",
     ).$queryRawUnsafe<Array<{ qual: string }>>(
       `SELECT "qual" FROM "pg_catalog"."pg_policies"
         WHERE "schemaname" = 'public' AND "tablename" = 'segment_travail'
@@ -200,6 +267,7 @@ describe("la clause RÉELLE de la politique de segment_travail, ET la brèche de
     expect(politique?.qual).toContain("app.client_id");
     expect(politique?.qual).toMatch(/EXISTS/i);
     expect(politique?.qual).toContain("intervention");
+    expect(politique?.qual).toMatch(/cloturee_le.*IS NOT NULL/i);
   });
 
   it("« utilisateur_lecture_filiation_portail » N'EXISTE PLUS — 9J22A l'a retirée, jamais rétrécie", async () => {

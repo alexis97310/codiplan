@@ -590,12 +590,14 @@ describe("L'UNION de L8-02, sans qu'aucune ligne soit copiée", () => {
 });
 
 describe("L'ÉCRITURE est bornée par la même politique", () => {
-  it("un compte portail ne peut pas accrocher un document à une machine hors périmètre", async () => {
+  it("un compte portail ne peut pas accrocher un document, périmètre ou pas (9K16, D237)", async () => {
     let ecrite = -1;
     await avecPortail(PORTAIL_RESTREINT, async (tx) => {
-      // La ligne est INVISIBLE pour lui : le refus est SILENCIEUX — zéro ligne
-      // écrite, pas une erreur. C'est le sens de défaillance de RLS, et il faut
-      // le mesurer comme tel (§9, 08/09).
+      // Hors périmètre : la ligne est INVISIBLE pour lui DEUX FOIS — la forme
+      // « héritage » (le site n'est pas le sien) ET, depuis 9K16, le verrou
+      // ÉCRITURE (`verrou_ecriture_portail_modification`, I3). Zéro ligne
+      // écrite, pas une erreur : c'est le sens de défaillance de RLS (§9,
+      // 08/09).
       ecrite = await tx.$executeRawUnsafe(
         `UPDATE "document" SET "libelle" = 'détourné' WHERE "id" = $1::uuid`,
         DOC_MACHINE_A2,
@@ -603,9 +605,12 @@ describe("L'ÉCRITURE est bornée par la même politique", () => {
     });
     expect(ecrite).toBe(0);
 
-    // LE CAS QUI DOIT RESTER VERT POUR SA PROPRE RAISON : le MÊME geste sur SON
-    // document passe. Sans cette moitié, « zéro » serait aussi bien la preuve
-    // que l'écriture ne marche nulle part.
+    // DEPUIS 9K16 : le MÊME geste sur SON PROPRE document est AUSSI refusé —
+    // `document` ne figure pas dans les trois exceptions que le portail
+    // écrit réellement (`demande`, `contact`, `compteur_numerotation`).
+    // AVANT 9K16, ce geste passait (D93 ne fermait que la lecture par
+    // périmètre, jamais l'écriture) ; c'est exactement la défense en
+    // profondeur absente que l'étude du 08/11 (I3) a mesurée.
     let sienne = -1;
     await avecPortail(PORTAIL_RESTREINT, async (tx) => {
       sienne = await tx.$executeRawUnsafe(
@@ -613,7 +618,19 @@ describe("L'ÉCRITURE est bornée par la même politique", () => {
         DOC_MACHINE_A1,
       );
     });
-    expect(sienne).toBe(1);
+    expect(sienne).toBe(0);
+
+    // TÉMOIN — sans le verrou, le geste écrirait bien : la ligne existe et
+    // reste intacte sous le PROPRIÉTAIRE, donc le zéro ci-dessus est un VRAI
+    // zéro, pas une ligne absente.
+    const [intacte] = await observerSousProprietaire(
+      "le document de MACHINE_A1 existe toujours, inchangé par la tentative " +
+        "ci-dessus",
+    ).$queryRawUnsafe<Array<{ libelle: string }>>(
+      `SELECT "libelle" FROM "document" WHERE "id" = $1::uuid`,
+      DOC_MACHINE_A1,
+    );
+    expect(intacte?.libelle).not.toBe("détourné");
   });
 
   it("et il ne peut pas se donner un document en le rattachant à SON modèle", async () => {

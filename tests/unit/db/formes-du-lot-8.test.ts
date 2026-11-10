@@ -64,6 +64,46 @@ function colonne(table: string): ColonneSociete {
   return { table, presente: true, obligatoire: true };
 }
 
+/** Le discriminant du verrou portail (9K16, D237), tel que `pg_policies` le rend. */
+const CLIENT_ABSENT = `(NULLIF(current_setting('app.client_id'::text, true), ''::text) IS NULL)`;
+
+/**
+ * Les trois politiques du verrou ÉCRITURE (9K16, D237) qu'une table de cette
+ * suite porte désormais en base, EN PLUS de sa forme « héritage »/« ascendance »/
+ * « interne » — `document`, `document_recu` et `modele_materiel` relèvent
+ * toutes trois de `tablesVerrouEcriturePortail` (aucune n'est dans les
+ * exceptions ni dans le verrou TOTAL). Sans elles, `ecartsPolitiques` réclame
+ * à raison les trois politiques manquantes.
+ */
+function verrouEcriture(table: string): PolitiqueObservee[] {
+  return [
+    {
+      table,
+      nom: "verrou_ecriture_portail_insertion",
+      commande: "INSERT",
+      permissive: "RESTRICTIVE",
+      lecture: null,
+      ecriture: CLIENT_ABSENT,
+    },
+    {
+      table,
+      nom: "verrou_ecriture_portail_modification",
+      commande: "UPDATE",
+      permissive: "RESTRICTIVE",
+      lecture: CLIENT_ABSENT,
+      ecriture: CLIENT_ABSENT,
+    },
+    {
+      table,
+      nom: "verrou_ecriture_portail_suppression",
+      commande: "DELETE",
+      permissive: "RESTRICTIVE",
+      lecture: CLIENT_ABSENT,
+      ecriture: null,
+    },
+  ];
+}
+
 describe("la liste close de la ONZIÈME forme — « héritage »", () => {
   it("l'état du dépôt n'a aucun écart — sinon tout le reste ment", () => {
     expect(ecartsListeHeritage()).toEqual([]);
@@ -213,7 +253,10 @@ describe("la liste close de la TREIZIÈME forme — « interne »", () => {
     expect(
       ecartsPolitiques(
         [colonne("document_recu")],
-        [politique("document_recu", interne)],
+        [
+          politique("document_recu", interne),
+          ...verrouEcriture("document_recu"),
+        ],
       ),
     ).toEqual([]);
 
@@ -250,6 +293,8 @@ describe("la FORME est jugée sur la clause, et les deux sens sont éprouvés", 
       [
         politique("document", CLAUSE_HERITAGE),
         politique("modele_materiel", CLAUSE_ASCENDANCE),
+        ...verrouEcriture("document"),
+        ...verrouEcriture("modele_materiel"),
       ],
     );
     expect(ecarts).toEqual([]);

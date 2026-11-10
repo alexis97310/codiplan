@@ -312,32 +312,36 @@ describe("la forme « parc » — les TROIS filtres, sur la vraie table", () => 
   it(
     exigence(
       "perimetre_sites",
-      "et il ne peut pas ÉCRIRE une machine hors de son périmètre",
+      "et il ne peut pas ÉCRIRE une machine, dans ou hors de son périmètre (9K16, D237)",
     ),
     async () => {
-      // La lecture et l'écriture sont deux moitiés distinctes de la politique :
-      // un `WITH CHECK` amputé du troisième filtre laisserait déplacer une
-      // machine vers un site qu'on n'a pas le droit de voir.
-      // Le refus est BRUYANT et non silencieux, et il faut le dire : la ligne
-      // est VISIBLE — le site S1 est dans le périmètre —, donc le `USING` la
-      // laisse atteindre ; c'est le `WITH CHECK` qui refuse la ligne d'APRÈS.
-      // Un `count` de zéro aurait signifié « invisible », ce qui n'est pas ce
-      // qu'on éprouve ici.
-      const motif = await refus(
-        avecPortail(
-          {
-            societeId: SOCIETE_A,
-            clientId: CLIENT_A1,
-            perimetreSites: [SITE_A1_S1],
-          },
-          (tx) =>
-            tx.machine.updateMany({
-              where: { id: MACHINE_A1 },
-              data: { site_id: SITE_A1_S2 },
-            }),
-        ),
+      // AVANT 9K16 : la lecture et l'écriture étaient deux moitiés distinctes
+      // de la politique « parc » elle-même, et un `WITH CHECK` amputé du
+      // troisième filtre aurait laissé déplacer une machine vers un site
+      // qu'on n'a pas le droit de voir — le refus était alors BRUYANT, la
+      // ligne étant VISIBLE (le `USING` de la forme « parc » la laissait
+      // atteindre) et c'était le `WITH CHECK` qui refusait la ligne d'APRÈS.
+      //
+      // DEPUIS 9K16 (I3, D237) : le verrou ÉCRITURE (`verrou_ecriture_
+      // portail_modification`) ferme TOUTE écriture d'un compte portail sur
+      // `machine`, périmètre ou pas — c'est sa propre RESTRICTIVE `USING`
+      // qui rend la ligne INVISIBLE à l'UPDATE, avant même que le `WITH
+      // CHECK` de la forme « parc » ait son mot à dire. Le refus est donc
+      // redevenu SILENCIEUX (zéro ligne affectée), pas une exception — même
+      // mesure que `document.test.ts` pour la même raison.
+      const touchees = await avecPortail(
+        {
+          societeId: SOCIETE_A,
+          clientId: CLIENT_A1,
+          perimetreSites: [SITE_A1_S1],
+        },
+        (tx) =>
+          tx.machine.updateMany({
+            where: { id: MACHINE_A1 },
+            data: { site_id: SITE_A1_S2 },
+          }),
       );
-      expect(motif).toContain("row-level security policy");
+      expect(touchees.count).toBe(0);
 
       // TÉMOIN : la machine n'a pas bougé.
       const apres = await sousSociete(SOCIETE_A, (tx) =>
