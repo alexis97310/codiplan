@@ -218,6 +218,12 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
     "parametrer_societe",
   "app/api/parametres/materiel/sous-types/[id]/modifier/route.ts":
     "parametrer_societe",
+  // 9K19-CHECKLIST-PARAMETRAGE (CK3) — créer un modèle, publier une
+  // version, basculer son activité : même capacité que le reste du
+  // paramétrage de société.
+  "app/api/parametres/checklists/creer/route.ts": "parametrer_societe",
+  "app/api/parametres/checklists/[id]/publier/route.ts": "parametrer_societe",
+  "app/api/parametres/checklists/[id]/activite/route.ts": "parametrer_societe",
   "app/api/parametres/prestations/creer/route.ts": "parametrer_societe",
   "app/api/parametres/prestations/[id]/activite/route.ts": "parametrer_societe",
   "app/api/parametres/prestations/[id]/modifier/route.ts": "parametrer_societe",
@@ -317,6 +323,10 @@ const PORTE_COMPLETE: readonly string[] = [
   "app/api/parametres/materiel/sous-types/creer/route.ts",
   "app/api/parametres/materiel/sous-types/[id]/activite/route.ts",
   "app/api/parametres/materiel/sous-types/[id]/modifier/route.ts",
+  // 9K19-CHECKLIST-PARAMETRAGE (CK3) — même doctrine : ADMS/DIR seuls.
+  "app/api/parametres/checklists/creer/route.ts",
+  "app/api/parametres/checklists/[id]/publier/route.ts",
+  "app/api/parametres/checklists/[id]/activite/route.ts",
   "app/api/parametres/prestations/creer/route.ts",
   "app/api/parametres/prestations/[id]/activite/route.ts",
   "app/api/parametres/prestations/[id]/modifier/route.ts",
@@ -681,7 +691,10 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
     // 108 depuis 9K18-CHECKLIST-DOMAINE — `app/api/terrain/[id]/checklist/
     // route.ts` (107 depuis 9K17A-MATERIEL-SOUS-TYPE, ses trois routes de
     // sous-types).
-    expect(Object.keys(ROUTE_CAPACITE).length).toBe(108);
+    // 111 depuis 9K19-CHECKLIST-PARAMETRAGE (CK3) — les trois routes
+    // neuves de `app/api/parametres/checklists/**` (créer, publier,
+    // activité).
+    expect(Object.keys(ROUTE_CAPACITE).length).toBe(111);
   });
 
   it("aucune exemption ne survit à son objet — adossement dans les deux sens", () => {

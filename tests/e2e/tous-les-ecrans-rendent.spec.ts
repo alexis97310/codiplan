@@ -209,6 +209,10 @@ const RESOLVEURS: Readonly<Record<string, Resolveur>> = {
     )?.id ?? null,
   // Aucune ligne au semis — voir l'en-tête, section « Ce qu'il ne couvre pas ».
   "/parametres/forfaits/[id]": async () => null,
+  // 9K19-CHECKLIST-PARAMETRAGE — `prisma/seed.ts` ne pose aucun modèle de
+  // checklist (décision d'Alexis du 10/11/2026 : le contenu attend l'atelier,
+  // 9K20-CK4) — même motif que les deux lignes au-dessus.
+  "/parametres/checklists/[id]/version": async () => null,
   "/imports/[id]": async () => null,
   // DEMANDES-1 : `prisma/seed.ts` ne pose aucune `demande` — même motif que
   // les deux lignes ci-dessus. `tests/e2e/demandes.spec.ts` couvre la fiche

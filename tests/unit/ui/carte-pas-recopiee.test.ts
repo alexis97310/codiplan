@@ -196,6 +196,19 @@ const EXCEPTIONS: readonly Exception[] = [
       "les deux <details> de repli (famille, modèle) et un <select> de filtre",
   },
   {
+    chemin: "app/(back-office)/parametres/checklists/page.tsx",
+    categories: ["champ"],
+    raison:
+      "les <select> de nature d'intervention et de rattachement (sous-type, famille, modèle)",
+  },
+  {
+    chemin:
+      "app/(back-office)/parametres/checklists/[id]/version/editeur-version.tsx",
+    categories: ["champ"],
+    raison:
+      "les <input>/<select>/<textarea> de l'éditeur de points (section, ordre, libellé, type de réponse, choix)",
+  },
+  {
     chemin: "app/(back-office)/parametres/prestations/page.tsx",
     categories: ["champ"],
     raison: "deux <select>, dont un à largeur variable",

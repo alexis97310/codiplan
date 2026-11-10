@@ -4936,6 +4936,94 @@ export const fr = {
   "materiel.recherche_aucun_resultat_titre": "Aucun résultat",
   "materiel.recherche_aucun_resultat_detail":
     "Aucune ligne ne correspond à cette recherche.",
+
+  // ── LES MODÈLES DE CHECKLIST (9K19-CHECKLIST-PARAMETRAGE, CK3) ───────────
+  "checklist.parametrage.titre": "Modèles de checklist",
+  "checklist.parametrage.sous_titre":
+    "Le contenu des contrôles, rattaché à une nature d'intervention et, au plus, à un sous-type, une famille ou un modèle de machine.",
+  "checklist.parametrage.code": "Code",
+  "checklist.parametrage.libelle": "Libellé",
+  "checklist.parametrage.type_intervention": "Nature d'intervention",
+  "checklist.parametrage.type_intervention_toutes": "Toutes",
+  "checklist.parametrage.sous_type": "Sous-type",
+  "checklist.parametrage.sous_type_aucun": "Aucun",
+  "checklist.parametrage.sous_type_non_lisible": "Sous-type non lisible",
+  "checklist.parametrage.famille": "Famille",
+  "checklist.parametrage.famille_aucune": "Aucune",
+  "checklist.parametrage.famille_non_lisible": "Famille non lisible",
+  "checklist.parametrage.modele": "Modèle de machine",
+  "checklist.parametrage.modele_aucun": "Aucun",
+  "checklist.parametrage.modele_non_lisible": "Modèle non lisible",
+  "checklist.parametrage.modele_aide":
+    "Réservé à l'exception — en règle, rattacher au sous-type plutôt qu'à un modèle précis.",
+  "checklist.parametrage.rattachement": "Rattachement",
+  "checklist.parametrage.rattachement_aucun": "Aucun",
+  "checklist.parametrage.exige_machine": "Exige une machine",
+  "checklist.parametrage.oui": "Oui",
+  "checklist.parametrage.non": "Non",
+  "checklist.parametrage.colonne_activite": "Activité",
+  "checklist.parametrage.colonne_derniere_version": "Dernière version",
+  "checklist.parametrage.actif": "Actif",
+  "checklist.parametrage.inactif": "Inactif",
+  "checklist.parametrage.activer": "Réactiver",
+  "checklist.parametrage.desactiver": "Désactiver",
+  "checklist.parametrage.aucun_modele":
+    "Aucun modèle de checklist n'est encore déclaré.",
+  "checklist.parametrage.aucun_modele_detail":
+    "Ajoutez un modèle, puis publiez sa première version.",
+  "checklist.parametrage.creer_modele": "Ajouter un modèle",
+  "checklist.parametrage.creer_action": "Ajouter",
+  "checklist.parametrage.enregistrer": "Enregistrer",
+  "checklist.parametrage.annuler": "Annuler",
+  "checklist.parametrage.publier": "Publier une version",
+  "checklist.parametrage.version_numero_prefixe": "Version",
+  "checklist.parametrage.modifier_version": "Modifier",
+  "checklist.parametrage.aucune_version": "Aucune version publiée",
+  "checklist.parametrage.refus.saisie":
+    "Cette saisie n'est pas valide. Vérifiez les champs et réessayez.",
+  "checklist.parametrage.refus.code_pris":
+    "Ce code est déjà utilisé par un autre modèle.",
+  "checklist.parametrage.refus.sous_type_hors_societe":
+    "Ce sous-type n'existe pas dans votre société.",
+  "checklist.parametrage.refus.famille_hors_societe":
+    "Cette famille n'existe pas dans votre société.",
+  "checklist.parametrage.refus.modele_hors_societe":
+    "Ce modèle de machine n'existe pas dans votre société.",
+  "checklist.parametrage.refus.plus_dun_rattachement":
+    "Choisissez au plus un seul niveau de rattachement — sous-type, famille ou modèle.",
+  "checklist.parametrage.refus.introuvable": "Cette ligne est introuvable.",
+
+  // ── L'ÉDITEUR DE VERSION (9K19-CHECKLIST-PARAMETRAGE, CK3) ───────────────
+  "checklist.parametrage.version_titre": "Publier une version",
+  "checklist.parametrage.retour": "Retour",
+  "checklist.parametrage.point_section": "Section",
+  "checklist.parametrage.point_ordre": "Ordre",
+  "checklist.parametrage.point_libelle": "Libellé du point",
+  "checklist.parametrage.point_consigne": "Consigne",
+  "checklist.parametrage.point_obligatoire": "Obligatoire",
+  "checklist.parametrage.point_type_reponse": "Type de réponse",
+  "checklist.parametrage.point_unite": "Unité",
+  "checklist.parametrage.point_tolerance_min": "Tolérance min.",
+  "checklist.parametrage.point_tolerance_max": "Tolérance max.",
+  "checklist.parametrage.point_tolerance_aide":
+    "À remplir seulement depuis la notice du fabricant.",
+  "checklist.parametrage.point_choix": "Choix proposés (un par ligne)",
+  "checklist.parametrage.ajouter_point": "Ajouter un point",
+  "checklist.parametrage.retirer_point": "Retirer",
+  "checklist.parametrage.publier_action": "Publier",
+  "checklist.parametrage.type_reponse.conforme_non_conforme_sans_objet":
+    "Conforme / non conforme / sans objet",
+  "checklist.parametrage.type_reponse.valeur_mesuree": "Mesure",
+  "checklist.parametrage.type_reponse.case_faite": "Fait",
+  "checklist.parametrage.type_reponse.choix_dans_une_liste":
+    "Choix dans une liste",
+  "checklist.parametrage.type_reponse.texte_libre": "Texte libre",
+  "checklist.parametrage.versions_precedentes": "Versions précédentes",
+  "checklist.parametrage.aucune_version_precedente":
+    "Aucune version précédente — celle-ci sera la première.",
+  "checklist.parametrage.aucun_point":
+    "Au moins un point est nécessaire pour publier une version.",
+
   // REPRIS MOT POUR MOT DE LA MAQUETTE (9EWD1-PARAMETRES-HUB-SOLDE, page
   // Paramètres, M:4385) — clé propre à ce hub (confronté par grep).
   "parametres.index_prestations_titre": "Prestations",
@@ -4945,6 +5033,12 @@ export const fr = {
   // REPRIS MOT POUR MOT DE LA MAQUETTE (M:4391).
   "parametres.index_materiel_resume":
     "Familles (avec leur régime VGP) et modèles",
+  // LA PORTE « CHECKLISTS » (9K19-CHECKLIST-PARAMETRAGE, CK3) — ABSENTE DE LA
+  // MAQUETTE : le moteur des checklists (9K08, 9K18) est postérieur à son
+  // dessin. Rangée en Référentiels, à côté du matériel qu'elle rattache.
+  "parametres.index_checklists_titre": "Checklists",
+  "parametres.index_checklists_resume":
+    "Les modèles de contrôle et leurs versions publiées",
   // LA PORTE « DONNÉES À COMPLÉTER » (9DT-TP-MOD2-INDICATEURS-DONNEES, QT-20,
   // QE-19, MO-7) — ouverte à l'ADV (decision D170).
   "parametres.index_donnees_titre": "Données à compléter",

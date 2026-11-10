@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import {
-  type Prisma,
+  Prisma,
   type PrismaClient,
   type ReponseConformite,
   type TypeIntervention,
@@ -50,7 +50,14 @@ import type {
  * et zéro écriture acceptée).
  */
 
-/** Un point à poser sur une version, selon son type de réponse. */
+/**
+ * Un point à poser sur une version, selon son type de réponse.
+ *
+ * **`choix_dans_une_liste` et `texte_libre` AJOUTÉS par 9K19-CHECKLIST-
+ * PARAMETRAGE** (CK3) — le schéma et la migration des cinq types datent de
+ * 9K18, mais aucun écran n'appelait encore `publierVersion` pour un point de
+ * l'un de ces deux types : l'union n'avait que les trois premiers.
+ */
 export type SaisiePointChecklist = {
   readonly section: string;
   readonly ordre: number;
@@ -66,17 +73,77 @@ export type SaisiePointChecklist = {
       readonly toleranceMin?: number;
       readonly toleranceMax?: number;
     }
+  | {
+      readonly typeReponse: "choix_dans_une_liste";
+      readonly choix: readonly string[];
+    }
+  | { readonly typeReponse: "texte_libre" }
 );
 
-/** L'en-tête d'un modèle de checklist — rattachements tous FACULTATIFS. */
+/**
+ * L'en-tête d'un modèle de checklist — rattachements tous FACULTATIFS.
+ *
+ * `sousTypeId` AJOUTÉ par 9K19-CHECKLIST-PARAMETRAGE : la colonne existe
+ * depuis 9K17A (D238), mais `creerModele` ne l'écrivait encore jamais, faute
+ * d'écran qui la propose.
+ */
 export type SaisieModeleChecklist = {
   readonly code: string;
   readonly libelle: string;
   readonly typeIntervention?: TypeIntervention;
+  readonly sousTypeId?: string;
   readonly familleId?: string;
   readonly modeleId?: string;
   readonly exigeMachine?: boolean;
 };
+
+/** Ce qu'un refus de la base dit d'un modèle de checklist (9K19-CHECKLIST-PARAMETRAGE). */
+export type MotifRefusModeleChecklist =
+  /** `(societe_id, code)` — le code est la clé naturelle d'un modèle. */
+  | "code_pris"
+  | "sous_type_hors_societe"
+  | "famille_hors_societe"
+  | "modele_hors_societe"
+  /** `checklist_modele_un_seul_rattachement` (D238) — DEUX niveaux à la fois. */
+  | "plus_dun_rattachement"
+  | "introuvable";
+
+const VIOLATION_UNICITE = "P2002";
+const VIOLATION_CLE_ETRANGERE = "P2003";
+const ENREGISTREMENT_ABSENT = "P2025";
+const CONTRAINTE_BASE = "P2010";
+
+/**
+ * Traduit un refus de la base en motif, pour un MODÈLE DE CHECKLIST — même
+ * technique que `motifModele` (`lib/materiel/depot.ts`) : `erreur.message`
+ * NOMME la contrainte qui a mordu, et c'est une donnée de Prisma plutôt
+ * qu'un texte destiné à un humain.
+ */
+export function motifModeleChecklist(
+  erreur: unknown,
+): MotifRefusModeleChecklist | null {
+  if (!(erreur instanceof Prisma.PrismaClientKnownRequestError)) return null;
+  if (erreur.code === VIOLATION_UNICITE) return "code_pris";
+  if (
+    erreur.code === VIOLATION_CLE_ETRANGERE ||
+    erreur.code === CONTRAINTE_BASE
+  ) {
+    if (/un_seul_rattachement/.test(erreur.message)) {
+      return "plus_dun_rattachement";
+    }
+    if (/sous_type_id_fkey/.test(erreur.message)) {
+      return "sous_type_hors_societe";
+    }
+    if (/famille_id_fkey/.test(erreur.message)) {
+      return "famille_hors_societe";
+    }
+    if (/modele_id_fkey/.test(erreur.message)) {
+      return "modele_hors_societe";
+    }
+  }
+  if (erreur.code === ENREGISTREMENT_ABSENT) return "introuvable";
+  return null;
+}
 
 /** Un point tel qu'il se lit sur une version déjà publiée. */
 export type PointPublie = {
@@ -90,6 +157,7 @@ export type PointPublie = {
   readonly unite: string | null;
   readonly toleranceMin: Prisma.Decimal | null;
   readonly toleranceMax: Prisma.Decimal | null;
+  readonly choix: readonly string[];
 };
 
 /** Une version publiée, avec ses points dans l'ordre. */
@@ -119,6 +187,7 @@ export async function creerModele(
           code: saisie.code,
           libelle: saisie.libelle,
           type_intervention: saisie.typeIntervention ?? null,
+          sous_type_id: saisie.sousTypeId ?? null,
           famille_id: saisie.familleId ?? null,
           modele_id: saisie.modeleId ?? null,
           exige_machine: saisie.exigeMachine ?? false,
@@ -185,6 +254,10 @@ export async function publierVersion(
             point.typeReponse === "valeur_mesuree"
               ? (point.toleranceMax ?? null)
               : null,
+          choix:
+            point.typeReponse === "choix_dans_une_liste"
+              ? [...point.choix]
+              : [],
         })),
       });
     },
@@ -230,8 +303,198 @@ export async function dernierVersionPubliee(
       unite: point.unite,
       toleranceMin: point.tolerance_min,
       toleranceMax: point.tolerance_max,
+      choix: point.choix,
     })),
   };
+}
+
+/** L'en-tête d'un modèle, pour l'écran qui publie sa version — jamais ses points. */
+export type EnTeteModeleChecklist = {
+  readonly id: string;
+  readonly code: string;
+  readonly libelle: string;
+};
+
+/** Lit l'en-tête d'un modèle — `null` hors du périmètre (D35, D50). */
+export async function obtenirModeleChecklist(
+  contexte: ContexteSession,
+  checklistModeleId: string,
+  client?: PrismaClient,
+): Promise<EnTeteModeleChecklist | null> {
+  const modele = await avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.checklistModele.findFirst({
+        where: { id: checklistModeleId },
+        select: { id: true, code: true, libelle: true },
+      }),
+    client,
+  );
+  return modele;
+}
+
+/** Toutes les versions d'un modèle, la plus récente d'abord — aperçu en lecture (CK3). */
+export async function listerLesVersionsChecklist(
+  contexte: ContexteSession,
+  checklistModeleId: string,
+  client?: PrismaClient,
+): Promise<readonly VersionPubliee[]> {
+  const versions = await avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.checklistVersion.findMany({
+        where: { checklist_modele_id: checklistModeleId },
+        orderBy: { numero: "desc" },
+        include: { points: { orderBy: { ordre: "asc" } } },
+      }),
+    client,
+  );
+
+  return versions.map((version) => ({
+    id: version.id,
+    numero: version.numero,
+    publieeLe: version.publiee_le,
+    points: version.points.map((point) => ({
+      id: point.id,
+      section: point.section,
+      ordre: point.ordre,
+      libelle: point.libelle,
+      consigne: point.consigne,
+      obligatoire: point.obligatoire,
+      typeReponse: point.type_reponse,
+      unite: point.unite,
+      toleranceMin: point.tolerance_min,
+      toleranceMax: point.tolerance_max,
+      choix: point.choix,
+    })),
+  }));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LE PARAMÉTRAGE (9K19-CHECKLIST-PARAMETRAGE, CK3) — la liste des modèles et
+// la bascule d'activité. `creerModele`, `publierVersion` et
+// `dernierVersionPubliee` ci-dessus sont les trois fonctions que cet écran
+// ouvre enfin.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Le niveau de rattachement d'un modèle — AU PLUS UN (D238), jamais deux. */
+export type RattachementChecklist =
+  | { readonly niveau: "sous_type"; readonly id: string }
+  | { readonly niveau: "famille"; readonly id: string }
+  | { readonly niveau: "modele"; readonly id: string }
+  | { readonly niveau: "aucun" };
+
+/** Un modèle de checklist tel que l'écran de paramétrage le lit. */
+export type LigneModeleChecklist = {
+  readonly id: string;
+  readonly code: string;
+  readonly libelle: string;
+  readonly typeIntervention: TypeIntervention | null;
+  readonly rattachement: RattachementChecklist;
+  readonly exigeMachine: boolean;
+  readonly actif: boolean;
+  readonly derniereVersion: {
+    readonly numero: number;
+    readonly publieeLe: Date;
+  } | null;
+};
+
+function rattachementDe(modele: {
+  readonly sous_type_id: string | null;
+  readonly famille_id: string | null;
+  readonly modele_id: string | null;
+}): RattachementChecklist {
+  if (modele.sous_type_id !== null) {
+    return { niveau: "sous_type", id: modele.sous_type_id };
+  }
+  if (modele.famille_id !== null) {
+    return { niveau: "famille", id: modele.famille_id };
+  }
+  if (modele.modele_id !== null) {
+    return { niveau: "modele", id: modele.modele_id };
+  }
+  return { niveau: "aucun" };
+}
+
+/** LES MODÈLES, sous le contexte cloisonné — avec la dernière version publiée de chacun. */
+export async function listerLesModelesChecklist(
+  contexte: ContexteSession,
+  client?: PrismaClient,
+): Promise<readonly LigneModeleChecklist[]> {
+  const modeles = await avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.checklistModele.findMany({
+        select: {
+          id: true,
+          code: true,
+          libelle: true,
+          type_intervention: true,
+          sous_type_id: true,
+          famille_id: true,
+          modele_id: true,
+          exige_machine: true,
+          actif: true,
+          versions: {
+            orderBy: { numero: "desc" },
+            take: 1,
+            select: { numero: true, publiee_le: true },
+          },
+        },
+        // L'ordre est TOTAL (leçon de L3-03) : sans le dernier rang, deux
+        // modèles de même code — impossible aujourd'hui — se rangeraient par
+        // la place physique des lignes.
+        orderBy: [{ code: "asc" }, { id: "asc" }],
+      }),
+    client,
+  );
+
+  return modeles.map((modele) => ({
+    id: modele.id,
+    code: modele.code,
+    libelle: modele.libelle,
+    typeIntervention: modele.type_intervention as TypeIntervention | null,
+    rattachement: rattachementDe(modele),
+    exigeMachine: modele.exige_machine,
+    actif: modele.actif,
+    derniereVersion:
+      modele.versions[0] === undefined
+        ? null
+        : {
+            numero: modele.versions[0].numero,
+            publieeLe: modele.versions[0].publiee_le,
+          },
+  }));
+}
+
+export type ResultatActiviteChecklist =
+  | { readonly accepte: true }
+  | { readonly accepte: false; readonly motif: "introuvable" };
+
+/**
+ * BASCULE L'ACTIVITÉ D'UN MODÈLE — la seule façon de le retirer de la
+ * cascade (`resoudreGabarit` ne lit que les modèles `actif: true`). Jamais
+ * de suppression : une intervention qui l'a déjà résolu garde sa version
+ * figée (`intervention.checklist_version_id`).
+ */
+export async function basculerActiviteChecklist(
+  contexte: ContexteSession,
+  checklistModeleId: string,
+  actif: boolean,
+  client?: PrismaClient,
+): Promise<ResultatActiviteChecklist> {
+  const touchees = await avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.checklistModele.updateMany({
+        where: { id: checklistModeleId },
+        data: { actif },
+      }),
+    client,
+  );
+  return touchees.count === 0
+    ? { accepte: false, motif: "introuvable" }
+    : { accepte: true };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

@@ -244,6 +244,20 @@ export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
     // ci-dessus : aucune `capacite`, l'écran lui-même gère son écriture.
   },
   {
+    // LA PORTE « CHECKLISTS » (9K19-CHECKLIST-PARAMETRAGE, CK3). Le moteur
+    // (`checklist_modele`/`checklist_version`/`checklist_point`, 9K08, D235)
+    // existait depuis 9K08-CHECKLIST-SCHEMA et n'avait aucun écran — ni pour
+    // créer un modèle, ni pour publier une version.
+    chemin: "/parametres/checklists",
+    titre: "parametres.index_checklists_titre",
+    resume: "parametres.index_checklists_resume",
+    icone: "clipboard",
+    section: "referentiels",
+    // Écriture restreinte, à la différence de « matériel » : paramétrer les
+    // checklists n'est jamais ouvert à qui n'a pas `parametrer_societe`.
+    capacite: "parametrer_societe",
+  },
+  {
     // LA PORTE « DONNÉES » (QT-21, D167, 05/10/2026, TP-NAV1). L'écran
     // existait et fonctionnait (`app/(back-office)/imports/page.tsx`), atteint
     // jusqu'ici par la seule entrée de la barre — jamais par le hub de

@@ -682,27 +682,15 @@ export const FONCTIONS_SANS_CHEMIN: readonly SansChemin[] = [
   // l'ouverture de `app/(back-office)/interventions/suites-a-donner/page.tsx`.
   // ── 9K08-CHECKLIST-SCHEMA (09/11/2026, D235) — LE SOCLE SANS ÉCRAN ───────
   //
-  // Les trois fonctions du dépôt minimal, sans aucun appelant : l'écran de
-  // paramétrage est CK3, hors territoire de ce ticket (schéma, forme RLS et
-  // dépôt seuls). Éprouvées par `tests/isolation/checklists.test.ts`, qui
-  // traverse le chemin de production réel. Se retirent le jour où CK3 les
-  // appelle.
-  {
-    module: "lib/checklists/depot.ts",
-    fonction: "creerModele",
-    motif:
-      "9K08-CHECKLIST-SCHEMA borne le ticket au schéma et au dépôt ; aucun écran de ce ticket n'existe. Ouvert par l'écran de paramétrage de CK3.",
-  },
-  {
-    module: "lib/checklists/depot.ts",
-    fonction: "publierVersion",
-    motif: "Même écran que `creerModele` (CK3).",
-  },
+  // `creerModele` et `publierVersion` SE SONT RETIRÉES AU 9K19-CHECKLIST-
+  // PARAMETRAGE (CK3) : `app/(back-office)/parametres/checklists/page.tsx`
+  // et `.../[id]/version/page.tsx` les ouvrent désormais, par les routes
+  // `app/api/parametres/checklists/creer` et `.../[id]/publier`.
   {
     module: "lib/checklists/depot.ts",
     fonction: "dernierVersionPubliee",
     motif:
-      "Cible de CK3 (paramétrage) : aucun écran n'existe encore. 9K18-CHECKLIST-DOMAINE (CK2) résout et lit la dernière version publiée INLINE, dans la même transaction que la lecture ou l'écriture des réponses — jamais par cette fonction, qui réouvrirait sa propre transaction.",
+      "Cible de CK3 (paramétrage) : l'écran de CK3 lit `listerLesVersionsChecklist` (toutes les versions, pour l'aperçu ET le préremplissage) plutôt que cette fonction, qui ne rendrait que la dernière. 9K18-CHECKLIST-DOMAINE (CK2) résout et lit la dernière version publiée INLINE, dans la même transaction que la lecture ou l'écriture des réponses — jamais par cette fonction, qui réouvrirait sa propre transaction.",
   },
   // 9K18-CHECKLIST-DOMAINE — `enregistrerReponses` a un chemin (la route
   // neuve `app/api/terrain/[id]/checklist/route.ts`), mais AUCUN écran de ce
