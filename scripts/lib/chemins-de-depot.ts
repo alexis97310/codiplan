@@ -342,11 +342,6 @@ export const MODULES_SANS_CHEMIN: readonly {
     motif:
       "La consolidation est du lot 5, et elle n'a AUCUN appelant par décision : c'est la seule zone autorisée à convertir des devises (I2), et son rôle de base porte un secret distinct qui n'existe pas encore (D38).",
   },
-  {
-    module: "lib/checklists",
-    motif:
-      "9K08-CHECKLIST-SCHEMA borne le ticket au schéma, à la forme RLS et au dépôt minimal — l'écran de paramétrage est CK3, hors territoire ici. Se retire le jour où CK3 l'appelle.",
-  },
 ];
 
 /**
@@ -707,6 +702,15 @@ export const FONCTIONS_SANS_CHEMIN: readonly SansChemin[] = [
     module: "lib/checklists/depot.ts",
     fonction: "dernierVersionPubliee",
     motif:
-      "Cible de CK3 (paramétrage) et CK2 (cascade de résolution, future) : aucun des deux n'existe encore.",
+      "Cible de CK3 (paramétrage) : aucun écran n'existe encore. 9K18-CHECKLIST-DOMAINE (CK2) résout et lit la dernière version publiée INLINE, dans la même transaction que la lecture ou l'écriture des réponses — jamais par cette fonction, qui réouvrirait sa propre transaction.",
+  },
+  // 9K18-CHECKLIST-DOMAINE — `enregistrerReponses` a un chemin (la route
+  // neuve `app/api/terrain/[id]/checklist/route.ts`), mais AUCUN écran de ce
+  // ticket ne LIT la checklist pour l'afficher (CK5, hors territoire ici).
+  {
+    module: "lib/checklists/depot.ts",
+    fonction: "checklistDeLIntervention",
+    motif:
+      "La LECTURE terrain de la checklist (points, réponses, complétude) sert CK5 (l'écran de saisie) et CK7 (le blocage de « Terminer »), ni l'un ni l'autre n'existant encore. Éprouvée directement par les épreuves d'isolation de ce ticket.",
   },
 ];

@@ -267,6 +267,9 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   // même porte ; `suspendreIntervention` revérifie ensuite
   // `suspendre_reprendre_intervention` SUR CETTE intervention (D131).
   "app/api/terrain/[id]/suspendre/route.ts": "saisir_rapport",
+  // La saisie des réponses de checklist (9K18-CHECKLIST-DOMAINE) — même
+  // porte que le rapport et la signature.
+  "app/api/terrain/[id]/checklist/route.ts": "saisir_rapport",
   // Les octets d'un document (BON-2) : une LECTURE, protégée par la même
   // capacité que le bon lui-même — pas une capacité neuve pour un octet
   // qu'une lecture cloisonnée protège déjà.
@@ -675,7 +678,10 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
     // 104 depuis 9K14-PORTAIL-COPIER-NOUVEAU-LIEN (backlog B7) — la route
     // neuve `app/api/clients/[id]/comptes/[utilisateurId]/copier-nouveau-
     // lien/route.ts`.
-    expect(Object.keys(ROUTE_CAPACITE).length).toBe(107);
+    // 108 depuis 9K18-CHECKLIST-DOMAINE — `app/api/terrain/[id]/checklist/
+    // route.ts` (107 depuis 9K17A-MATERIEL-SOUS-TYPE, ses trois routes de
+    // sous-types).
+    expect(Object.keys(ROUTE_CAPACITE).length).toBe(108);
   });
 
   it("aucune exemption ne survit à son objet — adossement dans les deux sens", () => {
