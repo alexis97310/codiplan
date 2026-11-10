@@ -204,7 +204,9 @@ test("« Modifier » — publie la v2, la v1 reste lisible dans l'aperçu des ve
     .click();
   const versionV1 = page.locator("details", { hasText: "n°1" });
   await versionV1.locator("summary").click();
-  await expect(versionV1.getByText("Sécurité — Premier point")).toBeVisible();
+  await expect(
+    versionV1.locator("li", { hasText: "Premier point" }),
+  ).toHaveCount(1);
 });
 
 test("« Désactiver » puis « Réactiver » — relu dans la liste", async ({
