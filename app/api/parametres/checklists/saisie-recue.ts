@@ -54,6 +54,27 @@ export function saisieVersionRecue(
   return analyse.success ? analyse.data : null;
 }
 
+/**
+ * LA SAISIE DU BOUTON « PARTIR D'UN GABARIT DE DÉPART » (9K20-CHECKLIST-
+ * DUPLIQUER-DEPART) — l'identifiant du gabarit (une liste close, confrontée
+ * par `lib/checklists/gabarits-de-depart.ts`, pas ici) et le code/libellé du
+ * modèle à naître. `null` si code ou libellé manque — un identifiant de
+ * gabarit inconnu est un refus PLUS TARD, nommé par le dépôt.
+ */
+export function saisieGabaritRecue(formulaire: FormData): {
+  readonly gabaritId: string;
+  readonly code: string;
+  readonly libelle: string;
+} | null {
+  const gabaritId = champ(formulaire, "gabarit_id");
+  const code = champ(formulaire, "code");
+  const libelle = champ(formulaire, "libelle");
+  if (gabaritId === null || code === null || libelle === null) {
+    return null;
+  }
+  return { gabaritId, code, libelle };
+}
+
 /** Le retour vers l'écran, avec son motif s'il y en a un. */
 export function versLeReferentiel(cle?: string): Response {
   const suffixe = cle === undefined ? "" : `?motif=${encodeURIComponent(cle)}`;

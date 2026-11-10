@@ -23,6 +23,7 @@ import {
   type LigneModeleChecklist,
   type RattachementChecklist,
 } from "@/lib/checklists/depot";
+import { GABARITS_DE_DEPART } from "@/lib/checklists/gabarits-de-depart";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import {
   listerLesFamilles,
@@ -90,7 +91,9 @@ export default async function PageChecklists({
 
   const params = await searchParams;
   const motif = typeof params.motif === "string" ? params.motif : undefined;
-  const voletOuvert = params.volet === "creer";
+  const volet = typeof params.volet === "string" ? params.volet : undefined;
+  const sourceId =
+    typeof params.source === "string" ? params.source : undefined;
 
   const [modeles, sousTypes, familles, machinesModeles] = await Promise.all([
     listerLesModelesChecklist(session.contexte),
@@ -119,7 +122,12 @@ export default async function PageChecklists({
       sousTitre={t("checklist.parametrage.sous_titre")}
     >
       <div className="flex flex-col gap-4">
-        <div className="flex justify-end">
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button variant="outline" asChild>
+            <Link href="/parametres/checklists?volet=gabarit">
+              {t("checklist.parametrage.partir_gabarit")}
+            </Link>
+          </Button>
           <LienPrimaire href="/parametres/checklists?volet=creer">
             {t("checklist.parametrage.creer_modele")}
           </LienPrimaire>
@@ -191,13 +199,29 @@ export default async function PageChecklists({
         )}
       </div>
 
-      {voletOuvert ? (
+      {volet === "creer" ? (
         <VoletCreerModele
           sousTypes={sousTypesActifs}
           familles={famillesActives}
           machinesModeles={modelesActifs}
         />
       ) : null}
+
+      {volet === "dupliquer" && sourceId !== undefined
+        ? (() => {
+            const source = modeles.find((modele) => modele.id === sourceId);
+            return source === undefined ? null : (
+              <VoletDupliquerModele
+                source={source}
+                sousTypes={sousTypesActifs}
+                familles={famillesActives}
+                machinesModeles={modelesActifs}
+              />
+            );
+          })()
+        : null}
+
+      {volet === "gabarit" ? <VoletPartirGabarit /> : null}
     </Page>
   );
 }
@@ -274,6 +298,13 @@ function ActionsLigne({ modele }: { readonly modele: LigneModeleChecklist }) {
           {modele.derniereVersion === null
             ? t("checklist.parametrage.publier")
             : t("checklist.parametrage.modifier_version")}
+        </Link>
+      </Button>
+      <Button variant="outline" size="sm" asChild>
+        <Link
+          href={`/parametres/checklists?volet=dupliquer&source=${modele.id}`}
+        >
+          {t("checklist.parametrage.dupliquer")}
         </Link>
       </Button>
       <form
@@ -353,57 +384,10 @@ function VoletCreerModele({
           libelle={t("checklist.parametrage.libelle")}
           large
         />
-        <div className="flex flex-col gap-1">
-          <label
-            htmlFor="type_intervention"
-            className="text-app-encre-faible text-12 font-bold"
-          >
-            {t("checklist.parametrage.type_intervention")}
-          </label>
-          <select
-            id="type_intervention"
-            name="type_intervention"
-            defaultValue=""
-            className="border-app-bord bg-app-surface min-w-44 rounded-md border px-2 py-1 text-13 font-bold"
-          >
-            <option value="">
-              {t("checklist.parametrage.type_intervention_toutes")}
-            </option>
-            {TYPES_INTERVENTION.map((type) => (
-              <option key={type} value={type}>
-                {libelleTypeIntervention(type)}
-              </option>
-            ))}
-          </select>
-        </div>
-        <SelectRattachement
-          id="sous_type_id"
-          libelle={t("checklist.parametrage.sous_type")}
-          libelleAucun={t("checklist.parametrage.sous_type_aucun")}
-          options={sousTypes.map((s) => ({ id: s.id, libelle: s.libelle }))}
-        />
-        <SelectRattachement
-          id="famille_id"
-          libelle={t("checklist.parametrage.famille")}
-          libelleAucun={t("checklist.parametrage.famille_aucune")}
-          options={familles.map((f) => ({ id: f.id, libelle: f.libelle }))}
-        />
-        <SelectRattachement
-          id="modele_id"
-          libelle={t("checklist.parametrage.modele")}
-          libelleAucun={t("checklist.parametrage.modele_aucun")}
-          options={machinesModeles.map((m) => ({
-            id: m.id,
-            libelle: `${m.marque} ${m.reference}`,
-          }))}
-        />
-        <p className="text-app-encre-faible text-12 font-bold">
-          {t("checklist.parametrage.modele_aide")}
-        </p>
-        <CaseACocher
-          name="exige_machine"
-          libelle={t("checklist.parametrage.exige_machine")}
-          className="flex items-center gap-2"
+        <ChampsRattachementEtNature
+          sousTypes={sousTypes}
+          familles={familles}
+          machinesModeles={machinesModeles}
         />
         <div className="flex justify-end gap-2">
           <Link
@@ -421,11 +405,235 @@ function VoletCreerModele({
   );
 }
 
+/**
+ * DUPLIQUER UN MODÈLE (9K20-CHECKLIST-DUPLIQUER-DEPART) — même formulaire
+ * que « Créer un modèle », posté vers `/api/parametres/checklists/[id]/
+ * dupliquer` (`id` = la source) ; libellé et rattachement REPRIS de la
+ * source, le code reste vide et obligatoire (une copie ne partage jamais le
+ * code de sa source).
+ */
+function VoletDupliquerModele({
+  source,
+  sousTypes,
+  familles,
+  machinesModeles,
+}: {
+  readonly source: LigneModeleChecklist;
+  readonly sousTypes: readonly LigneSousType[];
+  readonly familles: readonly LigneFamille[];
+  readonly machinesModeles: readonly LigneModele[];
+}) {
+  return (
+    <Volet
+      surtitre={t("checklist.parametrage.titre")}
+      titre={t("checklist.parametrage.dupliquer_titre")}
+      hrefFermer="/parametres/checklists"
+    >
+      <form
+        action={`/api/parametres/checklists/${source.id}/dupliquer`}
+        method="post"
+        className="flex flex-col gap-3"
+      >
+        <p className="text-app-encre-faible text-12 font-bold">
+          {t("checklist.parametrage.dupliquer_source_prefixe")}
+          {t("ponctuation.deux_points")}
+          {source.libelle}
+        </p>
+        <Champ id="code" nom="code" libelle={t("checklist.parametrage.code")} />
+        <Champ
+          id="libelle"
+          nom="libelle"
+          libelle={t("checklist.parametrage.libelle")}
+          valeur={source.libelle}
+          large
+        />
+        <ChampsRattachementEtNature
+          sousTypes={sousTypes}
+          familles={familles}
+          machinesModeles={machinesModeles}
+          typeIntervention={source.typeIntervention ?? undefined}
+          sousTypeId={
+            source.rattachement.niveau === "sous_type"
+              ? source.rattachement.id
+              : undefined
+          }
+          familleId={
+            source.rattachement.niveau === "famille"
+              ? source.rattachement.id
+              : undefined
+          }
+          modeleId={
+            source.rattachement.niveau === "modele"
+              ? source.rattachement.id
+              : undefined
+          }
+          exigeMachine={source.exigeMachine}
+        />
+        <div className="flex justify-end gap-2">
+          <Link
+            href="/parametres/checklists"
+            className="border-app-bord rounded-md border px-3 py-1.5 text-13 font-bold"
+          >
+            {t("checklist.parametrage.annuler")}
+          </Link>
+          <ActionPrimaire>
+            {t("checklist.parametrage.dupliquer_action")}
+          </ActionPrimaire>
+        </div>
+      </form>
+    </Volet>
+  );
+}
+
+/**
+ * PARTIR D'UN GABARIT DE DÉPART (9K20-CHECKLIST-DUPLIQUER-DEPART) — un seul
+ * champ propre à cet écran, le choix du gabarit (`lib/checklists/gabarits-
+ * de-depart.ts`, liste close) ; code et libellé comme pour toute création.
+ * Ni nature ni rattachement : voir le commentaire du module de gabarits.
+ */
+function VoletPartirGabarit() {
+  return (
+    <Volet
+      surtitre={t("checklist.parametrage.titre")}
+      titre={t("checklist.parametrage.partir_gabarit")}
+      hrefFermer="/parametres/checklists"
+    >
+      <form
+        action="/api/parametres/checklists/gabarit"
+        method="post"
+        className="flex flex-col gap-3"
+      >
+        <div className="flex flex-col gap-1">
+          <label
+            htmlFor="gabarit_id"
+            className="text-app-encre-faible text-12 font-bold"
+          >
+            {t("checklist.parametrage.gabarit")}
+          </label>
+          <select
+            id="gabarit_id"
+            name="gabarit_id"
+            defaultValue={GABARITS_DE_DEPART[0]?.id}
+            className="border-app-bord bg-app-surface min-w-44 rounded-md border px-2 py-1 text-13 font-bold"
+          >
+            {GABARITS_DE_DEPART.map((gabarit) => (
+              <option key={gabarit.id} value={gabarit.id}>
+                {gabarit.libelle}
+              </option>
+            ))}
+          </select>
+        </div>
+        <Champ id="code" nom="code" libelle={t("checklist.parametrage.code")} />
+        <Champ
+          id="libelle"
+          nom="libelle"
+          libelle={t("checklist.parametrage.libelle")}
+          large
+        />
+        <div className="flex justify-end gap-2">
+          <Link
+            href="/parametres/checklists"
+            className="border-app-bord rounded-md border px-3 py-1.5 text-13 font-bold"
+          >
+            {t("checklist.parametrage.annuler")}
+          </Link>
+          <ActionPrimaire>
+            {t("checklist.parametrage.partir_gabarit_action")}
+          </ActionPrimaire>
+        </div>
+      </form>
+    </Volet>
+  );
+}
+
+/** Les champs de nature et de rattachement, partagés par création et duplication. */
+function ChampsRattachementEtNature({
+  sousTypes,
+  familles,
+  machinesModeles,
+  typeIntervention,
+  sousTypeId,
+  familleId,
+  modeleId,
+  exigeMachine,
+}: {
+  readonly sousTypes: readonly LigneSousType[];
+  readonly familles: readonly LigneFamille[];
+  readonly machinesModeles: readonly LigneModele[];
+  readonly typeIntervention?: TypeIntervention;
+  readonly sousTypeId?: string;
+  readonly familleId?: string;
+  readonly modeleId?: string;
+  readonly exigeMachine?: boolean;
+}) {
+  return (
+    <>
+      <div className="flex flex-col gap-1">
+        <label
+          htmlFor="type_intervention"
+          className="text-app-encre-faible text-12 font-bold"
+        >
+          {t("checklist.parametrage.type_intervention")}
+        </label>
+        <select
+          id="type_intervention"
+          name="type_intervention"
+          defaultValue={typeIntervention ?? ""}
+          className="border-app-bord bg-app-surface min-w-44 rounded-md border px-2 py-1 text-13 font-bold"
+        >
+          <option value="">
+            {t("checklist.parametrage.type_intervention_toutes")}
+          </option>
+          {TYPES_INTERVENTION.map((type) => (
+            <option key={type} value={type}>
+              {libelleTypeIntervention(type)}
+            </option>
+          ))}
+        </select>
+      </div>
+      <SelectRattachement
+        id="sous_type_id"
+        libelle={t("checklist.parametrage.sous_type")}
+        libelleAucun={t("checklist.parametrage.sous_type_aucun")}
+        options={sousTypes.map((s) => ({ id: s.id, libelle: s.libelle }))}
+        valeur={sousTypeId}
+      />
+      <SelectRattachement
+        id="famille_id"
+        libelle={t("checklist.parametrage.famille")}
+        libelleAucun={t("checklist.parametrage.famille_aucune")}
+        options={familles.map((f) => ({ id: f.id, libelle: f.libelle }))}
+        valeur={familleId}
+      />
+      <SelectRattachement
+        id="modele_id"
+        libelle={t("checklist.parametrage.modele")}
+        libelleAucun={t("checklist.parametrage.modele_aucun")}
+        options={machinesModeles.map((m) => ({
+          id: m.id,
+          libelle: `${m.marque} ${m.reference}`,
+        }))}
+        valeur={modeleId}
+      />
+      <p className="text-app-encre-faible text-12 font-bold">
+        {t("checklist.parametrage.modele_aide")}
+      </p>
+      <CaseACocher
+        name="exige_machine"
+        libelle={t("checklist.parametrage.exige_machine")}
+        defaultChecked={exigeMachine}
+        className="flex items-center gap-2"
+      />
+    </>
+  );
+}
+
 function SelectRattachement({
   id,
   libelle,
   libelleAucun,
   options,
+  valeur,
 }: {
   readonly id: string;
   readonly libelle: string;
@@ -434,6 +642,7 @@ function SelectRattachement({
     readonly id: string;
     readonly libelle: string;
   }[];
+  readonly valeur?: string;
 }) {
   return (
     <div className="flex flex-col gap-1">
@@ -443,7 +652,7 @@ function SelectRattachement({
       <select
         id={id}
         name={id}
-        defaultValue=""
+        defaultValue={valeur ?? ""}
         className="border-app-bord bg-app-surface min-w-44 rounded-md border px-2 py-1 text-13 font-bold"
       >
         <option value="">{libelleAucun}</option>

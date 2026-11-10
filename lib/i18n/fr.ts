@@ -4993,6 +4993,20 @@ export const fr = {
     "Choisissez au plus un seul niveau de rattachement — sous-type, famille ou modèle.",
   "checklist.parametrage.refus.introuvable": "Cette ligne est introuvable.",
 
+  // ── DUPLIQUER, PARTIR D'UN GABARIT DE DÉPART (9K20-CHECKLIST-DUPLIQUER-
+  // DEPART) ───────────────────────────────────────────────────────────────
+  "checklist.parametrage.dupliquer": "Dupliquer",
+  "checklist.parametrage.dupliquer_titre": "Dupliquer un modèle",
+  "checklist.parametrage.dupliquer_source_prefixe": "Copié depuis",
+  "checklist.parametrage.dupliquer_action": "Dupliquer",
+  "checklist.parametrage.refus.aucune_version_source":
+    "Ce modèle n'a encore aucune version publiée à dupliquer.",
+  "checklist.parametrage.partir_gabarit": "Partir d'un gabarit de départ",
+  "checklist.parametrage.partir_gabarit_action": "Créer",
+  "checklist.parametrage.gabarit": "Gabarit de départ",
+  "checklist.parametrage.refus.gabarit_inconnu":
+    "Ce gabarit de départ n'existe pas.",
+
   // ── L'ÉDITEUR DE VERSION (9K19-CHECKLIST-PARAMETRAGE, CK3) ───────────────
   "checklist.parametrage.version_titre": "Publier une version",
   "checklist.parametrage.retour": "Retour",

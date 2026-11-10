@@ -5,6 +5,7 @@ import {
   type PrismaClient,
   type ReponseConformite,
   type TypeIntervention,
+  type TypeReponseChecklist,
 } from "@prisma/client";
 
 import {
@@ -12,6 +13,7 @@ import {
   exigerSocieteActive,
   type ContexteSession,
 } from "@/lib/auth/contexte";
+import { gabaritDeDepart } from "@/lib/checklists/gabarits-de-depart";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
 import {
@@ -495,6 +497,140 @@ export async function basculerActiviteChecklist(
   return touchees.count === 0
     ? { accepte: false, motif: "introuvable" }
     : { accepte: true };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DUPLIQUER UN MODÈLE, PARTIR D'UN GABARIT DE DÉPART (9K20-CHECKLIST-
+// DUPLIQUER-DEPART) — les deux raccourcis de création : recopier la dernière
+// version publiée d'un modèle existant, ou partir d'un contenu posé en code
+// (`lib/checklists/gabarits-de-depart.ts`). Ni l'un ni l'autre n'écrit les
+// points directement : les deux passent par `publierVersion`, qui seule sait
+// calculer le numéro de version (D235).
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Convertit un point déjà publié en saisie pour `publierVersion` — la forme
+ * que rend la base (`Prisma.Decimal`, `type_reponse` en base) devient celle
+ * qu'elle attend en entrée. `typeReponse` est un des cinq membres de l'enum
+ * de base (`TypeReponseChecklist`) : jamais autre chose, la colonne le garde.
+ */
+function pointPublieEnSaisie(point: PointPublie): SaisiePointChecklist {
+  const entete = {
+    section: point.section,
+    ordre: point.ordre,
+    libelle: point.libelle,
+    consigne: point.consigne ?? undefined,
+    obligatoire: point.obligatoire,
+  };
+  const typeReponse = point.typeReponse as TypeReponseChecklist;
+  switch (typeReponse) {
+    case "conforme_non_conforme_sans_objet":
+      return { ...entete, typeReponse };
+    case "case_faite":
+      return { ...entete, typeReponse };
+    case "valeur_mesuree":
+      return {
+        ...entete,
+        typeReponse,
+        unite: point.unite ?? undefined,
+        toleranceMin: point.toleranceMin?.toNumber(),
+        toleranceMax: point.toleranceMax?.toNumber(),
+      };
+    case "choix_dans_une_liste":
+      return { ...entete, typeReponse, choix: point.choix };
+    case "texte_libre":
+      return { ...entete, typeReponse };
+  }
+}
+
+export type ResultatDuplicationModele =
+  | { readonly accepte: true; readonly checklistModeleId: string }
+  | {
+      readonly accepte: false;
+      readonly motif: MotifRefusModeleChecklist | "aucune_version_source";
+    };
+
+/**
+ * DUPLIQUE UN MODÈLE — en-tête neuf (`saisie`, un code OBLIGATOIREMENT
+ * différent), dont la version 1 recopie les points de la DERNIÈRE version
+ * publiée du modèle source. Refuse nommément si la source n'est pas visible
+ * (`introuvable`) ou n'a encore aucune version publiée
+ * (`aucune_version_source`) — rien n'est créé dans ces deux cas.
+ */
+export async function dupliquerModele(
+  contexte: ContexteSession,
+  modeleSourceId: string,
+  saisie: SaisieModeleChecklist,
+  client?: PrismaClient,
+): Promise<ResultatDuplicationModele> {
+  const source = await obtenirModeleChecklist(contexte, modeleSourceId, client);
+  if (source === null) {
+    return { accepte: false, motif: "introuvable" };
+  }
+  const derniere = await dernierVersionPubliee(
+    contexte,
+    modeleSourceId,
+    client,
+  );
+  if (derniere === null) {
+    return { accepte: false, motif: "aucune_version_source" };
+  }
+
+  let checklistModeleId: string;
+  try {
+    checklistModeleId = await creerModele(contexte, saisie, client);
+  } catch (erreur: unknown) {
+    const motif = motifModeleChecklist(erreur);
+    if (motif === null) throw erreur;
+    return { accepte: false, motif };
+  }
+
+  await publierVersion(
+    contexte,
+    checklistModeleId,
+    derniere.points.map(pointPublieEnSaisie),
+    client,
+  );
+
+  return { accepte: true, checklistModeleId };
+}
+
+export type ResultatCreationDepuisGabarit =
+  | { readonly accepte: true; readonly checklistModeleId: string }
+  | {
+      readonly accepte: false;
+      readonly motif: MotifRefusModeleChecklist | "gabarit_inconnu";
+    };
+
+/**
+ * CRÉE UN MODÈLE DEPUIS UN GABARIT DE DÉPART — en-tête neuf (code, libellé),
+ * version 1 posée depuis les points du gabarit nommé, publiée par
+ * `publierVersion`. Le gabarit ne fixe ni nature ni rattachement matériel
+ * (voir `lib/checklists/gabarits-de-depart.ts`) : `saisie` n'en porte pas non
+ * plus ici.
+ */
+export async function creerModeleDepuisGabarit(
+  contexte: ContexteSession,
+  gabaritId: string,
+  saisie: { readonly code: string; readonly libelle: string },
+  client?: PrismaClient,
+): Promise<ResultatCreationDepuisGabarit> {
+  const gabarit = gabaritDeDepart(gabaritId);
+  if (gabarit === undefined) {
+    return { accepte: false, motif: "gabarit_inconnu" };
+  }
+
+  let checklistModeleId: string;
+  try {
+    checklistModeleId = await creerModele(contexte, saisie, client);
+  } catch (erreur: unknown) {
+    const motif = motifModeleChecklist(erreur);
+    if (motif === null) throw erreur;
+    return { accepte: false, motif };
+  }
+
+  await publierVersion(contexte, checklistModeleId, gabarit.points, client);
+
+  return { accepte: true, checklistModeleId };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
