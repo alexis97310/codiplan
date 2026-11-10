@@ -156,4 +156,5 @@ export const MIGRATIONS_ATTENDUES: readonly string[] = [
   "20261109080000_checklists_socle_9k08",
   "20261110120000_portail_securite_base_9k16",
   "20261110130000_sous_type_materiel_9k17a",
+  "20261110140000_checklist_cinq_types_reponse_9k18",
 ];

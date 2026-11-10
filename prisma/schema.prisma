@@ -2668,13 +2668,17 @@ model SuiteADonner {
 // nom_technicien_affiche`, 9J22A), si bien que la lecture portail n'a jamais
 // besoin d'ouvrir `ChecklistPoint`.
 
-/// Trois types de réponse SEULEMENT pour ce lot (9K08) — `choix_liste`,
-/// `texte` et `photo` sont DIFFÉRÉS (la photo passe par l'outil Photos
-/// existant de l'intervention, pas par la checklist).
+/// CINQ types de réponse (9K18-CHECKLIST-DOMAINE, décision d'Alexis du
+/// 10/11/2026 ~13h10 : « Oui, les 5 types »). 9K08 n'en posait que trois ;
+/// `choix_dans_une_liste` et `texte_libre` rejoignent l'énumération ici — la
+/// `photo` reste DIFFÉRÉE (elle passe par l'outil Photos existant de
+/// l'intervention, jamais par la checklist).
 enum TypeReponseChecklist {
   conforme_non_conforme_sans_objet
   valeur_mesuree
   case_faite
+  choix_dans_une_liste
+  texte_libre
 }
 
 /// La réponse à un point `conforme_non_conforme_sans_objet`. Un NON CONFORME
@@ -2805,6 +2809,11 @@ model ChecklistPoint {
   tolerance_min Decimal? @db.Decimal(12, 3)
   tolerance_max Decimal? @db.Decimal(12, 3)
 
+  /// Les choix proposés — `choix_dans_une_liste` SEULEMENT (contrainte posée
+  /// en base, 9K18-CHECKLIST-DOMAINE) : VIDE par défaut et pour tout autre
+  /// type ; NON VIDE et SANS DOUBLON exigé pour `choix_dans_une_liste`.
+  choix String[] @default([])
+
   societe  Societe            @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
   version  ChecklistVersion   @relation(fields: [societe_id, checklist_version_id], references: [societe_id, id], onDelete: Cascade, onUpdate: Restrict)
   reponses ChecklistReponse[]
@@ -2833,11 +2842,18 @@ model ChecklistReponse {
   unite       String?
   obligatoire Boolean
 
-  /// Exactement une des trois, selon le type de réponse du point — gardé par
-  /// `num_nonnulls` en base, même patron que `notification_cible_unique`.
+  /// Exactement une des CINQ, selon le type de réponse du point — gardé par
+  /// `num_nonnulls` en base, même patron que `notification_cible_unique`
+  /// (étendu à cinq colonnes par 9K18-CHECKLIST-DOMAINE).
   valeur_conforme ReponseConformite?
   valeur_mesuree  Decimal?           @db.Decimal(12, 3)
   valeur_fait     Boolean?
+  /// `choix_dans_une_liste` — un des choix du point (vérifié par le dépôt,
+  /// jamais relu depuis `ChecklistPoint`, même patron que les colonnes
+  /// recopiées ci-dessus).
+  valeur_choix String?
+  /// `texte_libre` — borne de longueur posée en base (9K18-CHECKLIST-DOMAINE).
+  valeur_texte String?
 
   /// QUI a répondu — une IDENTITÉ, aucune relation Prisma déclarée vers
   /// `Utilisateur` (même choix que `Notification.destinataire_id`, D39) :
