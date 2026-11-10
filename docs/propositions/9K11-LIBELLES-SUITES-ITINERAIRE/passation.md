@@ -153,6 +153,35 @@ montre l'état précédant 9K11 :
   `docs/propositions/` propre (vérifié : absent de l'arborescence), et ses
   captures (`CAPTURES_9J18`) n'ont jamais été committées nulle part.
 
+### Reprise 9K17B
+
+9K16 (publié `d6605a45e`) ajoute des politiques `AS RESTRICTIVE` (`verrou_*`)
+sur de nombreuses tables, dont `intervention_machine`, `checklist_modele`,
+`checklist_version`, `checklist_point`, `checklist_reponse`,
+`suite_a_donner` et `document_recu`. Plusieurs épreuves de
+`tests/isolation/` lisaient `pg_policies` sans filtrer le nom de la
+politique et prenaient la première ligne rendue — l'ordre n'étant pas
+garanti, l'épreuve pouvait tomber au hasard sur une politique `verrou_*`
+(dont `qual` est `NULL` pour un `INSERT`) au lieu de la politique métier
+attendue. Les dix fichiers de `tests/` qui lisent `pg_policies` ont été
+passés en revue ; cinq corrigés (`tests/isolation/intervention-
+machines.test.ts`, `checklists.test.ts`, `suite-a-donner.test.ts`,
+`bac-de-reception.test.ts`, `habilitations.test.ts`) pour nommer la
+politique visée (`policyname = …`) ou, pour `habilitations.test.ts`, pour
+filtrer sur les deux noms possibles d'un jumeau et vérifier qu'un seul
+subsiste — même sens, mêmes assertions, rendues déterministes. Les autres
+fichiers qui lisent `pg_policies` filtraient déjà par nom ou par `cmd`, ou
+délèguent à `scripts/lib/politiques-rls.ts` (qui lit toutes les lignes et
+groupe par nom, sans ambiguïté). `pnpm test:isolation` rejoué trois fois de
+suite : vert les trois fois (234 fichiers, 2103 tests). Les commits de
+`9K17-CAPTURES-9K11-garde` ont été reportés par cherry-pick, sans
+modification, sur la branche `9K17B-REPRISE-POLITIQUES-NOMMEES` ; les e2e de
+9K17 (`captures-9k17-libelles-suites-itineraire.spec.ts`, 11 passés),
+`tous-les-ecrans-rendent.spec.ts` (60 passés, 3 ignorés — pré-existant) et
+`CI=1 pnpm verify` ont été rejoués verts après ce report.
+`9K17A-MATERIEL-SOUS-TYPE-garde` n'existe pas encore (sa vérification tourne
+toujours) : son report reste dû à une session suivante.
+
 ## 5. État à la fin de la session
 
 - Branche dédiée `9K11-LIBELLES-SUITES-ITINERAIRE`, partant d'`origin/main`

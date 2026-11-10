@@ -175,3 +175,21 @@ lisible par le code d'avant.
 build). `pnpm test` : 5608 passés. `pnpm test:isolation` : 2103 passés.
 `pnpm exec playwright test tests/e2e/9k17a-materiel-sous-type.spec.ts` : 4
 passés. `verify:full` est laissé à la file de nuit.
+
+### Reprise 9K17B
+
+9K16 (publié `d6605a45e`) a ajouté des politiques `AS RESTRICTIVE`
+(`verrou_*`) sur `intervention_machine`, les quatre tables `checklist_*`,
+`suite_a_donner` et `document_recu`, entre autres. L'épreuve d'isolation
+`tests/isolation/intervention-machines.test.ts:142` ("PREUVE que la
+politique fille ne recopie RIEN") lisait `pg_policies` sans filtrer le nom
+de la politique et prenait la première ligne rendue — l'ordre n'étant pas
+garanti, elle pouvait tomber au hasard sur une politique `verrou_*` (qual
+`NULL` pour un `INSERT`) plutôt que sur `cloisonnement_filiation`. Corrigée
+pour nommer la politique visée (`policyname = 'cloisonnement_filiation'`) :
+même sens, même assertion, rendue déterministe. `pnpm test:isolation`
+rejoué trois fois de suite : vert les trois fois. `9K17A-MATERIEL-SOUS-
+TYPE-garde` n'existe pas encore (sa vérification tourne toujours) : son
+report par cherry-pick reste dû à une session suivante — seul
+`9K17-CAPTURES-9K11-garde` a été reporté dans cette reprise. La migration
+de 9K17A reste **À JOUER par Alexis**, inchangée par cette reprise.
