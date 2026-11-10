@@ -29,6 +29,14 @@
 -- 'choix_dans_une_liste'::"TypeReponseChecklist"` — mesuré contre une base
 -- réelle (un type de test, dans une transaction annulée) : la comparaison
 -- textuelle passe, la comparaison typée lève « unsafe use of new value ».
+--
+-- ## LA RESTRICTION POSTGRESQL SUR LES SOUS-REQUÊTES DANS UN CHECK
+--
+-- Une contrainte CHECK ne peut pas contenir de sous-requête (« cannot use
+-- subquery in check constraint », mesurée contre la même base réelle). Le
+-- test de doublon sur `choix` passe donc par une fonction SQL IMMUTABLE,
+-- `checklist_choix_sans_doublon`, appelée depuis le CHECK — un appel de
+-- fonction, jamais une sous-requête nue dans son expression.
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- 1. L'ÉNUMÉRATION
@@ -43,14 +51,23 @@ ALTER TYPE "TypeReponseChecklist" ADD VALUE 'texte_libre';
 
 ALTER TABLE "checklist_point" ADD COLUMN "choix" text[] NOT NULL DEFAULT '{}';
 
+-- PostgreSQL REFUSE une sous-requête à l'intérieur d'une contrainte CHECK
+-- (« cannot use subquery in check constraint », mesuré contre une base
+-- réelle en écrivant cette migration) — le test de doublon passe donc par
+-- une petite fonction SQL IMMUTABLE, appelée depuis le CHECK comme un appel
+-- de fonction ordinaire, jamais une sous-requête nue dans son expression.
+CREATE FUNCTION "checklist_choix_sans_doublon"("choix" text[]) RETURNS boolean
+  LANGUAGE sql IMMUTABLE AS $$
+    SELECT cardinality("choix") = cardinality(ARRAY(SELECT DISTINCT "c" FROM unnest("choix") AS "c"));
+  $$;
+
 -- NON VIDE ET SANS DOUBLON pour `choix_dans_une_liste` ; VIDE pour les
 -- quatre autres types — comparaison TEXTUELLE (voir note de tête).
 ALTER TABLE "checklist_point"
   ADD CONSTRAINT "checklist_point_choix_reserve_a_choix_dans_une_liste" CHECK (
     CASE
       WHEN "type_reponse"::text = 'choix_dans_une_liste'
-        THEN cardinality("choix") > 0
-         AND cardinality("choix") = cardinality(ARRAY(SELECT DISTINCT "c" FROM unnest("choix") AS "c"))
+        THEN cardinality("choix") > 0 AND "checklist_choix_sans_doublon"("choix")
       ELSE cardinality("choix") = 0
     END
   );

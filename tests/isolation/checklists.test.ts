@@ -389,6 +389,426 @@ describe("la forme « filiation » (D103, D235) : checklist_reponse sur interven
   });
 });
 
+describe("9K18-CHECKLIST-DOMAINE — les cinq types de réponse, les contraintes neuves", () => {
+  /** Pose un modèle + une version, SANS point — pour y insérer le point sous épreuve. */
+  async function poserModeleEtVersion(
+    societeId: string,
+    code: string,
+  ): Promise<{ modeleId: string; versionId: string }> {
+    const modeleId = uuidv7();
+    const versionId = uuidv7();
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "checklist_modele" ("id", "societe_id", "code", "libelle", "modifie_le")
+       VALUES ('${modeleId}', '${societeId}', '${code}', 'Modèle de test', now())`,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "checklist_version" ("id", "societe_id", "checklist_modele_id", "numero")
+       VALUES ('${versionId}', '${societeId}', '${modeleId}', 1)`,
+    );
+    return { modeleId, versionId };
+  }
+
+  async function supprimerModeleEtVersion(modeleId: string): Promise<void> {
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "checklist_reponse" WHERE "checklist_point_id" IN (
+         SELECT "p"."id" FROM "checklist_point" "p"
+         JOIN "checklist_version" "v" ON "v"."id" = "p"."checklist_version_id"
+         WHERE "v"."checklist_modele_id" = '${modeleId}'
+       )`,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "checklist_version" WHERE "checklist_modele_id" = '${modeleId}'`,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "checklist_modele" WHERE "id" = '${modeleId}'`,
+    );
+  }
+
+  /** Les choix d'un `text[]` littéral SQL — `'{}'` pour vide. */
+  function litteralChoix(choix: readonly string[]): string {
+    if (choix.length === 0) {
+      return "'{}'";
+    }
+    return `ARRAY[${choix.map((c) => `'${c}'`).join(", ")}]::text[]`;
+  }
+
+  async function poserPoint(
+    societeId: string,
+    versionId: string,
+    typeReponse: string,
+    choix: readonly string[],
+  ): Promise<string> {
+    const pointId = uuidv7();
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "checklist_point"
+         ("id", "societe_id", "checklist_version_id", "section", "ordre", "libelle", "obligatoire", "type_reponse", "choix")
+       VALUES ('${pointId}', '${societeId}', '${versionId}', 'Section', 1, 'Point', false, '${typeReponse}', ${litteralChoix(choix)})`,
+    );
+    return pointId;
+  }
+
+  async function poserReponseBrute(
+    societeId: string,
+    interventionId: string,
+    pointId: string,
+    auteurId: string,
+    colonnes: Readonly<Record<string, string>>,
+  ): Promise<string> {
+    const id = uuidv7();
+    const noms = [
+      "id",
+      "societe_id",
+      "intervention_id",
+      "checklist_point_id",
+      "libelle",
+      "section",
+      "obligatoire",
+      "auteur_id",
+      ...Object.keys(colonnes),
+    ];
+    const valeurs = [
+      `'${id}'`,
+      `'${societeId}'`,
+      `'${interventionId}'`,
+      `'${pointId}'`,
+      `'Point'`,
+      `'Section'`,
+      `false`,
+      `'${auteurId}'`,
+      ...Object.values(colonnes),
+    ];
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "checklist_reponse" (${noms.map((n) => `"${n}"`).join(", ")})
+       VALUES (${valeurs.join(", ")})`,
+    );
+    return id;
+  }
+
+  describe("`checklist_point.choix` — réservé à `choix_dans_une_liste` (checklist_point_choix_reserve_a_choix_dans_une_liste)", () => {
+    it("un point `choix_dans_une_liste` SANS choix est refusé, EN BASE", async () => {
+      const { modeleId, versionId } = await poserModeleEtVersion(
+        SOCIETE_A,
+        "CHOIX-VIDE",
+      );
+      try {
+        await expect(
+          poserPoint(SOCIETE_A, versionId, "choix_dans_une_liste", []),
+        ).rejects.toThrow(
+          /checklist_point_choix_reserve_a_choix_dans_une_liste/,
+        );
+      } finally {
+        await supprimerModeleEtVersion(modeleId);
+      }
+    });
+
+    it("un point `choix_dans_une_liste` avec un DOUBLON est refusé, EN BASE", async () => {
+      const { modeleId, versionId } = await poserModeleEtVersion(
+        SOCIETE_A,
+        "CHOIX-DOUBLON",
+      );
+      try {
+        await expect(
+          poserPoint(SOCIETE_A, versionId, "choix_dans_une_liste", [
+            "bon",
+            "bon",
+          ]),
+        ).rejects.toThrow(
+          /checklist_point_choix_reserve_a_choix_dans_une_liste/,
+        );
+      } finally {
+        await supprimerModeleEtVersion(modeleId);
+      }
+    });
+
+    it("un point d'un AUTRE type AVEC des choix est refusé, EN BASE", async () => {
+      const { modeleId, versionId } = await poserModeleEtVersion(
+        SOCIETE_A,
+        "CHOIX-HORS-TYPE",
+      );
+      try {
+        await expect(
+          poserPoint(SOCIETE_A, versionId, "texte_libre", ["bon", "mauvais"]),
+        ).rejects.toThrow(
+          /checklist_point_choix_reserve_a_choix_dans_une_liste/,
+        );
+      } finally {
+        await supprimerModeleEtVersion(modeleId);
+      }
+    });
+
+    it("un point `choix_dans_une_liste` NON VIDE SANS DOUBLON passe", async () => {
+      const { modeleId, versionId } = await poserModeleEtVersion(
+        SOCIETE_A,
+        "CHOIX-VALIDE",
+      );
+      try {
+        const pointId = await poserPoint(
+          SOCIETE_A,
+          versionId,
+          "choix_dans_une_liste",
+          ["bon", "use", "a_remplacer"],
+        );
+        const point = await clientOwner().checklistPoint.findUnique({
+          where: { id: pointId },
+        });
+        expect(point?.choix).toEqual(["bon", "use", "a_remplacer"]);
+      } finally {
+        await supprimerModeleEtVersion(modeleId);
+      }
+    });
+
+    it("JUMEAU — la contrainte retirée, un point `choix_dans_une_liste` SANS choix PASSE", async () => {
+      const { modeleId, versionId } = await poserModeleEtVersion(
+        SOCIETE_A,
+        "CHOIX-JUMEAU",
+      );
+      try {
+        await clientOwner().$executeRawUnsafe(
+          `ALTER TABLE "checklist_point" DROP CONSTRAINT "checklist_point_choix_reserve_a_choix_dans_une_liste"`,
+        );
+        const pointId = await poserPoint(
+          SOCIETE_A,
+          versionId,
+          "choix_dans_une_liste",
+          [],
+        );
+        const point = await clientOwner().checklistPoint.findUnique({
+          where: { id: pointId },
+        });
+        expect(point).not.toBeNull();
+      } finally {
+        await supprimerModeleEtVersion(modeleId);
+        // RÉTABLIE — sinon la contrainte manquerait à toutes les épreuves
+        // suivantes de ce fichier (et de ce process, la connexion étant
+        // partagée).
+        await clientOwner().$executeRawUnsafe(
+          `ALTER TABLE "checklist_point"
+             ADD CONSTRAINT "checklist_point_choix_reserve_a_choix_dans_une_liste" CHECK (
+               CASE
+                 WHEN "type_reponse"::text = 'choix_dans_une_liste'
+                   THEN cardinality("choix") > 0 AND "checklist_choix_sans_doublon"("choix")
+                 ELSE cardinality("choix") = 0
+               END
+             )`,
+        );
+      }
+    });
+  });
+
+  describe("`checklist_reponse` — l'exclusivité étendue aux cinq colonnes (checklist_reponse_valeur_unique)", () => {
+    it("DEUX valeurs à la fois (conforme ET texte) sont refusées, EN BASE", async () => {
+      const { modeleId, versionId } = await poserModeleEtVersion(
+        SOCIETE_A,
+        "VALEUR-DOUBLE",
+      );
+      const pointId = await poserPoint(
+        SOCIETE_A,
+        versionId,
+        "texte_libre",
+        [],
+      );
+      try {
+        await expect(
+          poserReponseBrute(
+            SOCIETE_A,
+            INTERVENTION_A1,
+            pointId,
+            UTILISATEUR_INTERNE_A,
+            { valeur_conforme: "'conforme'", valeur_texte: "'un texte'" },
+          ),
+        ).rejects.toThrow(/checklist_reponse_valeur_unique/);
+      } finally {
+        await supprimerModeleEtVersion(modeleId);
+      }
+    });
+
+    it("ZÉRO valeur est refusée, EN BASE — même contrainte", async () => {
+      const { modeleId, versionId } = await poserModeleEtVersion(
+        SOCIETE_A,
+        "VALEUR-ZERO",
+      );
+      const pointId = await poserPoint(
+        SOCIETE_A,
+        versionId,
+        "texte_libre",
+        [],
+      );
+      try {
+        await expect(
+          poserReponseBrute(
+            SOCIETE_A,
+            INTERVENTION_A1,
+            pointId,
+            UTILISATEUR_INTERNE_A,
+            {},
+          ),
+        ).rejects.toThrow(/checklist_reponse_valeur_unique/);
+      } finally {
+        await supprimerModeleEtVersion(modeleId);
+      }
+    });
+
+    it("`valeur_choix` seule — exactement une valeur — PASSE", async () => {
+      const { modeleId, versionId } = await poserModeleEtVersion(
+        SOCIETE_A,
+        "VALEUR-CHOIX-SEULE",
+      );
+      const pointId = await poserPoint(
+        SOCIETE_A,
+        versionId,
+        "choix_dans_une_liste",
+        ["bon", "mauvais"],
+      );
+      try {
+        const id = await poserReponseBrute(
+          SOCIETE_A,
+          INTERVENTION_A1,
+          pointId,
+          UTILISATEUR_INTERNE_A,
+          { valeur_choix: "'bon'" },
+        );
+        const reponse = await clientOwner().checklistReponse.findUnique({
+          where: { id },
+        });
+        expect(reponse?.valeur_choix).toBe("bon");
+      } finally {
+        await supprimerModeleEtVersion(modeleId);
+      }
+    });
+
+    it("JUMEAU — la contrainte retirée, DEUX valeurs à la fois PASSENT", async () => {
+      const { modeleId, versionId } = await poserModeleEtVersion(
+        SOCIETE_A,
+        "VALEUR-JUMEAU",
+      );
+      const pointId = await poserPoint(
+        SOCIETE_A,
+        versionId,
+        "texte_libre",
+        [],
+      );
+      try {
+        await clientOwner().$executeRawUnsafe(
+          `ALTER TABLE "checklist_reponse" DROP CONSTRAINT "checklist_reponse_valeur_unique"`,
+        );
+        const id = await poserReponseBrute(
+          SOCIETE_A,
+          INTERVENTION_A1,
+          pointId,
+          UTILISATEUR_INTERNE_A,
+          { valeur_conforme: "'conforme'", valeur_texte: "'un texte'" },
+        );
+        const reponse = await clientOwner().checklistReponse.findUnique({
+          where: { id },
+        });
+        expect(reponse).not.toBeNull();
+      } finally {
+        await supprimerModeleEtVersion(modeleId);
+        await clientOwner().$executeRawUnsafe(
+          `ALTER TABLE "checklist_reponse"
+             ADD CONSTRAINT "checklist_reponse_valeur_unique" CHECK (
+               num_nonnulls(
+                 "valeur_conforme", "valeur_mesuree", "valeur_fait", "valeur_choix", "valeur_texte"
+               ) = 1
+             )`,
+        );
+      }
+    });
+  });
+
+  describe("`checklist_reponse.valeur_texte` — bornée (checklist_reponse_valeur_texte_bornee)", () => {
+    it("une chaîne VIDE est refusée, EN BASE", async () => {
+      const { modeleId, versionId } = await poserModeleEtVersion(
+        SOCIETE_A,
+        "TEXTE-VIDE",
+      );
+      const pointId = await poserPoint(
+        SOCIETE_A,
+        versionId,
+        "texte_libre",
+        [],
+      );
+      try {
+        await expect(
+          poserReponseBrute(
+            SOCIETE_A,
+            INTERVENTION_A1,
+            pointId,
+            UTILISATEUR_INTERNE_A,
+            { valeur_texte: "''" },
+          ),
+        ).rejects.toThrow(/checklist_reponse_valeur_texte_bornee/);
+      } finally {
+        await supprimerModeleEtVersion(modeleId);
+      }
+    });
+
+    it("une chaîne de PLUS de 2000 caractères est refusée, EN BASE", async () => {
+      const { modeleId, versionId } = await poserModeleEtVersion(
+        SOCIETE_A,
+        "TEXTE-TROP-LONG",
+      );
+      const pointId = await poserPoint(
+        SOCIETE_A,
+        versionId,
+        "texte_libre",
+        [],
+      );
+      try {
+        await expect(
+          poserReponseBrute(
+            SOCIETE_A,
+            INTERVENTION_A1,
+            pointId,
+            UTILISATEUR_INTERNE_A,
+            { valeur_texte: `'${"x".repeat(2001)}'` },
+          ),
+        ).rejects.toThrow(/checklist_reponse_valeur_texte_bornee/);
+      } finally {
+        await supprimerModeleEtVersion(modeleId);
+      }
+    });
+
+    it("JUMEAU — la contrainte retirée, une chaîne de PLUS de 2000 caractères PASSE", async () => {
+      const { modeleId, versionId } = await poserModeleEtVersion(
+        SOCIETE_A,
+        "TEXTE-JUMEAU",
+      );
+      const pointId = await poserPoint(
+        SOCIETE_A,
+        versionId,
+        "texte_libre",
+        [],
+      );
+      try {
+        await clientOwner().$executeRawUnsafe(
+          `ALTER TABLE "checklist_reponse" DROP CONSTRAINT "checklist_reponse_valeur_texte_bornee"`,
+        );
+        const id = await poserReponseBrute(
+          SOCIETE_A,
+          INTERVENTION_A1,
+          pointId,
+          UTILISATEUR_INTERNE_A,
+          { valeur_texte: `'${"x".repeat(2001)}'` },
+        );
+        const reponse = await clientOwner().checklistReponse.findUnique({
+          where: { id },
+        });
+        expect(reponse).not.toBeNull();
+      } finally {
+        await supprimerModeleEtVersion(modeleId);
+        await clientOwner().$executeRawUnsafe(
+          `ALTER TABLE "checklist_reponse"
+             ADD CONSTRAINT "checklist_reponse_valeur_texte_bornee" CHECK (
+               "valeur_texte" IS NULL
+               OR (btrim("valeur_texte") <> '' AND length("valeur_texte") <= 2000)
+             )`,
+        );
+      }
+    });
+  });
+});
+
 describe("lib/checklists/depot.ts — créer un modèle, publier une version, lire la dernière publiée", () => {
   it("creerModele puis publierVersion puis dernierVersionPubliee — un aller-retour complet", async () => {
     const modeleId = await creerModele(
