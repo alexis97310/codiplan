@@ -2011,10 +2011,25 @@ function ecartsHeritage(
 export const TABLES_ASCENDANCE = [
   { table: "modele_materiel", enfant: "machine", cle: "modele_id" },
   { table: "famille_materiel", enfant: "modele_materiel", cle: "famille_id" },
+  // AJOUTÉE AU TICKET 9K17A (D238, 10/11/2026) : même raisonnement que
+  // `famille_materiel` — un sous-type n'est visible à un compte portail que
+  // si un de ses MODÈLES porte une machine visible dans son périmètre.
+  {
+    table: "sous_type_materiel",
+    enfant: "modele_materiel",
+    cle: "sous_type_id",
+  },
 ] as const;
 
-/** Les entrées que l'arbitrage D93 autorise. Recopiées : c'est la doctrine. */
-const ASCENDANCE_ARBITREE = ["modele_materiel", "famille_materiel"];
+/**
+ * Les entrées que l'arbitrage autorise — D93 pour les deux premières,
+ * D238 pour `sous_type_materiel`. Recopiées : c'est la doctrine.
+ */
+const ASCENDANCE_ARBITREE = [
+  "modele_materiel",
+  "famille_materiel",
+  "sous_type_materiel",
+];
 
 /** Écarts de la liste « ascendance » — additions comme retraits. */
 export function ecartsListeAscendance(

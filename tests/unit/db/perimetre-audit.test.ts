@@ -230,7 +230,7 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
     );
   });
 
-  it("les quarante-sept tables auditées aujourd'hui sont exactement celles attendues", () => {
+  it("les quarante-huit tables auditées aujourd'hui sont exactement celles attendues", () => {
     // Le décompte, écrit en toutes lettres, pour qu'un déclencheur posé
     // ailleurs — ou disparu — se voie. C'est la constitution confrontée aux
     // migrations, pas les migrations confrontées à elles-mêmes.
@@ -386,6 +386,11 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
       "site",
       "site_habilitation_requise",
       "societe",
+      // `sous_type_materiel` s'y ajoute au ticket 9K17A-MATERIEL-SOUS-TYPE, et
+      // par le même chemin : première catégorie de I1, donc auditée à sa
+      // naissance. « Qui a créé, renommé ou désactivé ce sous-type, et quand »
+      // est la question même d'un litige sur un classement de matériel.
+      "sous_type_materiel",
       // `suite_a_donner` s'y ajoute au ticket 9J17-SUITE-A-DONNER-SCHEMA, et
       // par le même chemin : première catégorie de I1, donc auditée à sa
       // naissance. « Qui a qualifié ce dossier, quand, et depuis quel statut »

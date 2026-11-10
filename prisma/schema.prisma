@@ -211,6 +211,7 @@ model Societe {
   sessions_actives             Session[]
   sites                        Site[]
   familles_materiel            FamilleMateriel[]
+  sous_types_materiel          SousTypeMateriel[]
   modeles_materiel             ModeleMateriel[]
   taux_horaires                TauxHoraire[]
   forfaits                     Forfait[]
@@ -2002,22 +2003,22 @@ model Intervention {
   cree_le    DateTime @default(now())
   modifie_le DateTime @updatedAt
 
-  societe          Societe          @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  client           Client           @relation(fields: [societe_id, client_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
-  site             Site             @relation(fields: [societe_id, site_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
-  agence           Agence           @relation(fields: [societe_id, agence_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  societe           Societe           @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  client            Client            @relation(fields: [societe_id, client_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  site              Site              @relation(fields: [societe_id, site_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  agence            Agence            @relation(fields: [societe_id, agence_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
   /// Chaîné sur le CLIENT, pas seulement sur la société — même forme que
   /// `demande.contact_id` : un contact d'un autre client ne peut pas être
   /// désigné. `contact_id` nullable, `MATCH SIMPLE` : « pas de contact » est
   /// le seul état que la nullité produit (§9, 23/08).
-  contact          Contact?         @relation(fields: [societe_id, client_id, contact_id], references: [societe_id, client_id, id], onDelete: Restrict, onUpdate: Restrict)
-  forfait          Forfait?         @relation(fields: [societe_id, forfait_deplacement_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
-  devise           Devise?          @relation(fields: [devise_code], references: [code], onDelete: Restrict, onUpdate: Restrict)
-  observations_vgp VgpObservation[]
+  contact           Contact?          @relation(fields: [societe_id, client_id, contact_id], references: [societe_id, client_id, id], onDelete: Restrict, onUpdate: Restrict)
+  forfait           Forfait?          @relation(fields: [societe_id, forfait_deplacement_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  devise            Devise?           @relation(fields: [devise_code], references: [code], onDelete: Restrict, onUpdate: Restrict)
+  observations_vgp  VgpObservation[]
   /// LA DEMANDE D'ORIGINE (68-DEMANDES-2). `Restrict` en suppression, comme
   /// tous les autres liens de cette table : une demande dont une intervention
   /// dépend ne s'efface pas.
-  demande          Demande?         @relation(fields: [societe_id, demande_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  demande           Demande?          @relation(fields: [societe_id, demande_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
   /// Le gabarit pinné — voir `checklist_version_id` ci-dessus. `Restrict` :
   /// une version, immuable, ne s'efface jamais sous une intervention qui l'a
   /// pinnée.
@@ -2708,11 +2709,16 @@ model ChecklistModele {
   type_intervention TypeIntervention?
 
   /// La famille visée, FACULTATIVE — même régime que `Prestation.famille_id`.
-  famille_id String? @db.Uuid
-  /// Le modèle de matériel visé, FACULTATIF et PLUS PRÉCIS que la famille —
-  /// la cascade de résolution (CK2) le préfère à la famille quand les deux
-  /// rattachements existent sur le même contexte.
-  modele_id String? @db.Uuid
+  famille_id   String? @db.Uuid
+  /// Le SOUS-TYPE structuré visé (9K17A, décision d'Alexis du 10/11/2026) —
+  /// la règle, entre la famille et le modèle exact : « sous-type en règle,
+  /// modèle en exception ».
+  sous_type_id String? @db.Uuid
+  /// Le modèle de matériel visé, FACULTATIF et PLUS PRÉCIS que le sous-type —
+  /// l'EXCEPTION de la décision du 10/11/2026 : la cascade de résolution
+  /// (CK2, 9K18) le préfère au sous-type, qui prime sur la famille, qui prime
+  /// sur le type seul.
+  modele_id    String? @db.Uuid
 
   /// Si VRAI, ce modèle n'est proposé (CK2) qu'à une intervention qui PORTE
   /// une machine (PARCOURS-1, D228) — sinon il reste éligible même sans
@@ -2728,14 +2734,20 @@ model ChecklistModele {
   cree_le    DateTime @default(now()) @db.Timestamptz(3)
   modifie_le DateTime @updatedAt @db.Timestamptz(3)
 
-  societe  Societe            @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  famille  FamilleMateriel?   @relation(fields: [societe_id, famille_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
-  modele   ModeleMateriel?    @relation(fields: [societe_id, modele_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
-  versions ChecklistVersion[]
+  societe   Societe            @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  famille   FamilleMateriel?   @relation(fields: [societe_id, famille_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  sous_type SousTypeMateriel?  @relation(fields: [societe_id, sous_type_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  modele    ModeleMateriel?    @relation(fields: [societe_id, modele_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  versions  ChecklistVersion[]
 
+  /// AU PLUS UN niveau de rattachement parmi modèle / sous-type / famille
+  /// (9K17A, décision d'Alexis du 10/11/2026) — contrainte CHECK posée en
+  /// SQL (`checklist_modele_un_seul_rattachement`), Prisma ne sachant pas
+  /// l'exprimer.
   @@unique([societe_id, id])
   @@unique([societe_id, code])
   @@index([societe_id, famille_id])
+  @@index([societe_id, sous_type_id])
   @@index([societe_id, modele_id])
   @@map("checklist_modele")
 }
@@ -3247,6 +3259,7 @@ model FamilleMateriel {
 
   societe           Societe            @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
   modeles           ModeleMateriel[]
+  sous_types        SousTypeMateriel[]
   forfaits          Forfait[]
   prestations       Prestation[]
   campagnes_vgp     VgpCampagne[]
@@ -3260,6 +3273,47 @@ model FamilleMateriel {
   @@map("famille_materiel")
 }
 
+/// Sous-type structuré de matériel, sous une famille (ticket 9K17A).
+///
+/// **Décision d'Alexis du 10/11/2026** : rattacher les modèles de checklist au
+/// sous-type structuré plutôt qu'au modèle exact, pour un parc où 71 modèles
+/// de ponts élévateurs ne forment que 4 gabarits et 8 modèles de compresseurs
+/// que 2. Renverse la recommandation 12.1 de l'étude du 29/10/2026 (pas de
+/// sous-type structuré) : sa condition de réouverture — un ratio modèles/
+/// gabarits mesuré trop élevé pour rester une checklist par modèle — est
+/// remplie. Voir `docs/arbitrages.md`.
+///
+/// **Ce sont des DONNÉES SAISIES, jamais une énumération** — même raisonnement
+/// que `FamilleMateriel` : chez CODIMA les sous-types viennent du fichier de
+/// suivi, pas d'un catalogue d'éditeur.
+model SousTypeMateriel {
+  id         String @id @db.Uuid
+  societe_id String @db.Uuid
+  famille_id String @db.Uuid
+
+  /// Code court, unique dans la société ET la famille : deux familles
+  /// peuvent réutiliser le même code pour deux sous-types différents.
+  code    String
+  libelle String
+
+  actif Boolean @default(true)
+
+  societe           Societe           @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  famille           FamilleMateriel   @relation(fields: [societe_id, famille_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  modeles           ModeleMateriel[]
+  checklist_modeles ChecklistModele[]
+
+  /// Cible du chaînage composite de `modele_materiel` et de
+  /// `checklist_modele` (couple société, sous-type seul).
+  @@unique([societe_id, id])
+  /// Cible du chaînage composite à TROIS colonnes de `modele_materiel` : elle
+  /// REFUSE PAR LA CLÉ qu'un modèle désigne un sous-type d'une autre famille
+  /// que la sienne, sans déclencheur.
+  @@unique([societe_id, famille_id, id])
+  @@unique([societe_id, famille_id, code])
+  @@map("sous_type_materiel")
+}
+
 /// Modèle de matériel suivi par une société (ticket L1-05).
 ///
 /// Chez CODIMA les modèles viennent du fichier de suivi — équipement, marque,
@@ -3268,9 +3322,14 @@ model FamilleMateriel {
 /// existe un jour, sera un AMORÇAGE, comme la liste réglementaire des
 /// habilitations.
 model ModeleMateriel {
-  id         String @id @db.Uuid
-  societe_id String @db.Uuid
-  famille_id String @db.Uuid
+  id           String  @id @db.Uuid
+  societe_id   String  @db.Uuid
+  famille_id   String  @db.Uuid
+  /// FACULTATIF (ticket 9K17A). La garde en base est le chaînage composite à
+  /// TROIS colonnes de `sous_type` ci-dessous : un sous-type d'une autre
+  /// famille que `famille_id` est refusé PAR LA CLÉ, jamais par un
+  /// déclencheur.
+  sous_type_id String? @db.Uuid
 
   marque    String
   reference String
@@ -3298,6 +3357,11 @@ model ModeleMateriel {
 
   societe           Societe           @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
   famille           FamilleMateriel   @relation(fields: [societe_id, famille_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  /// Chaînage à TROIS colonnes, et c'est le point : la cible porte la FAMILLE
+  /// en plus de la société, si bien que ce modèle ne peut désigner un
+  /// sous-type que de SA PROPRE famille. Changer `famille_id` vers une
+  /// famille qui ne porte pas ce sous-type est refusé par la même clé.
+  sous_type         SousTypeMateriel? @relation(fields: [societe_id, famille_id, sous_type_id], references: [societe_id, famille_id, id], onDelete: Restrict, onUpdate: Restrict)
   machines          Machine[]
   checklist_modeles ChecklistModele[]
 
@@ -3311,6 +3375,7 @@ model ModeleMateriel {
   @@unique([societe_id, id])
   @@unique([societe_id, marque, reference])
   @@index([societe_id, famille_id])
+  @@index([societe_id, famille_id, sous_type_id])
   @@map("modele_materiel")
 }
 
@@ -3485,12 +3550,12 @@ model SegmentTravail {
   /// UUID v7 **fabriqué sur l'appareil** (I10), comme les relevés de compteur :
   /// un segment naît là où le travail a lieu, et il doit pouvoir naître sans
   /// réseau le jour où la file de synchronisation existera.
-  id              String @id @db.Uuid
-  societe_id      String @db.Uuid
-  intervention_id String @db.Uuid
+  id                     String @id @db.Uuid
+  societe_id             String @db.Uuid
+  intervention_id        String @db.Uuid
   /// QUI a travaillé. Ce n'est pas forcément `intervention.technicien_id` : un
   /// renfort d'une heure est un fait, et l'affectation n'en dit rien.
-  utilisateur_id  String @db.Uuid
+  utilisateur_id         String @db.Uuid
   /// LE NOM AFFICHÉ, RECOPIÉ (9J22A-REPRISE-9J22) — rempli une seule fois, à
   /// la création du segment (`lib/interventions/depot-compteur.ts`), jamais
   /// lu depuis `utilisateur` par un contexte client : c'est ce qui permet au

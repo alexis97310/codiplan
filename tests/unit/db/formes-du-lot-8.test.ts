@@ -141,13 +141,16 @@ describe("la liste close de la DOUZIÈME forme — « ascendance »", () => {
     expect(ecartsListeAscendance()).toEqual([]);
   });
 
-  it("elle porte les DEUX étages, et c'est la chaîne qui compte", () => {
+  it("elle porte les TROIS étages, et c'est la chaîne qui compte", () => {
     // Fermer `modele_materiel` sans `famille_materiel` laisserait la fuite
     // remonter d'un cran : une famille « ponts élévateurs » visible dit qu'il y
-    // a un pont quelque part.
+    // a un pont quelque part. `sous_type_materiel` AJOUTÉ au ticket 9K17A
+    // (D238) : même raisonnement, un sous-type remonte sur le MÊME enfant,
+    // `modele_materiel`, par une colonne différente.
     expect(TABLES_ASCENDANCE.map((e) => e.table)).toEqual([
       "modele_materiel",
       "famille_materiel",
+      "sous_type_materiel",
     ]);
   });
 
@@ -155,14 +158,18 @@ describe("la liste close de la DOUZIÈME forme — « ascendance »", () => {
     const ecarts = ecartsListeAscendance([
       "modele_materiel",
       "famille_materiel",
+      "sous_type_materiel",
       "client",
     ]);
     expect(ecarts).toHaveLength(1);
     expect(ecarts[0]).toContain("client");
   });
 
-  it("le RETRAIT d'un SEUL des deux étages est refusé", () => {
-    const ecarts = ecartsListeAscendance(["modele_materiel"]);
+  it("le RETRAIT d'un SEUL des trois étages est refusé", () => {
+    const ecarts = ecartsListeAscendance([
+      "modele_materiel",
+      "sous_type_materiel",
+    ]);
     expect(ecarts).toHaveLength(1);
     expect(ecarts[0]).toContain("famille_materiel");
     expect(ecarts[0]).toMatch(/clause de société SEULE/);
@@ -271,11 +278,12 @@ describe("la liste close de la TREIZIÈME forme — « interne »", () => {
   });
 });
 
-describe("`formeAttendue` range les quatre tables où il faut", () => {
+describe("`formeAttendue` range les cinq tables où il faut", () => {
   it("et le voisin qui LEUR RESSEMBLE reste sous « société »", () => {
     expect(formeAttendue("document")).toBe("héritage");
     expect(formeAttendue("modele_materiel")).toBe("ascendance");
     expect(formeAttendue("famille_materiel")).toBe("ascendance");
+    expect(formeAttendue("sous_type_materiel")).toBe("ascendance");
     expect(formeAttendue("document_recu")).toBe("interne");
     // LE CAS QUI DOIT RESTER VERT POUR SA PROPRE RAISON : `habilitation` est
     // une table de référentiel métier de la même famille de noms, et elle n'a

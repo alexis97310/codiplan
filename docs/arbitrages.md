@@ -8221,3 +8221,43 @@ Portée : `prisma/migrations/20261110120000_portail_securite_base_9k16`,
 `tests/isolation/9j22-portail-bon-technicien-temps.test.ts`,
 `tests/unit/db/formes-du-lot-8.test.ts`,
 `lib/db/migrations-attendues.ts`.
+
+## D238 — UN SOUS-TYPE STRUCTURÉ, SOUS LA FAMILLE DE MATÉRIEL ; LES MODÈLES DE CHECKLIST S'Y RATTACHENT EN RÈGLE, AU MODÈLE EXACT EN EXCEPTION (décision d'Alexis du 10/11/2026, `claude/decisions-alexis-10-11.md` hors dépôt, décision 14 ; 9K17A-MATERIEL-SOUS-TYPE)
+
+*Troisième mouvement sur le référentiel matériel après L1-05 (familles et modèles) et 9K08-CHECKLIST-SCHEMA (socle des checklists, D235).*
+
+### CE QUI A ÉTÉ MESURÉ
+
+L'étude du 29/10/2026 (recommandation 12.1) écartait un sous-type structuré : une checklist se rattache à une famille ou à un modèle exact, rien entre les deux. Mesuré depuis, chez CODIMA : **71 modèles de ponts élévateurs ne forment que 4 gabarits de checklist pertinents**, et **8 modèles de compresseurs n'en forment que 2** — un pont 2 colonnes électromécanique, un pont 2 colonnes électro-hydraulique, un pont 4 colonnes, un pont ciseaux ; un compresseur à pistons, un compresseur à vis. Rattacher une checklist à CHAQUE modèle aurait exigé 71 doublons quasi identiques pour 4 gabarits réels ; la rattacher à la seule famille aurait mélangé les 4 gabarits en un seul, faux pour trois ponts sur quatre. **La condition de réouverture de la recommandation 12.1 est remplie** : ce ratio modèles/gabarits n'était pas mesuré le 29/10.
+
+### LA DÉCISION
+
+**Un niveau structuré nouveau, `sous_type_materiel`, sous la famille.** Table MÉTIER cloisonnée, DONNÉES SAISIES comme `famille_materiel` — jamais une énumération fermée, parce qu'un sous-type varie d'une société à l'autre. Forme RLS « ascendance » (D93), comme `famille_materiel` et `modele_materiel` : un compte portail ne le voit que si un de ses modèles porte une machine visible dans son périmètre.
+
+**`modele_materiel.sous_type_id` est FACULTATIF**, et la garde qui l'accompagne est un chaînage composite à TROIS colonnes `(societe_id, famille_id, sous_type_id)` vers `sous_type_materiel(societe_id, famille_id, id)` : un modèle ne peut désigner un sous-type que de SA PROPRE famille — refusé PAR LA CLÉ, sans déclencheur. `MATCH SIMPLE` (le défaut PostgreSQL) laisse la colonne nulle sans exiger les deux autres : c'est ce qui rend le rattachement facultatif malgré une clé à trois colonnes.
+
+**`checklist_modele.sous_type_id` est FACULTATIF**, chaîné simplement `(societe_id, sous_type_id)` vers `sous_type_materiel(societe_id, id)`. Et surtout : **« sous-type en règle, modèle en exception »** — citation verbatim d'Alexis, acceptée après « ok on fait comme ça ». L'ordre de choix du gabarit d'une intervention devient : nature d'intervention, puis MODÈLE exact (l'exception — un modèle qui a sa propre checklist malgré son sous-type), puis SOUS-TYPE (la règle), puis FAMILLE, puis générique (CK2, codé au ticket 9K18, qui n'est pas ce ticket). Une checklist ne vise jamais deux de ces trois niveaux à la fois : une contrainte CHECK en base (`checklist_modele_un_seul_rattachement`) l'interdit, posée VALIDÉE — 9K08 n'a livré que le socle de cette table, aucune ligne n'existait pour la violer.
+
+**Aucun sous-type n'entre par la migration.** Le semis de DÉMONSTRATION (`prisma/seed.ts`) en pose six, sous les familles du semis si elles existent : pont 2 colonnes électromécanique, pont 2 colonnes électro-hydraulique, pont 4 colonnes, pont ciseaux ; compresseur à pistons, compresseur à vis. Rien en production — le classement des 71 modèles de ponts et des 8 de compresseurs dans leur sous-type est un geste manuel d'Alexis (écran ou import), écrit dans la passation du ticket, pas une donnée inventée par une migration.
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+Elle ne code PAS la cascade de résolution CK2 — modèle précis > sous-type > famille > type seul > générique : c'est le ticket 9K18, qui suit. Elle n'écrit aucun écran de résolution ni aucune checklist réelle, seulement le modèle de données et l'écran de gestion du référentiel (Paramètres › Matériel).
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où un sous-type devrait lui-même se subdiviser (un quatrième niveau), ou où le rattachement « modèle exact » de `checklist_modele` devrait disparaître au profit du seul sous-type, cette décision se rouvre : elle n'est pas prise ici, faute de cas mesuré.
+
+**Règles amendées :** chapitre 11.2 — `modele_materiel` (colonne `sous_type_id` ajoutée), `famille_materiel` (relation `sous_types` ajoutée), `checklist_modele` (rattachement amendé : famille/sous-type/modèle, un seul à la fois) ; chapitre 10, narratif « Familles et modèles de matériel » (arborescence à trois niveaux, pas deux).
+
+Portée : `prisma/migrations/20261110130000_sous_type_materiel_9k17a`,
+`prisma/schema.prisma` (`SousTypeMateriel`, `ModeleMateriel.sous_type_id`, `ChecklistModele.sous_type_id`),
+`scripts/lib/politiques-rls.ts` (`TABLES_ASCENDANCE`, `ASCENDANCE_ARBITREE`),
+`lib/materiel/saisie.ts`, `lib/materiel/depot.ts`,
+`lib/imports/modeles.ts`,
+`app/(back-office)/parametres/materiel/page.tsx`,
+`app/api/parametres/materiel/sous-types/**`,
+`tests/isolation/sous-type-materiel.test.ts`,
+`tests/unit/db/formes-du-lot-8.test.ts`,
+`tests/unit/db/perimetre-audit.test.ts`,
+`lib/db/migrations-attendues.ts`.
