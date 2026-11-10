@@ -667,3 +667,21 @@
     box-shadow: none;
   }
 }
+
+/*
+ * LA LIGNE REPÉRÉE (9K18A-MATERIEL-RETOUR-ONGLET) — posée par
+ * `components/materiel/ligne-reperee.tsx` après son défilement. Aucun
+ * `animation-fill-mode: forwards` : l'animation s'efface d'elle-même vers le
+ * fond normal de la ligne, sans qu'il faille revenir retirer la classe.
+ */
+@keyframes surbrillance-ligne {
+  from {
+    background-color: var(--color-app-bleu-fond);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+.ligne-reperee-active {
+  animation: surbrillance-ligne 2s ease-out;
+}

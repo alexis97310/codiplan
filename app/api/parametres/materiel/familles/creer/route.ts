@@ -1,6 +1,7 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { exigerCapaciteComplete, motifDuRefus } from "@/lib/auth/porte";
 import { creerFamille } from "@/lib/materiel/depot";
+import { suiteRecue } from "@/lib/materiel/suite";
 
 import { saisieFamilleRecue, versLeReferentiel } from "../../saisie-recue";
 
@@ -20,16 +21,27 @@ export async function POST(requete: Request): Promise<Response> {
 }
 
 async function traiter(requete: Request): Promise<Response> {
+  const formulaire = await requete.formData();
+  const suite = suiteRecue(formulaire);
   const contexte = await exigerCapaciteComplete("parametrer_societe");
   if (contexte === null) {
-    return versLeReferentiel(await motifDuRefus());
+    return versLeReferentiel({ suite, motif: await motifDuRefus() });
   }
-  const saisie = saisieFamilleRecue(await requete.formData());
+  const saisie = saisieFamilleRecue(formulaire);
   if (saisie === null) {
-    return versLeReferentiel("materiel.refus.saisie");
+    return versLeReferentiel({
+      suite,
+      motif: "materiel.refus.saisie",
+      volet: { type: "famille" },
+    });
   }
   const resultat = await creerFamille(contexte, saisie);
-  return versLeReferentiel(
-    resultat.accepte ? undefined : `materiel.refus.${resultat.motif}`,
-  );
+  if (!resultat.accepte) {
+    return versLeReferentiel({
+      suite,
+      motif: `materiel.refus.${resultat.motif}`,
+      volet: { type: "famille" },
+    });
+  }
+  return versLeReferentiel({ suite, ligne: resultat.id });
 }

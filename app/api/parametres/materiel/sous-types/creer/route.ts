@@ -1,6 +1,7 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { exigerCapaciteComplete, motifDuRefus } from "@/lib/auth/porte";
 import { creerSousType } from "@/lib/materiel/depot";
+import { suiteRecue } from "@/lib/materiel/suite";
 
 import { saisieSousTypeRecue, versLeReferentiel } from "../../saisie-recue";
 
@@ -15,16 +16,27 @@ export async function POST(requete: Request): Promise<Response> {
 }
 
 async function traiter(requete: Request): Promise<Response> {
+  const formulaire = await requete.formData();
+  const suite = suiteRecue(formulaire);
   const contexte = await exigerCapaciteComplete("parametrer_societe");
   if (contexte === null) {
-    return versLeReferentiel(await motifDuRefus());
+    return versLeReferentiel({ suite, motif: await motifDuRefus() });
   }
-  const saisie = saisieSousTypeRecue(await requete.formData());
+  const saisie = saisieSousTypeRecue(formulaire);
   if (saisie === null) {
-    return versLeReferentiel("materiel.refus.saisie");
+    return versLeReferentiel({
+      suite,
+      motif: "materiel.refus.saisie",
+      volet: { type: "sous-type" },
+    });
   }
   const resultat = await creerSousType(contexte, saisie);
-  return versLeReferentiel(
-    resultat.accepte ? undefined : `materiel.refus.${resultat.motif}`,
-  );
+  if (!resultat.accepte) {
+    return versLeReferentiel({
+      suite,
+      motif: `materiel.refus.${resultat.motif}`,
+      volet: { type: "sous-type" },
+    });
+  }
+  return versLeReferentiel({ suite, ligne: resultat.id });
 }

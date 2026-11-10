@@ -1,6 +1,7 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { exigerCapaciteComplete, motifDuRefus } from "@/lib/auth/porte";
 import { basculerActiviteFamille } from "@/lib/materiel/depot";
+import { suiteRecue } from "@/lib/materiel/suite";
 
 import { champ } from "../../../../../interventions/actions";
 import { ACTIF, INACTIF, versLeReferentiel } from "../../../saisie-recue";
@@ -28,17 +29,21 @@ async function traiter(
   requete: Request,
   params: Promise<{ id: string }>,
 ): Promise<Response> {
+  const formulaire = await requete.formData();
+  const suite = suiteRecue(formulaire);
+  const { id } = await params;
   const contexte = await exigerCapaciteComplete("parametrer_societe");
   if (contexte === null) {
-    return versLeReferentiel(await motifDuRefus());
+    return versLeReferentiel({ suite, motif: await motifDuRefus() });
   }
-  const { id } = await params;
-  const vise = champ(await requete.formData(), "actif");
+  const vise = champ(formulaire, "actif");
   if (vise !== ACTIF && vise !== INACTIF) {
-    return versLeReferentiel("materiel.refus.saisie");
+    return versLeReferentiel({ suite, motif: "materiel.refus.saisie", ligne: id });
   }
   const resultat = await basculerActiviteFamille(contexte, id, vise === ACTIF);
-  return versLeReferentiel(
-    resultat.accepte ? undefined : `materiel.refus.${resultat.motif}`,
-  );
+  return versLeReferentiel({
+    suite,
+    motif: resultat.accepte ? undefined : `materiel.refus.${resultat.motif}`,
+    ligne: id,
+  });
 }

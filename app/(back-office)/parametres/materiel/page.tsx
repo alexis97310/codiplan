@@ -19,6 +19,7 @@ import { Cellule, Tableau } from "@/components/ui/tableau";
 import { Volet } from "@/components/ui/volet";
 import { Page } from "@/components/mise-en-page/page";
 import { RefusAcces } from "@/components/ui/refus-acces";
+import { LigneReperee } from "@/components/materiel/ligne-reperee";
 import { peutPleinement } from "@/lib/auth/habilitations";
 import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
@@ -32,6 +33,14 @@ import {
   type LigneModele,
   type LigneSousType,
 } from "@/lib/materiel/depot";
+import { paramsDeLaSuite } from "@/lib/materiel/suite";
+import type {
+  EtatFiltre,
+  Filtres,
+  OngletMateriel,
+  Suite,
+  TypeVolet,
+} from "@/lib/materiel/suite";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 
 import { decompte } from "../../presentation";
@@ -60,18 +69,6 @@ export const metadata: Metadata = { title: t("materiel.titre") };
  * fragment `#modeles` devient inerte (plus aucune ancre de défilement, les
  * onglets ne scrollent pas), mais inoffensif.
  *
- * **LIMITE CONNUE, HORS TERRITOIRE** : après une création, une modification
- * ou une bascule d'activité, les routes de `app/api/parametres/materiel/**`
- * redirigent TOUJOURS vers `/parametres/materiel` (avec `?motif=` au refus),
- * sans jamais reporter l'onglet ni les filtres — `versLeReferentiel`
- * (`app/api/parametres/materiel/saisie-recue.ts`) ne les connaît pas, et ce
- * fichier est hors territoire de ce lot. `equipe`/`demandes` reportent déjà
- * ces paramètres dans leurs propres routes (`suite.toString()`) : un lot
- * futur qui ouvrirait ce fichier devrait faire de même ici. En attendant, le
- * motif de refus reste visible quel que soit l'onglet par défaut (Familles),
- * exactement comme avant ce lot ; seul le retour sur l'onglet Modèles après
- * une action sur un modèle ne suit pas encore.
- *
  * Le reste de ce commentaire — pourquoi cet écran existe, pourquoi aucune
  * énumération n'est inventée, le régime VGP, l'absence de suppression — n'a
  * pas changé et vit toujours ici, inchangé par ce lot :
@@ -95,12 +92,27 @@ export const metadata: Metadata = { title: t("materiel.titre") };
  * changer la famille dans le `<select>` sans recharger ne met pas à jour
  * cette liste, ce formulaire n'ayant aucune interactivité côté client. La
  * base refuse par la clé un choix devenu incohérent (`sous_type_hors_famille`).
+ *
+ * ## 9K18A-MATERIEL-RETOUR-ONGLET — LE FORMULAIRE PORTE D'OÙ IL VIENT (10/11/2026)
+ *
+ * Signalé par Alexis : ajouter un sous-type depuis l'onglet « Modèles »
+ * renvoyait systématiquement sur l'onglet « Familles », les filtres perdus
+ * — la LIMITE CONNUE ci-dessus, maintenant close. Chaque formulaire du volet
+ * et le bouton d'activité portent l'onglet, les filtres et la famille
+ * filtrée en champs cachés (`suite_*`, `lib/materiel/suite.ts`) ;
+ * `versLeReferentiel` (`app/api/parametres/materiel/saisie-recue.ts`) les
+ * reporte à l'identique, au succès comme au refus. Le volet REROUVRE au
+ * refus (même type, même `id` s'il y en a un) plutôt que de se fermer ; ce
+ * qu'il ne fait pas, c'est reproposer les valeurs tapées — rouvrir affiche
+ * les valeurs DE LA BASE (celles d'avant la tentative), jamais celles du
+ * formulaire refusé, qu'aucun champ cached ne reporte. Un lot qui voudrait
+ * les reporter devrait ajouter un champ caché par champ de saisie, pour les
+ * trois formulaires (famille, modèle, sous-type) séparément.
+ *
+ * `OngletMateriel`, `EtatFiltre`, `Filtres` et `TypeVolet` vivent désormais
+ * dans `lib/materiel/suite.ts`, PARTAGÉS avec les routes d'API : une
+ * définition locale ici aurait divergé de la leur en silence (§9, 01/09).
  */
-type OngletMateriel = "familles" | "modeles" | "sous-types";
-type EtatFiltre = "actifs" | "inactifs" | "tous";
-type Filtres = Readonly<{ q: string; etat: EtatFiltre }>;
-type TypeVolet = "famille" | "modele" | "sous-type";
-
 export default async function PageMateriel({
   searchParams,
 }: {
@@ -141,6 +153,11 @@ export default async function PageMateriel({
   const filtres: Filtres = { q: texteQ, etat };
   const familleParam =
     typeof params.famille === "string" ? params.famille : undefined;
+  // LA LIGNE REPÉRÉE au retour d'une création ou d'une modification
+  // (9K18A-MATERIEL-RETOUR-ONGLET, point 3) — un identifiant inconnu ne
+  // repère rien, même discipline que `familleParam` ci-dessus.
+  const ligneCiblee =
+    typeof params.ligne === "string" ? params.ligne : undefined;
 
   // `famille` SEUL, SANS `onglet` EXPLICITE, BASCULE SUR MODÈLES — le lien
   // externe `vgp.indetermines.decider` ne connaît que ce paramètre (voir
@@ -254,6 +271,7 @@ export default async function PageMateriel({
       ]}
       sousTitre={t("materiel.sous_titre")}
     >
+      <LigneReperee id={ligneCiblee} />
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <p
           role="status"
@@ -365,31 +383,17 @@ function etatCorrespond(actif: boolean, etat: EtatFiltre): boolean {
   return etat === "actifs" ? actif : !actif;
 }
 
-/** Les paramètres communs aux deux onglets — recherche et filtre d'état. */
-function paramsCommuns(filtres: Filtres): URLSearchParams {
-  const params = new URLSearchParams();
-  if (filtres.q.trim() !== "") {
-    params.set("q", filtres.q);
-  }
-  if (filtres.etat !== "actifs") {
-    params.set("etat", filtres.etat);
-  }
-  return params;
-}
-
-/** L'adresse d'un onglet, avec ses filtres — `famille` seulement sur Modèles. */
+/**
+ * L'ADRESSE D'UN ONGLET, avec ses filtres — `paramsDeLaSuite`
+ * (`lib/materiel/suite.ts`) PARTAGÉE avec `versLeReferentiel` : une seconde
+ * composition ici aurait divergé de la sienne en silence (§9, 01/09).
+ */
 function hrefEcran(
   onglet: OngletMateriel,
   filtres: Filtres,
   familleFiltre?: string,
 ): string {
-  const params = paramsCommuns(filtres);
-  if (onglet === "modeles" || onglet === "sous-types") {
-    params.set("onglet", onglet);
-    if (familleFiltre !== undefined) {
-      params.set("famille", familleFiltre);
-    }
-  }
+  const params = paramsDeLaSuite({ onglet, filtres, familleFiltre });
   const requete = params.toString();
   return requete === ""
     ? "/parametres/materiel"
@@ -464,6 +468,7 @@ function OngletFamilles({
   readonly peutEcrire: boolean;
   readonly filtres: Filtres;
 }) {
+  const suite: Suite = { onglet: "familles", filtres };
   return (
     <section className="flex flex-col gap-3">
       <EnTeteOnglet
@@ -498,7 +503,7 @@ function OngletFamilles({
           <Carte className="max-[900px]:hidden">
             <Tableau colonnes={colonnesFamilles()} minimum="960px">
               {familles.map((famille) => (
-                <tr key={famille.id}>
+                <tr key={famille.id} data-ligne={famille.id}>
                   <Cellule fort>{famille.code}</Cellule>
                   <Cellule>{famille.libelle}</Cellule>
                   <Cellule>
@@ -524,6 +529,7 @@ function OngletFamilles({
                       )}
                       action={`/api/parametres/materiel/familles/${famille.id}/activite`}
                       actif={famille.actif}
+                      suite={suite}
                     />
                   </Cellule>
                 </tr>
@@ -544,6 +550,7 @@ function OngletFamilles({
                   "famille",
                   famille.id,
                 )}
+                suite={suite}
               />
             ))}
           </ListeCartes>
@@ -575,6 +582,11 @@ function OngletModeles({
   readonly peutEcrire: boolean;
   readonly filtres: Filtres;
 }) {
+  const suite: Suite = {
+    onglet: "modeles",
+    filtres,
+    familleFiltre: familleActive?.id,
+  };
   return (
     // `id="modeles"` SUR LA SECTION ENTIÈRE, jamais seulement sur le tableau
     // (9G2B-FINITIONS-CARTES-375) — le titre filtré et « Tout afficher »
@@ -631,7 +643,7 @@ function OngletModeles({
           <Carte className="max-[900px]:hidden">
             <Tableau colonnes={colonnesModeles()} minimum="1000px">
               {modeles.map((modele) => (
-                <tr key={modele.id}>
+                <tr key={modele.id} data-ligne={modele.id}>
                   <Cellule fort>{modele.marque}</Cellule>
                   <Cellule>{modele.reference}</Cellule>
                   <Cellule>
@@ -652,6 +664,7 @@ function OngletModeles({
                       )}
                       action={`/api/parametres/materiel/modeles/${modele.id}/activite`}
                       actif={modele.actif}
+                      suite={suite}
                     />
                   </Cellule>
                 </tr>
@@ -677,6 +690,7 @@ function OngletModeles({
                   "modele",
                   modele.id,
                 )}
+                suite={suite}
               />
             ))}
           </ListeCartes>
@@ -710,6 +724,11 @@ function OngletSousTypes({
   readonly peutEcrire: boolean;
   readonly filtres: Filtres;
 }) {
+  const suite: Suite = {
+    onglet: "sous-types",
+    filtres,
+    familleFiltre: familleActive?.id,
+  };
   return (
     <section id="sous-types" className="flex flex-col gap-3">
       <EnTeteOnglet
@@ -762,7 +781,7 @@ function OngletSousTypes({
           <Carte className="max-[900px]:hidden">
             <Tableau colonnes={colonnesSousTypes()} minimum="860px">
               {sousTypes.map((sousType) => (
-                <tr key={sousType.id}>
+                <tr key={sousType.id} data-ligne={sousType.id}>
                   <Cellule fort>{sousType.code}</Cellule>
                   <Cellule>{sousType.libelle}</Cellule>
                   <Cellule>
@@ -781,6 +800,7 @@ function OngletSousTypes({
                       )}
                       action={`/api/parametres/materiel/sous-types/${sousType.id}/activite`}
                       actif={sousType.actif}
+                      suite={suite}
                     />
                   </Cellule>
                 </tr>
@@ -805,6 +825,7 @@ function OngletSousTypes({
                   "sous-type",
                   sousType.id,
                 )}
+                suite={suite}
               />
             ))}
           </ListeCartes>
@@ -1041,11 +1062,13 @@ function ActionsLigne({
   hrefModifier,
   action,
   actif,
+  suite,
 }: {
   readonly peutEcrire: boolean;
   readonly hrefModifier: string;
   readonly action: string;
   readonly actif: boolean;
+  readonly suite: Suite;
 }) {
   if (!peutEcrire) {
     return <span>{actif ? t("materiel.active") : t("materiel.inactive")}</span>;
@@ -1057,6 +1080,7 @@ function ActionsLigne({
       </Button>
       <form action={action} method="post">
         <input type="hidden" name="actif" value={actif ? INACTIF : ACTIF} />
+        <ChampsSuite suite={suite} />
         <Button type="submit" variant="outline" size="sm">
           {actif ? t("materiel.desactiver") : t("materiel.activer")}
         </Button>
@@ -1068,18 +1092,43 @@ function ActionsLigne({
 const ACTIF = "oui";
 const INACTIF = "non";
 
+/**
+ * LA SUITE D'UN FORMULAIRE, EN CHAMPS CACHÉS (9K18A-MATERIEL-RETOUR-ONGLET).
+ *
+ * Préfixés `suite_` pour ne jamais heurter un champ de saisie du MÊME
+ * formulaire — `FormulaireModele` porte déjà `famille_id`.
+ */
+function ChampsSuite({ suite }: { readonly suite: Suite }) {
+  return (
+    <>
+      <input type="hidden" name="suite_onglet" value={suite.onglet} />
+      <input type="hidden" name="suite_q" value={suite.filtres.q} />
+      <input type="hidden" name="suite_etat" value={suite.filtres.etat} />
+      {suite.familleFiltre === undefined ? null : (
+        <input
+          type="hidden"
+          name="suite_famille"
+          value={suite.familleFiltre}
+        />
+      )}
+    </>
+  );
+}
+
 /** La carte d'une famille, sous 900 px — même contenu que sa ligne de tableau. */
 function CarteFamille({
   famille,
   peutEcrire,
   hrefModifier,
+  suite,
 }: {
   readonly famille: LigneFamille;
   readonly peutEcrire: boolean;
   readonly hrefModifier: string;
+  readonly suite: Suite;
 }) {
   return (
-    <li>
+    <li data-ligne={famille.id}>
       <Carte className="flex flex-col gap-2 p-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="text-13 font-bold">{famille.libelle}</span>
@@ -1096,6 +1145,7 @@ function CarteFamille({
           hrefModifier={hrefModifier}
           action={`/api/parametres/materiel/familles/${famille.id}/activite`}
           actif={famille.actif}
+          suite={suite}
         />
       </Carte>
     </li>
@@ -1109,15 +1159,17 @@ function CarteModele({
   nomDeSousType,
   peutEcrire,
   hrefModifier,
+  suite,
 }: {
   readonly modele: LigneModele;
   readonly nomFamille: string;
   readonly nomDeSousType: ReadonlyMap<string, string>;
   readonly peutEcrire: boolean;
   readonly hrefModifier: string;
+  readonly suite: Suite;
 }) {
   return (
-    <li>
+    <li data-ligne={modele.id}>
       <Carte className="flex flex-col gap-2 p-3">
         <span className="text-13 font-bold">{designation(modele)}</span>
         <div className="text-app-encre-faible text-12 font-bold">
@@ -1140,6 +1192,7 @@ function CarteModele({
           hrefModifier={hrefModifier}
           action={`/api/parametres/materiel/modeles/${modele.id}/activite`}
           actif={modele.actif}
+          suite={suite}
         />
       </Carte>
     </li>
@@ -1152,14 +1205,16 @@ function CarteSousType({
   nomFamille,
   peutEcrire,
   hrefModifier,
+  suite,
 }: {
   readonly sousType: LigneSousType;
   readonly nomFamille: string;
   readonly peutEcrire: boolean;
   readonly hrefModifier: string;
+  readonly suite: Suite;
 }) {
   return (
-    <li>
+    <li data-ligne={sousType.id}>
       <Carte className="flex flex-col gap-2 p-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="text-13 font-bold">{sousType.libelle}</span>
@@ -1177,6 +1232,7 @@ function CarteSousType({
           hrefModifier={hrefModifier}
           action={`/api/parametres/materiel/sous-types/${sousType.id}/activite`}
           actif={sousType.actif}
+          suite={suite}
         />
       </Carte>
     </li>
@@ -1211,6 +1267,7 @@ function VoletMateriel({
   readonly familleFiltre: string | undefined;
 }) {
   const hrefFermer = hrefFermerVolet(ongletActif, filtres, familleFiltre);
+  const suite: Suite = { onglet: ongletActif, filtres, familleFiltre };
   const titreVolet =
     type === "famille"
       ? famille === undefined
@@ -1243,6 +1300,7 @@ function VoletMateriel({
           }
           valeurs={famille}
           hrefAnnuler={hrefFermer}
+          suite={suite}
         />
       ) : type === "modele" ? (
         <FormulaireModele
@@ -1260,6 +1318,7 @@ function VoletMateriel({
           }
           valeurs={modele}
           hrefAnnuler={hrefFermer}
+          suite={suite}
         />
       ) : (
         <FormulaireSousType
@@ -1276,6 +1335,7 @@ function VoletMateriel({
           }
           valeurs={sousType}
           hrefAnnuler={hrefFermer}
+          suite={suite}
         />
       )}
       {type === "famille" ? (
@@ -1316,15 +1376,18 @@ function FormulaireFamille({
   soumettre,
   valeurs,
   hrefAnnuler,
+  suite,
 }: {
   readonly action: string;
   readonly soumettre: string;
   readonly valeurs?: LigneFamille;
   readonly hrefAnnuler: string;
+  readonly suite: Suite;
 }) {
   const prefixe = valeurs?.id ?? NOUVEAU;
   return (
     <form action={action} method="post" className="flex flex-col gap-3">
+      <ChampsSuite suite={suite} />
       <Champ
         id={`${prefixe}-code`}
         nom="code"
@@ -1351,6 +1414,7 @@ function FormulaireModele({
   soumettre,
   valeurs,
   hrefAnnuler,
+  suite,
 }: {
   readonly action: string;
   readonly familles: readonly LigneFamille[];
@@ -1358,6 +1422,7 @@ function FormulaireModele({
   readonly soumettre: string;
   readonly valeurs?: LigneModele;
   readonly hrefAnnuler: string;
+  readonly suite: Suite;
 }) {
   const prefixe = valeurs?.id ?? NOUVEAU;
   // LA FAMILLE « DÉFAUT » DE CE FORMULAIRE — celle qui pré-sélectionne le
@@ -1371,6 +1436,7 @@ function FormulaireModele({
   );
   return (
     <form action={action} method="post" className="flex flex-col gap-3">
+      <ChampsSuite suite={suite} />
       <div className="flex flex-col gap-1">
         <label
           htmlFor={`${prefixe}-famille`}
@@ -1458,16 +1524,19 @@ function FormulaireSousType({
   soumettre,
   valeurs,
   hrefAnnuler,
+  suite,
 }: {
   readonly action: string;
   readonly familles: readonly LigneFamille[];
   readonly soumettre: string;
   readonly valeurs?: LigneSousType;
   readonly hrefAnnuler: string;
+  readonly suite: Suite;
 }) {
   const prefixe = valeurs?.id ?? NOUVEAU;
   return (
     <form action={action} method="post" className="flex flex-col gap-3">
+      <ChampsSuite suite={suite} />
       <div className="flex flex-col gap-1">
         <label
           htmlFor={`${prefixe}-famille`}

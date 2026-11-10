@@ -1,6 +1,7 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { exigerCapaciteComplete, motifDuRefus } from "@/lib/auth/porte";
 import { modifierModele } from "@/lib/materiel/depot";
+import { suiteRecue } from "@/lib/materiel/suite";
 
 import { saisieModeleRecue, versLeReferentiel } from "../../../saisie-recue";
 
@@ -22,17 +23,28 @@ async function traiter(
   requete: Request,
   params: Promise<{ id: string }>,
 ): Promise<Response> {
+  const formulaire = await requete.formData();
+  const suite = suiteRecue(formulaire);
+  const { id } = await params;
   const contexte = await exigerCapaciteComplete("parametrer_societe");
   if (contexte === null) {
-    return versLeReferentiel(await motifDuRefus());
+    return versLeReferentiel({ suite, motif: await motifDuRefus() });
   }
-  const { id } = await params;
-  const saisie = saisieModeleRecue(await requete.formData());
+  const saisie = saisieModeleRecue(formulaire);
   if (saisie === null) {
-    return versLeReferentiel("materiel.refus.saisie");
+    return versLeReferentiel({
+      suite,
+      motif: "materiel.refus.saisie",
+      volet: { type: "modele", id },
+    });
   }
   const resultat = await modifierModele(contexte, id, saisie);
-  return versLeReferentiel(
-    resultat.accepte ? undefined : `materiel.refus.${resultat.motif}`,
-  );
+  if (!resultat.accepte) {
+    return versLeReferentiel({
+      suite,
+      motif: `materiel.refus.${resultat.motif}`,
+      volet: { type: "modele", id },
+    });
+  }
+  return versLeReferentiel({ suite, ligne: id });
 }

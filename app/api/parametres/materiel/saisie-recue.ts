@@ -6,6 +6,7 @@ import {
   type SaisieModeleMateriel,
   type SaisieSousTypeMateriel,
 } from "@/lib/materiel/saisie";
+import { paramsDeLaSuite, type Suite, type TypeVolet } from "@/lib/materiel/suite";
 
 import { champ } from "../../interventions/actions";
 
@@ -94,9 +95,36 @@ function nombreOuAbsence(formulaire: FormData, nom: string): number | null {
   return brut === null || brut === "" ? null : Number(brut);
 }
 
-/** Le retour vers le référentiel, avec son motif s'il y en a un. */
-export function versLeReferentiel(cle?: string): Response {
-  const suffixe = cle === undefined ? "" : `?motif=${encodeURIComponent(cle)}`;
+/**
+ * LE RETOUR VERS LE RÉFÉRENTIEL — sur le MÊME onglet, avec les MÊMES filtres
+ * (9K18A-MATERIEL-RETOUR-ONGLET), jamais sur l'onglet Familles par défaut.
+ *
+ * `volet`, donné UNIQUEMENT au refus d'une création ou d'une modification,
+ * rouvre le même volet plutôt que de le fermer — la saisie refusée reste sous
+ * les yeux. `ligne`, donné au succès, repère la ligne créée ou modifiée pour
+ * que `LigneReperee` (`components/materiel/ligne-reperee.tsx`) y défile.
+ */
+export function versLeReferentiel(options: {
+  readonly suite: Suite;
+  readonly motif?: string;
+  readonly ligne?: string;
+  readonly volet?: { readonly type: TypeVolet; readonly id?: string };
+}): Response {
+  const params = paramsDeLaSuite(options.suite);
+  if (options.motif !== undefined) {
+    params.set("motif", options.motif);
+  }
+  if (options.ligne !== undefined) {
+    params.set("ligne", options.ligne);
+  }
+  if (options.volet !== undefined) {
+    params.set("volet", options.volet.type);
+    if (options.volet.id !== undefined) {
+      params.set("id", options.volet.id);
+    }
+  }
+  const requete = params.toString();
+  const suffixe = requete === "" ? "" : `?${requete}`;
   return new Response(null, {
     status: 303,
     headers: { Location: `/parametres/materiel${suffixe}` },
