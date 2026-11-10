@@ -51,6 +51,26 @@ export const schemaFamilleMateriel = z.object({
 
 export type SaisieFamilleMateriel = z.infer<typeof schemaFamilleMateriel>;
 
+/**
+ * SAISIE D'UN SOUS-TYPE STRUCTURÉ (ticket 9K17A, décision d'Alexis du
+ * 10/11/2026, D238) — même discipline que `schemaFamilleMateriel` : aucune
+ * énumération, le sous-type est une DONNÉE SAISIE, propre à chaque société
+ * ET à chaque famille.
+ */
+export const schemaSousTypeMateriel = z.object({
+  /**
+   * La famille est NOMMÉE par son identifiant, même raisonnement que
+   * `famille_id` de `schemaModeleMateriel` ci-dessous : la base vérifie
+   * qu'elle appartient à la même société par une clé étrangère composite.
+   */
+  famille_id: z.uuid(),
+  code: texteNonVide,
+  libelle: texteNonVide,
+  actif: z.boolean().default(true),
+});
+
+export type SaisieSousTypeMateriel = z.infer<typeof schemaSousTypeMateriel>;
+
 export const schemaModeleMateriel = z.object({
   /**
    * La famille est NOMMÉE par son identifiant, et la base vérifie qu'elle
@@ -60,6 +80,13 @@ export const schemaModeleMateriel = z.object({
    * clé, le verrou serait muet là où le cloisonnement doit mordre.
    */
   famille_id: z.uuid(),
+  /**
+   * FACULTATIF (D238) — la base vérifie en plus qu'il appartient à LA MÊME
+   * FAMILLE que `famille_id` ci-dessus, par une clé étrangère composite à
+   * TROIS colonnes : un sous-type d'une autre famille est refusé PAR LA CLÉ,
+   * jamais par une comparaison écrite ici.
+   */
+  sous_type_id: z.uuid().nullable().default(null),
   marque: texteNonVide,
   reference: texteNonVide,
   /**

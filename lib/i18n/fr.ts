@@ -4847,6 +4847,23 @@ export const fr = {
     "Les familles et les modèles que le parc désigne. Une machine exige un modèle, un modèle exige une famille : sans eux, aucune fiche ne peut naître.",
   "materiel.familles": "Familles",
   "materiel.modeles": "Modèles",
+  // ── SOUS-TYPES (D238, ticket 9K17A-MATERIEL-SOUS-TYPE) ───────────────────
+  "materiel.sous_types": "Sous-types",
+  "materiel.creer_sous_type": "Ajouter un sous-type",
+  "materiel.modifier_sous_type": "Modifier le sous-type",
+  "materiel.sous_type": "Sous-type",
+  "materiel.sous_type_aucun": "Aucun",
+  "materiel.sous_type_inconnu": "Sous-type non lisible",
+  "materiel.aucun_sous_type": "Aucun sous-type n’est encore déclaré.",
+  "materiel.sous_type_sans_famille":
+    "Déclarez d’abord une famille : un sous-type en désigne une, et la base le refuse sans elle.",
+  "materiel.sous_types_compte": "sous-types",
+  "materiel.sous_types_compte_un": "sous-type",
+  "materiel.recherche_sous_types": "Code ou libellé",
+  "materiel.refus.code_pris_sous_type":
+    "Ce code de sous-type est déjà pris dans cette famille.",
+  "materiel.refus.sous_type_hors_famille":
+    "Ce sous-type n’appartient pas à la famille choisie.",
   "materiel.creer_famille": "Ajouter une famille",
   "materiel.creer_modele": "Ajouter un modèle",
   "materiel.creer_action": "Ajouter",

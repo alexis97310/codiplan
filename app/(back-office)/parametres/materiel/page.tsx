@@ -27,8 +27,10 @@ import { estCleTraduction, t } from "@/lib/i18n/fr";
 import {
   listerLesFamilles,
   listerLesModeles,
+  listerLesSousTypes,
   type LigneFamille,
   type LigneModele,
+  type LigneSousType,
 } from "@/lib/materiel/depot";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 
@@ -82,11 +84,22 @@ export const metadata: Metadata = { title: t("materiel.titre") };
  * `Restrict` : aucune suppression, seulement une bascule d'activité. Zéro
  * famille n'est pas une page vide muette : l'onglet Modèles dit pourquoi on
  * ne peut pas encore en créer.
+ *
+ * ## 9K17A-MATERIEL-SOUS-TYPE — UN TROISIÈME ONGLET (D238)
+ *
+ * « Sous-types », même patron que « Modèles » : une liste filtrable par
+ * famille, un volet de création/modification, aucune suppression. Sur la
+ * fiche d'un modèle, le choix « Sous-type » est LIMITÉ aux sous-types ACTIFS
+ * de la famille DÉFAUT du formulaire (celle de `valeurs.famille_id` en
+ * modification, la première famille en création) — **LIMITE CONNUE** :
+ * changer la famille dans le `<select>` sans recharger ne met pas à jour
+ * cette liste, ce formulaire n'ayant aucune interactivité côté client. La
+ * base refuse par la clé un choix devenu incohérent (`sous_type_hors_famille`).
  */
-type OngletMateriel = "familles" | "modeles";
+type OngletMateriel = "familles" | "modeles" | "sous-types";
 type EtatFiltre = "actifs" | "inactifs" | "tous";
 type Filtres = Readonly<{ q: string; etat: EtatFiltre }>;
-type TypeVolet = "famille" | "modele";
+type TypeVolet = "famille" | "modele" | "sous-type";
 
 export default async function PageMateriel({
   searchParams,
@@ -135,15 +148,19 @@ export default async function PageMateriel({
   const ongletActif: OngletMateriel =
     params.onglet === "modeles"
       ? "modeles"
-      : params.onglet === "familles"
-        ? "familles"
-        : familleParam !== undefined
-          ? "modeles"
-          : "familles";
+      : params.onglet === "sous-types"
+        ? "sous-types"
+        : params.onglet === "familles"
+          ? "familles"
+          : familleParam !== undefined
+            ? "modeles"
+            : "familles";
 
   const familles = await listerLesFamilles(session.contexte);
   const modeles = await listerLesModeles(session.contexte);
+  const sousTypes = await listerLesSousTypes(session.contexte);
   const nomDeFamille = new Map(familles.map((f) => [f.id, f.libelle]));
+  const nomDeSousType = new Map(sousTypes.map((s) => [s.id, s.libelle]));
 
   // Un identifiant inconnu ou hors périmètre reste invisible : `familles` est
   // déjà filtrée par la session, donc l'absence ici couvre les deux cas d'un
@@ -171,9 +188,23 @@ export default async function PageMateriel({
       ),
   );
 
+  const sousTypesDeLaFamille =
+    familleActive === undefined
+      ? sousTypes
+      : sousTypes.filter((s) => s.famille_id === familleActive.id);
+  const sousTypesAffiches = sousTypesDeLaFamille.filter(
+    (s) =>
+      etatCorrespond(s.actif, etat) &&
+      correspond([s.code, s.libelle, nomDeFamille.get(s.famille_id)], texteQ),
+  );
+
   const titreModeles =
     familleActive === undefined
       ? t("materiel.modeles")
+      : titreFamilleFiltree(familleActive.libelle);
+  const titreSousTypes =
+    familleActive === undefined
+      ? t("materiel.sous_types")
       : titreFamilleFiltree(familleActive.libelle);
 
   // ── LE VOLET (création OU modification, un seul formulaire par entité) ──
@@ -182,7 +213,9 @@ export default async function PageMateriel({
       ? "famille"
       : params.volet === "modele"
         ? "modele"
-        : null;
+        : params.volet === "sous-type"
+          ? "sous-type"
+          : null;
   const idEdite = typeof params.id === "string" ? params.id : undefined;
   const familleEditee =
     voletType === "famille" && idEdite !== undefined
@@ -192,10 +225,14 @@ export default async function PageMateriel({
     voletType === "modele" && idEdite !== undefined
       ? modeles.find((m) => m.id === idEdite)
       : undefined;
+  const sousTypeEdite =
+    voletType === "sous-type" && idEdite !== undefined
+      ? sousTypes.find((s) => s.id === idEdite)
+      : undefined;
   // UN IDENTIFIANT INCONNU NE ROUVRE RIEN (même discipline que `famille`
-  // ci-dessus) ; CRÉER UN MODÈLE SANS AUCUNE FAMILLE EST IMPOSSIBLE (le
-  // formulaire exige un parent) : le volet reste fermé plutôt que d'ouvrir
-  // un `<select>` vide.
+  // ci-dessus) ; CRÉER UN MODÈLE OU UN SOUS-TYPE SANS AUCUNE FAMILLE EST
+  // IMPOSSIBLE (le formulaire exige un parent) : le volet reste fermé plutôt
+  // que d'ouvrir un `<select>` vide.
   const voletOuvert =
     peutEcrire &&
     voletType !== null &&
@@ -203,7 +240,9 @@ export default async function PageMateriel({
       ? voletType === "famille" || familles.length > 0
       : voletType === "famille"
         ? familleEditee !== undefined
-        : modeleEdite !== undefined);
+        : voletType === "modele"
+          ? modeleEdite !== undefined
+          : sousTypeEdite !== undefined);
 
   return (
     <Page
@@ -240,6 +279,12 @@ export default async function PageMateriel({
             compte: modelesAffiches.length,
             actif: ongletActif === "modeles",
           },
+          {
+            libelle: t("materiel.sous_types"),
+            href: hrefEcran("sous-types", filtres),
+            compte: sousTypesAffiches.length,
+            actif: ongletActif === "sous-types",
+          },
         ]}
       />
 
@@ -250,11 +295,23 @@ export default async function PageMateriel({
           peutEcrire={peutEcrire}
           filtres={filtres}
         />
-      ) : (
+      ) : ongletActif === "modeles" ? (
         <OngletModeles
           titre={titreModeles}
           modeles={modelesAffiches}
           nombreTotal={modelesDeLaFamille.length}
+          familles={familles}
+          familleActive={familleActive}
+          nomDeFamille={nomDeFamille}
+          nomDeSousType={nomDeSousType}
+          peutEcrire={peutEcrire}
+          filtres={filtres}
+        />
+      ) : (
+        <OngletSousTypes
+          titre={titreSousTypes}
+          sousTypes={sousTypesAffiches}
+          nombreTotal={sousTypesDeLaFamille.length}
           familles={familles}
           familleActive={familleActive}
           nomDeFamille={nomDeFamille}
@@ -272,7 +329,9 @@ export default async function PageMateriel({
           type={voletType as TypeVolet}
           famille={familleEditee}
           modele={modeleEdite}
+          sousType={sousTypeEdite}
           familles={familles}
+          sousTypes={sousTypes}
           ongletActif={ongletActif}
           filtres={filtres}
           familleFiltre={familleActive?.id}
@@ -325,8 +384,8 @@ function hrefEcran(
   familleFiltre?: string,
 ): string {
   const params = paramsCommuns(filtres);
-  if (onglet === "modeles") {
-    params.set("onglet", "modeles");
+  if (onglet === "modeles" || onglet === "sous-types") {
+    params.set("onglet", onglet);
     if (familleFiltre !== undefined) {
       params.set("famille", familleFiltre);
     }
@@ -502,6 +561,7 @@ function OngletModeles({
   familles,
   familleActive,
   nomDeFamille,
+  nomDeSousType,
   peutEcrire,
   filtres,
 }: {
@@ -511,6 +571,7 @@ function OngletModeles({
   readonly familles: readonly LigneFamille[];
   readonly familleActive: LigneFamille | undefined;
   readonly nomDeFamille: ReadonlyMap<string, string>;
+  readonly nomDeSousType: ReadonlyMap<string, string>;
   readonly peutEcrire: boolean;
   readonly filtres: Filtres;
 }) {
@@ -577,6 +638,7 @@ function OngletModeles({
                     {nomDeFamille.get(modele.famille_id) ??
                       t("materiel.famille_inconnue")}
                   </Cellule>
+                  <Cellule>{sousTypeAffiche(modele, nomDeSousType)}</Cellule>
                   <Cellule>{entretienAffiche(modele)}</Cellule>
                   <Cellule>
                     <ActionsLigne
@@ -606,6 +668,7 @@ function OngletModeles({
                   nomDeFamille.get(modele.famille_id) ??
                   t("materiel.famille_inconnue")
                 }
+                nomDeSousType={nomDeSousType}
                 peutEcrire={peutEcrire}
                 hrefModifier={hrefOuvrirVolet(
                   "modeles",
@@ -613,6 +676,134 @@ function OngletModeles({
                   familleActive?.id,
                   "modele",
                   modele.id,
+                )}
+              />
+            ))}
+          </ListeCartes>
+        </div>
+      )}
+    </section>
+  );
+}
+
+/**
+ * L'ONGLET « SOUS-TYPES » (D238, ticket 9K17A) — même patron que l'onglet
+ * « Modèles », sans sélecteur de recherche imbriqué supplémentaire : un
+ * sous-type n'a qu'une famille, jamais de sous-type lui-même.
+ */
+function OngletSousTypes({
+  titre,
+  sousTypes,
+  nombreTotal,
+  familles,
+  familleActive,
+  nomDeFamille,
+  peutEcrire,
+  filtres,
+}: {
+  readonly titre: string;
+  readonly sousTypes: readonly LigneSousType[];
+  readonly nombreTotal: number;
+  readonly familles: readonly LigneFamille[];
+  readonly familleActive: LigneFamille | undefined;
+  readonly nomDeFamille: ReadonlyMap<string, string>;
+  readonly peutEcrire: boolean;
+  readonly filtres: Filtres;
+}) {
+  return (
+    <section id="sous-types" className="flex flex-col gap-3">
+      <EnTeteOnglet
+        titre={titre}
+        action={
+          familleActive === undefined ? undefined : (
+            <a href={hrefToutAfficher(filtres)} className={CLASSES_LIEN}>
+              {t("materiel.tout_afficher")}
+            </a>
+          )
+        }
+      />
+      {peutEcrire ? (
+        familles.length === 0 ? (
+          <p className="text-app-encre-faible text-13 font-bold">
+            {t("materiel.sous_type_sans_famille")}
+          </p>
+        ) : (
+          <LienPrimaire
+            href={hrefOuvrirVolet(
+              "sous-types",
+              filtres,
+              familleActive?.id,
+              "sous-type",
+            )}
+          >
+            {t("materiel.creer_sous_type")}
+          </LienPrimaire>
+        )
+      ) : null}
+      <FormulaireRecherche
+        onglet="sous-types"
+        filtres={filtres}
+        libelleChamp={t("materiel.recherche_sous_types")}
+        familleFiltre={familleActive?.id}
+      />
+
+      {nombreTotal === 0 ? (
+        <p className="text-app-encre-faible text-13 font-bold">
+          {familles.length === 0
+            ? t("materiel.sous_type_sans_famille")
+            : t("materiel.aucun_sous_type")}
+        </p>
+      ) : sousTypes.length === 0 ? (
+        <EtatVide titre={t("materiel.recherche_aucun_resultat_titre")}>
+          {t("materiel.recherche_aucun_resultat_detail")}
+        </EtatVide>
+      ) : (
+        <div className="flex flex-col gap-3">
+          <Carte className="max-[900px]:hidden">
+            <Tableau colonnes={colonnesSousTypes()} minimum="860px">
+              {sousTypes.map((sousType) => (
+                <tr key={sousType.id}>
+                  <Cellule fort>{sousType.code}</Cellule>
+                  <Cellule>{sousType.libelle}</Cellule>
+                  <Cellule>
+                    {nomDeFamille.get(sousType.famille_id) ??
+                      t("materiel.famille_inconnue")}
+                  </Cellule>
+                  <Cellule>
+                    <ActionsLigne
+                      peutEcrire={peutEcrire}
+                      hrefModifier={hrefOuvrirVolet(
+                        "sous-types",
+                        filtres,
+                        familleActive?.id,
+                        "sous-type",
+                        sousType.id,
+                      )}
+                      action={`/api/parametres/materiel/sous-types/${sousType.id}/activite`}
+                      actif={sousType.actif}
+                    />
+                  </Cellule>
+                </tr>
+              ))}
+            </Tableau>
+          </Carte>
+
+          <ListeCartes libelle={titre}>
+            {sousTypes.map((sousType) => (
+              <CarteSousType
+                key={sousType.id}
+                sousType={sousType}
+                nomFamille={
+                  nomDeFamille.get(sousType.famille_id) ??
+                  t("materiel.famille_inconnue")
+                }
+                peutEcrire={peutEcrire}
+                hrefModifier={hrefOuvrirVolet(
+                  "sous-types",
+                  filtres,
+                  familleActive?.id,
+                  "sous-type",
+                  sousType.id,
                 )}
               />
             ))}
@@ -673,9 +864,9 @@ function FormulaireRecherche({
       libelleBouton={t("materiel.rechercher")}
       enfants={
         <>
-          {onglet === "modeles" ? (
+          {onglet === "modeles" || onglet === "sous-types" ? (
             <>
-              <input type="hidden" name="onglet" value="modeles" />
+              <input type="hidden" name="onglet" value={onglet} />
               {familleFiltre === undefined ? null : (
                 <input type="hidden" name="famille" value={familleFiltre} />
               )}
@@ -723,9 +914,32 @@ function colonnesModeles() {
     { cle: "marque", libelle: t("materiel.marque"), largeur: "180px" },
     { cle: "reference", libelle: t("materiel.reference") },
     { cle: "famille", libelle: t("materiel.famille") },
+    { cle: "sous_type", libelle: t("materiel.sous_type"), largeur: "180px" },
     { cle: "entretien", libelle: t("materiel.periodicite"), largeur: "180px" },
     { cle: "actions", libelle: t("materiel.activite"), largeur: "240px" },
   ];
+}
+
+function colonnesSousTypes() {
+  return [
+    { cle: "code", libelle: t("materiel.code"), largeur: "140px" },
+    { cle: "libelle", libelle: t("materiel.libelle") },
+    { cle: "famille", libelle: t("materiel.famille") },
+    { cle: "actions", libelle: t("materiel.activite"), largeur: "220px" },
+  ];
+}
+
+/** Le sous-type d'un modèle, ou l'absence — jamais une chaîne vide muette. */
+function sousTypeAffiche(
+  modele: LigneModele,
+  nomDeSousType: ReadonlyMap<string, string>,
+): string {
+  if (modele.sous_type_id === null) {
+    return t("materiel.sous_type_aucun");
+  }
+  return (
+    nomDeSousType.get(modele.sous_type_id) ?? t("materiel.sous_type_inconnu")
+  );
 }
 
 /**
@@ -892,11 +1106,13 @@ function CarteFamille({
 function CarteModele({
   modele,
   nomFamille,
+  nomDeSousType,
   peutEcrire,
   hrefModifier,
 }: {
   readonly modele: LigneModele;
   readonly nomFamille: string;
+  readonly nomDeSousType: ReadonlyMap<string, string>;
   readonly peutEcrire: boolean;
   readonly hrefModifier: string;
 }) {
@@ -908,6 +1124,11 @@ function CarteModele({
           {t("materiel.famille")}
           {t("ponctuation.deux_points")}
           {nomFamille}
+        </div>
+        <div className="text-app-encre-faible text-12 font-bold">
+          {t("materiel.sous_type")}
+          {t("ponctuation.deux_points")}
+          {sousTypeAffiche(modele, nomDeSousType)}
         </div>
         <div className="text-12 font-bold">
           {t("materiel.periodicite")}
@@ -925,6 +1146,43 @@ function CarteModele({
   );
 }
 
+/** La carte d'un sous-type, sous 900 px (D238, ticket 9K17A). */
+function CarteSousType({
+  sousType,
+  nomFamille,
+  peutEcrire,
+  hrefModifier,
+}: {
+  readonly sousType: LigneSousType;
+  readonly nomFamille: string;
+  readonly peutEcrire: boolean;
+  readonly hrefModifier: string;
+}) {
+  return (
+    <li>
+      <Carte className="flex flex-col gap-2 p-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-13 font-bold">{sousType.libelle}</span>
+          <span className="text-app-encre-faible text-12 font-bold">
+            {sousType.code}
+          </span>
+        </div>
+        <div className="text-app-encre-faible text-12 font-bold">
+          {t("materiel.famille")}
+          {t("ponctuation.deux_points")}
+          {nomFamille}
+        </div>
+        <ActionsLigne
+          peutEcrire={peutEcrire}
+          hrefModifier={hrefModifier}
+          action={`/api/parametres/materiel/sous-types/${sousType.id}/activite`}
+          actif={sousType.actif}
+        />
+      </Carte>
+    </li>
+  );
+}
+
 /**
  * LE VOLET — « Ajouter » et « Modifier » ouvrent le MÊME formulaire
  * (`FormulaireFamille`/`FormulaireModele`), champs pré-remplis en
@@ -935,7 +1193,9 @@ function VoletMateriel({
   type,
   famille,
   modele,
+  sousType,
   familles,
+  sousTypes,
   ongletActif,
   filtres,
   familleFiltre,
@@ -943,7 +1203,9 @@ function VoletMateriel({
   readonly type: TypeVolet;
   readonly famille: LigneFamille | undefined;
   readonly modele: LigneModele | undefined;
+  readonly sousType: LigneSousType | undefined;
   readonly familles: readonly LigneFamille[];
+  readonly sousTypes: readonly LigneSousType[];
   readonly ongletActif: OngletMateriel;
   readonly filtres: Filtres;
   readonly familleFiltre: string | undefined;
@@ -954,9 +1216,13 @@ function VoletMateriel({
       ? famille === undefined
         ? t("materiel.creer_famille")
         : titreDe(t("materiel.modifier_famille"), famille.code)
-      : modele === undefined
-        ? t("materiel.creer_modele")
-        : titreDe(t("materiel.modifier_modele"), designation(modele));
+      : type === "modele"
+        ? modele === undefined
+          ? t("materiel.creer_modele")
+          : titreDe(t("materiel.modifier_modele"), designation(modele))
+        : sousType === undefined
+          ? t("materiel.creer_sous_type")
+          : titreDe(t("materiel.modifier_sous_type"), sousType.code);
   return (
     <Volet
       surtitre={t("materiel.titre")}
@@ -978,7 +1244,7 @@ function VoletMateriel({
           valeurs={famille}
           hrefAnnuler={hrefFermer}
         />
-      ) : (
+      ) : type === "modele" ? (
         <FormulaireModele
           action={
             modele === undefined
@@ -986,6 +1252,7 @@ function VoletMateriel({
               : `/api/parametres/materiel/modeles/${modele.id}/modifier`
           }
           familles={familles}
+          sousTypes={sousTypes}
           soumettre={
             modele === undefined
               ? t("materiel.creer_action")
@@ -994,16 +1261,32 @@ function VoletMateriel({
           valeurs={modele}
           hrefAnnuler={hrefFermer}
         />
+      ) : (
+        <FormulaireSousType
+          action={
+            sousType === undefined
+              ? "/api/parametres/materiel/sous-types/creer"
+              : `/api/parametres/materiel/sous-types/${sousType.id}/modifier`
+          }
+          familles={familles}
+          soumettre={
+            sousType === undefined
+              ? t("materiel.creer_action")
+              : t("materiel.enregistrer")
+          }
+          valeurs={sousType}
+          hrefAnnuler={hrefFermer}
+        />
       )}
       {type === "famille" ? (
         <p className="text-app-encre-faible text-12 font-bold">
           {t("materiel.vgp_ailleurs")}
         </p>
-      ) : (
+      ) : type === "modele" ? (
         <p className="text-app-encre-faible text-12 font-bold">
           {t("materiel.pas_la_vgp")}
         </p>
-      )}
+      ) : null}
     </Volet>
   );
 }
@@ -1064,17 +1347,28 @@ function FormulaireFamille({
 function FormulaireModele({
   action,
   familles,
+  sousTypes,
   soumettre,
   valeurs,
   hrefAnnuler,
 }: {
   readonly action: string;
   readonly familles: readonly LigneFamille[];
+  readonly sousTypes: readonly LigneSousType[];
   readonly soumettre: string;
   readonly valeurs?: LigneModele;
   readonly hrefAnnuler: string;
 }) {
   const prefixe = valeurs?.id ?? NOUVEAU;
+  // LA FAMILLE « DÉFAUT » DE CE FORMULAIRE — celle qui pré-sélectionne le
+  // `<select>` ci-dessous ET borne le choix du sous-type (voir l'en-tête du
+  // fichier, LIMITE CONNUE : changer la famille sans recharger ne met pas à
+  // jour la liste de sous-types, ce formulaire n'ayant aucune interactivité
+  // côté client).
+  const familleParDefaut = valeurs?.famille_id ?? familles[0]?.id;
+  const sousTypesChoisissables = sousTypes.filter(
+    (s) => s.actif && s.famille_id === familleParDefaut,
+  );
   return (
     <form action={action} method="post" className="flex flex-col gap-3">
       <div className="flex flex-col gap-1">
@@ -1091,12 +1385,35 @@ function FormulaireModele({
         <select
           id={`${prefixe}-famille`}
           name="famille_id"
-          defaultValue={valeurs?.famille_id ?? familles[0]?.id}
+          defaultValue={familleParDefaut}
           className="border-app-bord bg-app-surface min-w-44 rounded-md border px-2 py-1 text-13 font-bold"
         >
           {familles.map((famille) => (
             <option key={famille.id} value={famille.id}>
               {famille.libelle}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="flex flex-col gap-1">
+        <label
+          htmlFor={`${prefixe}-sous-type`}
+          className="text-app-encre-faible text-12 font-bold"
+        >
+          {t("materiel.sous_type")}
+        </label>
+        {/* FACULTATIF (D238) : une option vide existe, à la différence de la
+            famille ci-dessus. */}
+        <select
+          id={`${prefixe}-sous-type`}
+          name="sous_type_id"
+          defaultValue={valeurs?.sous_type_id ?? ""}
+          className="border-app-bord bg-app-surface min-w-44 rounded-md border px-2 py-1 text-13 font-bold"
+        >
+          <option value="">{t("materiel.sous_type_aucun")}</option>
+          {sousTypesChoisissables.map((sousType) => (
+            <option key={sousType.id} value={sousType.id}>
+              {sousType.libelle}
             </option>
           ))}
         </select>
@@ -1127,6 +1444,63 @@ function FormulaireModele({
         libelle={t("materiel.periodicite_compteur")}
         valeur={texteOuVide(valeurs?.periodicite_compteur)}
         nombre
+      />
+      <CaseActive defaut={valeurs?.actif ?? true} />
+      <PiedDuVolet hrefAnnuler={hrefAnnuler} soumettre={soumettre} />
+    </form>
+  );
+}
+
+/** Le formulaire d'un sous-type (D238, ticket 9K17A) — même patron que `FormulaireFamille`, avec le choix de la famille en plus. */
+function FormulaireSousType({
+  action,
+  familles,
+  soumettre,
+  valeurs,
+  hrefAnnuler,
+}: {
+  readonly action: string;
+  readonly familles: readonly LigneFamille[];
+  readonly soumettre: string;
+  readonly valeurs?: LigneSousType;
+  readonly hrefAnnuler: string;
+}) {
+  const prefixe = valeurs?.id ?? NOUVEAU;
+  return (
+    <form action={action} method="post" className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1">
+        <label
+          htmlFor={`${prefixe}-famille`}
+          className="text-app-encre-faible text-12 font-bold"
+        >
+          {t("materiel.famille")}
+        </label>
+        {/* LA FAMILLE EST OBLIGATOIRE, même raisonnement que sur un modèle. */}
+        <select
+          id={`${prefixe}-famille`}
+          name="famille_id"
+          defaultValue={valeurs?.famille_id ?? familles[0]?.id}
+          className="border-app-bord bg-app-surface min-w-44 rounded-md border px-2 py-1 text-13 font-bold"
+        >
+          {familles.map((famille) => (
+            <option key={famille.id} value={famille.id}>
+              {famille.libelle}
+            </option>
+          ))}
+        </select>
+      </div>
+      <Champ
+        id={`${prefixe}-code`}
+        nom="code"
+        libelle={t("materiel.code")}
+        valeur={valeurs?.code}
+      />
+      <Champ
+        id={`${prefixe}-libelle`}
+        nom="libelle"
+        libelle={t("materiel.libelle")}
+        valeur={valeurs?.libelle}
+        large
       />
       <CaseActive defaut={valeurs?.actif ?? true} />
       <PiedDuVolet hrefAnnuler={hrefAnnuler} soumettre={soumettre} />

@@ -213,6 +213,11 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
     "parametrer_societe",
   "app/api/parametres/materiel/modeles/[id]/modifier/route.ts":
     "parametrer_societe",
+  "app/api/parametres/materiel/sous-types/creer/route.ts": "parametrer_societe",
+  "app/api/parametres/materiel/sous-types/[id]/activite/route.ts":
+    "parametrer_societe",
+  "app/api/parametres/materiel/sous-types/[id]/modifier/route.ts":
+    "parametrer_societe",
   "app/api/parametres/prestations/creer/route.ts": "parametrer_societe",
   "app/api/parametres/prestations/[id]/activite/route.ts": "parametrer_societe",
   "app/api/parametres/prestations/[id]/modifier/route.ts": "parametrer_societe",
@@ -306,6 +311,9 @@ const PORTE_COMPLETE: readonly string[] = [
   "app/api/parametres/materiel/modeles/creer/route.ts",
   "app/api/parametres/materiel/modeles/[id]/activite/route.ts",
   "app/api/parametres/materiel/modeles/[id]/modifier/route.ts",
+  "app/api/parametres/materiel/sous-types/creer/route.ts",
+  "app/api/parametres/materiel/sous-types/[id]/activite/route.ts",
+  "app/api/parametres/materiel/sous-types/[id]/modifier/route.ts",
   "app/api/parametres/prestations/creer/route.ts",
   "app/api/parametres/prestations/[id]/activite/route.ts",
   "app/api/parametres/prestations/[id]/modifier/route.ts",
@@ -667,7 +675,7 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
     // 104 depuis 9K14-PORTAIL-COPIER-NOUVEAU-LIEN (backlog B7) — la route
     // neuve `app/api/clients/[id]/comptes/[utilisateurId]/copier-nouveau-
     // lien/route.ts`.
-    expect(Object.keys(ROUTE_CAPACITE).length).toBe(104);
+    expect(Object.keys(ROUTE_CAPACITE).length).toBe(107);
   });
 
   it("aucune exemption ne survit à son objet — adossement dans les deux sens", () => {

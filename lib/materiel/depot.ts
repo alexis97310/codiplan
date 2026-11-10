@@ -10,6 +10,7 @@ import type {
   RechercheModele,
   SaisieFamilleMateriel,
   SaisieModeleMateriel,
+  SaisieSousTypeMateriel,
 } from "./saisie";
 
 /**
@@ -108,6 +109,24 @@ export type MotifRefusModele =
   | "marque_reference_prise"
   /** La famille n'appartient pas à la société active, ou n'existe pas. */
   | "famille_hors_societe"
+  /**
+   * Le sous-type n'appartient pas à `famille_id` — même société ou pas
+   * (D238) : la clé étrangère à trois colonnes mord sur les deux cas.
+   */
+  | "sous_type_hors_famille"
+  | "introuvable";
+
+/** Ce qu'un refus dit d'un sous-type (D238, ticket 9K17A). */
+export type MotifRefusSousType =
+  /**
+   * `(societe_id, famille_id, code)` — le code est unique PAR FAMILLE.
+   * Nommé DIFFÉREMMENT de celui d'une famille (`code_pris`) : le message qui
+   * l'accompagne dit « de famille », faux pour un sous-type — la même clé
+   * de traduction aurait menti plutôt que d'informer.
+   */
+  | "code_pris_sous_type"
+  /** La famille n'appartient pas à la société active, ou n'existe pas. */
+  | "famille_hors_societe"
   | "introuvable";
 
 export type ResultatFamille =
@@ -117,6 +136,10 @@ export type ResultatFamille =
 export type ResultatModele =
   | { readonly accepte: true; readonly id: string }
   | { readonly accepte: false; readonly motif: MotifRefusModele };
+
+export type ResultatSousType =
+  | { readonly accepte: true; readonly id: string }
+  | { readonly accepte: false; readonly motif: MotifRefusSousType };
 
 /**
  * Traduit un refus de la base en motif, pour une FAMILLE.
@@ -133,7 +156,15 @@ function motifFamille(erreur: unknown): MotifRefusFamille | null {
   return null;
 }
 
-/** Traduit un refus de la base en motif, pour un MODÈLE. */
+/**
+ * Traduit un refus de la base en motif, pour un MODÈLE.
+ *
+ * **DEUX clés étrangères composites mordent désormais sur le même code
+ * `P2003`/`P2010`** (D238) — celle vers la famille et celle, à TROIS
+ * colonnes, vers le sous-type. Même technique que `depot-forfaits.ts` pour
+ * ses deux unicités : `erreur.message` NOMME la contrainte, et c'est une
+ * donnée de Prisma plutôt qu'un texte destiné à un humain.
+ */
 function motifModele(erreur: unknown): MotifRefusModele | null {
   if (!(erreur instanceof Prisma.PrismaClientKnownRequestError)) return null;
   if (erreur.code === VIOLATION_UNICITE) return "marque_reference_prise";
@@ -145,6 +176,22 @@ function motifModele(erreur: unknown): MotifRefusModele | null {
     // d'une autre société est refusée PAR LA CLÉ, jamais par une comparaison
     // écrite au-dessus de la politique. *Sans la société dans la clé, le verrou
     // serait muet là où le cloisonnement doit mordre.*
+    return /sous_type/.test(erreur.message)
+      ? "sous_type_hors_famille"
+      : "famille_hors_societe";
+  }
+  if (erreur.code === ENREGISTREMENT_ABSENT) return "introuvable";
+  return null;
+}
+
+/** Traduit un refus de la base en motif, pour un SOUS-TYPE (D238). */
+function motifSousType(erreur: unknown): MotifRefusSousType | null {
+  if (!(erreur instanceof Prisma.PrismaClientKnownRequestError)) return null;
+  if (erreur.code === VIOLATION_UNICITE) return "code_pris_sous_type";
+  if (
+    erreur.code === VIOLATION_CLE_ETRANGERE ||
+    erreur.code === CONTRAINTE_BASE
+  ) {
     return "famille_hors_societe";
   }
   if (erreur.code === ENREGISTREMENT_ABSENT) return "introuvable";
@@ -186,6 +233,7 @@ export type LigneFamille = Prisma.FamilleMaterielGetPayload<{
 export type LigneModele = {
   readonly id: string;
   readonly famille_id: string;
+  readonly sous_type_id: string | null;
   readonly marque: string;
   readonly reference: string;
   readonly periodicite_jours: number | null;
@@ -196,10 +244,28 @@ export type LigneModele = {
 const CHAMPS_MODELE: { readonly [K in keyof LigneModele]: true } = {
   id: true,
   famille_id: true,
+  sous_type_id: true,
   marque: true,
   reference: true,
   periodicite_jours: true,
   periodicite_compteur: true,
+  actif: true,
+};
+
+/** Un sous-type tel qu'un écran le lit (D238, ticket 9K17A). */
+export type LigneSousType = {
+  readonly id: string;
+  readonly famille_id: string;
+  readonly code: string;
+  readonly libelle: string;
+  readonly actif: boolean;
+};
+
+const CHAMPS_SOUS_TYPE: { readonly [K in keyof LigneSousType]: true } = {
+  id: true,
+  famille_id: true,
+  code: true,
+  libelle: true,
   actif: true,
 };
 
@@ -243,6 +309,22 @@ export async function listerLesModeles(
       tx.modeleMateriel.findMany({
         select: CHAMPS_MODELE,
         orderBy: [{ marque: "asc" }, { reference: "asc" }, { id: "asc" }],
+      }),
+    client,
+  );
+}
+
+/** Les sous-types, sous le contexte cloisonné (D238, ticket 9K17A). */
+export async function listerLesSousTypes(
+  contexte: ContexteSession,
+  client?: PrismaClient,
+): Promise<readonly LigneSousType[]> {
+  return avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.sousTypeMateriel.findMany({
+        select: CHAMPS_SOUS_TYPE,
+        orderBy: [{ code: "asc" }, { id: "asc" }],
       }),
     client,
   );
@@ -508,6 +590,7 @@ export async function creerModeleDans(
       id,
       societe_id: societeId,
       famille_id: saisie.famille_id,
+      sous_type_id: saisie.sous_type_id,
       marque: saisie.marque,
       reference: saisie.reference,
       periodicite_jours: saisie.periodicite_jours,
@@ -537,6 +620,7 @@ export async function creerModelesEnLot(
       id,
       societe_id: societeId,
       famille_id: saisie.famille_id,
+      sous_type_id: saisie.sous_type_id,
       marque: saisie.marque,
       reference: saisie.reference,
       periodicite_jours: saisie.periodicite_jours,
@@ -565,6 +649,7 @@ export async function modifierModeleDans(
     where: { id },
     data: {
       famille_id: saisie.famille_id,
+      sous_type_id: saisie.sous_type_id,
       marque: saisie.marque,
       reference: saisie.reference,
       periodicite_jours: saisie.periodicite_jours,
@@ -585,6 +670,102 @@ export async function basculerActiviteModele(
   const touchees = await avecContexteApplicatif(
     contexte,
     (tx) => tx.modeleMateriel.updateMany({ where: { id }, data: { actif } }),
+    client,
+  );
+  return touchees.count === 0
+    ? { accepte: false, motif: "introuvable" }
+    : { accepte: true, id };
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+ * LES SOUS-TYPES (D238, ticket 9K17A) — mêmes jumelles que les familles
+ * ──────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Crée un sous-type dans la société active.
+ *
+ * **Aucune variante `Dans`/`EnLot` extraite, à la différence des familles et
+ * des modèles** : le ticket 9K17A REFUSE qu'un sous-type naisse par import
+ * (« jamais de sous-type créé par l'import » — seule la colonne « Sous-type »
+ * d'un MODÈLE s'y lit). Sans second appelant, l'extraction serait la seconde
+ * implémentation d'un critère que personne ne demande encore (§9, 01/09).
+ */
+export async function creerSousType(
+  contexte: ContexteSession,
+  saisie: SaisieSousTypeMateriel,
+  client?: PrismaClient,
+): Promise<ResultatSousType> {
+  const id = uuidv7();
+  try {
+    await avecContexteApplicatif(
+      contexte,
+      (tx) =>
+        tx.sousTypeMateriel.create({
+          data: {
+            id,
+            societe_id: exigerSocieteActive(contexte),
+            famille_id: saisie.famille_id,
+            code: saisie.code,
+            libelle: saisie.libelle,
+            actif: saisie.actif,
+          },
+          select: { id: true },
+        }),
+      client,
+    );
+    return { accepte: true, id };
+  } catch (erreur: unknown) {
+    const motif = motifSousType(erreur);
+    if (motif === null) throw erreur;
+    return { accepte: false, motif };
+  }
+}
+
+/** Modifie un sous-type. La famille peut changer ; la société, jamais. */
+export async function modifierSousType(
+  contexte: ContexteSession,
+  id: string,
+  saisie: SaisieSousTypeMateriel,
+  client?: PrismaClient,
+): Promise<ResultatSousType> {
+  try {
+    const touchees = await avecContexteApplicatif(
+      contexte,
+      (tx) =>
+        tx.sousTypeMateriel.updateMany({
+          where: { id },
+          data: {
+            famille_id: saisie.famille_id,
+            code: saisie.code,
+            libelle: saisie.libelle,
+            actif: saisie.actif,
+          },
+        }),
+      client,
+    );
+    return touchees.count === 0
+      ? { accepte: false, motif: "introuvable" }
+      : { accepte: true, id };
+  } catch (erreur: unknown) {
+    const motif = motifSousType(erreur);
+    if (motif === null) throw erreur;
+    return { accepte: false, motif };
+  }
+}
+
+/**
+ * BASCULE L'ACTIVITÉ D'UN SOUS-TYPE — la seule façon de le retirer du choix.
+ * Les modèles qui le désignent déjà ne bougent pas (`RESTRICT`).
+ */
+export async function basculerActiviteSousType(
+  contexte: ContexteSession,
+  id: string,
+  actif: boolean,
+  client?: PrismaClient,
+): Promise<ResultatSousType> {
+  const touchees = await avecContexteApplicatif(
+    contexte,
+    (tx) => tx.sousTypeMateriel.updateMany({ where: { id }, data: { actif } }),
     client,
   );
   return touchees.count === 0

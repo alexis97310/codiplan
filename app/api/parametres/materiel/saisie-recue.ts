@@ -1,8 +1,10 @@
 import {
   schemaFamilleMateriel,
   schemaModeleMateriel,
+  schemaSousTypeMateriel,
   type SaisieFamilleMateriel,
   type SaisieModeleMateriel,
+  type SaisieSousTypeMateriel,
 } from "@/lib/materiel/saisie";
 
 import { champ } from "../../interventions/actions";
@@ -51,11 +53,30 @@ export function saisieModeleRecue(
 ): SaisieModeleMateriel | null {
   const analyse = schemaModeleMateriel.safeParse({
     famille_id: champ(formulaire, "famille_id") ?? "",
+    sous_type_id: sousTypeOuAbsence(formulaire),
     marque: champ(formulaire, "marque") ?? "",
     reference: champ(formulaire, "reference") ?? "",
     caracteristiques: null,
     periodicite_jours: nombreOuAbsence(formulaire, "periodicite_jours"),
     periodicite_compteur: nombreOuAbsence(formulaire, "periodicite_compteur"),
+    actif: formulaire.get("actif") !== null,
+  });
+  return analyse.success ? analyse.data : null;
+}
+
+/** LE VIDE DEVIENT L'ABSENCE, pour le `<select>` facultatif « Sous-type » (D238). */
+function sousTypeOuAbsence(formulaire: FormData): string | null {
+  const brut = champ(formulaire, "sous_type_id");
+  return brut === null || brut === "" ? null : brut;
+}
+
+export function saisieSousTypeRecue(
+  formulaire: FormData,
+): SaisieSousTypeMateriel | null {
+  const analyse = schemaSousTypeMateriel.safeParse({
+    famille_id: champ(formulaire, "famille_id") ?? "",
+    code: champ(formulaire, "code") ?? "",
+    libelle: champ(formulaire, "libelle") ?? "",
     actif: formulaire.get("actif") !== null,
   });
   return analyse.success ? analyse.data : null;
