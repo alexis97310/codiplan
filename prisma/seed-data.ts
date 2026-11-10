@@ -2516,7 +2516,9 @@ export const VERIFICATIONS_VGP_DEMONSTRATION: readonly VerificationVgpSeed[] = [
  * vérifications, `b000` pour les rattachements machine d'une intervention,
  * `c000` pour un forfait, `d000` pour un lot d'import (SEMIS-2, 21/09/2026) —
  * suit la convention du jeu de démonstration. `e000` s'y ajoute au ticket
- * 9K17A-MATERIEL-SOUS-TYPE pour les sous-types (D238, 10/11/2026).
+ * 9K17A-MATERIEL-SOUS-TYPE pour les sous-types (D238, 10/11/2026). `f000`,
+ * `f100`, `f200` s'y ajoutent au ticket 9K20-CHECKLIST-DUPLIQUER-DEPART pour
+ * le modèle de checklist de démonstration, sa version et ses points.
  */
 export function identifiantParc(
   famille:
@@ -2527,7 +2529,10 @@ export function identifiantParc(
     | "intervention_machine"
     | "forfait"
     | "import_lot"
-    | "sous_type",
+    | "sous_type"
+    | "checklist_modele"
+    | "checklist_version"
+    | "checklist_point",
   rangSociete: number,
   rang: number,
 ): string {
@@ -2540,6 +2545,9 @@ export function identifiantParc(
     forfait: "c000",
     import_lot: "d000",
     sous_type: "e000",
+    checklist_modele: "f000",
+    checklist_version: "f100",
+    checklist_point: "f200",
   } as const;
   const suffixe = String((rangSociete - 1) * 100 + rang).padStart(12, "0");
   return `0192f0a0-${segments[famille]}-7000-8000-${suffixe}`;

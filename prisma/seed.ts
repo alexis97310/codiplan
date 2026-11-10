@@ -3,6 +3,7 @@ import { Prisma, PrismaClient, type StatutIntervention } from "@prisma/client";
 import { absenceCouvrant, type AbsenceDeclaree } from "../lib/absences/periode";
 import { avecDesignationAuth } from "../lib/auth/lecture-identite";
 import { Role } from "../lib/auth/roles";
+import { GABARITS_DE_DEPART } from "../lib/checklists/gabarits-de-depart";
 import {
   instantAMinutes,
   jourSuivant,
@@ -863,6 +864,7 @@ async function seed(): Promise<void> {
           `${societe.code} — sous-types de matériel : ` +
             `${SOUS_TYPES_MATERIEL_DEMONSTRATION.length}`,
         );
+        const identifiantsSousTypes = new Map<string, string>();
         for (const sousType of SOUS_TYPES_MATERIEL_DEMONSTRATION) {
           const familleId = identifiantsFamilles.get(sousType.familleCode);
           if (familleId === undefined) {
@@ -877,6 +879,7 @@ async function seed(): Promise<void> {
             rangSociete,
             sousType.rang,
           );
+          identifiantsSousTypes.set(sousType.code, sousTypeId);
           await tx.sousTypeMateriel.upsert({
             where: { id: sousTypeId },
             update: { libelle: sousType.libelle },
@@ -886,6 +889,101 @@ async function seed(): Promise<void> {
               famille_id: familleId,
               code: sousType.code,
               libelle: sousType.libelle,
+            },
+          });
+        }
+
+        // LE MODÈLE DE CHECKLIST DE DÉMONSTRATION (9K20-CHECKLIST-DUPLIQUER-
+        // DEPART) — né du SEUL gabarit de départ aujourd'hui, rattaché au
+        // sous-type « 2COL-EM » (pont 2 colonnes électromécanique) posé
+        // ci-dessus, JAMAIS à un modèle de machine : le gabarit lui-même ne
+        // porte aucun rattachement (voir `lib/checklists/gabarits-de-
+        // depart.ts`), celui-ci est propre à ce semis de démonstration.
+        // **JAMAIS joué en production** : ce script entier n'est appelé que
+        // par `pnpm db:seed`, sauté sur la cible « production »
+        // (`tests/unit/ci/cible-de-migration.test.ts`) — la même garantie que
+        // tout le reste de ce fichier, aucune autre n'était nécessaire ici.
+        const [gabaritPontDeDepart] = GABARITS_DE_DEPART;
+        if (gabaritPontDeDepart === undefined) {
+          throw new Error(
+            "Aucun gabarit de départ n'est déclaré : le modèle de checklist " +
+              "de démonstration ne peut pas naître.",
+          );
+        }
+        const sousTypePont2ColonnesId = identifiantsSousTypes.get("2COL-EM");
+        if (sousTypePont2ColonnesId === undefined) {
+          throw new Error(
+            "Sous-type « 2COL-EM » (pont 2 colonnes électromécanique) absent " +
+              "du jeu de démonstration : le modèle de checklist né du gabarit " +
+              "de départ ne peut pas s'y rattacher.",
+          );
+        }
+        etape(`${societe.code} — modèle de checklist de démonstration`);
+        const checklistModeleId = identifiantParc(
+          "checklist_modele",
+          rangSociete,
+          1,
+        );
+        await tx.checklistModele.upsert({
+          where: { id: checklistModeleId },
+          update: {
+            libelle: gabaritPontDeDepart.libelle,
+            sous_type_id: sousTypePont2ColonnesId,
+          },
+          create: {
+            id: checklistModeleId,
+            societe_id: id,
+            code: "DEMO-PONT-2COL-EM",
+            libelle: gabaritPontDeDepart.libelle,
+            sous_type_id: sousTypePont2ColonnesId,
+            exige_machine: true,
+          },
+        });
+        const checklistVersionId = identifiantParc(
+          "checklist_version",
+          rangSociete,
+          1,
+        );
+        await tx.checklistVersion.upsert({
+          where: { id: checklistVersionId },
+          update: {},
+          create: {
+            id: checklistVersionId,
+            societe_id: id,
+            checklist_modele_id: checklistModeleId,
+            numero: 1,
+          },
+        });
+        for (const point of gabaritPontDeDepart.points) {
+          const pointId = identifiantParc(
+            "checklist_point",
+            rangSociete,
+            point.ordre,
+          );
+          const donneesPoint = {
+            section: point.section,
+            ordre: point.ordre,
+            libelle: point.libelle,
+            consigne: point.consigne ?? null,
+            obligatoire: point.obligatoire ?? false,
+            type_reponse: point.typeReponse,
+            unite:
+              point.typeReponse === "valeur_mesuree"
+                ? (point.unite ?? null)
+                : null,
+            choix:
+              point.typeReponse === "choix_dans_une_liste"
+                ? [...point.choix]
+                : [],
+          };
+          await tx.checklistPoint.upsert({
+            where: { id: pointId },
+            update: donneesPoint,
+            create: {
+              id: pointId,
+              societe_id: id,
+              checklist_version_id: checklistVersionId,
+              ...donneesPoint,
             },
           });
         }
