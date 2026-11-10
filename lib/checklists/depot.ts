@@ -749,6 +749,15 @@ export type ChecklistDeLIntervention =
   | {
       readonly disponible: true;
       readonly checklistVersionId: string;
+      /**
+       * LE LIBELLÉ DU MODÈLE RÉSOLU (9K21-CHECKLIST-TERRAIN-SAISIE, CK5) —
+       * pour que la tuile terrain affiche sa provenance (« Checklist :
+       * <libellé> ») sans jamais relire la cascade elle-même : la version
+       * est déjà figée, le libellé qui l'accompagne vient donc du MODÈLE
+       * qu'elle porte, jamais d'une seconde résolution qui pourrait diverger
+       * de la version réellement lue.
+       */
+      readonly checklistModeleLibelle: string;
       readonly points: readonly PointDeChecklist[];
       readonly reponses: readonly ReponseDeChecklist[];
       readonly completude: EtatCompletude;
@@ -799,17 +808,27 @@ export async function checklistDeLIntervention(
         versionId = derniere.id;
       }
 
-      const points = await tx.checklistPoint.findMany({
-        where: { checklist_version_id: versionId },
-        orderBy: { ordre: "asc" },
-      });
-      const reponses = await tx.checklistReponse.findMany({
-        where: { intervention_id: interventionId },
-      });
+      const [points, reponses, version] = await Promise.all([
+        tx.checklistPoint.findMany({
+          where: { checklist_version_id: versionId },
+          orderBy: { ordre: "asc" },
+        }),
+        tx.checklistReponse.findMany({
+          where: { intervention_id: interventionId },
+        }),
+        tx.checklistVersion.findFirst({
+          where: { id: versionId },
+          select: { modele: { select: { libelle: true } } },
+        }),
+      ]);
 
       return {
         disponible: true,
         checklistVersionId: versionId,
+        // JAMAIS `null` ICI — la version vient d'être lue ou vient d'être
+        // posée à l'instant même ; son modèle ne se supprime jamais
+        // (`onDelete: Restrict`).
+        checklistModeleLibelle: version!.modele.libelle,
         points: points.map((point) => ({
           id: point.id,
           section: point.section,

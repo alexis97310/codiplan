@@ -212,7 +212,10 @@ describe("société B ne lit ni n'écrit les réponses de la société A", () =>
             interventionId,
             clientApp(),
           );
-          expect(luParA).toMatchObject({ disponible: true });
+          expect(luParA).toMatchObject({
+            disponible: true,
+            checklistModeleLibelle: "Modèle de test",
+          });
         },
       );
     } finally {
@@ -488,6 +491,7 @@ describe("la cascade, de bout en bout, via le dépôt — niveau FAMILLE", () =>
           expect(checklist).toMatchObject({
             disponible: true,
             checklistVersionId: versionFamille,
+            checklistModeleLibelle: "Modèle de test",
           });
           if (checklist?.disponible === true) {
             expect(checklist.points.map((p) => p.id)).toEqual([pointFamille]);

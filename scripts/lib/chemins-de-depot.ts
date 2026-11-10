@@ -692,13 +692,7 @@ export const FONCTIONS_SANS_CHEMIN: readonly SansChemin[] = [
     motif:
       "Cible de CK3 (paramétrage) : l'écran de CK3 lit `listerLesVersionsChecklist` (toutes les versions, pour l'aperçu ET le préremplissage) plutôt que cette fonction, qui ne rendrait que la dernière. 9K18-CHECKLIST-DOMAINE (CK2) résout et lit la dernière version publiée INLINE, dans la même transaction que la lecture ou l'écriture des réponses — jamais par cette fonction, qui réouvrirait sa propre transaction. 9K20-CHECKLIST-DUPLIQUER-DEPART lui donne un appelant RÉEL, `dupliquerModele` — MAIS dans le MÊME fichier : cette mesure ne compte qu'un appel écrit depuis un fichier EXTÉRIEUR qui importe le dépôt, et un appel interne au module n'en est pas un. L'exemption reste donc exacte, pas périmée.",
   },
-  // 9K18-CHECKLIST-DOMAINE — `enregistrerReponses` a un chemin (la route
-  // neuve `app/api/terrain/[id]/checklist/route.ts`), mais AUCUN écran de ce
-  // ticket ne LIT la checklist pour l'afficher (CK5, hors territoire ici).
-  {
-    module: "lib/checklists/depot.ts",
-    fonction: "checklistDeLIntervention",
-    motif:
-      "La LECTURE terrain de la checklist (points, réponses, complétude) sert CK5 (l'écran de saisie) et CK7 (le blocage de « Terminer »), ni l'un ni l'autre n'existant encore. Éprouvée directement par les épreuves d'isolation de ce ticket.",
-  },
+  // `checklistDeLIntervention` S'EST RETIRÉE AU 9K21-CHECKLIST-TERRAIN-
+  // SAISIE (CK5) : `app/(mobile)/terrain/[id]/page.tsx` la lit désormais
+  // pour nourrir `components/terrain/checklist-terrain.tsx`.
 ];
