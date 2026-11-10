@@ -1248,6 +1248,13 @@ export const fr = {
   // session du 16/09/2026).
   "imports.motif.famille_introuvable":
     "Aucune famille ne porte ce code. La correction est dans le fichier des familles, ou dans la cellule qui le nomme.",
+  // D238 (ticket 9K17A-MATERIEL-SOUS-TYPE, 10/11/2026) — le sous-type d'un
+  // modèle. « Introuvable » couvre AUSSI un sous-type d'une autre famille que
+  // celle de la ligne : les distinguer ferait un oracle (D35, D50).
+  "imports.motif.sous_type_introuvable":
+    "Aucun sous-type de cette famille ne porte ce code. La correction est dans le référentiel des sous-types, ou dans la cellule qui le nomme.",
+  "imports.motif.sous_type_inactif":
+    "Ce sous-type existe mais a été désactivé : un import ne peut pas y rattacher un modèle. Réactivez-le dans son référentiel, ou laissez la cellule vide.",
   // AJOUTÉ le 16/09/2026 (point 4b) : deux lignes du MÊME fichier désignent la
   // même fiche — jamais le parc, qui ne les connaît encore ni l'une ni
   // l'autre. La correction n'est donc pas au même endroit que « cle_ambigue ».

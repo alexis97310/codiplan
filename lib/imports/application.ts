@@ -62,6 +62,7 @@ import { type LigneHistorique } from "./reprise";
 import { type LigneObservationVgp, type LignePv } from "./vgp";
 import { indexerLesAgences } from "./parc-agences";
 import { indexerLesFamilles } from "./parc-familles";
+import { indexerLesSousTypes } from "./parc-sous-types";
 import { indexerLeParcClients } from "./parc-clients";
 import {
   indexerLeParcEquipements,
@@ -762,6 +763,7 @@ export async function appliquerLeLotDeSites(
  */
 const CHAMPS_MODELES_ECRITS = [
   "famille_id",
+  "sous_type_id",
   "marque",
   "reference",
   "periodicite_jours",
@@ -775,6 +777,7 @@ export async function appliquerLeLotDeModeles(
   client?: PrismaClient,
 ): Promise<ResultatApplication> {
   const familles = await indexerLesFamilles(contexte, client);
+  const sousTypes = await indexerLesSousTypes(contexte, client);
   const modeles = await indexerLeParcModeles(contexte, client);
 
   return appliquerLesLignes<SaisieModeleMateriel, SaisieModeleMateriel>(
@@ -785,7 +788,7 @@ export async function appliquerLeLotDeModeles(
       entite: "modele_materiel",
       champsComparaison: CHAMPS_MODELES_ECRITS,
       preparerCreation: (ligne) => {
-        const prepare = preparerUnModele(familles, ligne.valeurs);
+        const prepare = preparerUnModele(familles, sousTypes, ligne.valeurs);
         if (!prepare.prete) return { prete: false };
         return {
           prete: true,
@@ -800,7 +803,7 @@ export async function appliquerLeLotDeModeles(
         const cible =
           ligne.cle === null ? undefined : modeles.fiches.get(ligne.cle);
         if (cible === undefined) return { prete: false };
-        const prepare = preparerUnModele(familles, ligne.valeurs);
+        const prepare = preparerUnModele(familles, sousTypes, ligne.valeurs);
         if (!prepare.prete) return { prete: false };
         const saisie = schemaModeleMateriel.parse(prepare.saisie);
         return { prete: true, cible, ecrit: saisie, comparaison: saisie };
@@ -817,6 +820,7 @@ export async function appliquerLeLotDeModeles(
           select: {
             id: true,
             famille_id: true,
+            sous_type_id: true,
             marque: true,
             reference: true,
             periodicite_jours: true,

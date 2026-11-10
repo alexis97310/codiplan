@@ -13,6 +13,7 @@ import {
 import { indexerLeParcClients } from "./parc-clients";
 import { indexerLesFamilles } from "./parc-familles";
 import { indexerLesMachinesParSerie } from "./parc-machines";
+import { indexerLesSousTypes } from "./parc-sous-types";
 import { lireLaDeviseDeLaSociete } from "./parc-societe";
 import { indexerLesVerificationsVgp } from "./parc-vgp";
 
@@ -42,6 +43,7 @@ export async function indexerLesParcs(
     clients,
     agences,
     familles,
+    sousTypes,
     sites,
     modeles,
     machines,
@@ -53,6 +55,7 @@ export async function indexerLesParcs(
     indexerLeParcClients(contexte, client),
     indexerLesAgences(contexte, client),
     indexerLesFamilles(contexte, client),
+    indexerLesSousTypes(contexte, client),
     indexerLeParcSites(contexte, client),
     indexerLeParcModeles(contexte, client),
     indexerLesMachinesParSerie(contexte, client),
@@ -65,6 +68,7 @@ export async function indexerLesParcs(
     clients,
     agences,
     familles,
+    sousTypes,
     sites,
     // **Les sites répondent à TROIS questions** : la cible de leur gabarit,
     // le parent d'un équipement, et — depuis l'historique — le SEUL site d'un

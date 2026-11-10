@@ -369,6 +369,19 @@ export const TABLES_VIDES_AU_RESSERREMENT: readonly {
       "ce point de l'histoire : aucun chemin n'a jamais pu y écrire, et son " +
       "index unique ne peut rien refuser.",
   },
+  {
+    migration: "20261110130000_sous_type_materiel_9k17a",
+    table: "checklist_modele",
+    mesure:
+      "Créée la veille par `20261109080000_checklists_socle_9k08` (D235), " +
+      "qui ne livre que le SOCLE : aucun dépôt, aucune route, aucun écran " +
+      "n'écrit encore dans cette table — mesuré par grep sur `lib/` et " +
+      "`app/` à la date de cette migration. La cascade de résolution et les " +
+      "écrans qui la rempliront sont les tickets 9K18/9K19, ultérieurs. La " +
+      "table est donc prouvée vide à ce point de l'histoire : aucun chemin " +
+      "n'a jamais pu y écrire, et ni sa clé étrangère vers `sous_type_materiel` " +
+      "ni sa contrainte d'exclusivité ne peuvent rien refuser.",
+  },
 ] as const;
 
 /**

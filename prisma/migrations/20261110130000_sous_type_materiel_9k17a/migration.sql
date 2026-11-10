@@ -132,6 +132,25 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON "sous_type_materiel" TO "codiplan_app";
 CREATE TRIGGER "journal_audit" AFTER INSERT OR UPDATE OR DELETE ON "sous_type_materiel"
   FOR EACH ROW EXECUTE FUNCTION "journal_audit_tracer"();
 
+-- LE VERROU D'ÉCRITURE DU PORTAIL (I3, D237, 9K16) — recopié verbatim des
+-- trois politiques posées par `20261110120000_portail_securite_base_9k16` sur
+-- `modele_materiel`/`famille_materiel`, et son fondement y est écrit en
+-- entier. `sous_type_materiel` n'existait pas ce jour-là, d'où ces trois
+-- CREATE POLICY ici plutôt qu'une entrée de plus dans le tableau de 9K16 —
+-- une migration déjà appliquée ne se modifie jamais (CLAUDE.md §7).
+CREATE POLICY "verrou_ecriture_portail_insertion" ON "sous_type_materiel"
+  AS RESTRICTIVE FOR INSERT
+  WITH CHECK (NULLIF(current_setting('app.client_id', true), '') IS NULL);
+
+CREATE POLICY "verrou_ecriture_portail_modification" ON "sous_type_materiel"
+  AS RESTRICTIVE FOR UPDATE
+  USING (NULLIF(current_setting('app.client_id', true), '') IS NULL)
+  WITH CHECK (NULLIF(current_setting('app.client_id', true), '') IS NULL);
+
+CREATE POLICY "verrou_ecriture_portail_suppression" ON "sous_type_materiel"
+  AS RESTRICTIVE FOR DELETE
+  USING (NULLIF(current_setting('app.client_id', true), '') IS NULL);
+
 COMMENT ON TABLE "sous_type_materiel" IS
   'Sous-type structuré de matériel, sous une famille (ticket 9K17A, décision d''Alexis du 10/11/2026). Table MÉTIER cloisonnée, forme « ascendance » (D93) comme famille_materiel et modele_materiel. Ce sont des données SAISIES, jamais une énumération.';
 

@@ -103,6 +103,7 @@ function parcsFabriques(devise = XPF): ParcsDImport {
     },
     agences: { parCode: new Map() },
     familles: { parCode: new Map() },
+    sousTypes: { parFamilleEtCode: new Map() },
     sites: {
       fiches: new Map([
         [cleDuSite(CLIENT_1, "Atelier"), SITE_1A],

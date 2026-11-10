@@ -86,6 +86,7 @@ function parcsFabriques(): ParcsDImport {
     },
     agences: { parCode: new Map() },
     familles: { parCode: new Map() },
+    sousTypes: { parFamilleEtCode: new Map() },
     sites: { fiches: new Map() },
     sitesDetails: new Map(),
     modeles: { fiches: new Map() },

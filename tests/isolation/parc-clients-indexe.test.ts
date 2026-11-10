@@ -7,6 +7,7 @@ import { PREFIXE_RAISON_SOCIALE } from "@/lib/excel/rapprochement";
 import { indexerLesAgences } from "@/lib/imports/parc-agences";
 import { indexerLesFamilles } from "@/lib/imports/parc-familles";
 import { indexerLeParcClients } from "@/lib/imports/parc-clients";
+import { indexerLesSousTypes } from "@/lib/imports/parc-sous-types";
 import {
   MODELE_CLIENTS,
   marqueurDu,
@@ -467,8 +468,10 @@ describe("LE GABARIT « SITES » — deux parents, deux règles (L1-09c, D101)",
 
 describe("LE GABARIT « MODÈLES » — la famille par son CODE (L1-09d, D101)", () => {
   async function modele(societeId = SOCIETE_A) {
+    const session = { ...SESSION, societeId };
     return modeleModeles(
-      await indexerLesFamilles({ ...SESSION, societeId }, clientApp()),
+      await indexerLesFamilles(session, clientApp()),
+      await indexerLesSousTypes(session, clientApp()),
     );
   }
 

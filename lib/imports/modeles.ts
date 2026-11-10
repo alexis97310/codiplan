@@ -19,6 +19,7 @@ import {
 
 import { type ParcAgences } from "./parc-agences";
 import { type ParcFamilles } from "./parc-familles";
+import { cleSousType, type ParcSousTypes } from "./parc-sous-types";
 import { type ParcClientsIndexe } from "./parc-clients";
 import {
   cleClientDepuis,
@@ -620,6 +621,11 @@ export const COLONNES_MODELES = {
   reference: "Référence",
   periodiciteJours: "Périodicité (jours)",
   periodiciteCompteur: "Périodicité (compteur)",
+  // AJOUTÉE EN DERNIÈRE POSITION (D238, ticket 9K17A) — jamais insérée entre
+  // deux colonnes existantes : une feuille déjà en circulation, ou un
+  // scénario qui n'écrit que les cellules obligatoires + quelques-unes,
+  // continue de se lire À L'IDENTIQUE. L'ordre d'un gabarit est un contrat.
+  sousType: "Sous-type (code)",
 } as const;
 
 export const CHAMPS_MODELES: Readonly<Record<string, string>> = {
@@ -629,6 +635,9 @@ export const CHAMPS_MODELES: Readonly<Record<string, string>> = {
 
 export const CHAMPS_MODELES_ECARTES: Readonly<Record<string, string>> = {
   famille_id: "résolu depuis la colonne « Famille », par son CODE (D101)",
+  // D238 (ticket 9K17A) — même raisonnement que `famille_id` ci-dessus.
+  sous_type_id:
+    "résolu depuis la colonne « Sous-type », par son CODE, à l'intérieur de la famille de la ligne (D238)",
   // *Leur CONTENU n'est fixé par personne* — `lib/materiel/saisie.ts` l'écrit —,
   // et un tableur ne peut pas porter une forme que personne n'a décidée.
   caracteristiques:
@@ -640,6 +649,10 @@ export const CHAMPS_MODELES_ECARTES: Readonly<Record<string, string>> = {
   periodicite_compteur:
     "exposée par « Périodicité (compteur) », lue comme un nombre",
 };
+
+/** Ce qu'une colonne « Sous-type » invalide dit (D238, ticket 9K17A). */
+export const MOTIF_SOUS_TYPE_INTROUVABLE = "sous_type_introuvable";
+export const MOTIF_SOUS_TYPE_INACTIF = "sous_type_inactif";
 
 /**
  * Un entier écrit dans une cellule. **Une cellule vide rend `null`**, une
@@ -666,7 +679,10 @@ function lireUnEntier(brut: string | undefined): number | null | string {
  * différentes, et une même marque ne réédite pas sa référence.* La famille est
  * un parent à résoudre, pas une part de l'identité.
  */
-export function modeleModeles(familles: ParcFamilles): ModeleDImport {
+export function modeleModeles(
+  familles: ParcFamilles,
+  sousTypes: ParcSousTypes,
+): ModeleDImport {
   return {
     type: "modeles",
     version: 1,
@@ -676,6 +692,7 @@ export function modeleModeles(familles: ParcFamilles): ModeleDImport {
       { nom: COLONNES_MODELES.reference, obligatoire: true },
       { nom: COLONNES_MODELES.periodiciteJours, obligatoire: false },
       { nom: COLONNES_MODELES.periodiciteCompteur, obligatoire: false },
+      { nom: COLONNES_MODELES.sousType, obligatoire: false },
     ],
     identifiantes: [COLONNES_MODELES.marque, COLONNES_MODELES.reference],
     cle: (valeurs, rang) => {
@@ -698,7 +715,7 @@ export function modeleModeles(familles: ParcFamilles): ModeleDImport {
     // Le VERDICT est celui de `preparerUnModele` — même raison qu'aux sites :
     // *le contrôle et l'application lisent la MÊME fonction* (§9, 01/09).
     valider: (valeurs) => {
-      const prepare = preparerUnModele(familles, valeurs);
+      const prepare = preparerUnModele(familles, sousTypes, valeurs);
       return prepare.prete ? null : prepare.motif;
     },
   };
@@ -718,6 +735,7 @@ export type ModeleALecrire =
 
 export function preparerUnModele(
   familles: ParcFamilles,
+  sousTypes: ParcSousTypes,
   valeurs: Readonly<Record<string, string | undefined>>,
 ): ModeleALecrire {
   const code = valeurs[COLONNES_MODELES.famille]?.trim().toUpperCase();
@@ -726,9 +744,30 @@ export function preparerUnModele(
   if (famille === undefined) {
     return { prete: false, motif: MOTIF_PARENT_INTROUVABLE };
   }
+  // LA COLONNE « Sous-type », FACULTATIVE (D238) — vide = aucun sous-type,
+  // comme `materiel.sous_type_aucun` à l'écran. Un code inconnu, inactif ou
+  // D'UNE AUTRE FAMILLE que celle de la ligne est REJETÉ, jamais résolu vers
+  // le mauvais sous-type : l'index est déjà scopé par famille (`cleSousType`),
+  // si bien qu'« inconnu » et « autre famille » rendent LE MÊME motif — le
+  // raisonnement D35/D50 de ce module, appliqué un niveau plus bas.
+  const codeSousType = valeurs[COLONNES_MODELES.sousType]?.trim();
+  let sousTypeId: string | null = null;
+  if (codeSousType !== undefined && codeSousType !== "") {
+    const trouve = sousTypes.parFamilleEtCode.get(
+      cleSousType(famille, codeSousType),
+    );
+    if (trouve === undefined) {
+      return { prete: false, motif: MOTIF_SOUS_TYPE_INTROUVABLE };
+    }
+    if (!trouve.actif) {
+      return { prete: false, motif: MOTIF_SOUS_TYPE_INACTIF };
+    }
+    sousTypeId = trouve.id;
+  }
   const saisie = {
     ...saisieDepuisLaLigne(valeurs, CHAMPS_MODELES),
     famille_id: famille,
+    sous_type_id: sousTypeId,
     periodicite_jours: lireUnEntier(valeurs[COLONNES_MODELES.periodiciteJours]),
     periodicite_compteur: lireUnEntier(
       valeurs[COLONNES_MODELES.periodiciteCompteur],
@@ -2247,6 +2286,8 @@ export type ParcsDImport = {
   readonly clients: ParcClientsIndexe;
   readonly agences: ParcAgences;
   readonly familles: ParcFamilles;
+  /** LE SOUS-TYPE, FACULTATIF, D'UN MODÈLE (D238, ticket 9K17A). */
+  readonly sousTypes: ParcSousTypes;
   /**
    * LES SITES ET LES MODÈLES, PARENTS D'UN ÉQUIPEMENT (R6-03).
    *
@@ -2322,7 +2363,7 @@ export function gabaritsPublies(parcs: ParcsDImport): readonly ModeleDImport[] {
     MODELE_CLIENTS,
     modeleContacts(parcs.clients),
     modeleSites(parcs.clients, parcs.agences),
-    modeleModeles(parcs.familles),
+    modeleModeles(parcs.familles, parcs.sousTypes),
     modelePrestations(parcs.familles),
     MODELE_FAMILLES,
     modeleEquipements(parcs.clients, parcs.sites, parcs.modeles),
@@ -2370,6 +2411,7 @@ export const TYPES_PUBLIES: readonly string[] = gabaritsPublies({
   clients: { cles: new Set(), ambigues: new Set(), fiches: new Map() },
   agences: { parCode: new Map() },
   familles: { parCode: new Map() },
+  sousTypes: { parFamilleEtCode: new Map() },
   sites: { fiches: new Map() },
   modeles: { fiches: new Map() },
   sitesDetails: new Map(),

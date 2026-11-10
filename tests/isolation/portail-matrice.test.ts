@@ -171,6 +171,10 @@ const CLASSIFICATION_LECTURE: Record<string, ClassificationLecture> = {
   // modèle.
   modele_materiel: "client",
   famille_materiel: "client",
+  // AJOUTÉE AU TICKET 9K17A (D238, 10/11/2026) : même raisonnement — un
+  // compte portail ne voit un sous-type que si l'un de ses MODÈLES porte une
+  // machine visible dans son périmètre.
+  sous_type_materiel: "client",
 
   // INTERNE (D94, D100, D119, D229, D235) — fermée à tout compte portail,
   // quel que soit son client.
