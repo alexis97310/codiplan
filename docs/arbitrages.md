@@ -8179,3 +8179,45 @@ Portée : `app/api/terrain/[id]/suspendre/route.ts`,
 `components/terrain/consultation-hors-reseau.tsx`,
 `app/api/terrain/instantane/route.ts`,
 `lib/i18n/fr.ts` (bloc `terrain.suspendre.*`).
+
+## D237 — FERMER LA BASE AU COMPTE CLIENT : LE VERROU PORTAIL, TROIS FORMES, UN DISCRIMINANT (décision d'Alexis du 10/11/2026, ~06:45 ; 9K16-PORTAIL-SECURITE-BASE)
+
+*Deuxième moitié de « Sécurité du portail (base) », après 9K15-PORTAIL-MATRICE-LECTURE-ECRITURE. Étude du 08/11/2026 (`etude-0811/portail-securite.md`, §4 I2, I3, I4 b).*
+
+### CE QUI A ÉTÉ MESURÉ
+
+Avant cette décision, seul le CODE empêchait un compte client d'écrire ailleurs que ses demandes et ses contacts, ou de lire une table interne de forme « société ». La BASE, elle, accordait déjà `SELECT, INSERT, UPDATE, DELETE` à `codiplan_app` sur toutes les tables (`20260820130000_force_rls_role_applicatif`), et la plupart des formes « société »/« filiation »/« habilitation » ne regardaient jamais `app.client_id` à l'écriture. C'est une défense en profondeur absente, mesurée par l'étude du 08/11 (I2, I3, I4 b) et non une fuite démontrée : aucun écran du portail n'exerçait ces chemins aujourd'hui.
+
+**Deux corrections au grep de l'étude et de 9K15, mesurées en écrivant cette migration, pas supposées.** Le grep de 9K15 ne couvrait que `app/(portail)/**`, `app/api/portail/**` et `lib/portail/**` — il ratait le code PARTAGÉ avec le bureau et le terrain. Un second grep, étendu à `lib/interventions/bon.ts` et `lib/interventions/depot-rapport-terrain.ts`, a montré que `intervention_prestation`, `intervention_signature` et `intervention_piece_remplacee` SONT lues par le bon du portail (`composerBon`, appelé pour les deux rôles) : les fermer en lecture aurait cassé le bon téléchargeable du client. Et `pnpm test:isolation`, joué sur une première rédaction qui fermait aussi `site_habilitation_requise`, `suite_a_donner`, `vgp_verification` et `vgp_observation`, a fait rougir quatre scénarios DÉDIÉS, DÉJÀ COMMITÉS, qui posent un contexte portail et vérifient la lecture filtrée par périmètre de ces quatre tables (`tests/isolation/habilitations.test.ts`, `suite-a-donner.test.ts`, `vgp-verification.test.ts`). Ce n'est pas une question « pas tranchée » comme D231 le dit de `suite_a_donner` pour un ÉCRAN : la couche de données est déjà construite et éprouvée pour que le portail les lise. Les fermer aurait défait un travail déjà fait, sur la foi d'un grep applicatif qui ne regarde jamais les tests.
+
+### LA DÉCISION
+
+**Un verrou portail, trois formes, un discriminant unique : `NULLIF(current_setting('app.client_id', true), '') IS NULL`** — vrai pour tout contexte INTERNE (D10, où `app.client_id` n'est jamais posé), donc toujours satisfait hors contexte client. Chaque forme est une politique `AS RESTRICTIVE`, qui s'AJOUTE par ET à la forme déjà en place, sans la remplacer :
+
+1. **VERROU TOTAL** (I4 b + I3 combinés), `FOR ALL` — lecture ET écriture fermées pour un compte client. Sept tables, aucune n'ayant de chemin de lecture ni d'écriture mesuré depuis le portail : `technicien`, `habilitation`, `technicien_habilitation`, `temps_trajet_zone`, `vgp_campagne` (étude §4 I4 b, confirmées) ; `utilisateur_societe` (constat de 9K15, au-delà de l'étude — sa forme « appartenance » ne filtrait jamais `app.client_id`) ; `intervention_pause` (candidate de 9K15, reconfirmée — à la différence de ses quatre voisines de filiation retirées de cette liste ci-dessus, aucun scénario d'isolation ne pose de contexte portail sur elle).
+2. **VERROU D'ÉCRITURE** (I3 seul), trois politiques `FOR INSERT`/`FOR UPDATE`/`FOR DELETE` — jamais `FOR ALL`, qui fermerait aussi la lecture. Sur toute table de la première catégorie de I1 que le portail lit mais n'écrit pas : les tables du parc (`client`, `site`, `machine`, `intervention`), ses filles de filiation, `document`, `modele_materiel`/`famille_materiel`, les tables « interne » existantes, et les tables « société » que le code lit déjà (`agence`, `calendrier*`, `forfait`, `prestation`, `taux_horaire`, `technicien_calendrier`).
+3. **VERROU D'IDENTITÉ** (I2), même forme que le verrou d'écriture, sur `utilisateur_client`/`utilisateur_client_site` seules — avec une échappatoire nommée, `app_peut_administrer_identites()` (D199), pour l'administration légitime des identités.
+
+**Exceptions, sans aucun verrou : `demande`, `contact`, `compteur_numerotation`** (le portail les écrit réellement, chapitre 9 P5) **et `demande_statut_historique`** — non par symétrie avec `demande`, mais parce que le déclencheur `demande_statut_historique_tracer` (jamais `SECURITY DEFINER`, D50) y insère SOUS LE RÔLE ET LE CONTEXTE DE L'APPELANT à chaque dépôt de demande : un verrou d'écriture ici aurait rejeté l'historique du premier geste que cette décision protège. `societe` et `journal_audit` restent hors du verrou aussi : leurs formes propres (adhésion, journal) ferment déjà ce que le verrou fermerait, et y toucher risquerait l'audit lui-même, que I8 veut inconditionnel.
+
+**M3 — les segments du technicien, seulement une fois l'intervention clôturée.** La brèche `cloisonnement_filiation_lecture_portail` (9J22A) ouvrait les segments de TOUTE intervention visible au client, sans condition de statut — le code seul réservait l'affichage du bon à la clôture. `ALTER POLICY` resserre son `EXISTS` sur `"i"."cloturee_le" IS NOT NULL`.
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+Elle ne ferme pas `checklist_reponse` (D235 l'a ouverte PAR ANTICIPATION pour un écran futur, CK8) ni `suite_a_donner`, `site_habilitation_requise`, `vgp_verification`, `vgp_observation` (lues par un scénario d'isolation dédié) — ces cinq reçoivent seulement le verrou d'écriture, leur lecture reste celle que leur forme de filiation leur donnait déjà. Elle n'assouplit aucune forme existante : le verrou s'ajoute, il ne remplace rien. Elle ne touche à aucun écran.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où un écran ou une route du portail a RÉELLEMENT besoin de lire ou d'écrire une table du verrou total ou du verrou d'écriture, cette décision se rouvre : retirer la table de la liste fermée correspondante (`scripts/lib/politiques-rls.ts`), jamais assouplir la clause du verrou lui-même, qui resterait vraie pour toutes les autres.
+
+**Règles amendées :** aucune — aucune règle du chapitre 10 ne pose de forme RLS ; cette décision durcit le cloisonnement existant (I1, I2, I3, I4 b de l'étude), elle n'en écrit aucune nouvelle.
+
+Portée : `prisma/migrations/20261110120000_portail_securite_base_9k16`,
+`scripts/lib/politiques-rls.ts` (`TABLES_VERROU_PORTAIL_TOTAL`, `TABLES_SANS_VERROU_PORTAIL`, `tablesVerrouEcriturePortail`, `ecartsVerrouPortailTotal`, `ecartsVerrouEcriturePortail`, `ecartsVerrouIdentitePortail`),
+`tests/isolation/portail-matrice.test.ts`,
+`tests/isolation/politiques-rls.test.ts`,
+`tests/isolation/document.test.ts`,
+`tests/isolation/machine.test.ts`,
+`tests/isolation/9j22-portail-bon-technicien-temps.test.ts`,
+`tests/unit/db/formes-du-lot-8.test.ts`,
+`lib/db/migrations-attendues.ts`.
