@@ -204,7 +204,8 @@ test("« Ajouter une famille » puis « Modifier » cette famille depuis le vole
     .getByRole("button", { name: fr["materiel.creer_action"] })
     .click();
 
-  await expect(page).toHaveURL(/\/parametres\/materiel$/);
+  // 9K18A-MATERIEL-RETOUR-ONGLET — la ligne créée est repérée (`?ligne=`).
+  await expect(page).toHaveURL(/\/parametres\/materiel\?ligne=/);
   const table = page.locator("table").first();
   await expect(table.locator("tr", { hasText: LIBELLE_CREE })).toHaveCount(1);
 
@@ -224,7 +225,7 @@ test("« Ajouter une famille » puis « Modifier » cette famille depuis le vole
     .getByRole("button", { name: fr["materiel.enregistrer"] })
     .click();
 
-  await expect(page).toHaveURL(/\/parametres\/materiel$/);
+  await expect(page).toHaveURL(/\/parametres\/materiel\?ligne=/);
   await expect(table.locator("tr", { hasText: LIBELLE_MODIFIE })).toHaveCount(
     1,
   );
@@ -261,7 +262,7 @@ test("« Voir ses modèles » depuis une famille ouvre l'onglet Modèles filtré
   );
 });
 
-test("« Ajouter un modèle » — retrouvé après navigation (limite connue de la redirection, voir passation)", async ({
+test("« Ajouter un modèle » depuis l'onglet Modèles — revient sur Modèles, pas sur Familles (9K18A, le cas d'Alexis)", async ({
   page,
 }) => {
   await connexionAdmin(page);
@@ -282,17 +283,16 @@ test("« Ajouter un modèle » — retrouvé après navigation (limite connue de
     .getByRole("button", { name: fr["materiel.creer_action"] })
     .click();
 
-  // LA REDIRECTION DE LA ROUTE (`app/api/parametres/materiel/saisie-recue.ts`,
-  // hors territoire de ce lot) NE REPORTE PAS L'ONGLET : elle retombe sur
-  // `/parametres/materiel`, donc sur l'onglet Familles par défaut — voir la
-  // passation.
-  await expect(page).toHaveURL(/\/parametres\/materiel$/);
-
-  await page.goto(
-    `/parametres/materiel?onglet=modeles&q=${encodeURIComponent(MARQUE_CREE)}`,
-  );
+  // 9K18A-MATERIEL-RETOUR-ONGLET — le MÊME onglet (Modèles), jamais Familles
+  // (le défaut), et la ligne créée est repérée.
+  await expect(page).toHaveURL(/\/parametres\/materiel\?onglet=modeles&ligne=/);
   const table = page.locator("table").first();
-  await expect(table.locator("tr", { hasText: REFERENCE_CREE })).toHaveCount(1);
+  await expect(table.locator("tr", { hasText: REFERENCE_CREE })).toHaveCount(
+    1,
+  );
+  await expect(
+    table.locator("tr", { hasText: REFERENCE_CREE }),
+  ).toHaveClass(/ligne-reperee-active/);
 });
 
 test("un compte sans « parametrer_societe » complet ne voit aucun bouton d'écriture", async ({
