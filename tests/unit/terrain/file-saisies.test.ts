@@ -201,6 +201,77 @@ describe("ajouterSaisie — coalescence atomique (point 1)", () => {
   });
 });
 
+describe("checklist — différence cumulée, coalescence (9K21-CHECKLIST-TERRAIN-SAISIE, CK5)", () => {
+  it("une seconde réponse REMPLACE l'entrée précédente — l'appelant porte la cumulation, jamais la file", async () => {
+    await ajouterSaisie({
+      ...IDENTITE,
+      interventionId: "i1",
+      geste: { type: "checklist", difference: { p1: "conforme" } },
+    });
+    // `checklist-terrain.tsx` fusionne LUI-MÊME avant de rappeler
+    // `ajouterSaisie` — la seconde saisie porte donc déjà la DIFFÉRENCE
+    // CUMULÉE des deux points, jamais le second point seul.
+    await ajouterSaisie({
+      ...IDENTITE,
+      interventionId: "i1",
+      geste: {
+        type: "checklist",
+        difference: { p1: "conforme", p2: "non_conforme" },
+      },
+    });
+    const file = await listerFilePourIntervention("i1", IDENTITE);
+    expect(file).toHaveLength(1);
+    expect(file[0].geste).toEqual({
+      type: "checklist",
+      difference: { p1: "conforme", p2: "non_conforme" },
+    });
+  });
+
+  it("la coalescence ne touche jamais une AUTRE intervention", async () => {
+    await ajouterSaisie({
+      ...IDENTITE,
+      interventionId: "i1",
+      geste: { type: "checklist", difference: { p1: "conforme" } },
+    });
+    await ajouterSaisie({
+      ...IDENTITE,
+      interventionId: "i2",
+      geste: { type: "checklist", difference: { p9: true } },
+    });
+    expect(await compterEnAttente(IDENTITE)).toBe(2);
+  });
+});
+
+describe("gesteReconnu à la lecture — checklist (9K21-CHECKLIST-TERRAIN-SAISIE)", () => {
+  it("un `Record` traverse sans changement", async () => {
+    await ajouterSaisie({
+      ...IDENTITE,
+      interventionId: "i1",
+      geste: {
+        type: "checklist",
+        difference: { p1: "conforme", p2: 12.5, p3: true },
+      },
+    });
+    const file = await listerFilePourIntervention("i1", IDENTITE);
+    expect(file[0].geste).toEqual({
+      type: "checklist",
+      difference: { p1: "conforme", p2: 12.5, p3: true },
+    });
+    expect(file[0].motifRefus).toBeNull();
+  });
+
+  it("un `difference` qui n'est pas un objet (ex. un tableau) reste en file avec le motif NEUF", async () => {
+    await ajouterSaisie({
+      ...IDENTITE,
+      interventionId: "i1",
+      geste: { type: "checklist", difference: ["p1"] } as unknown as Geste,
+    });
+    const file = await listerFilePourIntervention("i1", IDENTITE);
+    expect(file).toHaveLength(1);
+    expect(file[0].motifRefus).toBe(CLE_MOTIF_FORMAT_INCONNU);
+  });
+});
+
 describe("retirerSaisieCoalescable — la dernière valeur gagne (point 1, C1)", () => {
   it("A en file, AB envoyé en ligne : la file est vide pour ce type", async () => {
     await ajouterSaisie({

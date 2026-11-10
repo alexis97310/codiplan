@@ -145,6 +145,61 @@ describe("corpsDe — « suspendre » (9K13-TERRAIN-ATTENTE-PIECE)", () => {
   });
 });
 
+describe("corpsDe — « checklist » (9K21-CHECKLIST-TERRAIN-SAISIE, CK5)", () => {
+  it("poste `reponses`, un tableau de `{checklist_point_id, valeur}`, MÊME FORME que la route", async () => {
+    await ajouterSaisie({
+      ...IDENTITE,
+      interventionId: "i1",
+      geste: {
+        type: "checklist",
+        difference: { p1: "non_conforme", p2: 12.5 },
+      },
+    });
+    const appels: string[] = [];
+    const corps: FormData[] = [];
+    vi.stubGlobal("fetch", async (url: string | URL, init?: RequestInit) => {
+      appels.push(String(url));
+      corps.push(init?.body as FormData);
+      return { json: async () => ({ ok: true, motif: null }) } as Response;
+    });
+    await envoyerFile(IDENTITE);
+    expect(appels).toEqual(["/api/terrain/i1/checklist"]);
+    expect(JSON.parse(corps[0].get("reponses") as string)).toEqual([
+      { checklist_point_id: "p1", valeur: "non_conforme" },
+      { checklist_point_id: "p2", valeur: 12.5 },
+    ]);
+  });
+
+  // RANG 2, COMME LES PRESTATIONS (voir `ORDRE_PIPELINE`, envoi-file.ts) —
+  // aucune des deux ne conditionne l'autre, mais toutes deux partent APRÈS
+  // le rapport et AVANT « terminer ».
+  it("part APRÈS le rapport et AVANT « terminer », quel que soit l'ordre d'insertion", async () => {
+    await ajouterSaisie({
+      ...IDENTITE,
+      interventionId: "i1",
+      geste: { type: "terminer" },
+    });
+    await ajouterSaisie({
+      ...IDENTITE,
+      interventionId: "i1",
+      geste: { type: "checklist", difference: { p1: "conforme" } },
+    });
+    await ajouterSaisie({
+      ...IDENTITE,
+      interventionId: "i1",
+      geste: { type: "rapport", commentaire: "A", suite: "" },
+    });
+    const appels: string[] = [];
+    vi.stubGlobal("fetch", fetchFactice(appels));
+    await envoyerFile(IDENTITE);
+    expect(appels).toEqual([
+      "/api/terrain/i1/rapport",
+      "/api/terrain/i1/checklist",
+      "/api/terrain/i1/terminer",
+    ]);
+  });
+});
+
 describe("envoyerFile — l'ancien format de prestations n'est jamais gelé (point 1)", () => {
   it("une entrée au format d'avant 9F4H6A est envoyée et retirée de la file, « terminer » passe ensuite", async () => {
     await ajouterSaisie({
