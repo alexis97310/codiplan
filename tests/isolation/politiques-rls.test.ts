@@ -385,16 +385,22 @@ describe("les formes de politique RLS, mesurées en base (R0-a, É9, I1)", () =>
     expect(siennes.join("\n")).toContain("`id = app.societe_id`");
   });
 
-  it("ÉPREUVE : une table métier SANS aucune politique est refusée", async () => {
+  it("ÉPREUVE : une table métier SANS aucune politique PERMISSIVE est refusée", async () => {
     // Fermé plutôt qu'ouvert — donc pas une brèche —, mais une panne : avec
-    // FORCE et sans politique, plus personne n'y lit ni n'y écrit. Elle se
-    // découvrirait en production.
+    // FORCE et sans politique PERMISSIVE, plus personne n'y lit ni n'y écrit,
+    // même si des RESTRICTIVE restent (le verrou portail, 9K16/D237,
+    // `verrou_ecriture_portail_*` — elles ne font que BORNER, jamais ouvrir).
+    // Elle se découvrirait en production.
     const observation = await sousLaFaute([
       'DROP POLICY "cloisonnement_societe" ON "calendrier"',
     ]);
 
     expect(
-      observation.politiques.filter((p) => p.table === "calendrier"),
+      observation.politiques.filter(
+        (p) =>
+          p.table === "calendrier" &&
+          p.permissive.toUpperCase() === "PERMISSIVE",
+      ),
     ).toHaveLength(0);
 
     const siennes = observation.ecarts.filter((ecart) =>

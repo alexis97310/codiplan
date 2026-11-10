@@ -37,9 +37,12 @@ import {
  * une phrase : *« aucun test n'énumère les tables lisibles par un contexte
  * client »*. Les scénarios existants (`machine.test.ts`, `client.test.ts`,
  * `portail-rattachement.test.ts`, …) éprouvent chacun UNE table, en détail.
- * Celui-ci éprouve TOUTES les tables, une fois, au niveau de la FORME — et
- * **décrit l'état d'aujourd'hui, il ne le corrige pas**. 9K16 fermera ce que
- * l'étude (§4 I2, I3, I4) désigne, et cette matrice sera son contrat d'entrée.
+ * Celui-ci éprouve TOUTES les tables, une fois, au niveau de la FORME. À sa
+ * première rédaction (9K15), il **décrivait l'état d'alors sans le
+ * corriger** — 9K16 (D237) a depuis fermé ce que l'étude (§4 I2, I3, I4b)
+ * désignait, et cette matrice tient maintenant l'état D'APRÈS : les
+ * classifications « fermee » ci-dessous sont les verrous posés par 9K16,
+ * pas une description neutre d'un état qu'on n'aurait pas encore touché.
  *
  * ## La liste des tables vient du SCHÉMA, jamais d'une énumération à la main
  *
@@ -104,11 +107,16 @@ const TOUTES_LES_TABLES = Prisma.dmmf.datamodel.models
 /**
  * LA LISTE CLOSE, UNE ENTRÉE PAR TABLE — gardée dans les deux sens ci-dessous.
  *
- * `// 9K16 : à fermer` marque les cinq tables que l'étude du 08/11 (§4 I4b)
- * désigne, CONFIRMÉES une par une : aucun chemin de `app/(portail)/**`,
- * `app/api/portail/**` ni `lib/portail/**` ne les lit (mesuré par grep le
- * 10/11/2026). Si un chemin portail venait à les lire, la marque serait
- * fausse et devrait partir : l'étude elle-même le dit.
+ * Sept tables sont classées « fermee » par le verrou portail de 9K16
+ * (D237, `scripts/lib/politiques-rls.ts::TABLES_VERROU_PORTAIL_TOTAL`) :
+ * `technicien`, `habilitation`, `technicien_habilitation`,
+ * `temps_trajet_zone`, `vgp_campagne` (étude §4 I4b, confirmées) ;
+ * `utilisateur_societe` (constat de 9K15, au-delà de l'étude) ;
+ * `intervention_pause` (candidate de 9K15, reconfirmée — aucun chemin
+ * applicatif ni aucun scénario d'isolation dédié ne la lisait, à la
+ * différence de ses voisines de filiation ci-dessus). Si un chemin portail
+ * venait à lire l'une d'elles, la classification serait fausse et devrait
+ * partir avec son verrou en base (une seule politique à retirer).
  */
 const CLASSIFICATION_LECTURE: Record<string, ClassificationLecture> = {
   // ADHÉSION (D67) — `societe` est seule de sa forme : un compte lit SA
@@ -146,10 +154,11 @@ const CLASSIFICATION_LECTURE: Record<string, ClassificationLecture> = {
   utilisateur_client_site: "client",
 
   // APPARTENANCE (D61) — ancrée sur la société SEULE, sans aucun filtre
-  // client : un compte portail lit ici tout le personnel habilité de sa
-  // société (noms, rôles). Ni l'étude ni ce ticket ne le referment ; c'est un
-  // constat, à verser au dossier de 9K16.
-  utilisateur_societe: "societe",
+  // client. 9K16 (D237) a fermé cette lecture : un verrou portail `FOR ALL`
+  // (`verrou_portail`) borne désormais la forme « appartenance » au seul
+  // contexte interne — aucun chemin du portail ne la lisait (constat de
+  // 9K15, au-delà de l'étude).
+  utilisateur_societe: "fermee",
 
   // HÉRITAGE (D93) — visible si sa cible (machine, modèle ou intervention)
   // l'est, la classe « interne » retirée pour un compte portail.
@@ -181,7 +190,12 @@ const CLASSIFICATION_LECTURE: Record<string, ClassificationLecture> = {
   intervention_machine: "client", // parent : intervention
   intervention_prestation: "client", // parent : intervention
   intervention_signature: "client", // parent : intervention
-  intervention_pause: "client", // parent : intervention
+  // `intervention_pause` reste de forme « filiation » (sa lecture n'a pas
+  // changé), mais 9K16 (D237) y pose un verrou portail `FOR ALL` : aucun
+  // chemin du portail ni aucun scénario d'isolation dédié ne la lisait —
+  // à la différence de ses quatre voisines ci-dessus et ci-dessous, qui
+  // portent chacune un scénario « compte portail » explicite.
+  intervention_pause: "fermee",
   intervention_piece_remplacee: "client", // parent : intervention
   intervention_statut_historique: "client", // parent : intervention
   demande_statut_historique: "client", // parent : demande
@@ -215,14 +229,16 @@ const CLASSIFICATION_LECTURE: Record<string, ClassificationLecture> = {
   prestation: "societe",
   taux_horaire: "societe",
   technicien_calendrier: "societe",
-  // 9K16 : à fermer — aucun chemin du portail ne lit ces cinq tables
-  // (étude §4 I4b, confirmé par grep le 10/11/2026 sur `app/(portail)/**`,
-  // `app/api/portail/**`, `lib/portail/**`).
-  technicien: "societe", // 9K16 : à fermer
-  habilitation: "societe", // 9K16 : à fermer
-  technicien_habilitation: "societe", // 9K16 : à fermer
-  temps_trajet_zone: "societe", // 9K16 : à fermer
-  vgp_campagne: "societe", // 9K16 : à fermer
+  // FERMÉES par 9K16 (D237) — aucun chemin du portail ne lisait ces cinq
+  // tables (étude §4 I4b, confirmé par grep le 10/11/2026 sur
+  // `app/(portail)/**`, `app/api/portail/**`, `lib/portail/**`) : un verrou
+  // portail `FOR ALL` (`verrou_portail`) les ferme désormais en lecture ET
+  // en écriture pour tout contexte client.
+  technicien: "fermee",
+  habilitation: "fermee",
+  technicien_habilitation: "fermee",
+  temps_trajet_zone: "fermee",
+  vgp_campagne: "fermee",
 };
 
 /** Tables sans colonne `societe_id` — on ne peut pas y mesurer un total « par société ». */
@@ -419,22 +435,34 @@ describe("MATRICE DE LECTURE — « client », preuve FORTE entre deux clients d
 
 /**
  * MATRICE D'ÉCRITURE — ce qu'un compte client peut INSÉRER, MODIFIER et
- * SUPPRIMER en base, AUJOURD'HUI (le test est vert sur `origin/main`, et
- * 9K16 corrigera ce qu'il décrit comme ouvert à tort).
+ * SUPPRIMER en base, DEPUIS 9K16 (D237).
  *
- * **Portée réduite, et dite comme telle.** Le ticket demande les trois
- * gestes sur CHAQUE table ; dresser une ligne par table supposerait, pour
- * chacune des 59, une ligne valide à insérer — un travail du même ordre que
- * 9K16 lui-même. Ce fichier mesure les tables que l'étude et le code
- * appellent par leur nom :
- *   — les trois qu'un compte portail écrit RÉELLEMENT aujourd'hui
- *     (`demande`, `contact`, `compteur_numerotation` — le dépôt d'une
- *     demande, chapitre 9 parcours P5) ;
- *   — les trois que l'étude (§4 I2, I3) désigne comme ouvertes À TORT en
- *     base, sans qu'aucun chemin de code ne les exerce
- *     (`utilisateur_client`, `utilisateur_client_site`, `intervention`) ;
- *   — un témoin FERMÉ (`document_recu`, forme « interne »), pour qu'un « vrai »
- *     référence le mot « refusé » dans ce fichier au moins une fois.
+ * **Deux mesures distinctes, comme pour la lecture ci-dessus.**
+ *
+ *   1. **STRUCTURELLE, et EXHAUSTIVE sur les 50 tables de la première
+ *      catégorie de I1** : `tests/isolation/politiques-rls.test.ts`
+ *      (« le SCHÉMA RÉEL porte la bonne forme sur chaque table de la 1ʳᵉ
+ *      catégorie ») appelle `ecartsPolitiques`, qui route CHAQUE table vers
+ *      `ecartsVerrouPortailTotal`, `ecartsVerrouEcriturePortail` ou
+ *      `ecartsVerrouIdentitePortail` (`scripts/lib/politiques-rls.ts`) selon
+ *      la liste qui la nomme, et vérifie dans `pg_policies` que la
+ *      RESTRICTIVE attendue existe, avec le bon discriminant. C'est elle qui
+ *      prouve I3 « toutes les tables » — pas une tentative d'INSERT par
+ *      table, qui supposerait pour chacune des 59 une ligne valide à
+ *      construire, un travail du même ordre que 9K16 lui-même.
+ *   2. **DYNAMIQUE, et REPRÉSENTATIVE** (ci-dessous) : la structure ne dit
+ *      pas si la clause produit RÉELLEMENT le refus attendu une fois
+ *      exécutée — seule une vraie tentative le dit. Cette matrice mesure
+ *      donc les tables que l'étude et le code appellent par leur nom :
+ *      — les trois qu'un compte portail écrit RÉELLEMENT
+ *        (`demande`, `contact`, `compteur_numerotation` — le dépôt d'une
+ *        demande, chapitre 9 parcours P5) ;
+ *      — les trois que l'étude (§4 I2, I3) désignait comme ouvertes À TORT
+ *        avant 9K16, et que le verrou portail ferme désormais
+ *        (`utilisateur_client`, `utilisateur_client_site`, `intervention`) ;
+ *      — un témoin FERMÉ depuis avant 9K16 (`document_recu`, forme
+ *        « interne »), pour qu'un « vrai » référence le mot « refusé » dans
+ *        ce fichier au moins une fois.
  *
  * **Chaque tentative est annulée** : la transaction entière lève une erreur
  * sentinelle après l'écriture (réussie ou non), et `$transaction` fait le
@@ -513,6 +541,38 @@ describe("MATRICE D'ÉCRITURE — INSERT / UPDATE / DELETE, annulés, table par 
     });
   }
 
+  /**
+   * Même identité posée qu'`avecPortailIdentifie`, mais la transaction est
+   * ANNULÉE après capture — pour une commande qui rend un COMPTE (UPDATE,
+   * DELETE), là où `tentativeAvec` ne rend qu'un refus ou `null`. Nécessaire
+   * ici : une écriture BLOQUÉE par le verrou d'identité (I2) n'affecte ZÉRO
+   * ligne SANS lever d'erreur (USING, pas WITH CHECK) — `tentativeAvec` ne
+   * distinguerait pas ce zéro d'une acceptation réelle.
+   */
+  async function toucheesAnnulees(
+    utilisateurId: string,
+    contexte: { societeId: string; clientId: string },
+    ecriture: (tx: PrismaClient) => Promise<number>,
+  ): Promise<number> {
+    class Capture extends Error {
+      constructor(public readonly n: number) {
+        super("CAPTURE_ANNULATION_9K16");
+      }
+    }
+    try {
+      await avecPortailIdentifie(utilisateurId, contexte, async (tx) => {
+        const n = await ecriture(tx);
+        throw new Capture(n);
+      });
+      throw new Error("n'a pas dû atteindre ce point");
+    } catch (erreur) {
+      if (erreur instanceof Capture) {
+        return erreur.n;
+      }
+      throw erreur;
+    }
+  }
+
   describe("« demande » — ACCEPTÉE (dépôt d'une demande, chapitre 9 P5)", () => {
     it("INSERT est accepté", async () => {
       const refus = await tentative(CONTEXTE_A1, (tx) =>
@@ -587,24 +647,32 @@ describe("MATRICE D'ÉCRITURE — INSERT / UPDATE / DELETE, annulés, table par 
     });
   });
 
-  describe("« intervention » — OUVERTE À TORT (étude §4 I3) — 9K16 : à fermer", () => {
-    it("UPDATE (sa propre intervention) est ACCEPTÉ par la base, alors qu'AUCUN chemin du portail ne l'exerce", async () => {
-      const refus = await tentative(CONTEXTE_A1, (tx) =>
-        tx.$executeRawUnsafe(
+  describe("« intervention » — FERMÉE DEPUIS 9K16 (étude §4 I3, D237)", () => {
+    it("UPDATE (sa propre intervention) affecte ZÉRO ligne — verrou écriture, et aucun chemin du portail ne l'exerçait déjà", async () => {
+      // Le verrou (`verrou_ecriture_portail_modification`) agit par `USING` :
+      // la ligne devient INVISIBLE à l'UPDATE, qui n'affecte donc aucune
+      // ligne — sans lever d'erreur, exactement comme `machine.test.ts` le
+      // mesure pour la même raison.
+      let touchees = -1;
+      await avecPortail(CONTEXTE_A1, async (tx) => {
+        touchees = await tx.$executeRawUnsafe(
           `UPDATE "intervention" SET "statut" = "statut" WHERE "id" = $1::uuid`,
           INTERVENTION_A1,
-        ),
-      );
-      expect(refus).toBeNull();
+        );
+      });
+      expect(touchees).toBe(0);
     });
   });
 
-  describe("« utilisateur_client » — OUVERTE À TORT (étude §4 I2) — 9K16 : à fermer", () => {
-    it("INSERT — un compte rattaché à A1 PEUT se rattacher LUI-MÊME à A2, le voisin — la clause ne contraint que « utilisateur_id = moi », jamais le client visé", async () => {
-      // WITH CHECK de `cloisonnement_habilitation` exige `utilisateur_id =
-      // app.utilisateur_id` : il ne dit RIEN de la colonne `client_id`
-      // insérée. Un compte du client A1 peut donc, par ce seul geste,
-      // s'ouvrir le parc d'A2 — le voisin de la MÊME société.
+  describe("« utilisateur_client » — FERMÉE DEPUIS 9K16 (étude §4 I2, D237)", () => {
+    it("INSERT — un compte rattaché à A1 ne peut plus se rattacher LUI-MÊME à A2, le voisin — le verrou d'identité refuse", async () => {
+      // AVANT 9K16 : le WITH CHECK de `cloisonnement_habilitation` exigeait
+      // `utilisateur_id = app.utilisateur_id` sans rien dire de la colonne
+      // `client_id` insérée — un compte du client A1 pouvait, par ce seul
+      // geste, s'ouvrir le parc d'A2, le voisin de la MÊME société.
+      // DEPUIS 9K16 : `verrou_identite_portail_insertion` (I2) refuse toute
+      // écriture sous un contexte client, sauf échappatoire d'administration
+      // des identités — qu'un compte portail ne détient jamais.
       const refus = await tentativeAvec(
         (travail) =>
           avecPortailIdentifie(PORTAIL_A_CLIENT, CONTEXTE_A1, travail),
@@ -617,12 +685,60 @@ describe("MATRICE D'ÉCRITURE — INSERT / UPDATE / DELETE, annulés, table par 
             SOCIETE_A,
           ),
       );
-      expect(refus).toBeNull();
+      expect(refus).toContain("verrou_identite_portail_insertion");
+    });
+
+    it("UPDATE — un compte, société active posée, ne peut plus changer le `client_id` de SON PROPRE rattachement", async () => {
+      // AVANT 9K16 : rien dans `cloisonnement_habilitation` ne contraignait
+      // la colonne `client_id` modifiée — un compte pouvait réécrire sa
+      // propre ligne pour se désigner un AUTRE client de sa société.
+      const touchees = await toucheesAnnulees(
+        PORTAIL_A_CLIENT,
+        CONTEXTE_A1,
+        (tx) =>
+          tx.$executeRawUnsafe(
+            `UPDATE "utilisateur_client" SET "client_id" = $1::uuid
+               WHERE "utilisateur_id" = $2::uuid AND "client_id" = $3::uuid`,
+            CLIENT_A2,
+            PORTAIL_A_CLIENT,
+            CLIENT_A1,
+          ),
+      );
+      expect(touchees).toBe(0);
+
+      // TÉMOIN — la ligne existe toujours, inchangée.
+      const [intacte] = await clientOwner().$queryRawUnsafe<
+        Array<{ client_id: string }>
+      >(
+        `SELECT "client_id" FROM "utilisateur_client"
+           WHERE "utilisateur_id" = $1::uuid AND "client_id" = $2::uuid`,
+        PORTAIL_A_CLIENT,
+        CLIENT_A1,
+      );
+      expect(intacte?.client_id).toBe(CLIENT_A1);
+    });
+
+    it("DELETE — un compte, société active posée, ne peut plus supprimer SON PROPRE rattachement", async () => {
+      // Non exploitable aujourd'hui (aucun écran ne l'exerce), mais c'est
+      // exactement le geste qui ferait réapparaître « tous les sites » —
+      // un périmètre qui n'existe plus n'en restreint aucun (D10).
+      const touchees = await toucheesAnnulees(
+        PORTAIL_A_CLIENT,
+        CONTEXTE_A1,
+        (tx) =>
+          tx.$executeRawUnsafe(
+            `DELETE FROM "utilisateur_client"
+               WHERE "utilisateur_id" = $1::uuid AND "client_id" = $2::uuid`,
+            PORTAIL_A_CLIENT,
+            CLIENT_A1,
+          ),
+      );
+      expect(touchees).toBe(0);
     });
   });
 
-  describe("« utilisateur_client_site » — OUVERTE À TORT (étude §4 I2) — 9K16 : à fermer", () => {
-    it("INSERT est ACCEPTÉ par la base, pour sa propre habilitation — l'identité posée (D92)", async () => {
+  describe("« utilisateur_client_site » — FERMÉE DEPUIS 9K16 (étude §4 I2, D237)", () => {
+    it("INSERT, même pour sa propre habilitation (D92), est désormais REFUSÉ par le verrou d'identité", async () => {
       const refus = await tentativeAvec(
         (travail) =>
           avecPortailIdentifie(PORTAIL_A_CLIENT, CONTEXTE_A1, travail),
@@ -638,7 +754,25 @@ describe("MATRICE D'ÉCRITURE — INSERT / UPDATE / DELETE, annulés, table par 
             SITE_A1_S2,
           ),
       );
-      expect(refus).toBeNull();
+      expect(refus).toContain("verrou_identite_portail_insertion");
+    });
+
+    it("DELETE — un compte, société active posée, ne peut plus supprimer son périmètre de sites (et « voir tous les sites »)", async () => {
+      const touchees = await toucheesAnnulees(
+        PORTAIL_A_CLIENT,
+        CONTEXTE_A1,
+        (tx) =>
+          tx.$executeRawUnsafe(
+            `DELETE FROM "utilisateur_client_site"
+               WHERE "utilisateur_client_id" = (
+                 SELECT "id" FROM "utilisateur_client"
+                  WHERE "utilisateur_id" = $1::uuid AND "client_id" = $2::uuid
+               )`,
+            PORTAIL_A_CLIENT,
+            CLIENT_A1,
+          ),
+      );
+      expect(touchees).toBe(0);
     });
   });
 
