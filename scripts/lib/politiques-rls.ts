@@ -1682,12 +1682,25 @@ export function ecartsPolitiques(
     }
 
     const siennes = politiques.filter((p) => p.table === table);
-    if (siennes.length === 0) {
+
+    // Les formes PERMISSIVES se jugent entre elles, jamais mélangées au
+    // verrou portail : sa clause ne porte ni `societe_id`, ni `app.client_id`
+    // au sens où les formes ci-dessous l'attendent, et la mélanger ferait
+    // rougir une table saine.
+    const permissives = siennes.filter(
+      (p) => p.permissive.toUpperCase() === "PERMISSIVE",
+    );
+    // Une politique RESTRICTIVE seule n'ouvre jamais rien (elle NE FAIT QUE
+    // borner) : sans permissive, la table est une panne identique à
+    // « aucune politique » — personne n'y lit ni n'y écrit, verrou portail
+    // ou pas. C'est donc l'ABSENCE de permissive qui compte ici, pas
+    // l'absence de toute politique.
+    if (permissives.length === 0) {
       ecarts.push(
         entete(table, formeAttendue(table)) +
-          "elle ne porte AUCUNE politique. Avec `FORCE ROW LEVEL SECURITY` et " +
-          "sans politique, plus personne n'y lit ni n'y écrit : c'est une " +
-          "panne, et elle se découvrira en production.",
+          "elle ne porte AUCUNE politique PERMISSIVE. Avec `FORCE ROW LEVEL " +
+          "SECURITY`, une restrictive seule ne laisse jamais rien passer : " +
+          "c'est une panne, et elle se découvrira en production.",
       );
       continue;
     }
@@ -1695,36 +1708,58 @@ export function ecartsPolitiques(
     const restrictives = siennes.filter(
       (p) => p.permissive.toUpperCase() !== "PERMISSIVE",
     );
-    for (const politique of restrictives) {
+    // Le verrou portail (9K16, D237) EST la seule famille de restrictives
+    // que ce dépôt connaisse : exemptée ici, elle est jugée par ses propres
+    // gardiens ci-dessous — jamais par celui qui bannit toute AUTRE
+    // restrictive.
+    for (const politique of restrictives.filter(
+      (p) => !NOMS_VERROU_PORTAIL.includes(p.nom),
+    )) {
       ecarts.push(
         entete(table, formeAttendue(table)) +
           `la politique « ${politique.nom} » est RESTRICTIVE. Aucune forme du ` +
-          "dépôt ne l'est : une restrictive se combine par ET et peut rendre " +
-          "muettes les permissives voisines sans qu'aucune d'elles ne change.",
+          "dépôt ne l'est, hors verrou portail : une restrictive se combine " +
+          "par ET et peut rendre muettes les permissives voisines sans " +
+          "qu'aucune d'elles ne change.",
       );
     }
 
     const forme = formeAttendue(table);
     if (forme === "journal") {
-      ecarts.push(...ecartsJournal(table, siennes));
+      ecarts.push(...ecartsJournal(table, permissives));
     } else if (forme === "habilitation") {
-      ecarts.push(...ecartsHabilitation(table, siennes));
+      ecarts.push(...ecartsHabilitation(table, permissives));
     } else if (forme === "filiation") {
-      ecarts.push(...ecartsFiliation(table, siennes));
+      ecarts.push(...ecartsFiliation(table, permissives));
     } else if (forme === "appartenance") {
-      ecarts.push(...ecartsAppartenance(table, siennes, colonne));
+      ecarts.push(...ecartsAppartenance(table, permissives, colonne));
     } else if (forme === "rattachement") {
-      ecarts.push(...ecartsRattachement(table, siennes));
+      ecarts.push(...ecartsRattachement(table, permissives));
     } else if (forme === "adhésion") {
-      ecarts.push(...ecartsAdhesion(table, siennes));
+      ecarts.push(...ecartsAdhesion(table, permissives));
     } else if (forme === "héritage") {
-      ecarts.push(...ecartsHeritage(table, siennes));
+      ecarts.push(...ecartsHeritage(table, permissives));
     } else if (forme === "ascendance") {
-      ecarts.push(...ecartsAscendance(table, siennes));
+      ecarts.push(...ecartsAscendance(table, permissives));
     } else if (forme === "interne") {
-      ecarts.push(...ecartsInterne(table, siennes));
+      ecarts.push(...ecartsInterne(table, permissives));
     } else {
-      ecarts.push(...ecartsSociete(table, forme, siennes, colonne));
+      ecarts.push(...ecartsSociete(table, forme, permissives, colonne));
+    }
+
+    // Le verrou portail lui-même (9K16, D237) : TOTAL, IDENTITÉ ou ÉCRITURE
+    // selon la liste qui nomme la table — jamais les trois, et jamais aucune
+    // sur les exceptions mesurées de `TABLES_SANS_VERROU_PORTAIL`.
+    if ((TABLES_VERROU_PORTAIL_TOTAL as readonly string[]).includes(table)) {
+      ecarts.push(...ecartsVerrouPortailTotal(table, siennes));
+    } else if (
+      (RATTACHEES_HORS_FILIATION as readonly string[]).includes(table)
+    ) {
+      ecarts.push(...ecartsVerrouIdentitePortail(table, siennes));
+    } else if (
+      !(TABLES_SANS_VERROU_PORTAIL as readonly string[]).includes(table)
+    ) {
+      ecarts.push(...ecartsVerrouEcriturePortail(table, siennes));
     }
   }
 
@@ -2844,4 +2879,286 @@ export function ecartsTablesFilles(
         );
       }),
   ];
+}
+
+/**
+ * LE VERROU PORTAIL (9K16-PORTAIL-SECURITE-BASE, D237) — une politique
+ * AS RESTRICTIVE qui BORNE toute forme déjà en place pour le seul cas où
+ * `app.client_id` est posé (un compte portail). Elle ne REMPLACE aucune
+ * forme : elle s'AJOUTE par ET, et elle est TOUJOURS satisfaite hors
+ * contexte portail (D10 — `app.client_id` n'est jamais posé pour un compte
+ * interne), si bien qu'aucun rôle interne ne perd quoi que ce soit.
+ *
+ * Trois variantes, toutes mesurées dans `pg_policies` comme le reste de ce
+ * module — jamais lues dans le texte de la migration :
+ *
+ *   — **TOTAL** (`TABLES_VERROU_PORTAIL_TOTAL`) : une seule politique
+ *     `AS RESTRICTIVE FOR ALL`, lecture ET écriture fermées. Pour les tables
+ *     qu'aucun chemin du portail ne lit ni n'écrit aujourd'hui (I4 b + I3
+ *     combinés) — `utilisateur_societe` et les dix tables de l'étude du
+ *     08/11 et de sa passation 9K15, reconfirmées une par une au 10/11/2026.
+ *   — **ÉCRITURE** : trois politiques (`FOR INSERT`, `FOR UPDATE`,
+ *     `FOR DELETE`), JAMAIS `FOR ALL` — une restrictive `ALL` fermerait
+ *     aussi la LECTURE, ce que cette variante ne veut pas. Sur toute table
+ *     de la première catégorie que le portail lit mais n'écrit pas (I3
+ *     seul).
+ *   — **IDENTITÉ** : la forme ÉCRITURE, sur `RATTACHEES_HORS_FILIATION`
+ *     seules (`utilisateur_client`, `utilisateur_client_site`), avec une
+ *     échappatoire nommée — `app_peut_administrer_identites()` — pour
+ *     l'administration légitime des identités (I2).
+ *
+ * **Les exceptions ne portent AUCUN verrou**, et chacune pour un motif
+ * mesuré, pas supposé : `demande`, `contact`, `compteur_numerotation` (le
+ * portail les écrit réellement, chapitre 9 P5) ; `demande_statut_
+ * historique` (le déclencheur `demande_statut_historique_tracer` y insère
+ * SOUS LE RÔLE ET LE CONTEXTE DE L'APPELANT à chaque dépôt de demande,
+ * `20261104100000_historique_des_etats_9j08a/migration.sql:133-151` — un
+ * verrou d'écriture ici aurait rejeté l'historique du premier geste que ce
+ * ticket protège) ; `societe` et `journal_audit` (déjà fermés par leur
+ * propre forme — adhésion, journal — un verrou de plus n'y ajouterait
+ * rien).
+ */
+export const TABLES_VERROU_PORTAIL_TOTAL = [
+  // Cinq confirmées par l'étude du 08/11/2026, §4 I4 b.
+  "technicien",
+  "habilitation",
+  "technicien_habilitation",
+  "temps_trajet_zone",
+  "vgp_campagne",
+  // Constat AU-DELÀ de l'étude (9K15, §4) : sa forme « appartenance » ne
+  // filtre jamais `app.client_id`, et aucun chemin du portail ne la lit
+  // (grep du 10/11/2026 — zéro résultat pertinent dans `lib/portail/`,
+  // `app/(portail)/`, `app/api/portail/`). Le verrou s'AJOUTE à la forme
+  // « appartenance » ; sa branche « mes habilitations »
+  // (`utilisateur_societe_mes_habilitations`) reste entière pour tout
+  // compte interne.
+  "utilisateur_societe",
+  // Candidate de la passation 9K15 (§4), reconfirmée au 10/11/2026 : zéro
+  // chemin applicatif ET zéro scénario d'isolation qui pose un contexte
+  // portail sur cette table — à la différence des quatre ci-dessous.
+  "intervention_pause",
+  // `site_habilitation_requise`, `suite_a_donner`, `vgp_verification` et
+  // `vgp_observation` étaient dans cette liste à la première rédaction ;
+  // `pnpm test:isolation` l'a démentie : chacune porte un scénario DÉDIÉ qui
+  // pose un contexte portail et VÉRIFIE sa lecture filtrée par périmètre
+  // (`tests/isolation/habilitations.test.ts`, `suite-a-donner.test.ts`,
+  // `vgp-verification.test.ts`). Ce n'est pas une lecture mesurée a
+  // posteriori, c'est une COUCHE DE DONNÉES déjà construite et commitée pour
+  // le portail — les fermer casserait une épreuve existante, pas une
+  // hypothèse. Elles restent ouvertes en lecture, et reçoivent seulement le
+  // verrou ÉCRITURE (voir `tablesVerrouEcriturePortail` ci-dessous).
+] as const;
+
+/**
+ * Les tables sans AUCUN verrou portail, et le motif de chacune — mesuré,
+ * jamais supposé. `utilisateur_client`/`utilisateur_client_site` n'entrent
+ * PAS ici : elles reçoivent le verrou IDENTITÉ, pas l'absence de verrou
+ * (voir `RATTACHEES_HORS_FILIATION`).
+ */
+export const TABLES_SANS_VERROU_PORTAIL = [
+  "societe",
+  "journal_audit",
+  "demande",
+  "contact",
+  "compteur_numerotation",
+  "demande_statut_historique",
+] as const;
+
+/**
+ * Les tables du verrou ÉCRITURE — calculée, jamais recopiée à la main
+ * (même renversement que `tablesPremiereCategorie`) : toute table de la
+ * première catégorie de I1, SAUF celles du verrou TOTAL, celles sans aucun
+ * verrou, et les deux de `RATTACHEES_HORS_FILIATION` (verrou IDENTITÉ). Une
+ * table métier créée demain reçoit donc le verrou ÉCRITURE par défaut, sans
+ * qu'aucune liste soit à compléter — et c'est délibéré : l'OUVERTURE totale
+ * est le geste qui demande un arbitrage (l'entrée dans
+ * `TABLES_SANS_VERROU_PORTAIL` ou `TABLES_VERROU_PORTAIL_TOTAL`), jamais la
+ * fermeture à l'écriture seule.
+ */
+export function tablesVerrouEcriturePortail(
+  colonnes: readonly ColonneSociete[],
+): string[] {
+  const exclues: readonly string[] = [
+    ...TABLES_VERROU_PORTAIL_TOTAL,
+    ...TABLES_SANS_VERROU_PORTAIL,
+    ...RATTACHEES_HORS_FILIATION,
+  ];
+  return tablesPremiereCategorie(colonnes)
+    .map((colonne) => colonne.table)
+    .filter((table) => !exclues.includes(table));
+}
+
+/**
+ * Le discriminant du verrou portail : « ce compte n'a pas de client posé ».
+ *
+ * PostgreSQL RÉÉCRIT l'expression en l'analysant — `'app.client_id'` devient
+ * `'app.client_id'::text`, et `''` devient `''::text` — d'où les casts
+ * optionnels : ce n'est pas l'écriture SQL d'origine qui est comparée, c'est
+ * ce que `pg_policies` en a fait (même principe que `ancre` ci-dessus pour
+ * `societe_id`).
+ */
+function clientAbsent(clause: string): boolean {
+  const motif =
+    /nullif\(current_setting\('app\.client_id'(?:::\w+)?,\s*true\),\s*''(?:::\w+)?\)\s*is\s+null\b/i;
+  return motif.test(normaliser(clause).toLowerCase());
+}
+
+/** L'échappatoire du verrou IDENTITÉ (I2). */
+function administrationIdentites(clause: string): boolean {
+  return /app_peut_administrer_identites\s*\(\s*\)/i.test(clause);
+}
+
+/** Les politiques RESTRICTIVE d'une table, pour une commande donnée. */
+function restrictivesPour(
+  politiques: readonly PolitiqueObservee[],
+  table: string,
+  commande: string,
+): PolitiqueObservee[] {
+  return politiques.filter(
+    (p) =>
+      p.table === table &&
+      p.permissive.toUpperCase() !== "PERMISSIVE" &&
+      p.commande.toUpperCase() === commande,
+  );
+}
+
+/** Les noms de politique que le verrou portail pose — exemptés du refus générique des restrictives. */
+const NOMS_VERROU_PORTAIL = [
+  "verrou_portail",
+  "verrou_ecriture_portail_insertion",
+  "verrou_ecriture_portail_modification",
+  "verrou_ecriture_portail_suppression",
+  "verrou_identite_portail_insertion",
+  "verrou_identite_portail_modification",
+  "verrou_identite_portail_suppression",
+];
+
+/** Écarts du verrou TOTAL : une seule `AS RESTRICTIVE FOR ALL`, le bon discriminant. */
+function ecartsVerrouPortailTotal(
+  table: string,
+  politiques: readonly PolitiqueObservee[],
+): string[] {
+  const siennes = restrictivesPour(politiques, table, "ALL");
+  if (siennes.length === 0) {
+    return [
+      `« ${table} » est rangée dans \`TABLES_VERROU_PORTAIL_TOTAL\` (9K16, ` +
+        "D237) et ne porte pourtant aucune politique `AS RESTRICTIVE FOR ALL` " +
+        "nommée « verrou_portail ». Sans elle, un compte portail lirait et " +
+        "écrirait cette table comme n'importe quel rôle interne.",
+    ];
+  }
+  const ecarts: string[] = [];
+  for (const politique of siennes) {
+    for (const clause of [politique.lecture, politique.ecriture]) {
+      if (clause === null) {
+        continue;
+      }
+      if (!clientAbsent(clause)) {
+        ecarts.push(
+          `« ${table} » — la politique « ${politique.nom} » ne porte pas le ` +
+            "discriminant du verrou portail (`app.client_id` absent). Elle ne " +
+            "fermerait pas un compte portail, ce qui est son seul objet.",
+        );
+      }
+    }
+  }
+  return ecarts;
+}
+
+/** Écarts du verrou ÉCRITURE : trois politiques, jamais `FOR ALL`. */
+function ecartsVerrouEcriturePortail(
+  table: string,
+  politiques: readonly PolitiqueObservee[],
+): string[] {
+  return ecartsVerrouEcritureGenerique(table, politiques, {
+    insertion: "verrou_ecriture_portail_insertion",
+    modification: "verrou_ecriture_portail_modification",
+    suppression: "verrou_ecriture_portail_suppression",
+    satisfait: clientAbsent,
+    motif: "le discriminant du verrou portail (`app.client_id` absent)",
+  });
+}
+
+/** Écarts du verrou IDENTITÉ (I2) : même forme, échappatoire en plus. */
+function ecartsVerrouIdentitePortail(
+  table: string,
+  politiques: readonly PolitiqueObservee[],
+): string[] {
+  return ecartsVerrouEcritureGenerique(table, politiques, {
+    insertion: "verrou_identite_portail_insertion",
+    modification: "verrou_identite_portail_modification",
+    suppression: "verrou_identite_portail_suppression",
+    satisfait: (clause) =>
+      clientAbsent(clause) || administrationIdentites(clause),
+    motif:
+      "le discriminant du verrou portail (`app.client_id` absent) ni son " +
+      "échappatoire (`app_peut_administrer_identites()`)",
+  });
+}
+
+function ecartsVerrouEcritureGenerique(
+  table: string,
+  politiques: readonly PolitiqueObservee[],
+  forme: {
+    insertion: string;
+    modification: string;
+    suppression: string;
+    satisfait: (clause: string) => boolean;
+    motif: string;
+  },
+): string[] {
+  const ecarts: string[] = [];
+
+  const insertion = restrictivesPour(politiques, table, "INSERT");
+  if (insertion.length === 0) {
+    ecarts.push(
+      `« ${table} » n'a aucune politique \`AS RESTRICTIVE FOR INSERT\` ` +
+        `nommée « ${forme.insertion} ». Un compte portail pourrait y insérer ` +
+        "une ligne, ce que cette table ne lui accorde pas (9K16, D237).",
+    );
+  }
+  const modification = restrictivesPour(politiques, table, "UPDATE");
+  if (modification.length === 0) {
+    ecarts.push(
+      `« ${table} » n'a aucune politique \`AS RESTRICTIVE FOR UPDATE\` ` +
+        `nommée « ${forme.modification} ». Un compte portail pourrait y ` +
+        "modifier une ligne, ce que cette table ne lui accorde pas (9K16, D237).",
+    );
+  }
+  const suppression = restrictivesPour(politiques, table, "DELETE");
+  if (suppression.length === 0) {
+    ecarts.push(
+      `« ${table} » n'a aucune politique \`AS RESTRICTIVE FOR DELETE\` ` +
+        `nommée « ${forme.suppression} ». Un compte portail pourrait y ` +
+        "supprimer une ligne, ce que cette table ne lui accorde pas (9K16, D237).",
+    );
+  }
+
+  for (const politique of [...insertion, ...modification, ...suppression]) {
+    for (const clause of [politique.lecture, politique.ecriture]) {
+      if (clause === null) {
+        continue;
+      }
+      if (!forme.satisfait(clause)) {
+        ecarts.push(
+          `« ${table} » — la politique « ${politique.nom} » ne porte pas ${forme.motif}.`,
+        );
+      }
+    }
+  }
+
+  // Une restrictive `FOR ALL` ici fermerait aussi la LECTURE, que ce verrou
+  // ne doit jamais toucher — c'est la différence avec le verrou TOTAL.
+  const all = restrictivesPour(politiques, table, "ALL");
+  for (const politique of all) {
+    if (NOMS_VERROU_PORTAIL.includes(politique.nom)) {
+      ecarts.push(
+        `« ${table} » porte une restrictive \`FOR ALL\` (« ${politique.nom} ») ` +
+          "alors qu'elle relève du verrou ÉCRITURE, qui doit laisser la " +
+          "LECTURE intacte. `FOR ALL` est réservé au verrou TOTAL.",
+      );
+    }
+  }
+
+  return ecarts;
 }

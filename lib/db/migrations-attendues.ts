@@ -154,4 +154,5 @@ export const MIGRATIONS_ATTENDUES: readonly string[] = [
   "20261107060000_portail_nom_technicien_recopie_9j22a",
   "20261109050000_identite_interne_ailleurs_9k04",
   "20261109080000_checklists_socle_9k08",
+  "20261110120000_portail_securite_base_9k16",
 ];
