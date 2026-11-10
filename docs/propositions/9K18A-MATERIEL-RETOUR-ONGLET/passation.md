@@ -117,3 +117,15 @@ construit toujours `Location` elle-même) — c'est attendu, et désormais corri
 Reprendre la liste du point 6 une route à la fois : vérifier d'abord si l'écran visé a un
 onglet ou un filtre à perdre, puis appliquer le même patron (`Suite`/`ChampsSuite`,
 adapté au nom des paramètres de l'écran).
+
+## Reprise 9K18B (11/11/2026)
+
+Ce lot avait été recalé deux fois (rouge), garde `9K18A-MATERIEL-RETOUR-ONGLET-garde` — pour
+une cause SANS RAPPORT avec son propre contenu : `tests/e2e/planning-filtres-aujourdhui.spec.ts:149`
+attendait `jour=2026-11-12` et recevait `jour=2026-11-11`, le jour du recalage étant lui-même
+férié (Armistice 1918). Voir `docs/propositions/9K18B-REPRISE-AUJOURDHUI-FERIE/passation.md`
+pour la cause et le correctif (`app/(back-office)/planning/page.tsx`, « Aujourd'hui » lisait
+l'ouverture sur des calendriers chargés sur la fenêtre AFFICHÉE au lieu d'une fenêtre dédiée).
+Les cinq commits de ce lot ont été reportés par `git cherry-pick`, sans modification, sur la
+branche `9K18B-REPRISE-AUJOURDHUI-FERIE` ; ce contenu-ci (points 1 à 7, passation ci-dessus)
+n'a pas changé.

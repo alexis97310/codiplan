@@ -138,3 +138,13 @@ démonstration ni en production.
 
 `CI=1 pnpm verify` : format, typecheck, lint, test, test:isolation, build — tous
 verts (voir la session). `verify:full` est laissé à la file de nuit.
+
+## Reprise 9K18B (11/11/2026)
+
+Ce lot avait été recalé (garde `9K19-CHECKLIST-PARAMETRAGE-garde`) pour une cause SANS RAPPORT
+avec son propre contenu : `tests/e2e/planning-filtres-aujourdhui.spec.ts:149` attendait
+`jour=2026-11-12` et recevait `jour=2026-11-11`, jour du recalage et jour férié (Armistice
+1918). Voir `docs/propositions/9K18B-REPRISE-AUJOURDHUI-FERIE/passation.md` pour la cause et le
+correctif (`app/(back-office)/planning/page.tsx`). Les quatre commits de ce lot ont été
+reportés par `git cherry-pick`, sans modification, sur la branche
+`9K18B-REPRISE-AUJOURDHUI-FERIE` ; ce contenu-ci n'a pas changé.
