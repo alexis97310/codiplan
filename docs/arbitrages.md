@@ -8261,3 +8261,29 @@ Portée : `prisma/migrations/20261110130000_sous_type_materiel_9k17a`,
 `tests/unit/db/formes-du-lot-8.test.ts`,
 `tests/unit/db/perimetre-audit.test.ts`,
 `lib/db/migrations-attendues.ts`.
+
+## D239 — À ÉGALITÉ DE NIVEAU DANS LA CASCADE DE RÉSOLUTION DU GABARIT, LE CODE DU MODÈLE DE CHECKLIST TRANCHE, PAR ORDRE ALPHABÉTIQUE (9K18-CHECKLIST-DOMAINE)
+
+*Suite directe de D238 (9K17A-MATERIEL-SOUS-TYPE), qui pose la cascade en principe — nature d'intervention, puis modèle exact, puis sous-type, puis famille, puis générique — sans dire ce qui tranche entre DEUX candidats du MÊME niveau.*
+
+### CE QUI A ÉTÉ MESURÉ
+
+Rien n'empêche, en base, deux modèles de checklist ACTIFS de la même société de viser la MÊME famille (ou le même sous-type, le même modèle exact) pour la MÊME nature d'intervention — aucune contrainte d'unicité ne le ferme, et aucune ne devrait : deux équipes peuvent vouloir deux gabarits concurrents pendant une transition, l'un désactivé ensuite. *Une lecture qui dépendrait de l'ordre rendu par la base ne serait pas une règle, ce serait un hasard répété* (§9, 01/09) — l'ordre de `SELECT ... FROM checklist_modele` sans `ORDER BY` n'est garanti par rien, et deux exécutions de la même requête peuvent rendre deux ordres différents selon le plan choisi.
+
+### LA DÉCISION
+
+**À égalité de niveau, le modèle dont le `code` est alphabétiquement PREMIER gagne.** `code` est unique par société (`@@unique([societe_id, code])`, posé par 9K08) : toujours discriminant, jamais à égalité lui-même. `resoudreGabarit` (`lib/checklists/cascade.ts`) trie les candidats éligibles par niveau puis par `code`, et ne dépend donc jamais de l'ordre dans lequel le dépôt les a lus.
+
+Choisi plutôt que « le plus récemment créé » ou « le plus récemment modifié » : les deux auraient exigé de lire une colonne de date dont la PRÉCISION (le grain de l'horloge, deux lignes créées dans le même import) n'aurait fait que déplacer le hasard d'un rang plus fin — `code` est une valeur SAISIE, stable, et déjà la clé que l'écran de paramétrage affiche en premier.
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+Elle ne dit rien d'un éventuel ordre de PRIORITÉ explicite qu'un prochain ticket voudrait saisir à la main (un champ « rang », comme `Forfait.rang`, D86) — elle ne fait que fermer un hasard là où rien n'était écrit, avec la colonne qui existe déjà.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où deux modèles actifs du même niveau et de la même nature sont une situation COURANTE plutôt qu'une transition passagère, cette décision se rouvre : un champ de priorité explicite remplacerait alors le tri par `code`, qui n'a jamais prétendu porter un sens métier.
+
+**Règles amendées :** aucune — le chapitre 10 ne nomme pas la cascade de résolution elle-même (code pur, hors chapitre 10) ; cette décision ferme un hasard d'exécution, elle n'écrit aucune règle de gestion nouvelle.
+
+Portée : `lib/checklists/cascade.ts` (`resoudreGabarit`), `tests/unit/checklists/cascade.test.ts`.

@@ -657,7 +657,11 @@ export async function enregistrerReponses(
             unite: point.unite,
             obligatoire: point.obligatoire,
             auteur_id: contexte.utilisateurId,
-            repondu_le: new Date(),
+            // `repondu_le` N'EST PAS RÉÉCRITE — aucune lecture de l'heure du
+            // système dans ce dépôt (L0-08, gardien `tests/unit/calendar/
+            // sans-date-courante-implicite.test.ts`). Une correction reste
+            // tracée : le déclencheur `journal_audit_tracer` (I8) porte déjà
+            // l'avant/après et son propre horodatage sur cet UPDATE.
             ...valeursDeLaSaisie(saisie),
           },
         });
