@@ -224,6 +224,10 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   "app/api/parametres/checklists/creer/route.ts": "parametrer_societe",
   "app/api/parametres/checklists/[id]/publier/route.ts": "parametrer_societe",
   "app/api/parametres/checklists/[id]/activite/route.ts": "parametrer_societe",
+  // 9K20-CHECKLIST-DUPLIQUER-DEPART — dupliquer un modèle, partir d'un
+  // gabarit de départ : même capacité que le reste du paramétrage.
+  "app/api/parametres/checklists/[id]/dupliquer/route.ts": "parametrer_societe",
+  "app/api/parametres/checklists/gabarit/route.ts": "parametrer_societe",
   "app/api/parametres/prestations/creer/route.ts": "parametrer_societe",
   "app/api/parametres/prestations/[id]/activite/route.ts": "parametrer_societe",
   "app/api/parametres/prestations/[id]/modifier/route.ts": "parametrer_societe",
@@ -327,6 +331,9 @@ const PORTE_COMPLETE: readonly string[] = [
   "app/api/parametres/checklists/creer/route.ts",
   "app/api/parametres/checklists/[id]/publier/route.ts",
   "app/api/parametres/checklists/[id]/activite/route.ts",
+  // 9K20-CHECKLIST-DUPLIQUER-DEPART — même doctrine : ADMS/DIR seuls.
+  "app/api/parametres/checklists/[id]/dupliquer/route.ts",
+  "app/api/parametres/checklists/gabarit/route.ts",
   "app/api/parametres/prestations/creer/route.ts",
   "app/api/parametres/prestations/[id]/activite/route.ts",
   "app/api/parametres/prestations/[id]/modifier/route.ts",
@@ -694,7 +701,9 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
     // 111 depuis 9K19-CHECKLIST-PARAMETRAGE (CK3) — les trois routes
     // neuves de `app/api/parametres/checklists/**` (créer, publier,
     // activité).
-    expect(Object.keys(ROUTE_CAPACITE).length).toBe(111);
+    // 113 depuis 9K20-CHECKLIST-DUPLIQUER-DEPART — `.../[id]/dupliquer/
+    // route.ts` et `.../gabarit/route.ts`.
+    expect(Object.keys(ROUTE_CAPACITE).length).toBe(113);
   });
 
   it("aucune exemption ne survit à son objet — adossement dans les deux sens", () => {

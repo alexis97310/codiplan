@@ -63,7 +63,9 @@ function creer(
 
 const GABARIT = GABARITS_DE_DEPART[0];
 if (GABARIT === undefined) {
-  throw new Error("Aucun gabarit de départ déclaré : l'épreuve ne peut pas tourner.");
+  throw new Error(
+    "Aucun gabarit de départ déclaré : l'épreuve ne peut pas tourner.",
+  );
 }
 
 describe("dupliquerModele", () => {

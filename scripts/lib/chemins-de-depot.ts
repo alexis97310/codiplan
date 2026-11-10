@@ -690,7 +690,7 @@ export const FONCTIONS_SANS_CHEMIN: readonly SansChemin[] = [
     module: "lib/checklists/depot.ts",
     fonction: "dernierVersionPubliee",
     motif:
-      "Cible de CK3 (paramétrage) : l'écran de CK3 lit `listerLesVersionsChecklist` (toutes les versions, pour l'aperçu ET le préremplissage) plutôt que cette fonction, qui ne rendrait que la dernière. 9K18-CHECKLIST-DOMAINE (CK2) résout et lit la dernière version publiée INLINE, dans la même transaction que la lecture ou l'écriture des réponses — jamais par cette fonction, qui réouvrirait sa propre transaction.",
+      "Cible de CK3 (paramétrage) : l'écran de CK3 lit `listerLesVersionsChecklist` (toutes les versions, pour l'aperçu ET le préremplissage) plutôt que cette fonction, qui ne rendrait que la dernière. 9K18-CHECKLIST-DOMAINE (CK2) résout et lit la dernière version publiée INLINE, dans la même transaction que la lecture ou l'écriture des réponses — jamais par cette fonction, qui réouvrirait sa propre transaction. 9K20-CHECKLIST-DUPLIQUER-DEPART lui donne un appelant RÉEL, `dupliquerModele` — MAIS dans le MÊME fichier : cette mesure ne compte qu'un appel écrit depuis un fichier EXTÉRIEUR qui importe le dépôt, et un appel interne au module n'en est pas un. L'exemption reste donc exacte, pas périmée.",
   },
   // 9K18-CHECKLIST-DOMAINE — `enregistrerReponses` a un chemin (la route
   // neuve `app/api/terrain/[id]/checklist/route.ts`), mais AUCUN écran de ce

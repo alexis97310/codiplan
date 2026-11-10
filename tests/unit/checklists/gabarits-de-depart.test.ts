@@ -33,9 +33,7 @@ describe("GABARITS_DE_DEPART", () => {
     const gabarit = GABARITS_DE_DEPART[0];
     for (const point of gabarit?.points ?? []) {
       const verdict = schemaPointChecklist.safeParse(point);
-      expect(verdict.success, JSON.stringify(verdict.error?.issues)).toBe(
-        true,
-      );
+      expect(verdict.success, JSON.stringify(verdict.error?.issues)).toBe(true);
     }
   });
 
@@ -46,9 +44,7 @@ describe("GABARITS_DE_DEPART", () => {
     );
     expect(mesures).toHaveLength(2);
     for (const point of mesures) {
-      expect(point.typeReponse === "valeur_mesuree" && point.unite).toBe(
-        "mm",
-      );
+      expect(point.typeReponse === "valeur_mesuree" && point.unite).toBe("mm");
       expect(
         point.typeReponse === "valeur_mesuree" ? point.toleranceMin : null,
       ).toBeUndefined();
