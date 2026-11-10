@@ -128,6 +128,31 @@ en mémoire (captures-avant-apres-e2e), un geste que je n'ai pas voulu
 commencer après la limite. **Reste à faire, nommément, à la session
 suivante.**
 
+### Captures 9K17
+
+Fait par 9K17-CAPTURES-9K11, APRÈS seulement (9K11 est déjà publié, l'ANCIEN
+état n'est pas régénéré) : `tests/e2e/captures-9k17-libelles-suites-
+itineraire.spec.ts`, sa propre scène jetable, sept épreuves. Fichiers dans
+`docs/propositions/9K11-LIBELLES-SUITES-ITINERAIRE/captures/` :
+`registre-{375,1280}.png` (« Ouvrir le devis » et « À planifier » sur une
+suite de chaque état), `planifier-la-reprise-{375,1280}.png` (l'écran
+`/interventions/suites-a-donner/[id]/replanifier`), `fiche-deplacer-
+generique-{375,1280}.png` (la fiche d'une intervention ordinaire, bouton
+« Déplacer » inchangé), `terrain-itineraire-375.png` (la fiche terrain,
+adresse et bouton « Itinéraire », 375 px seul — écran mobile, aucun pendant
+1280 px).
+
+**AVANT** : non régénéré, conformément à la consigne. Ce qui existe déjà et
+montre l'état précédant 9K11 :
+- `docs/propositions/9K05-SUITES-A-DONNER-DEBLOQUEES/captures/registre-apres-{375,1280}.png`
+  — le registre avec « À déplacer » (statut) et « Déplacer… » (lien
+  d'action), avant le renommage de ce ticket.
+- Aucune capture committée n'existe pour l'ancien libellé « Qualifier » du
+  bouton ni pour l'ancien titre « Déplacer… » du dialogue de reprise : le
+  dossier `9J18-SUITE-A-DONNER-ECRAN` qui a créé cet écran n'a pas de
+  `docs/propositions/` propre (vérifié : absent de l'arborescence), et ses
+  captures (`CAPTURES_9J18`) n'ont jamais été committées nulle part.
+
 ## 5. État à la fin de la session
 
 - Branche dédiée `9K11-LIBELLES-SUITES-ITINERAIRE`, partant d'`origin/main`
