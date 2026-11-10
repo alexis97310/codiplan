@@ -191,7 +191,9 @@ test("un modèle choisit le sous-type créé plus haut — relu en base sur la f
   const table = page.locator("table").first();
   const ligne = table.locator("tr", { hasText: REFERENCE_MODELE });
   await expect(ligne).toHaveCount(1);
-  await expect(ligne.getByText(LIBELLE_SOUS_TYPE_MODIFIE)).toBeVisible();
+  await expect(
+    ligne.filter({ hasText: LIBELLE_SOUS_TYPE_MODIFIE }),
+  ).toHaveCount(1);
 
   await ligne.getByRole("link", { name: fr["materiel.modifier"] }).click();
   const voletModifier = page.getByRole("dialog");
