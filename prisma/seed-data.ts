@@ -2157,6 +2157,61 @@ export const FAMILLES_MATERIEL_DEMONSTRATION: readonly FamilleMaterielSeed[] = [
   },
 ];
 
+/**
+ * SIX SOUS-TYPES DE DÉMONSTRATION (D238, ticket 9K17A-MATERIEL-SOUS-TYPE,
+ * 10/11/2026) — ceux nommés par la décision d'Alexis, sous les deux familles
+ * du semis qui en ont assez (`PONT-ELEV`, `COMPRESSEUR`). **AUCUN modèle de
+ * démonstration n'y est rattaché** : le classement des modèles réels (71
+ * ponts, 8 compresseurs chez CODIMA) est un geste manuel d'Alexis, pas une
+ * donnée que cette migration ou ce semis inventerait.
+ */
+export type SousTypeMaterielSeed = {
+  readonly rang: number;
+  readonly familleCode: string;
+  readonly code: string;
+  readonly libelle: string;
+};
+
+export const SOUS_TYPES_MATERIEL_DEMONSTRATION: readonly SousTypeMaterielSeed[] =
+  [
+    {
+      rang: 1,
+      familleCode: "PONT-ELEV",
+      code: "2COL-EM",
+      libelle: "Pont 2 colonnes électromécanique",
+    },
+    {
+      rang: 2,
+      familleCode: "PONT-ELEV",
+      code: "2COL-EH",
+      libelle: "Pont 2 colonnes électro-hydraulique",
+    },
+    {
+      rang: 3,
+      familleCode: "PONT-ELEV",
+      code: "4COL",
+      libelle: "Pont 4 colonnes",
+    },
+    {
+      rang: 4,
+      familleCode: "PONT-ELEV",
+      code: "CISEAUX",
+      libelle: "Pont ciseaux",
+    },
+    {
+      rang: 5,
+      familleCode: "COMPRESSEUR",
+      code: "PISTONS",
+      libelle: "Compresseur à pistons",
+    },
+    {
+      rang: 6,
+      familleCode: "COMPRESSEUR",
+      code: "VIS",
+      libelle: "Compresseur à vis",
+    },
+  ];
+
 export type ModeleMaterielSeed = {
   readonly rang: number;
   readonly familleCode: string;
@@ -2460,7 +2515,8 @@ export const VERIFICATIONS_VGP_DEMONSTRATION: readonly VerificationVgpSeed[] = [
  * familles, `8000` pour les modèles, `9000` pour les machines, `a000` pour les
  * vérifications, `b000` pour les rattachements machine d'une intervention,
  * `c000` pour un forfait, `d000` pour un lot d'import (SEMIS-2, 21/09/2026) —
- * suit la convention du jeu de démonstration.
+ * suit la convention du jeu de démonstration. `e000` s'y ajoute au ticket
+ * 9K17A-MATERIEL-SOUS-TYPE pour les sous-types (D238, 10/11/2026).
  */
 export function identifiantParc(
   famille:
@@ -2470,7 +2526,8 @@ export function identifiantParc(
     | "verification"
     | "intervention_machine"
     | "forfait"
-    | "import_lot",
+    | "import_lot"
+    | "sous_type",
   rangSociete: number,
   rang: number,
 ): string {
@@ -2482,6 +2539,7 @@ export function identifiantParc(
     intervention_machine: "b000",
     forfait: "c000",
     import_lot: "d000",
+    sous_type: "e000",
   } as const;
   const suffixe = String((rangSociete - 1) * 100 + rang).padStart(12, "0");
   return `0192f0a0-${segments[famille]}-7000-8000-${suffixe}`;

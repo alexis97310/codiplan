@@ -7,6 +7,7 @@ import {
   INTERVENTIONS_DEMONSTRATION,
   MACHINES_DEMONSTRATION,
   MODELES_MATERIEL_DEMONSTRATION,
+  SOUS_TYPES_MATERIEL_DEMONSTRATION,
   VERIFICATIONS_VGP_DEMONSTRATION,
   type SocieteSeed,
   anneeDeDepartFeries,
@@ -152,6 +153,8 @@ export function allersRetoursTransaction(societe: SocieteSeed): number {
     // transaction — les clés étrangères composites l'exigent, et un parc écrit
     // hors de la transaction de sa société serait refusé par la politique.
     FAMILLES_MATERIEL_DEMONSTRATION.length +
+    // Les SOUS-TYPES (D238, ticket 9K17A) — même raison, même transaction.
+    SOUS_TYPES_MATERIEL_DEMONSTRATION.length +
     MODELES_MATERIEL_DEMONSTRATION.length +
     MACHINES_DEMONSTRATION.length +
     VERIFICATIONS_VGP_DEMONSTRATION.length +

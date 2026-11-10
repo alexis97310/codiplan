@@ -30,6 +30,7 @@ import {
   LUNDI_DEMONSTRATION,
   MACHINES_DEMONSTRATION,
   MODELES_MATERIEL_DEMONSTRATION,
+  SOUS_TYPES_MATERIEL_DEMONSTRATION,
   VERIFICATIONS_VGP_DEMONSTRATION,
   identifiantParc,
   colonnesDeSuspension,
@@ -850,6 +851,41 @@ async function seed(): Promise<void> {
               assujettissement_vgp: famille.assujettissement,
               vgp_periodicite_mois: famille.vgpPeriodiciteMois,
               vgp_reference_texte: famille.vgpReferenceTexte,
+            },
+          });
+        }
+
+        // Les SOUS-TYPES (D238, ticket 9K17A-MATERIEL-SOUS-TYPE, 10/11/2026) —
+        // APRÈS les familles, AVANT les modèles : `modele_materiel.sous_type_id`
+        // les chaîne, mais AUCUN modèle de démonstration n'en désigne un (voir
+        // le commentaire de `SOUS_TYPES_MATERIEL_DEMONSTRATION`).
+        etape(
+          `${societe.code} — sous-types de matériel : ` +
+            `${SOUS_TYPES_MATERIEL_DEMONSTRATION.length}`,
+        );
+        for (const sousType of SOUS_TYPES_MATERIEL_DEMONSTRATION) {
+          const familleId = identifiantsFamilles.get(sousType.familleCode);
+          if (familleId === undefined) {
+            throw new Error(
+              `Sous-type ${sousType.code} : famille « ${sousType.familleCode} » ` +
+                "absente du jeu de démonstration. Un sous-type dépend d'une " +
+                "famille et d'une seule ; il n'y a pas de valeur par défaut.",
+            );
+          }
+          const sousTypeId = identifiantParc(
+            "sous_type",
+            rangSociete,
+            sousType.rang,
+          );
+          await tx.sousTypeMateriel.upsert({
+            where: { id: sousTypeId },
+            update: { libelle: sousType.libelle },
+            create: {
+              id: sousTypeId,
+              societe_id: id,
+              famille_id: familleId,
+              code: sousType.code,
+              libelle: sousType.libelle,
             },
           });
         }
