@@ -78,7 +78,7 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
       {
         statut: "a_ecrire",
         titre:
-          "Figer l'application technicien dès « terminée » (aujourd'hui seulement à la clôture).",
+          "Figer l'application technicien dès « terminée » (aujourd'hui seulement à la clôture) ; audit m3 : afficher l'état et l'heure de fin — à trancher avec la réouverture confirmée (D220).",
       },
       {
         statut: "a_ecrire",
@@ -103,6 +103,56 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
         statut: "a_ecrire",
         titre:
           "Équipement de prêt — prêter un appareil au client pendant une réparation et suivre le parc de remplacement (prévu en Version 2 au cahier des charges) : besoin à cadrer avec Alexis.",
+      },
+    ],
+  },
+  {
+    titre: "Application technicien — audit du 10/11/2026",
+    elements: [
+      {
+        statut: "pret",
+        titre:
+          "B1 et M1 — Fin d'intervention : l'alerte « signature non recueillie » part au responsable SAV, sinon à tout le bureau ; l'administrateur est prévenu quand il n'y a aucun responsable SAV ; le technicien voit deux messages distincts (maquette 06-terminer).",
+      },
+      {
+        statut: "pret",
+        titre:
+          "B2 et M3 — « Terminer » exige le commentaire ; la confirmation dit ce qui manque et y conduit, en plein écran, avec le temps à jour (maquette 06-terminer).",
+      },
+      {
+        statut: "decision",
+        titre:
+          "M2 — Fiche en quatre étapes (Infos, Rapport, Photos, Signature) avec une barre d'action fixe : à trancher, la règle actuelle est un seul écran (maquettes 02 à 05).",
+      },
+      {
+        statut: "a_ecrire",
+        titre:
+          "M8 — Ma journée : tri par priorité puis par date, carte « À faire maintenant » (maquette 01-journee).",
+      },
+      {
+        statut: "decision",
+        titre:
+          "M9 — « Annuler le démarrage » pendant 10 secondes : à trancher, le retour d'« en cours » vers « affectée » n'existe pas et le compteur fait foi (maquette 02-infos).",
+      },
+      {
+        statut: "a_ecrire",
+        titre:
+          "P6 — Compléter le catalogue des prestations par l'import avant la mise en service (geste d'exploitation ; maquette 03-rapport).",
+      },
+      {
+        statut: "a_ecrire",
+        titre:
+          "m8, m10b et m13 — En-tête sur une ligne ; « Se déconnecter » et « Installer l'application » dans Profil ; pastille « En ligne / Hors ligne · saisies en attente » (maquettes 01-journee et 07-profil).",
+      },
+      {
+        statut: "a_ecrire",
+        titre:
+          "m10a — Signature : zone agrandie, nom du signataire prérempli avec le contact sur place (maquette 05-signature).",
+      },
+      {
+        statut: "decision",
+        titre:
+          "m11 et m12 — Bleu pour l'état actif, rouge réservé à l'erreur ; cases de 26 px : à trancher, les couleurs et la taille du texte du terrain sont déjà décidées (maquette 03-rapport).",
       },
     ],
   },
