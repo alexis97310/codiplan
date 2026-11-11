@@ -19,6 +19,16 @@ export function ligneNonConforme(section: string, libelle: string): string {
 }
 
 /**
+ * LE NOM D'UN POINT, « <section> — <libellé> » (9K23-CHECKLIST-BLOCAGE-
+ * TERMINER, CK7) — même séparateur que `ligneNonConforme`, sans suffixe :
+ * utilisé pour NOMMER un point obligatoire sans réponse dans le refus de
+ * « Terminer » et sur le lien qui y saute.
+ */
+export function libelleDuPoint(section: string, libelle: string): string {
+  return `${section}${t("ponctuation.separateur")}${libelle}`;
+}
+
+/**
  * AJOUTE `ligne` À `suiteActuelle`, JAMAIS EN DOUBLE (point 3 du ticket) —
  * une simple présence dans le texte COURANT suffit à ne pas la répéter,
  * qu'elle y soit depuis cette session ou qu'un technicien l'y ait laissée

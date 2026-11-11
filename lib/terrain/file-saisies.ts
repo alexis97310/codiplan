@@ -158,6 +158,34 @@ export function signalerChecklistNonConforme(
 }
 
 /**
+ * UN LIEN DE REFUS « TERMINER » DEMANDE À SAUTER SUR UN POINT OBLIGATOIRE
+ * SANS RÉPONSE (9K23-CHECKLIST-BLOCAGE-TERMINER, CK7) — posé par
+ * `RapportTerrainAutomatique` (section « Terminer »), écouté par
+ * `ChecklistTerrain` : même patron que `EVENEMENT_CHECKLIST_NON_CONFORME`,
+ * deux composants FRÈRES qui ne se parlent pas directement.
+ */
+export const EVENEMENT_CHECKLIST_SAUTER_AU_POINT =
+  "codiplan:checklist-sauter-au-point";
+
+export type DetailChecklistSauterAuPoint = {
+  readonly interventionId: string;
+  readonly checklistPointId: string;
+};
+
+export function signalerChecklistSauterAuPoint(
+  detail: DetailChecklistSauterAuPoint,
+): void {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent<DetailChecklistSauterAuPoint>(
+        EVENEMENT_CHECKLIST_SAUTER_AU_POINT,
+        { detail },
+      ),
+    );
+  }
+}
+
+/**
  * L'HEURE DE L'APPAREIL, RELEVÉE AVANT UNE TENTATIVE D'ENVOI (point 2,
  * 9F4H3AC) — même fait que `nouvelleOperation`, sans fabriquer d'identifiant
  * d'opération inutile : le rapport et les prestations n'ont pas besoin d'un

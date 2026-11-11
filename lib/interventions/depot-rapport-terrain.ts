@@ -8,6 +8,8 @@ import {
 } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
+import type { PointObligatoireManquant } from "@/lib/checklists/completude";
+import { obligatoiresManquantsPourTerminer } from "@/lib/checklists/depot";
 import { estUuid } from "@/lib/identifiant";
 import { mesurer, verifierInstantAppareil } from "@/lib/interventions/compteur";
 import type { SaisieDifferee } from "@/lib/interventions/saisie-differee";
@@ -758,7 +760,12 @@ export type ResultatTerminer =
        */
       readonly rejoue?: true;
     }
-  | { readonly accepte: false; readonly cle: string };
+  | {
+      readonly accepte: false;
+      readonly cle: string;
+      /** Posé seulement sur le refus checklist — voir `Refus.pointsManquants`. */
+      readonly pointsManquants?: readonly PointObligatoireManquant[];
+    };
 
 /**
  * TERMINER — ferme le segment ouvert de l'APPELANT sur cette intervention
@@ -800,8 +807,10 @@ export async function terminerIntervention(
         select: {
           id: true,
           statut: true,
+          type: true,
           technicien_id: true,
           terminer_operation_id: true,
+          checklist_version_id: true,
         },
       });
       if (ligne === null) {
@@ -911,13 +920,24 @@ export async function terminerIntervention(
         orderBy: [{ cree_le: "desc" }, { id: "desc" }],
       });
 
+      const obligatoiresManquants = await obligatoiresManquantsPourTerminer(
+        tx,
+        interventionId,
+        ligne.type as TypeIntervention,
+        ligne.checklist_version_id,
+      );
       const verdict = peutTerminer(
         ligne.statut as StatutIntervention,
         tempsMesure,
         derniere?.issue ?? null,
+        obligatoiresManquants,
       );
       if (verdict.refuse) {
-        return { accepte: false, cle: verdict.cle };
+        return {
+          accepte: false,
+          cle: verdict.cle,
+          pointsManquants: verdict.pointsManquants,
+        };
       }
       // `derniere` n'est jamais `null` ici : `peutTerminer` aurait refusé sur
       // `issueSignature === null` sinon. Rejugé pour que TypeScript n'ait

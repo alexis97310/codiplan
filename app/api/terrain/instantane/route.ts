@@ -393,6 +393,9 @@ async function ficheEnJSON(
         statut,
         mesure.minutes,
         signature?.issue ?? null,
+        checklist?.disponible === true
+          ? checklist.completude.obligatoiresManquants
+          : [],
       ),
       verdictDemarrer: peutDemarrerLeCompteur(statut),
       motifSuspension: ligne.motif_suspension,

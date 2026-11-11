@@ -2687,6 +2687,12 @@ export const fr = {
     "Aucune signature n'a été recueillie : signez, notez l'absence ou le refus de signer avant de terminer.",
   "intervention.refus.compteur_tourne_encore":
     "Un compteur tourne encore sur cette intervention.",
+  // CK7 (9K23-CHECKLIST-BLOCAGE-TERMINER, D240) — RG-INT-02 amendée : un
+  // point obligatoire sans réponse bloque « Terminer » ; un non conforme ne
+  // bloque jamais. Le(s) point(s) manquant(s) se nomment À PART (section —
+  // libellé, lien qui saute au point), jamais dans cette phrase fixe.
+  "intervention.refus.checklist_obligatoire_manquante":
+    "Un point obligatoire de la checklist n'a pas de réponse.",
 
   // ── LA RÉALISATION — DONNÉES RÉELLES DE LA FICHE (50-INTERVENTIONS-2) ────
   "intervention.realisation.titre": "Réalisation",

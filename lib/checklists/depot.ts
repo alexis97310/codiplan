@@ -25,6 +25,7 @@ import {
 import {
   etatDeCompletude,
   type EtatCompletude,
+  type PointObligatoireManquant,
 } from "@/lib/checklists/completude";
 import {
   validerReponsePoint,
@@ -715,6 +716,68 @@ async function resoudreGabaritPourIntervention(
   return resoudreGabarit(contexte, candidats);
 }
 
+/**
+ * LES POINTS OBLIGATOIRES SANS RÉPONSE, POUR LE BLOCAGE DE « TERMINER »
+ * (9K23-CHECKLIST-BLOCAGE-TERMINER, CK7 ; décision « A » du 29/10/2026,
+ * D240 ; RG-INT-02 amendée). Même résolution que `checklistDeLIntervention`
+ * (la cascade si aucune version n'est encore figée), mais **sans jamais
+ * PINNER** : un « Terminer » refusé ne doit pas figer un gabarit que
+ * personne n'a encore répondu — seule `enregistrerReponses` pose le pin
+ * (D235).
+ *
+ * Prend `tx: Prisma.TransactionClient` DIRECTEMENT, comme
+ * `resoudreGabaritPourIntervention` ci-dessus : appelée DANS la transaction
+ * déjà cloisonnée de `terminerIntervention` (`depot-rapport-terrain.ts`),
+ * jamais par une route directement — `avecContexteRls` n'accepte qu'un
+ * `PrismaClient` de premier niveau, pas une transaction déjà ouverte.
+ */
+export async function obligatoiresManquantsPourTerminer(
+  tx: Prisma.TransactionClient,
+  interventionId: string,
+  typeIntervention: TypeInterventionSaisie,
+  checklistVersionIdDejaFige: string | null,
+): Promise<readonly PointObligatoireManquant[]> {
+  let versionId = checklistVersionIdDejaFige;
+  if (versionId === null) {
+    const resolu = await resoudreGabaritPourIntervention(
+      tx,
+      interventionId,
+      typeIntervention,
+    );
+    if (resolu === null) {
+      return [];
+    }
+    const derniere = await tx.checklistVersion.findFirst({
+      where: { checklist_modele_id: resolu.checklistModeleId },
+      orderBy: { numero: "desc" },
+      select: { id: true },
+    });
+    if (derniere === null) {
+      return [];
+    }
+    versionId = derniere.id;
+  }
+
+  const [points, reponses] = await Promise.all([
+    tx.checklistPoint.findMany({
+      where: { checklist_version_id: versionId },
+      select: { id: true, section: true, libelle: true, obligatoire: true },
+    }),
+    tx.checklistReponse.findMany({
+      where: { intervention_id: interventionId },
+      select: { checklist_point_id: true, valeur_conforme: true },
+    }),
+  ]);
+
+  return etatDeCompletude(
+    points,
+    reponses.map((reponse) => ({
+      checklistPointId: reponse.checklist_point_id,
+      nonConforme: reponse.valeur_conforme === "non_conforme",
+    })),
+  ).obligatoiresManquants;
+}
+
 export type PointDeChecklist = {
   readonly id: string;
   readonly section: string;
@@ -855,6 +918,7 @@ export async function checklistDeLIntervention(
         completude: etatDeCompletude(
           points.map((point) => ({
             id: point.id,
+            section: point.section,
             libelle: point.libelle,
             obligatoire: point.obligatoire,
           })),

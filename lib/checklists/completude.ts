@@ -1,13 +1,14 @@
 /**
  * LA COMPLÉTUDE D'UNE CHECKLIST (9K18-CHECKLIST-DOMAINE) — FONCTION PURE,
- * dont CK7 (le blocage de « Terminer » sur un point obligatoire manquant,
- * hors territoire ici) se servira. Un NON CONFORME ne bloque JAMAIS
- * « Terminer » (décision d'Alexis du 29/10/2026, réponse « A » ; D235) : ce
- * module se contente de le COMPTER, jamais de le juger.
+ * dont CK7 (9K23-CHECKLIST-BLOCAGE-TERMINER) se sert pour bloquer
+ * « Terminer » sur `obligatoiresManquants`. Un NON CONFORME ne bloque JAMAIS
+ * « Terminer » (décision d'Alexis du 29/10/2026, réponse « A » ; D235, D240) :
+ * ce module se contente de le COMPTER, jamais de le juger.
  */
 
 export type PointPourCompletude = {
   readonly id: string;
+  readonly section: string;
   readonly libelle: string;
   readonly obligatoire: boolean;
 };
@@ -24,6 +25,7 @@ export type ReponsePourCompletude = {
 
 export type PointObligatoireManquant = {
   readonly id: string;
+  readonly section: string;
   readonly libelle: string;
 };
 
@@ -46,7 +48,11 @@ export function etatDeCompletude(
 
   const obligatoiresManquants = points
     .filter((point) => point.obligatoire && !reponduParPoint.has(point.id))
-    .map((point) => ({ id: point.id, libelle: point.libelle }));
+    .map((point) => ({
+      id: point.id,
+      section: point.section,
+      libelle: point.libelle,
+    }));
 
   return {
     totalPoints: points.length,

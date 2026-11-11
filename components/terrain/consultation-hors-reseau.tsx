@@ -564,6 +564,23 @@ function Fiche({
         verdictTerminerRefuseCle={
           fiche.verdictTerminer.refuse ? fiche.verdictTerminer.cle : null
         }
+        checklistPourTerminer={
+          checklist === null
+            ? null
+            : {
+                points: checklist.points.map((point) => ({
+                  id: point.id,
+                  section: point.section,
+                  libelle: point.libelle,
+                  obligatoire: point.obligatoire,
+                })),
+                reponsesInitiales: Object.fromEntries(
+                  checklist.points
+                    .filter((point) => point.valeurInitiale !== null)
+                    .map((point) => [point.id, point.valeurInitiale]),
+                ),
+              }
+        }
         sectionPhotos={
           <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
             <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">

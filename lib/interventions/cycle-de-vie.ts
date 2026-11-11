@@ -1,3 +1,5 @@
+import type { PointObligatoireManquant } from "@/lib/checklists/completude";
+
 import type { IssueSignature, StatutIntervention } from "./saisie";
 
 /**
@@ -26,6 +28,13 @@ export type Refus = {
   readonly refuse: true;
   /** Clé de `lib/i18n/fr.ts` — jamais une phrase en dur (CLAUDE.md §5). */
   readonly cle: string;
+  /**
+   * POSÉ SEULEMENT PAR `peutTerminer` sur le refus checklist (9K23-CHECKLIST-
+   * BLOCAGE-TERMINER, CK7) — NOMME chaque point obligatoire sans réponse
+   * (section, libellé), pour que l'écran les cite et y saute, jamais
+   * seulement « un point manque ». Absent de tout autre refus de ce module.
+   */
+  readonly pointsManquants?: readonly PointObligatoireManquant[];
 };
 
 /** Une action permise. */
@@ -162,7 +171,7 @@ export function peutValiderRapport(
  * « terminée » (9DE-TP-CY1, D8 à la lettre : QT-4(a), décision d'Alexis du
  * 28/09/2026) ?
  *
- * **Trois conditions, et les trois sont des FAITS, jamais une saisie.**
+ * **Quatre conditions, et les quatre sont des FAITS, jamais une saisie.**
  *
  *   - **Le statut est `en_cours`, et rien d'autre.** Une figée (annulée,
  *     clôturée) garde ses clés habituelles ; toute autre valeur — à
@@ -173,9 +182,17 @@ export function peutValiderRapport(
  *     que `peutCloturer`, pour la même raison : *le compteur du technicien
  *     est la seule source du temps*, et terminer sans qu'aucun compteur
  *     n'ait tourné facturerait un travail que personne n'a mesuré.
- *     **Aucune checklist n'est exigée** : l'arbitrage 3.10 du 03/10/2026 dit
- *     qu'en son absence, la condition qu'elle aurait portée est réputée
- *     remplie — ce verdict ne la lit donc jamais.
+ *   - **AUCUN POINT OBLIGATOIRE DE LA CHECKLIST NE RESTE SANS RÉPONSE**
+ *     (RG-INT-02 amendée, décision « A » d'Alexis du 29/10/2026, D240 ;
+ *     9K23-CHECKLIST-BLOCAGE-TERMINER). `obligatoiresManquants` est déjà
+ *     calculé par l'appelant (`etatDeCompletude`, `lib/checklists/
+ *     completude.ts`) — **aucune checklist résolue pour cette intervention
+ *     = tableau vide = condition réputée remplie** (3.10) : ce verdict ne
+ *     résout jamais lui-même un gabarit, il ne fait que lire la liste qu'on
+ *     lui donne. **Un NON CONFORME ne bloque JAMAIS** : seule l'ABSENCE de
+ *     réponse sur un point obligatoire bloque, `etatDeCompletude` ne compte
+ *     les non-conformes que pour `nonConformes`, jamais pour
+ *     `obligatoiresManquants`.
  *   - **Une ISSUE de signature est enregistrée** — signée, ou absente/refusée
  *     AVEC un motif (la base le garantit déjà, `intervention_signature_
  *     issue_coherente`) : D-S5 exige la signature au « Terminer », sauf motif
@@ -189,6 +206,7 @@ export function peutTerminer(
   statut: StatutIntervention,
   tempsMesureMin: number | null,
   issueSignature: IssueSignature | null,
+  obligatoiresManquants: readonly PointObligatoireManquant[],
 ): Verdict {
   if (statut === "annulee") {
     return { refuse: true, cle: "intervention.refus.annulee_figee" };
@@ -201,6 +219,13 @@ export function peutTerminer(
   }
   if (tempsMesureMin === null || tempsMesureMin <= 0) {
     return { refuse: true, cle: "intervention.refus.temps_manquant" };
+  }
+  if (obligatoiresManquants.length > 0) {
+    return {
+      refuse: true,
+      cle: "intervention.refus.checklist_obligatoire_manquante",
+      pointsManquants: obligatoiresManquants,
+    };
   }
   if (issueSignature === null) {
     return { refuse: true, cle: "intervention.refus.signature_manquante" };

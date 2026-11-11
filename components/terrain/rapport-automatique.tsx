@@ -7,7 +7,15 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { CaseACocher } from "@/components/ui/case-a-cocher";
 import { enDuree } from "@/lib/calendar/duree";
-import { suiteAvecLigne } from "@/lib/checklists/suite-preremplie";
+import {
+  etatDeCompletude,
+  type PointObligatoireManquant,
+  type PointPourCompletude,
+} from "@/lib/checklists/completude";
+import {
+  libelleDuPoint,
+  suiteAvecLigne,
+} from "@/lib/checklists/suite-preremplie";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { peutTerminer } from "@/lib/interventions/cycle-de-vie";
 import type {
@@ -30,11 +38,13 @@ import {
   EVENEMENT_FILE_MODIFIEE,
   EVENEMENT_PRESTATIONS_ENVOYEES,
   type EntreeFile,
+  type GesteChecklist,
   instantAvantEnvoi,
   listerFilePourIntervention,
   marquerRefusee,
   nouvelleOperation,
   retirerSaisieCoalescable,
+  signalerChecklistSauterAuPoint,
 } from "@/lib/terrain/file-saisies";
 
 /**
@@ -278,11 +288,18 @@ const DELAI_MAXIMAL_ENVOI_MS = 15_000;
  * quatre appelants le mettent alors en file sans qu'aucun ne distingue les
  * deux cas, et sans que « Vos saisies sont gardées… » mente.
  */
+type ReponseEnvoiJson = {
+  readonly ok: boolean;
+  readonly motif: string | null;
+  /** Posé seulement par `/terminer` sur le refus checklist (CK7). */
+  readonly pointsManquants?: readonly PointObligatoireManquant[];
+};
+
 async function envoyerJson(
   url: string,
   corps: FormData,
   sansSession = false,
-): Promise<{ readonly ok: boolean; readonly motif: string | null } | null> {
+): Promise<ReponseEnvoiJson | null> {
   const limite = new AbortController();
   const minuteurAbandon = setTimeout(
     () => limite.abort(),
@@ -295,10 +312,7 @@ async function envoyerJson(
       headers: { Accept: "application/json" },
       signal: limite.signal,
     });
-    const resultat = (await reponseServeur.json()) as {
-      readonly ok: boolean;
-      readonly motif: string | null;
-    };
+    const resultat = (await reponseServeur.json()) as ReponseEnvoiJson;
     if (sansSession && !resultat.ok && resultat.motif === "auth.refus") {
       return null;
     }
@@ -585,6 +599,7 @@ export function RapportTerrainAutomatique({
   dejaSignee,
   afficherTerminer,
   verdictTerminerRefuseCle,
+  checklistPourTerminer,
   sectionPhotos,
   catalogueIndisponibleHorsReseau = false,
   sansSession = false,
@@ -636,6 +651,19 @@ export function RapportTerrainAutomatique({
    * composant connaît `enCoursLocalement`.
    */
   readonly verdictTerminerRefuseCle: string | null;
+  /**
+   * LA CHECKLIST, POUR LE VERDICT LOCAL DE « TERMINER » (9K23-CHECKLIST-
+   * BLOCAGE-TERMINER, CK7) — `null` si aucun gabarit n'est résolu pour cette
+   * intervention (3.10 : condition réputée remplie, `peutTerminer` reçoit
+   * alors un tableau vide). `points` porte `obligatoire` ; `reponsesInitiales`
+   * est la réponse déjà connue du SERVEUR (ou de la copie locale hors
+   * réseau) au moment du rendu — la file (une saisie `checklist` en attente)
+   * est relue séparément, au moment du clic, jamais ici.
+   */
+  readonly checklistPourTerminer: {
+    readonly points: readonly PointPourCompletude[];
+    readonly reponsesInitiales: Readonly<Record<string, unknown>>;
+  } | null;
   readonly sectionPhotos: ReactNode;
   /**
    * LE CATALOGUE N'A JAMAIS ÉTÉ EMPORTÉ HORS RÉSEAU (9F4H4B-OUVERTURE-A-FROID,
@@ -679,6 +707,13 @@ export function RapportTerrainAutomatique({
   const [etatSignature, setEtatSignature] = useState<Etat>("repos");
   const [enEnvoiTerminer, setEnEnvoiTerminer] = useState(false);
   const [messageTerminer, setMessageTerminer] = useState<string | null>(null);
+  // LES POINTS OBLIGATOIRES NOMMÉS DU REFUS « TERMINER » (CK7) — posés
+  // UNIQUEMENT sur le refus checklist, en ligne (réponse JSON de `/terminer`)
+  // ou hors réseau (`verdictLocal.pointsManquants`) ; vidés à chaque nouvelle
+  // tentative, avec `messageTerminer`.
+  const [pointsManquantsTerminer, setPointsManquantsTerminer] = useState<
+    readonly PointObligatoireManquant[]
+  >([]);
   // « TERMINER » MIS EN FILE HORS RÉSEAU (9F4H3-HORS-RESEAU-ENVOYER, point 1,
   // décision n° 108) — cette fiche a déjà envoyé « terminer » à la file ;
   // l'écran le dit à la place du bouton tant que « Envoyer » n'a pas réussi.
@@ -1711,6 +1746,7 @@ export function RapportTerrainAutomatique({
   async function onClickTerminer(): Promise<void> {
     setEnEnvoiTerminer(true);
     setMessageTerminer(null);
+    setPointsManquantsTerminer([]);
     // UN IDENTIFIANT DÈS LE PREMIER ESSAI (point 3, C7) — voir
     // `tenterEnvoiSignature` : le même `operation_id` voyage du premier
     // essai en ligne jusqu'à un éventuel renvoi par la file.
@@ -1773,14 +1809,35 @@ export function RapportTerrainAutomatique({
       const tempsMesureLocal = mesureCompteur.segmentOuvert
         ? Math.max(minutesConnues + mesureCompteur.minutes, 1)
         : minutesConnues + mesureCompteur.minutes;
+      // LA CHECKLIST, DEPUIS LA COPIE LOCALE ET LA FILE (CK7) — une saisie
+      // `checklist` déjà en file (reprise après coupure, ou cette même
+      // visite) PREND LE PAS, point par point, sur la réponse connue du
+      // serveur — même discipline que `ChecklistTerrain` au montage.
+      const gesteChecklistEnFile = entreesCompteur.find(
+        (e): e is EntreeFile & { readonly geste: GesteChecklist } =>
+          e.geste.type === "checklist",
+      );
+      const reponduLocalement = new Set([
+        ...Object.keys(checklistPourTerminer?.reponsesInitiales ?? {}),
+        ...Object.keys(gesteChecklistEnFile?.geste.difference ?? {}),
+      ]);
+      const obligatoiresManquantsLocal = etatDeCompletude(
+        checklistPourTerminer?.points ?? [],
+        [...reponduLocalement].map((checklistPointId) => ({
+          checklistPointId,
+          nonConforme: false,
+        })),
+      ).obligatoiresManquants;
       const verdictLocal = peutTerminer(
         statutEffectif,
         tempsMesureLocal,
         issueSignatureLocaleComplete(),
+        obligatoiresManquantsLocal,
       );
       if (verdictLocal.refuse) {
         setEnEnvoiTerminer(false);
         setMessageTerminer(texteDuMotif(verdictLocal.cle));
+        setPointsManquantsTerminer(verdictLocal.pointsManquants ?? []);
         return;
       }
       // JAMAIS « EN ATTENTE D'ENVOI » SI RAPPORT, PRESTATIONS OU SIGNATURE
@@ -1877,6 +1934,7 @@ export function RapportTerrainAutomatique({
     }
     setEnEnvoiTerminer(false);
     setMessageTerminer(texteDuMotif(resultat.motif));
+    setPointsManquantsTerminer(resultat.pointsManquants ?? []);
   }
 
   return (
@@ -2299,6 +2357,30 @@ export function RapportTerrainAutomatique({
                 >
                   {messageTerminer}
                 </p>
+              )}
+              {pointsManquantsTerminer.length === 0 ? null : (
+                // LE LIEN QUI DÉPLIE LA TUILE ET Y SAUTE (CK7) — un bouton par
+                // point nommé, jamais une navigation : `ChecklistTerrain` est
+                // un composant FRÈRE, averti par
+                // `EVENEMENT_CHECKLIST_SAUTER_AU_POINT`.
+                <ul className="flex flex-col gap-1">
+                  {pointsManquantsTerminer.map((point) => (
+                    <li key={point.id}>
+                      <button
+                        type="button"
+                        className="text-16 font-bold underline"
+                        onClick={() =>
+                          signalerChecklistSauterAuPoint({
+                            interventionId,
+                            checklistPointId: point.id,
+                          })
+                        }
+                      >
+                        {libelleDuPoint(point.section, point.libelle)}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               )}
             </>
           )}

@@ -14,8 +14,10 @@ import { ligneNonConforme } from "@/lib/checklists/suite-preremplie";
 import { t } from "@/lib/i18n/fr";
 import {
   ajouterSaisie,
+  EVENEMENT_CHECKLIST_SAUTER_AU_POINT,
   listerFilePourIntervention,
   signalerChecklistNonConforme,
+  type DetailChecklistSauterAuPoint,
   type EntreeFile,
   type GesteChecklist,
 } from "@/lib/terrain/file-saisies";
@@ -100,6 +102,7 @@ function resume(
 ): string {
   const pointsPourCompletude: PointPourCompletude[] = points.map((point) => ({
     id: point.id,
+    section: point.section,
     libelle: point.libelle,
     obligatoire: point.obligatoire,
   }));
@@ -240,7 +243,10 @@ function PointChecklistChamp({
   readonly onChange: (valeur: unknown) => void;
 }) {
   return (
-    <div className="border-app-bord flex flex-col gap-2 rounded-md border p-2">
+    <div
+      id={`checklist-point-${point.id}`}
+      className="border-app-bord flex flex-col gap-2 rounded-md border p-2"
+    >
       <div className="flex flex-wrap items-baseline gap-2">
         <span className="text-16 font-bold">{point.libelle}</span>
         {!point.obligatoire ? null : (
@@ -276,7 +282,37 @@ export function ChecklistTerrain({
     valeursInitiales(points),
   );
   const [ouvert, setOuvert] = useState(false);
+  const [pointASauter, setPointASauter] = useState<string | null>(null);
   const differenceRef = useRef<Record<string, unknown>>({});
+
+  // LE LIEN DU REFUS « TERMINER » DÉPLIE LA TUILE ET Y SAUTE (CK7) — voir
+  // `EVENEMENT_CHECKLIST_SAUTER_AU_POINT` : `RapportTerrainAutomatique`, un
+  // composant FRÈRE, ne peut pas ouvrir cet état directement.
+  useEffect(() => {
+    function ecouter(evenement: Event): void {
+      const detail = (evenement as CustomEvent<DetailChecklistSauterAuPoint>)
+        .detail;
+      if (detail.interventionId !== interventionId) {
+        return;
+      }
+      setOuvert(true);
+      setPointASauter(detail.checklistPointId);
+    }
+    window.addEventListener(EVENEMENT_CHECKLIST_SAUTER_AU_POINT, ecouter);
+    return () => {
+      window.removeEventListener(EVENEMENT_CHECKLIST_SAUTER_AU_POINT, ecouter);
+    };
+  }, [interventionId]);
+
+  useEffect(() => {
+    if (pointASauter === null || !ouvert) {
+      return;
+    }
+    document
+      .getElementById(`checklist-point-${pointASauter}`)
+      ?.scrollIntoView({ block: "center" });
+    setPointASauter(null);
+  }, [pointASauter, ouvert]);
 
   // UNE SAISIE DÉJÀ EN FILE (REPRISE HORS RÉSEAU) PREND LE PAS, POINT PAR
   // POINT — jamais l'ensemble des valeurs serveur, qui effacerait une

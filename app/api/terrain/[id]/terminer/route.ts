@@ -2,6 +2,7 @@ import { type ContexteActif } from "@/lib/auth/contexte";
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
 import { alerterResponsablesSAV } from "@/lib/avertissements/signature-terrain";
+import type { PointObligatoireManquant } from "@/lib/checklists/completude";
 import { maintenant } from "@/lib/calendar/fuseau";
 import { fuseauDuTechnicien } from "@/lib/calendar/technicien";
 import { avecContexteApplicatif } from "@/lib/db/client";
@@ -44,9 +45,14 @@ function reponse(
   id: string,
   ok: boolean,
   cle?: string,
+  pointsManquants?: readonly PointObligatoireManquant[],
 ): Response {
   if (veutJson(requete)) {
-    return Response.json({ ok, motif: cle ?? null });
+    return Response.json({
+      ok,
+      motif: cle ?? null,
+      ...(pointsManquants === undefined ? {} : { pointsManquants }),
+    });
   }
   return versLaFiche(id, cle);
 }
@@ -122,7 +128,13 @@ async function traiter(requete: Request, id: string): Promise<Response> {
       differe,
     );
     if (!resultat.accepte) {
-      return reponse(requete, id, false, resultat.cle);
+      return reponse(
+        requete,
+        id,
+        false,
+        resultat.cle,
+        resultat.pointsManquants,
+      );
     }
 
     // UN REJEU RECONNU (9F4H2, décision n° 108 d'Alexis) N'ENVOIE AUCUN

@@ -133,6 +133,15 @@ type ProprietesScene = Partial<{
   statut: "en_cours" | "a_planifier" | "cloturee" | "annulee";
   minutesConnues: number;
   segmentOuvertConnu: { readonly debut: string } | null;
+  checklistPourTerminer: {
+    readonly points: readonly {
+      readonly id: string;
+      readonly section: string;
+      readonly libelle: string;
+      readonly obligatoire: boolean;
+    }[];
+    readonly reponsesInitiales: Readonly<Record<string, unknown>>;
+  } | null;
 }>;
 
 function elementDeScene(props: ProprietesScene = {}) {
@@ -161,6 +170,7 @@ function elementDeScene(props: ProprietesScene = {}) {
       dejaSignee={props.dejaSignee ?? false}
       afficherTerminer={props.afficherTerminer ?? false}
       verdictTerminerRefuseCle={null}
+      checklistPourTerminer={props.checklistPourTerminer ?? null}
       sectionPhotos={null}
     />
   );

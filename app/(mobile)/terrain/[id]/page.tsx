@@ -322,6 +322,9 @@ export default async function PageInterventionTerrain({
     statut,
     mesure.minutes,
     signature?.issue ?? null,
+    checklist !== null && checklist.disponible
+      ? checklist.completude.obligatoiresManquants
+      : [],
   );
 
   // DÉMARRER NE PART QUE DE CE QUE D8 PERMET (QT-4, D160,
@@ -690,6 +693,23 @@ export default async function PageInterventionTerrain({
         afficherTerminer={ligne.statut === "en_cours"}
         verdictTerminerRefuseCle={
           verdictTerminer.refuse ? verdictTerminer.cle : null
+        }
+        checklistPourTerminer={
+          checklist === null || !checklist.disponible
+            ? null
+            : {
+                points: pointsChecklist.map((point) => ({
+                  id: point.id,
+                  section: point.section,
+                  libelle: point.libelle,
+                  obligatoire: point.obligatoire,
+                })),
+                reponsesInitiales: Object.fromEntries(
+                  pointsChecklist
+                    .filter((point) => point.valeurInitiale !== null)
+                    .map((point) => [point.id, point.valeurInitiale]),
+                ),
+              }
         }
         sectionPhotos={
           <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
