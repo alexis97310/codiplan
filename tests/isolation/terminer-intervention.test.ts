@@ -476,7 +476,11 @@ describe("terminerIntervention — les refus", () => {
             "intervention.refus.checklist_obligatoire_manquante",
           );
           expect(resultat.pointsManquants).toEqual([
-            { id: expect.any(String), section: "Freinage", libelle: "Plaquettes" },
+            {
+              id: expect.any(String),
+              section: "Freinage",
+              libelle: "Plaquettes",
+            },
           ]);
         }
 

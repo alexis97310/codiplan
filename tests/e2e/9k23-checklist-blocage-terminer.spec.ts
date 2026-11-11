@@ -249,9 +249,7 @@ test("375/1280 px, EN LIGNE — refus nommé, lien qui déplie et saute, puis Te
     await cliquerTerminer(page);
 
     await expect(
-      page.getByText(
-        fr["intervention.refus.checklist_obligatoire_manquante"],
-      ),
+      page.getByText(fr["intervention.refus.checklist_obligatoire_manquante"]),
     ).toBeVisible();
     const lien = page.getByRole("button", {
       name: libelleAttenduDuPoint(scene),
@@ -263,11 +261,15 @@ test("375/1280 px, EN LIGNE — refus nommé, lien qui déplie et saute, puis Te
 
     // LE LIEN DÉPLIE LA TUILE ET Y SAUTE.
     await expect(
-      page.getByRole("button", { name: fr["checklist.terrain.afficher_detail"] }),
+      page.getByRole("button", {
+        name: fr["checklist.terrain.afficher_detail"],
+      }),
     ).toBeVisible();
     await lien.click();
     await expect(
-      page.getByRole("button", { name: fr["checklist.terrain.masquer_detail"] }),
+      page.getByRole("button", {
+        name: fr["checklist.terrain.masquer_detail"],
+      }),
     ).toBeVisible();
     const boutonConforme = page.getByRole("button", {
       name: fr["checklist.terrain.option_conforme"],
@@ -280,7 +282,9 @@ test("375/1280 px, EN LIGNE — refus nommé, lien qui déplie et saute, puis Te
     // RÉPONDU — « Terminer » passe désormais.
     await boutonConforme.click();
     await cliquerTerminer(page);
-    await expect(page).toHaveURL(new RegExp(`/terrain/${scene.interventionId}$`));
+    await expect(page).toHaveURL(
+      new RegExp(`/terrain/${scene.interventionId}$`),
+    );
     await expect(
       page.getByText(fr["statut.terminee"], { exact: true }),
     ).toBeVisible();
@@ -315,9 +319,7 @@ test("375 px, MODE AVION — même refus nommé depuis la copie locale, répondu
     await cliquerTerminer(page);
 
     await expect(
-      page.getByText(
-        fr["intervention.refus.checklist_obligatoire_manquante"],
-      ),
+      page.getByText(fr["intervention.refus.checklist_obligatoire_manquante"]),
     ).toBeVisible();
     const lien = page.getByRole("button", {
       name: libelleAttenduDuPoint(scene),
