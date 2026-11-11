@@ -1180,7 +1180,11 @@ export async function enregistrerReponses(
  */
 export type RenduReponseChecklistBon =
   | { readonly nature: "conforme"; readonly valeur: ReponseConformite }
-  | { readonly nature: "mesure"; readonly valeur: number; readonly unite: string | null }
+  | {
+      readonly nature: "mesure";
+      readonly valeur: number;
+      readonly unite: string | null;
+    }
   | { readonly nature: "case" }
   | { readonly nature: "choix"; readonly valeur: string }
   | { readonly nature: "texte"; readonly valeur: string };

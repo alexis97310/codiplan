@@ -384,11 +384,7 @@ async function composerBon(
         tx,
         brute.forfait_deplacement_id,
       );
-      const checklist = await checklistDuBon(
-        tx,
-        id,
-        checklist_version_id,
-      );
+      const checklist = await checklistDuBon(tx, id, checklist_version_id);
       const montantStocke =
         brute.montant_ht === null || brute.devise_code === null
           ? null

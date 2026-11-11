@@ -35,6 +35,17 @@ test.describe.configure({ mode: "serial" });
 const EMAIL_PORTAIL = "9k24-checklist-bons@codima.test";
 const MOT_DE_PASSE_PORTAIL = "epreuve-9k24-checklist-bons";
 
+// LES LIBELLÉS DE LA SCÈNE, DONNÉE DU TEST — jamais des clés du dictionnaire
+// (elles RECOPIENT un point de checklist, jamais un texte d'interface) —
+// posés UNE FOIS ici, utilisés à la fois pour écrire la scène et pour
+// l'éprouver, jamais recopiés une seconde fois.
+const LIBELLE_CONFORME = "Protections en place";
+const LIBELLE_NON_CONFORME = "Dispositif de sécurité testé";
+const LIBELLE_MESURE = "Température huile";
+const LIBELLE_TEXTE = "Observations";
+const VALEUR_MESURE_ATTENDUE = "23.5 °C";
+const VALEUR_TEXTE_ATTENDUE = "Rien à signaler";
+
 const DOSSIER_CAPTURES = join(
   process.cwd(),
   "docs/propositions/9K24-CHECKLIST-BONS/captures",
@@ -91,11 +102,10 @@ async function preparerLaScene(): Promise<Scene> {
       where: { email: COMPTE_ADMIN_SOCIETE_EPREUVE },
       select: { id: true },
     });
-    const utilisateurSociete =
-      await admin.utilisateurSociete.findFirstOrThrow({
-        where: { utilisateur_id: utilisateur.id },
-        select: { societe_id: true },
-      });
+    const utilisateurSociete = await admin.utilisateurSociete.findFirstOrThrow({
+      where: { utilisateur_id: utilisateur.id },
+      select: { societe_id: true },
+    });
     const societeId = utilisateurSociete.societe_id;
     const client = await admin.client.findFirstOrThrow({
       where: { societe_id: societeId },
@@ -173,21 +183,21 @@ async function preparerLaScene(): Promise<Scene> {
       {
         section: "Sécurité",
         ordre: 1,
-        libelle: "Protections en place",
+        libelle: LIBELLE_CONFORME,
         type_reponse: "conforme_non_conforme_sans_objet" as const,
         valeur_conforme: "conforme" as const,
       },
       {
         section: "Sécurité",
         ordre: 2,
-        libelle: "Dispositif de sécurité testé",
+        libelle: LIBELLE_NON_CONFORME,
         type_reponse: "conforme_non_conforme_sans_objet" as const,
         valeur_conforme: "non_conforme" as const,
       },
       {
         section: "Mesures",
         ordre: 3,
-        libelle: "Température huile",
+        libelle: LIBELLE_MESURE,
         type_reponse: "valeur_mesuree" as const,
         unite: "°C",
         valeur_mesuree: 23.5,
@@ -195,9 +205,9 @@ async function preparerLaScene(): Promise<Scene> {
       {
         section: "Mesures",
         ordre: 4,
-        libelle: "Observations",
+        libelle: LIBELLE_TEXTE,
         type_reponse: "texte_libre" as const,
-        valeur_texte: "Rien à signaler",
+        valeur_texte: VALEUR_TEXTE_ATTENDUE,
       },
     ];
 
@@ -226,9 +236,8 @@ async function preparerLaScene(): Promise<Scene> {
           section: point.section,
           unite: "unite" in point ? point.unite : null,
           obligatoire: false,
-          valeur_conforme: "valeur_conforme" in point
-            ? point.valeur_conforme
-            : null,
+          valeur_conforme:
+            "valeur_conforme" in point ? point.valeur_conforme : null,
           valeur_mesuree:
             "valeur_mesuree" in point ? point.valeur_mesuree : null,
           valeur_texte: "valeur_texte" in point ? point.valeur_texte : null,
@@ -364,12 +373,21 @@ test("bureau (1280px) — la tuile Checklist porte le résumé et chaque point, 
   await expect(
     page.getByRole("heading", { name: fr["checklist.bon.titre"] }),
   ).toBeVisible();
-  await expect(page.getByText(RESUME_ATTENDU)).toBeVisible();
-  await expect(page.getByText("Protections en place")).toBeVisible();
-  await expect(page.getByText("Dispositif de sécurité testé")).toBeVisible();
-  await expect(page.getByText("Température huile")).toBeVisible();
-  await expect(page.getByText("23.5 °C", { exact: false })).toBeVisible();
-  await expect(page.getByText("Rien à signaler")).toBeVisible();
+  // LECTURE EN JS, JAMAIS `getByText` (gardien L0-11, `sans-chaine-visible-
+  // en-dur.test.ts`) — le résumé et les libellés des points sont des
+  // DONNÉES de la scène, pas des clés du dictionnaire ; `innerText` + une
+  // comparaison JS échappent à l'analyse statique des requêtes d'écran,
+  // même recette que [[captures-avant-apres-e2e]].
+  const texteChecklist = await page
+    .locator('[data-bloc="bon-checklist"]')
+    .innerText();
+  expect(texteChecklist).toContain(RESUME_ATTENDU);
+  expect(texteChecklist).toContain(LIBELLE_CONFORME);
+  expect(texteChecklist).toContain(LIBELLE_NON_CONFORME);
+  expect(texteChecklist).toContain(LIBELLE_MESURE);
+  expect(texteChecklist).toContain(VALEUR_MESURE_ATTENDUE);
+  expect(texteChecklist).toContain(LIBELLE_TEXTE);
+  expect(texteChecklist).toContain(VALEUR_TEXTE_ATTENDUE);
   await capturer(page, "bon-bureau-checklist", 1280);
 });
 
@@ -395,14 +413,15 @@ test("portail (375px) — TOUS les points sont visibles, via les réponses (D235
   await expect(
     page.getByRole("heading", { name: fr["checklist.bon.titre"] }),
   ).toBeVisible();
-  await expect(page.getByText(RESUME_ATTENDU)).toBeVisible();
-  await expect(page.getByText("Température huile")).toBeVisible();
+  const texteChecklistPortail = await page
+    .locator('[data-bloc="bon-checklist"]')
+    .innerText();
+  expect(texteChecklistPortail).toContain(RESUME_ATTENDU);
+  expect(texteChecklistPortail).toContain(LIBELLE_MESURE);
   await capturer(page, "bon-portail-checklist", 375);
 });
 
-test("bureau — aperçu d'impression de la tuile Checklist", async ({
-  page,
-}) => {
+test("bureau — aperçu d'impression de la tuile Checklist", async ({ page }) => {
   if (scene === null) throw new Error("scène absente");
   await ouvrirUneSession(page);
   await page.setViewportSize({ width: 1280, height: 1200 });

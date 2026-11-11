@@ -181,7 +181,8 @@ describe("la tuile checklist du bon — aucune version figée, aucune tuile", ()
 
 describe("la tuile checklist du bon — composition depuis les réponses RECOPIÉES", () => {
   it("résumé par nature, points groupés par section, mesure avec son unité, non conforme compté", async () => {
-    const { modeleId, versionId } = await poserModeleEtVersion("CK8-COMPOSITION");
+    const { modeleId, versionId } =
+      await poserModeleEtVersion("CK8-COMPOSITION");
     try {
       const pointConforme = await poserPoint(versionId, {
         section: "Sécurité",
@@ -265,9 +266,7 @@ describe("la tuile checklist du bon — composition depuis les réponses RECOPI�
   });
 
   it("le libellé vient de la RÉPONSE, jamais relu sur le point — même après une correction posée directement sur `checklist_point`", async () => {
-    const { modeleId, versionId } = await poserModeleEtVersion(
-      "CK8-RECOPIE",
-    );
+    const { modeleId, versionId } = await poserModeleEtVersion("CK8-RECOPIE");
     try {
       const pointId = await poserPoint(versionId, {
         section: "Section",
@@ -305,9 +304,7 @@ describe("la tuile checklist du bon — composition depuis les réponses RECOPI�
 
 describe("la tuile checklist du bon — isolation", () => {
   it("le bon du PORTAIL, pour le client DE l'intervention, rend les mêmes réponses (D235)", async () => {
-    const { modeleId, versionId } = await poserModeleEtVersion(
-      "CK8-PORTAIL",
-    );
+    const { modeleId, versionId } = await poserModeleEtVersion("CK8-PORTAIL");
     try {
       const pointId = await poserPoint(versionId, {
         section: "Section",
@@ -351,9 +348,7 @@ describe("la tuile checklist du bon — isolation", () => {
   });
 
   it("une AUTRE société ne lit aucune réponse", async () => {
-    const { modeleId, versionId } = await poserModeleEtVersion(
-      "CK8-SOCIETE",
-    );
+    const { modeleId, versionId } = await poserModeleEtVersion("CK8-SOCIETE");
     try {
       const pointId = await poserPoint(versionId, {
         section: "Section",

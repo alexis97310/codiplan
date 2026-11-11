@@ -77,10 +77,17 @@ export function TuileMateriel({
         ) : (
           bon.machinesDetaillees.map((machine, index) => (
             <Fragment key={`${machine.libelle}-${index}`}>
-              <Ligne libelle={t("intervention.machine")} valeur={machine.libelle} />
+              <Ligne
+                libelle={t("intervention.machine")}
+                valeur={machine.libelle}
+              />
               {lignesDetailMachine(machine.dates, jourReferenceGarantie).map(
                 (detail) => (
-                  <Ligne key={detail.libelle} libelle={detail.libelle} valeur={detail.valeur} />
+                  <Ligne
+                    key={detail.libelle}
+                    libelle={detail.libelle}
+                    valeur={detail.valeur}
+                  />
                 ),
               )}
             </Fragment>
@@ -103,7 +110,9 @@ export function TuileCommentaires({ bon }: { readonly bon: BonIntervention }) {
       }
     >
       <div className="flex flex-col gap-3 px-4 py-3.5">
-        <div className={bon.commentaireTechnicien === null ? "print:hidden" : ""}>
+        <div
+          className={bon.commentaireTechnicien === null ? "print:hidden" : ""}
+        >
           <h3 className="text-app-encre-faible text-[12px] font-bold">
             {t("intervention.bon.commentaire_titre")}
           </h3>
@@ -165,7 +174,9 @@ export function TuilePrestations({ bon }: { readonly bon: BonIntervention }) {
     <Carte
       key="prestations"
       titre={t("intervention.bon.prestations_titre")}
-      className={bon.prestationsRealisees.length === 0 ? "print:hidden" : undefined}
+      className={
+        bon.prestationsRealisees.length === 0 ? "print:hidden" : undefined
+      }
     >
       <div className="px-4 py-3.5">
         {bon.prestationsRealisees.length === 0 ? (
@@ -213,7 +224,10 @@ export function TuileConditionsFacturation({
     return null;
   }
   return (
-    <Carte key="conditions-facturation" titre={t("tarification.conditions.titre")}>
+    <Carte
+      key="conditions-facturation"
+      titre={t("tarification.conditions.titre")}
+    >
       <div className="flex flex-col gap-1.5 px-4 py-3.5 text-[13px] font-bold">
         {bon.conditionsFacturation.map((ligne) => (
           <p key={ligne}>{ligne}</p>
@@ -254,7 +268,9 @@ function libelleRenduChecklist(rendu: RenduReponseChecklistBon): string {
           ? t("checklist.terrain.non_conforme")
           : t("checklist.terrain.option_sans_objet");
     case "mesure":
-      return rendu.unite === null ? String(rendu.valeur) : `${rendu.valeur} ${rendu.unite}`;
+      return rendu.unite === null
+        ? String(rendu.valeur)
+        : `${rendu.valeur} ${rendu.unite}`;
     case "case":
       return t("checklist.parametrage.type_reponse.case_faite");
     case "choix":
@@ -278,13 +294,22 @@ export function TuileChecklist({ bon }: { readonly bon: BonIntervention }) {
   }
   const { checklist } = bon;
   return (
-    <Carte key="checklist" bloc="bon-checklist" titre={t("checklist.bon.titre")}>
+    <Carte
+      key="checklist"
+      bloc="bon-checklist"
+      titre={t("checklist.bon.titre")}
+    >
       <div className="flex flex-col gap-3 px-4 py-3.5">
         {checklist.resume === null ? null : (
-          <p className="text-13 font-bold">{resumeChecklistBon(checklist.resume)}</p>
+          <p className="text-13 font-bold">
+            {resumeChecklistBon(checklist.resume)}
+          </p>
         )}
         {checklist.sections.map((section) => (
-          <div key={section.section} className="checklist-section flex flex-col gap-1.5">
+          <div
+            key={section.section}
+            className="checklist-section flex flex-col gap-1.5"
+          >
             <h3 className="text-app-encre-faible text-[12px] font-bold">
               {section.section}
             </h3>
