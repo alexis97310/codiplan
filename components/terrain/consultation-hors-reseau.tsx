@@ -10,6 +10,10 @@ import type {
   LigneJSON,
 } from "@/app/api/terrain/instantane/route";
 import { PhotosTerrain } from "@/components/interventions/photos-terrain";
+import {
+  ChecklistTerrain,
+  type PointChecklistEcran,
+} from "@/components/terrain/checklist-terrain";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import {
@@ -20,6 +24,8 @@ import {
 import { lireCopie } from "@/lib/terrain/copie-locale";
 import {
   catalogueDeLaCopie,
+  checklistDeLaFiche,
+  checklistModelesDeLaCopie,
   copieUtilisable,
   photosDeLaFiche,
   prestationsRealiseesDeLaFiche,
@@ -105,6 +111,7 @@ export function ConsultationHorsReseau() {
           fiche={copie.fiches[id] ?? null}
           utilisateurId={copie.utilisateurId}
           societeId={copie.societeId}
+          checklistModeles={checklistModelesDeLaCopie(copie)}
           {...catalogueDeLaCopie(copie)}
         />
       )}
@@ -329,17 +336,45 @@ function lieuDit(libelle: string): string {
  * rattrapé de toute façon par le serveur au moment de l'envoi réel. Voir la
  * passation pour le détail.
  */
+/** Les points du modèle résolu, avec la réponse déjà connue du serveur —
+ * même forme que `pointsChecklist` dans `app/(mobile)/terrain/[id]/
+ * page.tsx`, jamais une seconde composition du même fait (§9, 01/09). */
+function pointsChecklistDeLaFiche(
+  checklist: FicheJSON["checklist"],
+  checklistModeles: InstantaneJSON["checklistModeles"],
+): {
+  readonly libelle: string;
+  readonly points: readonly PointChecklistEcran[];
+} | null {
+  if (!checklist.disponible) {
+    return null;
+  }
+  const modele = checklistModeles[checklist.checklistVersionId];
+  if (modele === undefined) {
+    return null;
+  }
+  return {
+    libelle: modele.libelle,
+    points: modele.points.map((point) => ({
+      ...point,
+      valeurInitiale: checklist.reponses[point.id] ?? null,
+    })),
+  };
+}
+
 function Fiche({
   fiche,
   utilisateurId,
   societeId,
   catalogue,
+  checklistModeles,
   indisponible: catalogueIndisponible,
 }: {
   readonly fiche: FicheJSON | null;
   readonly utilisateurId: string;
   readonly societeId: string;
   readonly catalogue: InstantaneJSON["catalogue"];
+  readonly checklistModeles: InstantaneJSON["checklistModeles"];
   /** Le catalogue n'a pas pu être lu sur CETTE copie — voir
    * `lib/terrain/copie-validee.ts`. */
   readonly indisponible: boolean;
@@ -355,6 +390,10 @@ function Fiche({
     );
   }
   const nombrePhotos = photosDeLaFiche(fiche).length;
+  const checklist = pointsChecklistDeLaFiche(
+    checklistDeLaFiche(fiche),
+    checklistModeles,
+  );
   // UNE COPIE ÉCRITE AVANT 9F4H6 NE PORTE NI L'UN NI L'AUTRE
   // (9F4H6A-COQUILLE-ANCIENNE-COPIE, point 1) — les deux absences se
   // traitent comme UNE SEULE, par le même message existant : voir l'en-tête
@@ -474,6 +513,21 @@ function Fiche({
           </h2>
           <p className="text-16 font-bold">{fiche.panne}</p>
         </section>
+      )}
+
+      {/* LA CHECKLIST (9K22-CHECKLIST-HORS-RESEAU, CK6) — LA MÊME TUILE que
+          `/terrain/[id]` (`ChecklistTerrain`, réutilisée, jamais recopiée) :
+          elle n'appelle jamais `fetch` elle-même (voir son en-tête), chaque
+          réponse rejoint la file hors réseau de cet appareil comme toute
+          autre saisie, qu'il y ait ou non une session. */}
+      {checklist === null ? null : (
+        <ChecklistTerrain
+          interventionId={fiche.id}
+          utilisateurId={utilisateurId}
+          societeId={societeId}
+          checklistModeleLibelle={checklist.libelle}
+          points={checklist.points}
+        />
       )}
 
       <RapportTerrainAutomatique

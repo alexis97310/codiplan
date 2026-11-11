@@ -35,10 +35,8 @@ import { Priorite } from "@/components/ui/priorite";
 import { type ContexteActif } from "@/lib/auth/contexte";
 import { obtenirSession } from "@/lib/auth/session";
 import { enDuree } from "@/lib/calendar/duree";
-import {
-  checklistDeLIntervention,
-  type ReponseDeChecklist,
-} from "@/lib/checklists/depot";
+import { checklistDeLIntervention } from "@/lib/checklists/depot";
+import { valeurChecklistAffichee } from "@/lib/checklists/presentation";
 import { photosDeLIntervention } from "@/lib/documents/depot";
 import { estUuid } from "@/lib/identifiant";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
@@ -731,38 +729,6 @@ export default async function PageInterventionTerrain({
       />
     </main>
   );
-}
-
-/**
- * LA RÉPONSE CONNUE DU SERVEUR, RAMENÉE À LA SEULE VALEUR UTILE À SON TYPE
- * (9K21-CHECKLIST-TERRAIN-SAISIE, CK5) — `ReponseDeChecklist` porte les cinq
- * colonnes à la fois (une seule non nulle, I1 §3) ; l'écran n'a besoin que
- * de celle que `typeReponse` désigne. `null` si aucune réponse n'existe
- * encore pour ce point.
- */
-function valeurChecklistAffichee(
-  typeReponse: string,
-  reponse: ReponseDeChecklist | undefined,
-): string | number | boolean | null {
-  if (reponse === undefined) {
-    return null;
-  }
-  switch (typeReponse) {
-    case "conforme_non_conforme_sans_objet":
-      return reponse.valeurConforme;
-    case "valeur_mesuree":
-      return reponse.valeurMesuree === null
-        ? null
-        : Number(reponse.valeurMesuree);
-    case "case_faite":
-      return reponse.valeurFait ?? null;
-    case "choix_dans_une_liste":
-      return reponse.valeurChoix;
-    case "texte_libre":
-      return reponse.valeurTexte;
-    default:
-      return null;
-  }
 }
 
 /** Le libellé du type, ou son code si le dictionnaire l'ignore. */

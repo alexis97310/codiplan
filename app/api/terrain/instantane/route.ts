@@ -9,6 +9,8 @@ import {
   maintenant,
 } from "@/lib/calendar/fuseau";
 import { fuseauDuTechnicien } from "@/lib/calendar/technicien";
+import { checklistDeLIntervention } from "@/lib/checklists/depot";
+import { valeurChecklistAffichee } from "@/lib/checklists/presentation";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import {
   peutDemarrerLeCompteur,
@@ -83,6 +85,37 @@ export type LigneJSON = {
   readonly machinesLibelles: readonly string[];
 };
 
+/**
+ * UN POINT DE CHECKLIST, APLATI POUR LA COPIE (9K22-CHECKLIST-HORS-RESEAU,
+ * CK6) — mêmes champs que `pointsChecklist` dans `app/(mobile)/terrain/[id]/
+ * page.tsx`, pour que la coquille hors réseau compose la MÊME forme de
+ * `PointChecklistEcran` que la fiche en ligne (`components/terrain/
+ * checklist-terrain.tsx`), jamais une seconde forme.
+ */
+export type PointChecklistJSON = {
+  readonly id: string;
+  readonly section: string;
+  readonly libelle: string;
+  readonly consigne: string | null;
+  readonly obligatoire: boolean;
+  readonly typeReponse: string;
+  readonly unite: string | null;
+  readonly choix: readonly string[];
+};
+
+/**
+ * LE GABARIT RÉSOLU D'UNE VERSION, UNE SEULE FOIS (9K22-CHECKLIST-HORS-
+ * RESEAU, CK6) — porté au niveau de l'INSTANTANÉ (`InstantaneJSON.
+ * checklistModeles`, clé `checklistVersionId`), jamais répété par fiche :
+ * plusieurs interventions de la journée peuvent résoudre la MÊME version
+ * (un modèle générique, ou plusieurs interventions sur la même machine),
+ * même discipline que `catalogue` ci-dessous pour les prestations.
+ */
+export type ChecklistModeleJSON = {
+  readonly libelle: string;
+  readonly points: readonly PointChecklistJSON[];
+};
+
 export type FicheJSON = {
   readonly id: string;
   readonly statut: string;
@@ -127,6 +160,22 @@ export type FicheJSON = {
   readonly motifSuspension: string | null;
   readonly pieceAttendueRef: string | null;
   readonly dateDispoPrevue: string | null;
+  /**
+   * LA CHECKLIST RÉSOLUE (9K22-CHECKLIST-HORS-RESEAU, CK6) — `disponible:
+   * false` si aucun gabarit ne s'applique, EXACTEMENT comme `checklist.
+   * disponible` dans `lib/checklists/depot.ts` (jamais recomposé par un
+   * second critère). Les POINTS voyagent au niveau de l'instantané
+   * (`InstantaneJSON.checklistModeles`, clé `checklistVersionId`) ; cette
+   * fiche ne porte que les RÉPONSES déjà connues du serveur, par point
+   * répondu seulement (absent = pas encore répondu, jamais `null` en valeur).
+   */
+  readonly checklist:
+    | {
+        readonly disponible: true;
+        readonly checklistVersionId: string;
+        readonly reponses: Readonly<Record<string, string | number | boolean>>;
+      }
+    | { readonly disponible: false };
 };
 
 /**
@@ -164,6 +213,10 @@ export type InstantaneJSON = {
    * — une seule fois, jamais répété par fiche : les fiches d'une même
    * société partagent le même catalogue. */
   readonly catalogue: readonly PrestationCatalogueTerrain[];
+  /** LES GABARITS DE CHECKLIST RÉSOLUS, PAR VERSION (9K22-CHECKLIST-HORS-
+   * RESEAU, CK6) — voir `ChecklistModeleJSON` : une version partagée par
+   * plusieurs fiches de la journée n'y figure qu'une fois. */
+  readonly checklistModeles: Readonly<Record<string, ChecklistModeleJSON>>;
 };
 
 async function contexteDuTerrain(): Promise<ContexteActif | null> {
@@ -205,10 +258,19 @@ function ligneEnJSON(
   };
 }
 
+/** Le gabarit résolu d'UNE fiche, prêt à rejoindre `checklistModeles` — `null` si aucun n'est résolu. */
+type ChecklistModeleDeLaFiche = {
+  readonly versionId: string;
+  readonly modele: ChecklistModeleJSON;
+};
+
 async function ficheEnJSON(
   contexte: ContexteActif,
   id: string,
-): Promise<FicheJSON | null> {
+): Promise<{
+  readonly fiche: FicheJSON;
+  readonly checklistModele: ChecklistModeleDeLaFiche | null;
+} | null> {
   const fiche = await lireFicheIntervention(contexte, id);
   if (fiche === null) {
     return null;
@@ -222,6 +284,7 @@ async function ficheEnJSON(
     signature,
     machinesLibelles,
     pieces,
+    checklist,
   ] = await Promise.all([
     mesureDeLIntervention(contexte, id),
     lireRapportTexte(contexte, id),
@@ -233,58 +296,111 @@ async function ficheEnJSON(
       ligne.machines.map((m) => m.machine_id),
     ),
     piecesRemplacees(contexte, id),
+    // LA CHECKLIST RÉSOLUE (9K22-CHECKLIST-HORS-RESEAU, CK6) — `disponible:
+    // false` si aucun gabarit ne s'applique, rien pour cette intervention.
+    checklistDeLIntervention(contexte, id),
   ]);
   const statut = ligne.statut;
-  return {
-    id: ligne.id,
-    statut,
-    type: ligne.type,
-    priorite: ligne.priorite,
-    client: fiche.client,
-    lieu: fiche.lieu,
-    creneauDebut: ligne.creneau_debut?.toISOString() ?? null,
-    creneauFin: ligne.creneau_fin?.toISOString() ?? null,
-    datePlanifiee: ligne.date_planifiee?.toISOString() ?? null,
-    fuseau: fiche.fuseau,
-    panne: ligne.description,
-    machinesLibelles,
-    contact:
-      fiche.contact === null
-        ? null
-        : {
-            nom: fiche.contact,
-            numeros: [
-              ...new Set(
-                [fiche.contactTelephone, fiche.contactMobile].filter(
-                  (v): v is string => v !== null,
-                ),
-              ),
-            ],
+  const checklistJSON: FicheJSON["checklist"] = !checklist?.disponible
+    ? { disponible: false }
+    : {
+        disponible: true,
+        checklistVersionId: checklist.checklistVersionId,
+        reponses: Object.fromEntries(
+          checklist.points
+            .map(
+              (point) =>
+                [
+                  point.id,
+                  valeurChecklistAffichee(
+                    point.typeReponse,
+                    checklist.reponses.find(
+                      (r) => r.checklistPointId === point.id,
+                    ),
+                  ),
+                ] as const,
+            )
+            .filter(
+              (
+                entree,
+              ): entree is readonly [string, string | number | boolean] =>
+                entree[1] !== null,
+            ),
+        ),
+      };
+  const checklistModele: ChecklistModeleDeLaFiche | null =
+    checklist?.disponible !== true
+      ? null
+      : {
+          versionId: checklist.checklistVersionId,
+          modele: {
+            libelle: checklist.checklistModeleLibelle,
+            points: checklist.points.map((point) => ({
+              id: point.id,
+              section: point.section,
+              libelle: point.libelle,
+              consigne: point.consigne,
+              obligatoire: point.obligatoire,
+              typeReponse: point.typeReponse,
+              unite: point.unite,
+              choix: point.choix,
+            })),
           },
-    rapport: {
-      commentaireTechnicien: rapportTexte?.commentaire_technicien ?? null,
-      suiteADonner: rapportTexte?.suite_a_donner ?? null,
-      piecesRemplacees: (pieces ?? []).map((p) => ({
-        designation: p.designation,
-        reference: p.reference,
-        quantite: p.quantite,
-      })),
-    },
-    prestationsRealisees: (prestationsFaites ?? []).map((p) => p.libelle),
-    prestationsRealiseesIds: (prestationsFaites ?? []).map(
-      (p) => p.prestation_id,
-    ),
-    photos: (photos ?? []).map((p) => p.libelle),
-    signatureIssue: signature?.issue ?? null,
-    verdictTerminer: peutTerminer(
+        };
+  return {
+    fiche: {
+      id: ligne.id,
       statut,
-      mesure.minutes,
-      signature?.issue ?? null,
-    ),
-    verdictDemarrer: peutDemarrerLeCompteur(statut),
-    motifSuspension: ligne.motif_suspension,
-    pieceAttendueRef: ligne.piece_attendue_ref,
-    dateDispoPrevue: ligne.date_dispo_prevue?.toISOString() ?? null,
+      type: ligne.type,
+      priorite: ligne.priorite,
+      client: fiche.client,
+      lieu: fiche.lieu,
+      creneauDebut: ligne.creneau_debut?.toISOString() ?? null,
+      creneauFin: ligne.creneau_fin?.toISOString() ?? null,
+      datePlanifiee: ligne.date_planifiee?.toISOString() ?? null,
+      fuseau: fiche.fuseau,
+      panne: ligne.description,
+      machinesLibelles,
+      contact:
+        fiche.contact === null
+          ? null
+          : {
+              nom: fiche.contact,
+              numeros: [
+                ...new Set(
+                  [fiche.contactTelephone, fiche.contactMobile].filter(
+                    (v): v is string => v !== null,
+                  ),
+                ),
+              ],
+            },
+      rapport: {
+        commentaireTechnicien: rapportTexte?.commentaire_technicien ?? null,
+        suiteADonner: rapportTexte?.suite_a_donner ?? null,
+        piecesRemplacees: (pieces ?? []).map((p) => ({
+          designation: p.designation,
+          reference: p.reference,
+          quantite: p.quantite,
+        })),
+      },
+      prestationsRealisees: (prestationsFaites ?? []).map((p) => p.libelle),
+      prestationsRealiseesIds: (prestationsFaites ?? []).map(
+        (p) => p.prestation_id,
+      ),
+      photos: (photos ?? []).map((p) => p.libelle),
+      signatureIssue: signature?.issue ?? null,
+      verdictTerminer: peutTerminer(
+        statut,
+        mesure.minutes,
+        signature?.issue ?? null,
+      ),
+      verdictDemarrer: peutDemarrerLeCompteur(statut),
+      motifSuspension: ligne.motif_suspension,
+      pieceAttendueRef: ligne.piece_attendue_ref,
+      dateDispoPrevue: ligne.date_dispo_prevue?.toISOString() ?? null,
+      checklist: checklistJSON,
+    },
+    checklistModele,
   };
 }
 
@@ -343,16 +459,36 @@ async function traiter(): Promise<Response> {
     ),
   );
 
-  const fiches = new Map(
+  const resultatsFiches = (
+    await Promise.all(
+      lignesAffichees.map(async (l) => {
+        const resultat = await ficheEnJSON(contexte, l.id);
+        return resultat === null ? null : ([l.id, resultat] as const);
+      }),
+    )
+  ).filter(
     (
-      await Promise.all(
-        lignesAffichees.map(async (l) => {
-          const fiche = await ficheEnJSON(contexte, l.id);
-          return fiche === null ? null : ([l.id, fiche] as const);
-        }),
-      )
-    ).filter((e): e is readonly [string, FicheJSON] => e !== null),
+      e,
+    ): e is readonly [
+      string,
+      {
+        readonly fiche: FicheJSON;
+        readonly checklistModele: ChecklistModeleDeLaFiche | null;
+      },
+    ] => e !== null,
   );
+  const fiches = new Map(
+    resultatsFiches.map(([id, r]) => [id, r.fiche] as const),
+  );
+  // LES GABARITS, UNE SEULE FOIS PAR VERSION (voir `ChecklistModeleJSON`) —
+  // deux fiches qui résolvent la MÊME version (modèle générique, ou même
+  // machine) écrivent deux fois la MÊME entrée, jamais deux entrées.
+  const checklistModeles: Record<string, ChecklistModeleJSON> = {};
+  for (const [, r] of resultatsFiches) {
+    if (r.checklistModele !== null) {
+      checklistModeles[r.checklistModele.versionId] = r.checklistModele.modele;
+    }
+  }
 
   return Response.json(
     {
@@ -372,6 +508,7 @@ async function traiter(): Promise<Response> {
       },
       fiches: Object.fromEntries(fiches),
       catalogue,
+      checklistModeles,
     },
     { headers: { "cache-control": "no-store" } },
   );

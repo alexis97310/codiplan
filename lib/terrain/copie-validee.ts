@@ -26,6 +26,7 @@
  */
 
 import type {
+  ChecklistModeleJSON,
   FicheJSON,
   InstantaneJSON,
 } from "@/app/api/terrain/instantane/route";
@@ -155,5 +156,113 @@ export function rapportDeLaFiche(fiche: FicheJSON): FicheJSON["rapport"] {
               p !== null,
           )
       : [],
+  };
+}
+
+/**
+ * UN POINT DE CHECKLIST VALIDE, OU `null` (9K22-CHECKLIST-HORS-RESEAU,
+ * CK6) — même discipline que `pieceDeLaFicheValide` : un point mal formé
+ * écarte CE point, jamais tout le gabarit.
+ */
+function pointChecklistValide(
+  valeur: unknown,
+): ChecklistModeleJSON["points"][number] | null {
+  if (typeof valeur !== "object" || valeur === null) {
+    return null;
+  }
+  const p = valeur as Record<string, unknown>;
+  return typeof p.id === "string" &&
+    typeof p.section === "string" &&
+    typeof p.libelle === "string" &&
+    (typeof p.consigne === "string" || p.consigne === null) &&
+    typeof p.obligatoire === "boolean" &&
+    typeof p.typeReponse === "string" &&
+    (typeof p.unite === "string" || p.unite === null) &&
+    Array.isArray(p.choix)
+    ? {
+        id: p.id,
+        section: p.section,
+        libelle: p.libelle,
+        consigne: p.consigne as string | null,
+        obligatoire: p.obligatoire,
+        typeReponse: p.typeReponse,
+        unite: p.unite as string | null,
+        choix: p.choix.filter((c): c is string => typeof c === "string"),
+      }
+    : null;
+}
+
+/**
+ * `copie.checklistModeles`, sûr quelle que soit l'ancienneté de la copie —
+ * une copie écrite AVANT 9K22 ne porte pas cette clé, et devient `{}` : rien
+ * pour l'intervention ne peut alors résoudre à une checklist (voir
+ * `checklistDeLaFiche`, même sort). Un MODÈLE mal formé est écarté
+ * (une entrée manquante ne lève pas, elle laisse `checklistDeLaFiche`
+ * retomber sur « aucune version trouvée » pour la fiche qui la référence).
+ */
+export function checklistModelesDeLaCopie(
+  copie: InstantaneJSON,
+): Readonly<Record<string, ChecklistModeleJSON>> {
+  const brut = copie.checklistModeles as unknown;
+  if (typeof brut !== "object" || brut === null) {
+    return {};
+  }
+  const valide: Record<string, ChecklistModeleJSON> = {};
+  for (const [versionId, modele] of Object.entries(
+    brut as Record<string, unknown>,
+  )) {
+    if (typeof modele !== "object" || modele === null) {
+      continue;
+    }
+    const m = modele as Record<string, unknown>;
+    if (typeof m.libelle !== "string" || !Array.isArray(m.points)) {
+      continue;
+    }
+    valide[versionId] = {
+      libelle: m.libelle,
+      points: m.points
+        .map(pointChecklistValide)
+        .filter((p): p is ChecklistModeleJSON["points"][number] => p !== null),
+    };
+  }
+  return valide;
+}
+
+/**
+ * `fiche.checklist`, sûr — absente, mal formée, ou `disponible: false`
+ * devient toutes `{ disponible: false }` : la tuile checklist ne se rend
+ * alors pas du tout, le MÊME repli qu'une intervention sans gabarit résolu
+ * (voir l'en-tête de `components/terrain/checklist-terrain.tsx`).
+ */
+export function checklistDeLaFiche(fiche: FicheJSON): FicheJSON["checklist"] {
+  const checklist = fiche.checklist as unknown;
+  if (typeof checklist !== "object" || checklist === null) {
+    return { disponible: false };
+  }
+  const c = checklist as Record<string, unknown>;
+  if (
+    c.disponible !== true ||
+    typeof c.checklistVersionId !== "string" ||
+    typeof c.reponses !== "object" ||
+    c.reponses === null
+  ) {
+    return { disponible: false };
+  }
+  const reponses: Record<string, string | number | boolean> = {};
+  for (const [pointId, valeur] of Object.entries(
+    c.reponses as Record<string, unknown>,
+  )) {
+    if (
+      typeof valeur === "string" ||
+      typeof valeur === "number" ||
+      typeof valeur === "boolean"
+    ) {
+      reponses[pointId] = valeur;
+    }
+  }
+  return {
+    disponible: true,
+    checklistVersionId: c.checklistVersionId,
+    reponses,
   };
 }

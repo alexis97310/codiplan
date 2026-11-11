@@ -86,6 +86,7 @@ const INSTANTANE: InstantaneJSON = {
       motifSuspension: null,
       pieceAttendueRef: null,
       dateDispoPrevue: null,
+      checklist: { disponible: false },
     },
   },
   catalogue: [
@@ -95,6 +96,7 @@ const INSTANTANE: InstantaneJSON = {
       libelle: fr["terrain.e2e.prestation_libelle"],
     },
   ],
+  checklistModeles: {},
 };
 
 beforeAll(() => {
