@@ -366,6 +366,153 @@ describe("terminerIntervention — les refus", () => {
     expect(ligne.statut).toBe("en_cours");
   });
 
+  // 9K23-CHECKLIST-BLOCAGE-TERMINER (CK7, D240) — défense en profondeur :
+  // `terminerIntervention` est l'ARBITRE final. Le `checklist_version_id` est
+  // PINNÉ DIRECTEMENT sur la ligne jetable, jamais résolu par la cascade
+  // (`famille_id`/`type_intervention` NULS) — une checklist GÉNÉRIQUE active
+  // serait visible de toute intervention curative de SOCIETE_A, y compris
+  // d'autres scénarios de ce fichier ou d'un autre lancé en même temps. Le
+  // pin direct isole l'épreuve sur SA SEULE ligne.
+  describe("la checklist (CK7, D240)", () => {
+    async function poserChecklistPinnee(
+      interventionId: string,
+      obligatoire: boolean,
+    ): Promise<string> {
+      const modeleId = uuidv7();
+      const versionId = uuidv7();
+      const pointId = uuidv7();
+      await clientOwner().$executeRawUnsafe(
+        `INSERT INTO "checklist_modele" ("id", "societe_id", "code", "libelle", "modifie_le")
+         VALUES ('${modeleId}', '${SOCIETE_A}', 'CK7-${pointId}', 'Modèle CK7', now())`,
+      );
+      await clientOwner().$executeRawUnsafe(
+        `INSERT INTO "checklist_version" ("id", "societe_id", "checklist_modele_id", "numero")
+         VALUES ('${versionId}', '${SOCIETE_A}', '${modeleId}', 1)`,
+      );
+      await clientOwner().$executeRawUnsafe(
+        `INSERT INTO "checklist_point"
+           ("id", "societe_id", "checklist_version_id", "section", "ordre", "libelle", "obligatoire", "type_reponse")
+         VALUES ('${pointId}', '${SOCIETE_A}', '${versionId}', 'Freinage', 1, 'Plaquettes', ${obligatoire}, 'conforme_non_conforme_sans_objet')`,
+      );
+      await clientOwner().$executeRawUnsafe(
+        `UPDATE "intervention" SET "checklist_version_id" = '${versionId}' WHERE "id" = '${interventionId}'`,
+      );
+      return pointId;
+    }
+
+    async function effacerChecklistPinnee(
+      interventionId: string,
+    ): Promise<void> {
+      const [ligne] = await clientOwner().$queryRawUnsafe<
+        Array<{ checklist_version_id: string | null }>
+      >(
+        `SELECT "checklist_version_id" FROM "intervention" WHERE "id" = '${interventionId}'`,
+      );
+      const versionId = ligne?.checklist_version_id;
+      if (versionId === null || versionId === undefined) {
+        return;
+      }
+      const [version] = await clientOwner().$queryRawUnsafe<
+        Array<{ checklist_modele_id: string }>
+      >(
+        `SELECT "checklist_modele_id" FROM "checklist_version" WHERE "id" = '${versionId}'`,
+      );
+      await clientOwner().$executeRawUnsafe(
+        `DELETE FROM "checklist_reponse" WHERE "intervention_id" = '${interventionId}'`,
+      );
+      await clientOwner().$executeRawUnsafe(
+        `UPDATE "intervention" SET "checklist_version_id" = NULL WHERE "id" = '${interventionId}'`,
+      );
+      await clientOwner().$executeRawUnsafe(
+        `DELETE FROM "checklist_point" WHERE "checklist_version_id" = '${versionId}'`,
+      );
+      await clientOwner().$executeRawUnsafe(
+        `DELETE FROM "checklist_version" WHERE "id" = '${versionId}'`,
+      );
+      await clientOwner().$executeRawUnsafe(
+        `DELETE FROM "checklist_modele" WHERE "id" = '${version.checklist_modele_id}'`,
+      );
+    }
+
+    async function preparerAccepte(id: string): Promise<void> {
+      await demarrerLeCompteur(
+        SESSION_TECH,
+        id,
+        new Date("2026-09-14T08:00:00.000Z"),
+        clientApp(),
+      );
+      await arreterLeCompteur(
+        SESSION_TECH,
+        new Date("2026-09-14T09:00:00.000Z"),
+        clientApp(),
+      );
+      await enregistrerSignature(
+        SESSION_TECH,
+        id,
+        {
+          issue: "signee",
+          image_base64: "data:image/png;base64,CK7A",
+          signataire_nom: "Jean Dupont",
+        },
+        clientApp(),
+      );
+    }
+
+    it("refuse — nommé — un point OBLIGATOIRE de la checklist sans réponse", async () => {
+      const id = await jetable(TECHNICIEN);
+      await preparerAccepte(id);
+      await poserChecklistPinnee(id, true);
+
+      try {
+        const resultat = await terminerIntervention(
+          SESSION_TECH,
+          id,
+          new Date("2026-09-14T09:05:00.000Z"),
+          clientApp(),
+        );
+        expect(resultat.accepte).toBe(false);
+        if (!resultat.accepte) {
+          expect(resultat.cle).toBe(
+            "intervention.refus.checklist_obligatoire_manquante",
+          );
+          expect(resultat.pointsManquants).toEqual([
+            { id: expect.any(String), section: "Freinage", libelle: "Plaquettes" },
+          ]);
+        }
+
+        const [ligne] = await clientOwner().$queryRawUnsafe<
+          Array<{ statut: string }>
+        >(`SELECT "statut" FROM "intervention" WHERE "id" = '${id}'`);
+        expect(ligne.statut).toBe("en_cours");
+      } finally {
+        await effacerChecklistPinnee(id);
+      }
+    });
+
+    it("passe — un point obligatoire répondu « non conforme » ne bloque PAS", async () => {
+      const id = await jetable(TECHNICIEN);
+      await preparerAccepte(id);
+      const pointId = await poserChecklistPinnee(id, true);
+      await clientOwner().$executeRawUnsafe(
+        `INSERT INTO "checklist_reponse"
+           ("id", "societe_id", "intervention_id", "checklist_point_id", "libelle", "section", "obligatoire", "auteur_id", "valeur_conforme")
+         VALUES ('${uuidv7()}', '${SOCIETE_A}', '${id}', '${pointId}', 'Plaquettes', 'Freinage', true, '${TECHNICIEN}', 'non_conforme')`,
+      );
+
+      try {
+        const resultat = await terminerIntervention(
+          SESSION_TECH,
+          id,
+          new Date("2026-09-14T09:05:00.000Z"),
+          clientApp(),
+        );
+        expect(resultat.accepte).toBe(true);
+      } finally {
+        await effacerChecklistPinnee(id);
+      }
+    });
+  });
+
   it("refuse — un statut qui n'est pas en_cours (ici, planifiee)", async () => {
     const id = await jetable(TECHNICIEN, "planifiee");
     const resultat = await terminerIntervention(
