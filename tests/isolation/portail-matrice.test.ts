@@ -207,6 +207,10 @@ const CLASSIFICATION_LECTURE: Record<string, ClassificationLecture> = {
   vgp_verification: "client", // parent : machine
   vgp_observation: "client", // parent : vgp_verification, elle-même ouverte
   checklist_reponse: "client", // parent : intervention
+  // 9K28-CHECKLIST-REPONSE-PHOTO : chaînée sur checklist_reponse elle-même,
+  // déjà ouverte — le client voit TOUS les points de SA checklist remplie
+  // (D235), photo comprise.
+  checklist_reponse_photo: "client", // parent : checklist_reponse
   // CHAÎNAGE FERMÉ — voir l'en-tête : le parent remonte à une table
   // « interne », donc l'EXISTS qui les ouvrirait rend toujours zéro.
   checklist_version: "fermee",

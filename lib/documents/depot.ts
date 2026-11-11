@@ -7,9 +7,11 @@ import {
   exigerSocieteActive,
   type ContexteSession,
 } from "@/lib/auth/contexte";
+import { enregistrerReponsePhoto } from "@/lib/checklists/depot";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
 import { accesSurCetteIntervention } from "@/lib/interventions/perimetre-technicien";
+import type { TypeIntervention as TypeInterventionSaisie } from "@/lib/interventions/saisie";
 
 import {
   colonnesDeCible,
@@ -490,6 +492,14 @@ export async function peutDeposerPhotoSurCetteIntervention(
   );
 }
 
+/**
+ * Sentinelle interne (9K28-CHECKLIST-REPONSE-PHOTO) — jamais exportée : son
+ * seul rôle est de faire ROLLBACK la transaction de `deposerPhotoIntervention`
+ * quand `enregistrerReponsePhoto` refuse, puis d'être rattrapée par le
+ * `catch` de cette même fonction pour rendre le refus générique habituel.
+ */
+class RefusLienChecklistPhoto extends Error {}
+
 export async function deposerPhotoIntervention(
   contexte: ContexteSession,
   interventionId: string,
@@ -500,18 +510,33 @@ export async function deposerPhotoIntervention(
     readonly type_mime: string;
     readonly octets: Buffer;
     readonly operationId?: string;
+    /**
+     * LE POINT DE CHECKLIST QUE CETTE PHOTO RÉPOND (9K28-CHECKLIST-REPONSE-
+     * PHOTO), FACULTATIF — même outil, même route, jamais une seconde chaîne
+     * de dépôt (voir le docblock de `enregistrerReponsePhoto`,
+     * `lib/checklists/depot.ts`). Quand il est posé, `classe` est IGNORÉE et
+     * FORCÉE à `"client"` : D235 veut que le client voie TOUS les points de
+     * SA checklist remplie, et une photo `interne` resterait invisible sous
+     * la politique « héritage » de `document`.
+     */
+    readonly checklistPointId?: string;
   },
   client?: PrismaClient,
 ): Promise<{ readonly id: string } | null> {
   const societeId = exigerSocieteActive(contexte);
   const empreinte = createHash("sha256").update(saisie.octets).digest("hex");
+  const classe = saisie.checklistPointId === undefined ? saisie.classe : "client";
   try {
     return await avecContexteApplicatif(
       contexte,
       async (tx) => {
         const intervention = await tx.intervention.findFirst({
           where: { id: interventionId },
-          select: { technicien_id: true },
+          select: {
+            technicien_id: true,
+            type: true,
+            checklist_version_id: true,
+          },
         });
         if (
           intervention === null ||
@@ -523,28 +548,27 @@ export async function deposerPhotoIntervention(
         ) {
           return null;
         }
+        let document: { readonly id: string } | null = null;
         if (saisie.operationId !== undefined) {
           const rejoue = await tx.document.findFirst({
             where: { id: saisie.operationId, intervention_id: interventionId },
             select: { id: true },
           });
-          if (rejoue !== null) {
-            return rejoue;
-          }
+          document = rejoue;
         }
-        const existante = await tx.document.findFirst({
-          where: { intervention_id: interventionId, empreinte },
-          select: { id: true },
-        });
-        if (existante !== null) {
-          return existante;
+        if (document === null) {
+          const existante = await tx.document.findFirst({
+            where: { intervention_id: interventionId, empreinte },
+            select: { id: true },
+          });
+          document = existante;
         }
-        return tx.document.create({
+        document ??= await tx.document.create({
           data: {
             id: saisie.operationId ?? uuidv7(),
             societe_id: societeId,
             intervention_id: interventionId,
-            classe: saisie.classe,
+            classe,
             libelle: saisie.libelle,
             nom_fichier: saisie.nom_fichier,
             type_mime: saisie.type_mime,
@@ -555,10 +579,37 @@ export async function deposerPhotoIntervention(
           },
           select: { id: true },
         });
+
+        // LA LIAISON AU POINT, DANS LA MÊME TRANSACTION (9K28-CHECKLIST-
+        // REPONSE-PHOTO) — jamais écrite si le point se révèle hors version
+        // ou d'un autre type. **TOUT ou RIEN** (I6) : un refus ici LÈVE,
+        // jamais un simple `return null` — un `return` depuis une
+        // transaction interactive Prisma la VALIDE quand même, ce qui
+        // laisserait le document tout juste créé orphelin d'un point qui
+        // ne l'accepte pas. Capturée par le `catch` ci-dessous.
+        if (saisie.checklistPointId !== undefined) {
+          const lien = await enregistrerReponsePhoto(tx, {
+            societeId,
+            interventionId,
+            typeIntervention: intervention.type as TypeInterventionSaisie,
+            checklistVersionIdActuel: intervention.checklist_version_id,
+            checklistPointId: saisie.checklistPointId,
+            documentId: document.id,
+            auteurId: contexte.utilisateurId,
+          });
+          if ("refuse" in lien) {
+            throw new RefusLienChecklistPhoto();
+          }
+        }
+
+        return document;
       },
       client,
     );
   } catch (erreur: unknown) {
+    if (erreur instanceof RefusLienChecklistPhoto) {
+      return null;
+    }
     if (
       saisie.operationId !== undefined &&
       erreur instanceof Prisma.PrismaClientKnownRequestError &&

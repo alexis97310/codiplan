@@ -116,5 +116,11 @@ export function validerReponsePoint(
         saisie: { typeReponse: "texte_libre", valeurTexte: verdict.data },
       };
     }
+    // UN POINT `photo` NE SE RÉPOND JAMAIS PAR CETTE DIFFÉRENCE JSON
+    // (9K28-CHECKLIST-REPONSE-PHOTO) — sa réponse naît d'une photo déjà
+    // déposée (`enregistrerReponsePhoto`, appelée depuis
+    // `deposerPhotoIntervention`), jamais d'une valeur auto-déclarée ici.
+    case "photo":
+      return { valide: false, cle: "checklist.refus.photo_hors_formulaire" };
   }
 }

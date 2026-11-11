@@ -33,6 +33,12 @@ export function valeurChecklistAffichee(
       return reponse.valeurChoix;
     case "texte_libre":
       return reponse.valeurTexte;
+    // LE NOMBRE DE PHOTOS DÉJÀ LIÉES (9K28-CHECKLIST-REPONSE-PHOTO) — `null`
+    // tant qu'aucune n'est encore liée, exactement comme les autres types :
+    // c'est ce qui permet à `valeursInitiales` (`checklist-terrain.tsx`) de
+    // compter ou non ce point comme répondu.
+    case "photo":
+      return reponse.nombrePhotos > 0 ? reponse.nombrePhotos : null;
     default:
       return null;
   }

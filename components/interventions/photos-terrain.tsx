@@ -67,6 +67,7 @@ export function PhotosTerrain({
   utilisateurId,
   societeId,
   sansSession = false,
+  checklistPointId,
 }: {
   readonly action: string;
   readonly libelleAjouter: string;
@@ -79,6 +80,14 @@ export function PhotosTerrain({
    * jamais, et un refus `"auth.refus"` (D-12, `lib/auth/porte.ts`) y est
    * donc traité comme une coupure réseau, jamais affiché. */
   readonly sansSession?: boolean;
+  /**
+   * LE POINT DE CHECKLIST QUE CETTE PHOTO RÉPOND, FACULTATIF (9K28-
+   * CHECKLIST-REPONSE-PHOTO) — MÊME COMPOSANT, MÊME ROUTE qu'une photo
+   * d'intervention ordinaire (`ChecklistTerrain`, `champDuType`, cas
+   * `"photo"`) : aucune seconde chaîne d'envoi, ce seul champ supplémentaire
+   * étiquette la photo à son point.
+   */
+  readonly checklistPointId?: string;
 }) {
   const router = useRouter();
   const idFichier = useId();
@@ -144,6 +153,7 @@ export function PhotosTerrain({
           blob: reduite.blob,
           nomFichier: reduite.nomFichier,
           libelle: libelleRef.current?.value.trim() ?? "",
+          checklistPointId,
         },
       });
       if (resultat.gardee) {
@@ -164,6 +174,9 @@ export function PhotosTerrain({
       const libelle = libelleRef.current?.value.trim() ?? "";
       if (libelle.length > 0) {
         donnees.set("libelle", libelle);
+      }
+      if (checklistPointId !== undefined) {
+        donnees.set("checklist_point_id", checklistPointId);
       }
       const reponseServeur = await fetch(action, {
         method: "POST",
@@ -204,6 +217,13 @@ export function PhotosTerrain({
       onSubmit={soumettre}
       className="flex flex-col gap-2"
     >
+      {checklistPointId === undefined ? null : (
+        <input
+          type="hidden"
+          name="checklist_point_id"
+          value={checklistPointId}
+        />
+      )}
       <label htmlFor={idFichier} className="sr-only">
         {t("terrain.photos.fichier")}
       </label>

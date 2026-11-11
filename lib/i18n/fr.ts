@@ -5078,6 +5078,7 @@ export const fr = {
   "checklist.parametrage.type_reponse.choix_dans_une_liste":
     "Choix dans une liste",
   "checklist.parametrage.type_reponse.texte_libre": "Texte libre",
+  "checklist.parametrage.type_reponse.photo": "Photo",
   "checklist.parametrage.versions_precedentes": "Versions précédentes",
   "checklist.parametrage.aucune_version_precedente":
     "Aucune version précédente — celle-ci sera la première.",
@@ -5093,6 +5094,9 @@ export const fr = {
   "checklist.terrain.option_conforme": "Conforme",
   "checklist.terrain.option_sans_objet": "Sans objet",
   "checklist.terrain.choisir": "Choisir…",
+  // 9K28-CHECKLIST-REPONSE-PHOTO — le sixième type, « photo ».
+  "checklist.terrain.ajouter_photo": "Ajouter une photo",
+  "checklist.terrain.photos_ajoutees": "photo(s) ajoutée(s)",
   // Clés déjà nommées par le domaine et la route (9K18-CHECKLIST-DOMAINE,
   // `lib/checklists/validation-reponse.ts`, `lib/checklists/depot.ts`,
   // `app/api/terrain/[id]/checklist/route.ts`) — aucun écran ne les rendait
@@ -5111,6 +5115,10 @@ export const fr = {
     "Ce point ne fait plus partie de la version en cours — rechargez la fiche.",
   "checklist.refus.refus":
     "Cette action n'est pas autorisée sur cette intervention.",
+  // 9K28-CHECKLIST-REPONSE-PHOTO — un point `photo` ne se répond jamais par
+  // la différence JSON générique, seulement par une photo déjà déposée.
+  "checklist.refus.photo_hors_formulaire":
+    "Ce point se répond par une photo, pas par cette saisie.",
 
   // ── LA TUILE DU BON (9K24-CHECKLIST-BONS, CK8) ───────────────────────────
   "checklist.bon.titre": "Checklist",

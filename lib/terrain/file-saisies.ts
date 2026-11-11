@@ -270,6 +270,8 @@ export type GestePhoto = {
   readonly blob: Blob;
   readonly nomFichier: string;
   readonly libelle: string;
+  /** Le point de checklist répondu, FACULTATIF (9K28-CHECKLIST-REPONSE-PHOTO) — même route, même geste, jamais une seconde chaîne. */
+  readonly checklistPointId?: string;
 };
 export type GesteTerminer = { readonly type: "terminer" };
 /**
@@ -474,6 +476,10 @@ function gesteReconnu(brut: unknown): Geste | null {
             blob: g.blob,
             nomFichier: g.nomFichier,
             libelle: g.libelle,
+            checklistPointId:
+              typeof g.checklistPointId === "string"
+                ? g.checklistPointId
+                : undefined,
           }
         : null;
     case "terminer":

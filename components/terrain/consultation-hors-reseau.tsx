@@ -539,6 +539,7 @@ function Fiche({
           societeId={societeId}
           checklistModeleLibelle={checklist.libelle}
           points={checklist.points}
+          sansSession
         />
       )}
 

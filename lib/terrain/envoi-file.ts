@@ -117,6 +117,11 @@ function corpsDe(entree: EntreeFile): FormData {
       // voyage avec la saisie tant qu'elle reste en file, donc à travers
       // chaque renvoi tant qu'aucune réponse n'est arrivée.
       corps.set("operation_id", entree.id);
+      // LE POINT DE CHECKLIST (9K28-CHECKLIST-REPONSE-PHOTO) — même route,
+      // même geste ; voir `GestePhoto`.
+      if (geste.checklistPointId !== undefined) {
+        corps.set("checklist_point_id", geste.checklistPointId);
+      }
       return corps;
     case "terminer":
       corps.set("instant_appareil", entree.instantAppareil);

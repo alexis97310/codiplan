@@ -35,13 +35,14 @@ export const schemaModeleChecklist = z.object({
 
 export type SaisieModeleChecklist = z.infer<typeof schemaModeleChecklist>;
 
-/** Les cinq types de réponse (migration 9K18-CHECKLIST-DOMAINE). */
+/** Les six types de réponse (migrations 9K18-CHECKLIST-DOMAINE, 9K28-CHECKLIST-REPONSE-PHOTO). */
 export const TYPES_REPONSE_CHECKLIST = [
   "conforme_non_conforme_sans_objet",
   "valeur_mesuree",
   "case_faite",
   "choix_dans_une_liste",
   "texte_libre",
+  "photo",
 ] as const;
 
 const enTeteDuPoint = {
@@ -91,6 +92,13 @@ export const schemaPointChecklist = z.discriminatedUnion("typeReponse", [
   z.object({
     ...enTeteDuPoint,
     typeReponse: z.literal("texte_libre"),
+  }),
+  // AUCUNE unité, AUCUN choix (9K28-CHECKLIST-REPONSE-PHOTO) — une réponse
+  // `photo` n'a ni valeur, ni choix, ni texte, et sa ou ses photos arrivent
+  // plus tard, par l'outil Photos existant, jamais à la saisie du gabarit.
+  z.object({
+    ...enTeteDuPoint,
+    typeReponse: z.literal("photo"),
   }),
 ]);
 

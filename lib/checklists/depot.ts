@@ -82,6 +82,7 @@ export type SaisiePointChecklist = {
       readonly choix: readonly string[];
     }
   | { readonly typeReponse: "texte_libre" }
+  | { readonly typeReponse: "photo" }
 );
 
 /**
@@ -512,7 +513,7 @@ export async function basculerActiviteChecklist(
 
 /** Convertit un point déjà publié en saisie pour `publierVersion` — la forme
  * que rend la base (`Prisma.Decimal`, `type_reponse` en base) devient celle
- * qu'elle attend en entrée. `typeReponse` est un des cinq membres de l'enum
+ * qu'elle attend en entrée. `typeReponse` est un des six membres de l'enum
  * de base (`TypeReponseChecklist`) : jamais autre chose, la colonne le garde.
  */
 function pointPublieEnSaisie(point: PointPublie): SaisiePointChecklist {
@@ -540,6 +541,8 @@ function pointPublieEnSaisie(point: PointPublie): SaisiePointChecklist {
     case "choix_dans_une_liste":
       return { ...entete, typeReponse, choix: point.choix };
     case "texte_libre":
+      return { ...entete, typeReponse };
+    case "photo":
       return { ...entete, typeReponse };
   }
 }
@@ -717,6 +720,77 @@ async function resoudreGabaritPourIntervention(
   return resoudreGabarit(contexte, candidats);
 }
 
+/** `checklist_reponse.id -> les document_id de ses photos liées` (9K28-CHECKLIST-REPONSE-PHOTO). */
+async function photosParReponse(
+  tx: Prisma.TransactionClient,
+  checklistReponseIds: readonly string[],
+): Promise<ReadonlyMap<string, readonly string[]>> {
+  if (checklistReponseIds.length === 0) {
+    return new Map();
+  }
+  const liens = await tx.checklistReponsePhoto.findMany({
+    where: { checklist_reponse_id: { in: [...checklistReponseIds] } },
+    orderBy: { cree_le: "asc" },
+    select: { checklist_reponse_id: true, document_id: true },
+  });
+  const parReponse = new Map<string, string[]>();
+  for (const lien of liens) {
+    const liste = parReponse.get(lien.checklist_reponse_id) ?? [];
+    liste.push(lien.document_id);
+    parReponse.set(lien.checklist_reponse_id, liste);
+  }
+  return parReponse;
+}
+
+/**
+ * LA VERSION FIGÉE — RÉSOUT ET PIN SI ELLE NE L'EST PAS ENCORE (D235), même
+ * logique de course que `enregistrerReponses` : deux appareils qui résolvent
+ * chacun un gabarit au même instant ne pinnent qu'une fois, LE PREMIER
+ * GAGNE. Extrait pour être partagée avec `enregistrerReponsePhoto` — une
+ * photo de point `photo` peut être la TOUTE PREMIÈRE réponse d'une
+ * intervention, et doit alors pinner exactement comme n'importe quelle
+ * autre réponse.
+ */
+async function resoudreOuPinnerVersionChecklist(
+  tx: Prisma.TransactionClient,
+  interventionId: string,
+  typeIntervention: TypeInterventionSaisie,
+  checklistVersionIdActuel: string | null,
+): Promise<string | null> {
+  if (checklistVersionIdActuel !== null) {
+    return checklistVersionIdActuel;
+  }
+  const resolu = await resoudreGabaritPourIntervention(
+    tx,
+    interventionId,
+    typeIntervention,
+  );
+  if (resolu === null) {
+    return null;
+  }
+  const derniere = await tx.checklistVersion.findFirst({
+    where: { checklist_modele_id: resolu.checklistModeleId },
+    orderBy: { numero: "desc" },
+    select: { id: true },
+  });
+  if (derniere === null) {
+    return null;
+  }
+  const pin = await tx.intervention.updateMany({
+    where: { id: interventionId, checklist_version_id: null },
+    data: { checklist_version_id: derniere.id },
+  });
+  if (pin.count === 1) {
+    return derniere.id;
+  }
+  // Course perdue : un AUTRE appel vient de poser le pin à l'instant même.
+  const relue = await tx.intervention.findFirst({
+    where: { id: interventionId },
+    select: { checklist_version_id: true },
+  });
+  return relue?.checklist_version_id ?? derniere.id;
+}
+
 /**
  * LES POINTS OBLIGATOIRES SANS RÉPONSE, POUR LE BLOCAGE DE « TERMINER »
  * (9K23-CHECKLIST-BLOCAGE-TERMINER, CK7 ; décision « A » du 29/10/2026,
@@ -800,6 +874,8 @@ export type ReponseDeChecklist = {
   readonly valeurFait: boolean | null;
   readonly valeurChoix: string | null;
   readonly valeurTexte: string | null;
+  /** Le nombre de photos déjà liées (9K28-CHECKLIST-REPONSE-PHOTO) — 0 si `valeurPhoto` est `null`. */
+  readonly nombrePhotos: number;
   readonly auteurId: string;
   readonly reponduLe: Date;
 };
@@ -886,6 +962,11 @@ export async function checklistDeLIntervention(
         }),
       ]);
 
+      const photosParReponseId = await photosParReponse(
+        tx,
+        reponses.map((reponse) => reponse.id),
+      );
+
       return {
         disponible: true,
         checklistVersionId: versionId,
@@ -913,6 +994,7 @@ export async function checklistDeLIntervention(
           valeurFait: reponse.valeur_fait,
           valeurChoix: reponse.valeur_choix,
           valeurTexte: reponse.valeur_texte,
+          nombrePhotos: photosParReponseId.get(reponse.id)?.length ?? 0,
           auteurId: reponse.auteur_id,
           reponduLe: reponse.repondu_le,
         })),
@@ -1056,39 +1138,14 @@ export async function enregistrerReponses(
         };
       }
 
-      let versionId = intervention.checklist_version_id;
+      const versionId = await resoudreOuPinnerVersionChecklist(
+        tx,
+        interventionId,
+        intervention.type as TypeInterventionSaisie,
+        intervention.checklist_version_id,
+      );
       if (versionId === null) {
-        const resolu = await resoudreGabaritPourIntervention(
-          tx,
-          interventionId,
-          intervention.type as TypeInterventionSaisie,
-        );
-        if (resolu === null) {
-          return { refuse: true, cle: "checklist.refus.aucun_gabarit" };
-        }
-        const derniere = await tx.checklistVersion.findFirst({
-          where: { checklist_modele_id: resolu.checklistModeleId },
-          orderBy: { numero: "desc" },
-          select: { id: true },
-        });
-        if (derniere === null) {
-          return { refuse: true, cle: "checklist.refus.aucun_gabarit" };
-        }
-        const pin = await tx.intervention.updateMany({
-          where: { id: interventionId, checklist_version_id: null },
-          data: { checklist_version_id: derniere.id },
-        });
-        if (pin.count === 1) {
-          versionId = derniere.id;
-        } else {
-          const relue = await tx.intervention.findFirst({
-            where: { id: interventionId },
-            select: { checklist_version_id: true },
-          });
-          // Jamais `null` ici : une course perdue veut dire qu'un AUTRE appel
-          // vient de poser le pin à l'instant même.
-          versionId = relue?.checklist_version_id ?? derniere.id;
-        }
+        return { refuse: true, cle: "checklist.refus.aucun_gabarit" };
       }
 
       const points = await tx.checklistPoint.findMany({
@@ -1168,16 +1225,147 @@ export async function enregistrerReponses(
   );
 }
 
+export type EcritureReponsePhoto =
+  | { readonly id: string }
+  | { readonly refuse: true; readonly cle: string };
+
+/**
+ * LIE UNE PHOTO DÉJÀ DÉPOSÉE À UN POINT `photo` (9K28-CHECKLIST-REPONSE-
+ * PHOTO) — appelée DANS la transaction déjà cloisonnée de
+ * `deposerPhotoIntervention` (`lib/documents/depot.ts`), comme
+ * `obligatoiresManquantsPourTerminer`/`checklistDuBon` ci-dessus : jamais une
+ * seconde chaîne de dépôt, le document existe déjà quand cette fonction est
+ * appelée.
+ *
+ * **MÊME PIN QUE `enregistrerReponses`** (D235) : une photo de point `photo`
+ * peut être la TOUTE PREMIÈRE réponse d'une intervention et doit alors
+ * résoudre et pinner un gabarit exactement comme n'importe quelle autre
+ * réponse — `resoudreOuPinnerVersionChecklist` est PARTAGÉE, jamais une
+ * seconde implémentation du même critère (§9, 01/09).
+ *
+ * **UNE RÉPONSE `photo` N'EXISTE JAMAIS SANS AU MOINS UNE PHOTO** : cette
+ * fonction pose `checklist_reponse.valeur_photo = true` ET la ligne de
+ * `checklist_reponse_photo` DANS LA MÊME TRANSACTION — jamais l'une sans
+ * l'autre. `document_id` est le document QUE L'APPELANT VIENT DE CRÉER OU DE
+ * RETROUVER (déduplication/rejeu, `deposerPhotoIntervention`) : cette
+ * fonction ne vérifie pas son existence une seconde fois, la clé étrangère de
+ * base le ferait de toute façon échouer sinon.
+ *
+ * `checklist.refus.point_hors_version` si le point n'existe pas dans la
+ * version (figée ou résolue), OU si ce point n'est pas du type `photo` — un
+ * point d'un AUTRE type ne se répond jamais par cette voie.
+ */
+export async function enregistrerReponsePhoto(
+  tx: Prisma.TransactionClient,
+  params: {
+    readonly societeId: string;
+    readonly interventionId: string;
+    readonly typeIntervention: TypeInterventionSaisie;
+    readonly checklistVersionIdActuel: string | null;
+    readonly checklistPointId: string;
+    readonly documentId: string;
+    readonly auteurId: string;
+  },
+): Promise<EcritureReponsePhoto> {
+  const versionId = await resoudreOuPinnerVersionChecklist(
+    tx,
+    params.interventionId,
+    params.typeIntervention,
+    params.checklistVersionIdActuel,
+  );
+  if (versionId === null) {
+    return { refuse: true, cle: "checklist.refus.aucun_gabarit" };
+  }
+
+  const point = await tx.checklistPoint.findFirst({
+    where: { id: params.checklistPointId, checklist_version_id: versionId },
+    select: {
+      id: true,
+      libelle: true,
+      section: true,
+      unite: true,
+      obligatoire: true,
+      type_reponse: true,
+    },
+  });
+  if (point === null || point.type_reponse !== "photo") {
+    return { refuse: true, cle: "checklist.refus.point_hors_version" };
+  }
+
+  const reponse = await tx.checklistReponse.upsert({
+    where: {
+      societe_id_intervention_id_checklist_point_id: {
+        societe_id: params.societeId,
+        intervention_id: params.interventionId,
+        checklist_point_id: point.id,
+      },
+    },
+    create: {
+      id: uuidv7(),
+      societe_id: params.societeId,
+      intervention_id: params.interventionId,
+      checklist_point_id: point.id,
+      libelle: point.libelle,
+      section: point.section,
+      unite: point.unite,
+      obligatoire: point.obligatoire,
+      auteur_id: params.auteurId,
+      valeur_photo: true,
+    },
+    update: {
+      libelle: point.libelle,
+      section: point.section,
+      unite: point.unite,
+      obligatoire: point.obligatoire,
+      auteur_id: params.auteurId,
+      valeur_photo: true,
+    },
+    select: { id: true },
+  });
+
+  await tx.checklistReponsePhoto.upsert({
+    where: {
+      societe_id_checklist_reponse_id_document_id: {
+        societe_id: params.societeId,
+        checklist_reponse_id: reponse.id,
+        document_id: params.documentId,
+      },
+    },
+    create: {
+      id: uuidv7(),
+      societe_id: params.societeId,
+      checklist_reponse_id: reponse.id,
+      document_id: params.documentId,
+    },
+    update: {},
+  });
+
+  // UNE RÉPONSE MODIFIÉE ANNULE SA VALIDATION (RG-INT-03, D135) — même motif
+  // que `enregistrerReponses` : une photo ajoutée fait partie de ce qu'un
+  // responsable juge en validant le rapport.
+  await tx.intervention.updateMany({
+    where: { id: params.interventionId },
+    data: { rapport_valide_par: null, rapport_valide_le: null },
+  });
+
+  return { id: reponse.id };
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // LA TUILE DU BON (9K24-CHECKLIST-BONS, CK8) — LA VERSION FIGÉE SEULEMENT.
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Ce qu'une réponse rend sur le bon — déduit des CINQ colonnes de
+ * Ce qu'une réponse rend sur le bon — déduit des SIX colonnes de
  * `checklist_reponse` elles-mêmes (une seule non nulle, gardée en base),
  * JAMAIS du type de point lu sur `checklist_point` : D235 l'écrit pour le
  * portail (« via les RÉPONSES, jamais via les modèles »), et rien ne
  * distingue ici le bureau du portail sur ce point.
+ *
+ * `photo` (9K28-CHECKLIST-REPONSE-PHOTO) porte les `documentId` liés —
+ * TOUJOURS au moins un, `enregistrerReponsePhoto` le garantit — pour que
+ * `bon-tuiles.tsx` rende leur vignette sous le point, exactement comme la
+ * section « Photos » de la fiche terrain (`/api/documents/{id}/octets`).
  */
 export type RenduReponseChecklistBon =
   | { readonly nature: "conforme"; readonly valeur: ReponseConformite }
@@ -1188,7 +1376,8 @@ export type RenduReponseChecklistBon =
     }
   | { readonly nature: "case" }
   | { readonly nature: "choix"; readonly valeur: string }
-  | { readonly nature: "texte"; readonly valeur: string };
+  | { readonly nature: "texte"; readonly valeur: string }
+  | { readonly nature: "photo"; readonly documentIds: readonly string[] };
 
 export type PointReponduBon = {
   readonly id: string;
@@ -1214,18 +1403,29 @@ export type ChecklistBon = {
 };
 
 /**
- * EXACTEMENT UNE DES CINQ COLONNES EST NON NULLE (contrainte `num_nonnulls`
+ * EXACTEMENT UNE DES SIX COLONNES EST NON NULLE (contrainte `num_nonnulls`
  * en base) — une réponse qui n'en porterait aucune serait un défaut
  * d'écriture, jamais un état qu'un bon doit savoir afficher.
+ *
+ * `documentIdsParReponse` (9K28-CHECKLIST-REPONSE-PHOTO) — les photos liées
+ * à CETTE réponse, déjà lues par l'appelant (`checklistDuBon`/
+ * `checklistDeLaFiche`) : jamais une seconde lecture de
+ * `checklist_reponse_photo` par point, qui ferait N requêtes là où une seule
+ * suffit.
  */
-function renduDeLaReponseBon(reponse: {
-  readonly valeur_conforme: ReponseConformite | null;
-  readonly valeur_mesuree: Prisma.Decimal | null;
-  readonly valeur_fait: boolean | null;
-  readonly valeur_choix: string | null;
-  readonly valeur_texte: string | null;
-  readonly unite: string | null;
-}): RenduReponseChecklistBon {
+function renduDeLaReponseBon(
+  reponse: {
+    readonly id: string;
+    readonly valeur_conforme: ReponseConformite | null;
+    readonly valeur_mesuree: Prisma.Decimal | null;
+    readonly valeur_fait: boolean | null;
+    readonly valeur_choix: string | null;
+    readonly valeur_texte: string | null;
+    readonly valeur_photo: boolean | null;
+    readonly unite: string | null;
+  },
+  documentIdsParReponse: ReadonlyMap<string, readonly string[]>,
+): RenduReponseChecklistBon {
   if (reponse.valeur_conforme !== null) {
     return { nature: "conforme", valeur: reponse.valeur_conforme };
   }
@@ -1245,8 +1445,14 @@ function renduDeLaReponseBon(reponse: {
   if (reponse.valeur_texte !== null) {
     return { nature: "texte", valeur: reponse.valeur_texte };
   }
+  if (reponse.valeur_photo !== null) {
+    return {
+      nature: "photo",
+      documentIds: documentIdsParReponse.get(reponse.id) ?? [],
+    };
+  }
   throw new Error(
-    `checklist_reponse ${JSON.stringify(reponse)} ne porte aucune des cinq colonnes — num_nonnulls aurait dû refuser son écriture.`,
+    `checklist_reponse ${JSON.stringify(reponse)} ne porte aucune des six colonnes — num_nonnulls aurait dû refuser son écriture.`,
   );
 }
 
@@ -1291,6 +1497,11 @@ export async function checklistDuBon(
     orderBy: [{ repondu_le: "asc" }, { id: "asc" }],
   });
 
+  const photosParReponseId = await photosParReponse(
+    tx,
+    reponses.map((reponse) => reponse.id),
+  );
+
   const sections: { readonly section: string; points: PointReponduBon[] }[] =
     [];
   const indexParSection = new Map<string, number>();
@@ -1299,7 +1510,7 @@ export async function checklistDuBon(
   let sansObjet = 0;
 
   for (const reponse of reponses) {
-    const rendu = renduDeLaReponseBon(reponse);
+    const rendu = renduDeLaReponseBon(reponse, photosParReponseId);
     if (rendu.nature === "conforme") {
       if (rendu.valeur === "conforme") conformes++;
       else if (rendu.valeur === "non_conforme") nonConformes++;
@@ -1380,10 +1591,16 @@ export async function checklistDeLaFiche(
     }),
   ]);
 
-  const annuaire = await annuaireDesPersonnes(
-    tx,
-    reponses.map((reponse) => reponse.auteur_id),
-  );
+  const [annuaire, photosParReponseId] = await Promise.all([
+    annuaireDesPersonnes(
+      tx,
+      reponses.map((reponse) => reponse.auteur_id),
+    ),
+    photosParReponse(
+      tx,
+      reponses.map((reponse) => reponse.id),
+    ),
+  ]);
 
   const sections: { readonly section: string; points: PointReponduFiche[] }[] =
     [];
@@ -1393,7 +1610,7 @@ export async function checklistDeLaFiche(
   let sansObjet = 0;
 
   for (const reponse of reponses) {
-    const rendu = renduDeLaReponseBon(reponse);
+    const rendu = renduDeLaReponseBon(reponse, photosParReponseId);
     if (rendu.nature === "conforme") {
       if (rendu.valeur === "conforme") conformes++;
       else if (rendu.valeur === "non_conforme") nonConformes++;

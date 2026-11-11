@@ -233,6 +233,7 @@ model Societe {
   checklistVersions            ChecklistVersion[]
   checklistPoints              ChecklistPoint[]
   checklistReponses            ChecklistReponse[]
+  checklistReponsePhotos       ChecklistReponsePhoto[]
 
   @@map("societe")
 }
@@ -2669,17 +2670,23 @@ model SuiteADonner {
 // nom_technicien_affiche`, 9J22A), si bien que la lecture portail n'a jamais
 // besoin d'ouvrir `ChecklistPoint`.
 
-/// CINQ types de réponse (9K18-CHECKLIST-DOMAINE, décision d'Alexis du
-/// 10/11/2026 ~13h10 : « Oui, les 5 types »). 9K08 n'en posait que trois ;
-/// `choix_dans_une_liste` et `texte_libre` rejoignent l'énumération ici — la
-/// `photo` reste DIFFÉRÉE (elle passe par l'outil Photos existant de
-/// l'intervention, jamais par la checklist).
+/// SIX types de réponse. 9K08 n'en posait que trois ; `choix_dans_une_liste`
+/// et `texte_libre` ont rejoint l'énumération à 9K18 (décision d'Alexis du
+/// 10/11/2026 ~13h10 : « Oui, les 5 types »). `photo` les rejoint à 9K28
+/// (décision d'Alexis du 11/11/2026 ~08h05, atelier des check-lists :
+/// « Oui, dès maintenant » — revient sur le report du 29/10) : une réponse
+/// `photo` PASSE PAR L'OUTIL PHOTOS EXISTANT de l'intervention (`document`,
+/// `deposerPhotoIntervention`) — jamais une seconde chaîne d'envoi —, et
+/// `checklist_reponse_photo` (forme « filiation » chaînée sur
+/// `checklist_reponse`, même patron que `vgp_observation` sur
+/// `vgp_verification`) porte le lien vers une ou plusieurs de ces photos.
 enum TypeReponseChecklist {
   conforme_non_conforme_sans_objet
   valeur_mesuree
   case_faite
   choix_dans_une_liste
   texte_libre
+  photo
 }
 
 /// La réponse à un point `conforme_non_conforme_sans_objet`. Un NON CONFORME
@@ -2843,9 +2850,9 @@ model ChecklistReponse {
   unite       String?
   obligatoire Boolean
 
-  /// Exactement une des CINQ, selon le type de réponse du point — gardé par
+  /// Exactement une des SIX, selon le type de réponse du point — gardé par
   /// `num_nonnulls` en base, même patron que `notification_cible_unique`
-  /// (étendu à cinq colonnes par 9K18-CHECKLIST-DOMAINE).
+  /// (étendu à six colonnes par 9K28-CHECKLIST-REPONSE-PHOTO).
   valeur_conforme ReponseConformite?
   valeur_mesuree  Decimal?           @db.Decimal(12, 3)
   valeur_fait     Boolean?
@@ -2855,6 +2862,13 @@ model ChecklistReponse {
   valeur_choix String?
   /// `texte_libre` — borne de longueur posée en base (9K18-CHECKLIST-DOMAINE).
   valeur_texte String?
+  /// `photo` — AUCUNE valeur propre, un simple marqueur de présence (9K28-
+  /// CHECKLIST-REPONSE-PHOTO) : la ou les photos elles-mêmes sont des
+  /// `Document` liés par `checklist_reponse_photo`, jamais une colonne ici.
+  /// Posée `true` UNIQUEMENT quand au moins une photo est déjà liée (même
+  /// transaction que la liaison, `enregistrerReponsePhoto`) — une réponse
+  /// `photo` sans aucune photo n'existe jamais.
+  valeur_photo Boolean?
 
   /// QUI a répondu — une IDENTITÉ, aucune relation Prisma déclarée vers
   /// `Utilisateur` (même choix que `Notification.destinataire_id`, D39) :
@@ -2862,13 +2876,42 @@ model ChecklistReponse {
   auteur_id  String   @db.Uuid
   repondu_le DateTime @default(now()) @db.Timestamptz(3)
 
-  societe      Societe        @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  intervention Intervention   @relation(fields: [societe_id, intervention_id], references: [societe_id, id], onDelete: Cascade, onUpdate: Restrict)
-  point        ChecklistPoint @relation(fields: [societe_id, checklist_point_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  societe      Societe                 @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  intervention Intervention            @relation(fields: [societe_id, intervention_id], references: [societe_id, id], onDelete: Cascade, onUpdate: Restrict)
+  point        ChecklistPoint          @relation(fields: [societe_id, checklist_point_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  photos       ChecklistReponsePhoto[]
 
   @@unique([societe_id, id])
   @@unique([societe_id, intervention_id, checklist_point_id])
   @@map("checklist_reponse")
+}
+
+/// LE LIEN D'UNE RÉPONSE `photo` VERS SES PHOTOS (9K28-CHECKLIST-REPONSE-
+/// PHOTO) — une réponse peut en porter PLUSIEURS. Forme « filiation » CHAÎNÉE
+/// sur `checklist_reponse` elle-même (jamais directement sur `intervention`),
+/// même patron que `vgp_observation` sur `vgp_verification` : l'adossement se
+/// chaîne, aucune clause de société propre n'est écrite dans sa politique.
+/// `document_id` reste la cible NORMALE d'une photo d'intervention
+/// (`deposerPhotoIntervention`, `intervention_id` posé comme toujours) — ce
+/// lien ne fait qu'ÉTIQUETER laquelle répond à quel point, aucune seconde
+/// chaîne de dépôt. JAMAIS SUPPRIMÉ (I6, comme son parent) : UPDATE n'a pas de
+/// sens non plus sur un simple lien, les deux sont retirés du rôle applicatif.
+model ChecklistReponsePhoto {
+  id                   String @id @db.Uuid
+  societe_id           String @db.Uuid
+  checklist_reponse_id String @db.Uuid
+  document_id          String @db.Uuid
+
+  cree_le DateTime @default(now()) @db.Timestamptz(3)
+
+  societe  Societe          @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  reponse  ChecklistReponse @relation(fields: [societe_id, checklist_reponse_id], references: [societe_id, id], onDelete: Cascade, onUpdate: Restrict)
+  document Document         @relation(fields: [societe_id, document_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([societe_id, id])
+  @@unique([societe_id, checklist_reponse_id, document_id])
+  @@index([societe_id, document_id])
+  @@map("checklist_reponse_photo")
 }
 
 /// D'où vient la demande (chapitre 7/M3). Six sources, et elles ne se
@@ -3848,6 +3891,10 @@ model Document {
   /// Les fichiers du bac qui ont produit cette fiche (L8-07).
   recus             DocumentRecu[]
   verifications_vgp VgpVerification[]
+  /// Les points de checklist qu'elle répond (9K28-CHECKLIST-REPONSE-PHOTO) —
+  /// `intervention_id` ci-dessus reste sa seule cible ; ce lien n'est qu'une
+  /// ÉTIQUETTE, jamais une seconde cible (`document_cible_unique` inchangée).
+  checklist_reponses ChecklistReponsePhoto[]
 
   /// Cible du chaînage composite que `document_recu` pose (L8-07).
   @@unique([societe_id, id])

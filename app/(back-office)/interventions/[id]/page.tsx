@@ -2173,17 +2173,34 @@ function TuileChecklistFiche({
                   <li key={point.id} className="text-13 font-bold">
                     <div>
                       <span>{point.libelle}</span>
-                      {t("ponctuation.deux_points")}
-                      <span
-                        className={
-                          nonConforme
-                            ? "text-app-oxyde font-extrabold"
-                            : undefined
-                        }
-                      >
-                        {libelleRenduChecklist(point.rendu)}
-                      </span>
+                      {point.rendu.nature === "photo" ? null : (
+                        <>
+                          {t("ponctuation.deux_points")}
+                          <span
+                            className={
+                              nonConforme
+                                ? "text-app-oxyde font-extrabold"
+                                : undefined
+                            }
+                          >
+                            {libelleRenduChecklist(point.rendu)}
+                          </span>
+                        </>
+                      )}
                     </div>
+                    {point.rendu.nature !== "photo" ? null : (
+                      <div className="mt-1 flex flex-wrap gap-2">
+                        {point.rendu.documentIds.map((documentId) => (
+                          // eslint-disable-next-line @next/next/no-img-element -- octets servis par une route applicative
+                          <img
+                            key={documentId}
+                            src={`/api/documents/${documentId}/octets`}
+                            alt={point.libelle}
+                            className="border-app-bord aspect-square w-16 rounded border object-cover"
+                          />
+                        ))}
+                      </div>
+                    )}
                     <p className="text-app-encre-faible text-12 font-bold">
                       {point.auteur}
                       {t("ponctuation.separateur")}

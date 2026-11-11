@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 import { type ContexteActif } from "@/lib/auth/contexte";
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
@@ -77,6 +79,22 @@ function classeSaisie(valeur: FormDataEntryValue | null): ClasseDocument {
 }
 
 /**
+ * LE POINT DE CHECKLIST, FACULTATIF (9K28-CHECKLIST-REPONSE-PHOTO) — MÊME
+ * COMPOSANT, MÊME ROUTE que n'importe quelle autre photo d'intervention,
+ * jamais une seconde chaîne de dépôt ; seul ce champ distingue une photo de
+ * point d'une photo ordinaire. Absent ou mal formé, traité comme absent —
+ * même famille que `operationIdDuFormulaire` ci-dessous.
+ */
+function checklistPointIdDuFormulaire(formulaire: FormData): string | undefined {
+  const valeur = formulaire.get("checklist_point_id");
+  if (typeof valeur !== "string") {
+    return undefined;
+  }
+  const analyse = z.uuid().safeParse(valeur);
+  return analyse.success ? analyse.data : undefined;
+}
+
+/**
  * `operation_id` est FACULTATIF (9F4H2A-REJEU-SANS-DOUBLON, point 3) — seul,
  * SANS `instant_appareil` : une photo n'est pas une saisie différée datée, et
  * exiger la paire de `schemaSaisieDifferee` (D214) n'aurait aucun sens ici.
@@ -142,6 +160,7 @@ async function traiter(requete: Request, id: string): Promise<Response> {
     type_mime: format,
     octets,
     operationId: operationIdDuFormulaire(formulaire),
+    checklistPointId: checklistPointIdDuFormulaire(formulaire),
   });
 
   return reponse(

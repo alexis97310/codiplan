@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { CaseACocher } from "@/components/ui/case-a-cocher";
+import { PhotosTerrain } from "@/components/interventions/photos-terrain";
 import {
   etatDeCompletude,
   type PointPourCompletude,
@@ -130,6 +131,12 @@ function champDuType(
   point: PointChecklistEcran,
   valeur: unknown,
   onChange: (valeur: unknown) => void,
+  photo: {
+    readonly interventionId: string;
+    readonly utilisateurId: string;
+    readonly societeId: string;
+    readonly sansSession: boolean;
+  },
 ): ReactNode {
   switch (point.typeReponse) {
     case "conforme_non_conforme_sans_objet":
@@ -228,6 +235,32 @@ function champDuType(
           className="border-app-bord bg-app-surface rounded-md border px-2 py-1.5 text-16 font-bold"
         />
       );
+    case "photo":
+      // AUCUN `onChange` ICI (9K28-CHECKLIST-REPONSE-PHOTO) — une réponse
+      // `photo` ne passe JAMAIS par la différence JSON du geste « checklist »
+      // (`validerReponsePoint` la refuse toujours) : `PhotosTerrain` écrit
+      // directement sa propre réponse par la route des photos, MÊME
+      // COMPOSANT, MÊME ROUTE que les photos d'intervention, jamais une
+      // seconde chaîne d'envoi. `valeur` ne porte ici que le NOMBRE de
+      // photos déjà liées (`valeurChecklistAffichee`), simple affichage.
+      return (
+        <div className="flex flex-col gap-2">
+          {typeof valeur !== "number" ? null : (
+            <p className="text-app-vert-encre text-16 font-bold">
+              {valeur} {t("checklist.terrain.photos_ajoutees")}
+            </p>
+          )}
+          <PhotosTerrain
+            action={`/api/terrain/${photo.interventionId}/photos`}
+            libelleAjouter={t("checklist.terrain.ajouter_photo")}
+            interventionId={photo.interventionId}
+            utilisateurId={photo.utilisateurId}
+            societeId={photo.societeId}
+            sansSession={photo.sansSession}
+            checklistPointId={point.id}
+          />
+        </div>
+      );
     default:
       return null;
   }
@@ -237,10 +270,17 @@ function PointChecklistChamp({
   point,
   valeur,
   onChange,
+  photo,
 }: {
   readonly point: PointChecklistEcran;
   readonly valeur: unknown;
   readonly onChange: (valeur: unknown) => void;
+  readonly photo: {
+    readonly interventionId: string;
+    readonly utilisateurId: string;
+    readonly societeId: string;
+    readonly sansSession: boolean;
+  };
 }) {
   return (
     <div
@@ -260,7 +300,7 @@ function PointChecklistChamp({
           {point.consigne}
         </p>
       )}
-      {champDuType(point, valeur, onChange)}
+      {champDuType(point, valeur, onChange, photo)}
     </div>
   );
 }
@@ -271,12 +311,17 @@ export function ChecklistTerrain({
   societeId,
   checklistModeleLibelle,
   points,
+  sansSession = false,
 }: {
   readonly interventionId: string;
   readonly utilisateurId: string;
   readonly societeId: string;
   readonly checklistModeleLibelle: string;
   readonly points: readonly PointChecklistEcran[];
+  /** LA COQUILLE `/terrain-hors-reseau` (9K28-CHECKLIST-REPONSE-PHOTO) — voir
+   * le docblock du même nom dans `photos-terrain.tsx` : un point `photo`
+   * embarque sa propre `PhotosTerrain`, qui doit y recevoir le même repli. */
+  readonly sansSession?: boolean;
 }) {
   const [valeurs, setValeurs] = useState<Record<string, unknown>>(() =>
     valeursInitiales(points),
@@ -407,6 +452,12 @@ export function ChecklistTerrain({
                   point={point}
                   valeur={valeurs[point.id] ?? null}
                   onChange={(valeur) => enregistrer(point, valeur)}
+                  photo={{
+                    interventionId,
+                    utilisateurId,
+                    societeId,
+                    sansSession,
+                  }}
                 />
               ))}
             </div>

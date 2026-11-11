@@ -258,8 +258,13 @@ export function resumeChecklistBon(resume: {
 /**
  * Le texte d'une réponse — déduit de `rendu.nature` SEUL, jamais d'un type
  * relu sur `checklist_point` (voir `checklistDuBon`, `lib/checklists/depot.ts`).
+ *
+ * `photo` EXCLUE (9K28-CHECKLIST-REPONSE-PHOTO) : une photo n'a pas de texte,
+ * `TuileChecklist` rend sa vignette à part, jamais un libellé ici.
  */
-export function libelleRenduChecklist(rendu: RenduReponseChecklistBon): string {
+export function libelleRenduChecklist(
+  rendu: Exclude<RenduReponseChecklistBon, { readonly nature: "photo" }>,
+): string {
   switch (rendu.nature) {
     case "conforme":
       return rendu.valeur === "conforme"
@@ -317,17 +322,34 @@ export function TuileChecklist({ bon }: { readonly bon: BonIntervention }) {
               {section.points.map((point) => (
                 <li key={point.id} className="text-13 font-bold">
                   <span>{point.libelle}</span>
-                  {t("ponctuation.deux_points")}
-                  <span
-                    className={
-                      point.rendu.nature === "conforme" &&
-                      point.rendu.valeur === "non_conforme"
-                        ? "text-app-oxyde font-extrabold"
-                        : undefined
-                    }
-                  >
-                    {libelleRenduChecklist(point.rendu)}
-                  </span>
+                  {point.rendu.nature === "photo" ? null : (
+                    <>
+                      {t("ponctuation.deux_points")}
+                      <span
+                        className={
+                          point.rendu.nature === "conforme" &&
+                          point.rendu.valeur === "non_conforme"
+                            ? "text-app-oxyde font-extrabold"
+                            : undefined
+                        }
+                      >
+                        {libelleRenduChecklist(point.rendu)}
+                      </span>
+                    </>
+                  )}
+                  {point.rendu.nature !== "photo" ? null : (
+                    <span className="mt-1 flex flex-wrap gap-2">
+                      {point.rendu.documentIds.map((documentId) => (
+                        // eslint-disable-next-line @next/next/no-img-element -- octets servis par une route applicative
+                        <img
+                          key={documentId}
+                          src={`/api/documents/${documentId}/octets`}
+                          alt={point.libelle}
+                          className="border-app-bord aspect-square w-16 rounded border object-cover"
+                        />
+                      ))}
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>

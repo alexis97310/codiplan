@@ -2612,6 +2612,18 @@ export const TABLES_FILIATION = [
     parent: "intervention",
     cle: "intervention_id",
   },
+  // `checklist_reponse_photo` REJOINT LA FILIATION au ticket 9K28-CHECKLIST-
+  // REPONSE-PHOTO (décision d'Alexis du 11/11/2026 ~08h05) — CHAÎNÉE sur
+  // `checklist_reponse` elle-même, jamais directement sur `intervention` :
+  // même patron que `vgp_observation` sur `vgp_verification`. Le lien
+  // n'ÉTIQUETTE qu'une photo déjà déposée (`document.intervention_id` reste
+  // sa seule cible) ; sa propre visibilité suit celle de la réponse qu'elle
+  // complète, qui suit déjà celle de l'intervention.
+  {
+    table: "checklist_reponse_photo",
+    parent: "checklist_reponse",
+    cle: "checklist_reponse_id",
+  },
   // `prestation_type_intervention` REJOINT LA FILIATION au ticket 9K29-
   // PRESTATIONS-PAR-TYPE-INTERVENTION, 11/11/2026. Même raisonnement
   // qu'`intervention_prestation` (D103) : un rattachement (les types où une
@@ -2652,6 +2664,9 @@ const FILIATION_ARBITREE = [
   "checklist_version",
   "checklist_point",
   "checklist_reponse",
+  // Ticket 9K28-CHECKLIST-REPONSE-PHOTO, 11/11/2026 — le lien d'une réponse
+  // `photo` vers ses photos.
+  "checklist_reponse_photo",
   // Ticket 9K29-PRESTATIONS-PAR-TYPE-INTERVENTION, 11/11/2026 — les types
   // d'intervention où une prestation du catalogue est proposée.
   "prestation_type_intervention",
