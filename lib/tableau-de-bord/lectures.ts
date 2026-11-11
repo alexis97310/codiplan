@@ -4,10 +4,12 @@ import {
   etatsAccesDesTechniciens,
   type EtatAcces,
 } from "@/lib/auth/acces-technicien";
-import type { ContexteSession } from "@/lib/auth/contexte";
+import { exigerSocieteActive, type ContexteSession } from "@/lib/auth/contexte";
+import { Role } from "@/lib/auth/roles";
 import type { JourLocal } from "@/lib/calendar/fuseau";
 import { compterClients } from "@/lib/clients/depot";
 import { schemaRechercheClient } from "@/lib/clients/saisie";
+import { avecContexteApplicatif } from "@/lib/db/client";
 import { habilitationsDesTechniciens } from "@/lib/habilitations/depot";
 import type { CleTraduction } from "@/lib/i18n/fr";
 import { compterInterventionsSansDuree } from "@/lib/interventions/depot";
@@ -154,4 +156,33 @@ export async function compterHabilitationsExpirees(
   const toutes = [...habilitationsParTechnicien.values()].flat();
   return toutes.filter((attribution) => estExpiree(attribution, aujourdHui))
     .length;
+}
+
+/**
+ * AUCUN RESPONSABLE SAV ACTIF (D241, amende D173, point 3, audit UX B1 du
+ * 10/11/2026) — gouverne le bandeau du tableau de bord de l'administrateur
+ * (et de la direction, D91/D199) : tant qu'au moins un `responsable_sav`
+ * actif existe, l'alerte de fin d'intervention le trouve, et le bandeau
+ * s'efface. Même filtre (rôle, `utilisateur.actif`) que le repli bureau de
+ * `lib/avertissements/signature-terrain.ts`, jamais une seconde écriture du
+ * même critère.
+ */
+export async function aucunResponsableSavActif(
+  contexte: ContexteSession,
+  client?: PrismaClient,
+): Promise<boolean> {
+  const societeId = exigerSocieteActive(contexte);
+  const compte = await avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.utilisateurSociete.count({
+        where: {
+          societe_id: societeId,
+          role: Role.responsable_sav,
+          utilisateur: { actif: true },
+        },
+      }),
+    client,
+  );
+  return compte === 0;
 }

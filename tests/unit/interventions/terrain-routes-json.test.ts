@@ -282,17 +282,21 @@ describe("les routes du rapport terrain répondent en JSON sur `Accept: applicat
     });
   });
 
-  it("terminer — succès : `{ok: true}`", async () => {
+  it("terminer — succès : la fin est TOUJOURS verte, jamais d'alerte", async () => {
     const reponse = await postTerminer(requeteJson("terminer"), params());
     expect(reponse.status).toBe(200);
-    expect(await reponse.json()).toStrictEqual({ ok: true, motif: null });
+    expect(await reponse.json()).toStrictEqual({
+      ok: true,
+      motif: "terrain.terminer.reussite",
+      alerte: null,
+    });
   });
 
   // 9F4H2A-REJEU-SANS-DOUBLON, point 4 — « terminer rejoué PAR LA ROUTE
   // (un seul courriel) » : le dépôt reconnaît le rejeu (`rejoue: true`), et
   // c'est la ROUTE qui décide alors de ne PAS alerter le SAV une seconde
   // fois (app/api/terrain/[id]/terminer/route.ts, ~:129).
-  it("terminer — un geste NORMAL (client absent) alerte le SAV", async () => {
+  it("terminer — un geste NORMAL (client absent) alerte le SAV, sans message ambre quand ça part", async () => {
     terminerIntervention.mockResolvedValue({
       accepte: true,
       id: "33333333-3333-3333-3333-333333333333",
@@ -301,8 +305,32 @@ describe("les routes du rapport terrain répondent en JSON sur `Accept: applicat
     });
     const reponse = await postTerminer(requeteJson("terminer"), params());
     expect(reponse.status).toBe(200);
-    expect(await reponse.json()).toStrictEqual({ ok: true, motif: null });
+    expect(await reponse.json()).toStrictEqual({
+      ok: true,
+      motif: "terrain.terminer.reussite",
+      alerte: null,
+    });
     expect(alerterResponsablesSAV).toHaveBeenCalledTimes(1);
+  });
+
+  // D241 (amende D173, M1 de l'audit UX du 10/11/2026) — ni le SAV ni le
+  // bureau n'ont pu être prévenus : la fin reste verte, un second message
+  // ambre s'ajoute À PART, jamais à la place du premier.
+  it("terminer — ni le SAV ni le bureau prévenus : succès vert ET avertissement ambre distinct", async () => {
+    terminerIntervention.mockResolvedValue({
+      accepte: true,
+      id: "33333333-3333-3333-3333-333333333333",
+      issueSignature: "client_absent",
+      motifSignature: "Injoignable",
+    });
+    alerterResponsablesSAV.mockResolvedValue({ type: "sans_destinataire" });
+    const reponse = await postTerminer(requeteJson("terminer"), params());
+    expect(reponse.status).toBe(200);
+    expect(await reponse.json()).toStrictEqual({
+      ok: true,
+      motif: "terrain.terminer.reussite",
+      alerte: "terrain.terminer.alerte_non_partie",
+    });
   });
 
   it("terminer — un REJEU reconnu (rejoue: true) n'alerte PAS le SAV une seconde fois", async () => {
@@ -315,7 +343,11 @@ describe("les routes du rapport terrain répondent en JSON sur `Accept: applicat
     });
     const reponse = await postTerminer(requeteJson("terminer"), params());
     expect(reponse.status).toBe(200);
-    expect(await reponse.json()).toStrictEqual({ ok: true, motif: null });
+    expect(await reponse.json()).toStrictEqual({
+      ok: true,
+      motif: "terrain.terminer.reussite",
+      alerte: null,
+    });
     expect(alerterResponsablesSAV).not.toHaveBeenCalled();
   });
 

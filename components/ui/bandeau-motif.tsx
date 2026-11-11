@@ -30,6 +30,10 @@ const CLES_REUSSITE: ReadonlySet<string> = new Set([
   "terrain.rapport.enregistre",
   "terrain.prestations.enregistre",
   "terrain.signature.enregistre",
+  // D241 (amende D173, M1 de l'audit UX du 10/11/2026) — la fin d'une
+  // intervention est TOUJOURS verte, même quand l'alerte au bureau (un
+  // second bandeau, distinct) n'a pas pu partir.
+  "terrain.terminer.reussite",
 ]);
 
 export function tonDuMotifDeFiche(cle: string): TonMessage {

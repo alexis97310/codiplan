@@ -88,12 +88,14 @@ import {
 import { compterLeParc, JOURS_GARANTIE } from "@/lib/machines/depot";
 import { schemaRechercheParc } from "@/lib/machines/saisie";
 import {
+  aucunResponsableSavActif,
   compterHabilitationsExpirees,
   pointsDonneesACompleter,
   techniciensAccesAOuvrir,
 } from "@/lib/tableau-de-bord/lectures";
 import { faitsMiseEnRoute } from "@/lib/tableau-de-bord/mise-en-route";
 import { listerLesTechniciens } from "@/lib/techniciens/depot";
+import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { CLASSES_STATUT, type StatutAffiche } from "@/lib/theme/statuts";
 
 import { referenceAffichee } from "../interventions/presentation";
@@ -410,6 +412,12 @@ export default async function PageTableauDeBord({
     ? compterLesLots(contexte, "a-appliquer")
     : Promise.resolve(0);
 
+  // D241 (amende D173, point 3) — le bandeau « aucun responsable SAV actif »
+  // n'est jamais lu hors des blocs d'administration.
+  const lectureSansResponsableSav: Promise<boolean> = administre
+    ? aucunResponsableSavActif(contexte)
+    : Promise.resolve(false);
+
   // LA BANDE D'HABILITATIONS — EXPIRÉES vient de `compterHabilitationsExpirees`
   // (`lib/tableau-de-bord/lectures.ts`), partagée depuis
   // 9EWD-PARAMETRES-HUB-MAQUETTE avec la porte « Habilitations » du hub de
@@ -441,12 +449,14 @@ export default async function PageTableauDeBord({
     pointsADC,
     lotsAAppliquerCompte,
     [habilitationsExpireesCompte, habilitationsARenouvelerCompte],
+    sansResponsableSavActif,
   ] = await Promise.all([
     lectureMois,
     lectureAccesAOuvrir,
     lecturePointsADC,
     lectureLotsAAppliquer,
     lectureHabilitations,
+    lectureSansResponsableSav,
   ]);
 
   // ── « MISE EN ROUTE » (administrateur de société, ET la direction depuis
@@ -910,6 +920,19 @@ export default async function PageTableauDeBord({
               </div>
             </Carte>
           )}
+
+          {voitLesBlocsDAdministration(composition) &&
+          sansResponsableSavActif ? (
+            <Message
+              ton="avertissement"
+              titre={t("tableau_de_bord.sans_responsable_sav_titre")}
+              action={
+                <Link href="/parametres/equipe" className={CLASSES_LIEN}>
+                  {t("tableau_de_bord.sans_responsable_sav_lien")}
+                </Link>
+              }
+            />
+          ) : null}
 
           {voitLesBlocsDAdministration(composition) ? (
             <BlocAccesAOuvrir

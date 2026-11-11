@@ -1,7 +1,8 @@
 import type { PrismaClient } from "@prisma/client";
 
 import { exigerSocieteActive, type ContexteSession } from "@/lib/auth/contexte";
-import { Role } from "@/lib/auth/roles";
+import type { Capacite } from "@/lib/auth/habilitations";
+import { Role, ROLES_BUREAU } from "@/lib/auth/roles";
 import { lireFuseau, maintenant } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { envoyerCourrielMetier, type Envoi } from "@/lib/courriel";
@@ -17,27 +18,42 @@ import {
 
 /**
  * L'ALERTE AU RESPONSABLE SAV — ABSENT OU REFUS (9DE-TP-CY1, décisions du
- * 03/10/2026, points 10 et 11).
+ * 03/10/2026, points 10 et 11 ; AMENDÉE PAR D241, audit UX B1 du 10/11/2026).
  *
- * *« Absent OU refus → un courriel à CHAQUE `responsable_sav` de la
+ * *« Absent OU refus → un courriel à CHAQUE `responsable_sav` ACTIF de la
  * société »* — jamais au `signee`, qui n'a rien à signaler. Même modèle que
  * `lib/avertissements/planification.ts` : CHAQUE fonction publique lit et
  * compose SOUS le contexte cloisonné, puis envoie HORS de toute transaction
- * (`envoyerPlan`) — un courriel ne doit ni retarder ni annuler le « Terminer »
- * qu'il annonce.
+ * (`envoyerAlerte`) — un courriel ne doit ni retarder ni annuler le
+ * « Terminer » qu'il annonce.
+ *
+ * **D241 — L'ALERTE TROUVE TOUJOURS UN DESTINATAIRE QUAND LE BUREAU EXISTE
+ * ENCORE.** Avant D241, une société sans `responsable_sav` actif ne recevait
+ * RIEN — le technicien lisait « signalez-le vous-même » (B1 de l'audit).
+ * `planerAlerteResponsables` tente désormais, DANS CET ORDRE : chaque
+ * `responsable_sav` actif ; à défaut, chaque compte actif de `ROLES_BUREAU`
+ * (`lib/auth/roles.ts` — exactement « le bureau » de `docs/arbitrages.md`,
+ * les rôles internes hors technicien). `type: "sans_destinataire"` ne
+ * voyage plus que si AUCUN compte de bureau n'est actif — un cas que
+ * l'écran terrain traduit en avertissement, jamais en invitation à se
+ * substituer au SAV (M1 de l'audit).
  *
  * **Plusieurs destinataires, jamais un seul courriel à plusieurs `To`** : la
- * consigne dit « un courriel à CHAQUE responsable_sav », et c'est un envoi
- * par personne, pas une liste de diffusion.
+ * consigne dit « un courriel à CHAQUE » destinataire, et c'est un envoi par
+ * personne, pas une liste de diffusion.
  *
- * **Aucun destinataire = rien envoyé, et l'écran le dit** (même honnêteté que
- * 9DB) : `type: "sans_destinataire"` voyage jusqu'à la route terrain, qui le
- * traduit en motif affiché plutôt que de laisser croire qu'une alerte est
- * partie.
+ * **La notification interne suit le même repli** : `capaciteNotification`
+ * voyage dans le plan et distingue les deux cas — `valider_rapport` pour le
+ * SAV (inchangé), `consulter_clients_sites` pour le repli bureau, la SEULE
+ * capacité de la matrice dont l'ensemble `complet` est exactement
+ * `ROLES_BUREAU` (`lib/auth/habilitations.ts`) : sans cette capacité précise,
+ * un `adv` recevrait le courriel de repli sans jamais voir la notification
+ * correspondante dans l'application, `valider_rapport` ne lui étant pas
+ * ouverte.
  *
  * **COURRIEL MÉTIER, MIS EN PAGE (D207, 9EZ-LOGO-SOCIETE-2)** — même texte
  * qu'avant, logo de la société en pièce jointe en ligne, lu UNE SEULE fois
- * pour l'ensemble des `responsable_sav`.
+ * pour l'ensemble des destinataires.
  *
  * **LE LOGO NE BLOQUE NI LE GESTE NI L'ENVOI (point 1,
  * 9EZ-LOGO-SOCIETE-4-COURRIELS-SOLDE)** — lu HORS de la transaction qui
@@ -54,6 +70,7 @@ type PlanAlerte =
   | {
       readonly type: "a_envoyer";
       readonly destinataires: readonly string[];
+      readonly capaciteNotification: Capacite;
       readonly sujet: string;
       readonly texte: string;
     };
@@ -101,6 +118,10 @@ async function planerAlerteResponsables(
       if (intervention === null) {
         return { type: "sans_destinataire" };
       }
+      const detail = {
+        site: intervention.site.libelle,
+        client: intervention.client.raison_sociale,
+      };
       const responsables = await tx.utilisateurSociete.findMany({
         where: {
           societe_id: societeId,
@@ -109,17 +130,35 @@ async function planerAlerteResponsables(
         },
         select: { utilisateur: { select: { email: true } } },
       });
-      if (responsables.length === 0) {
+      if (responsables.length > 0) {
+        return {
+          type: "a_envoyer",
+          destinataires: responsables.map((r) => r.utilisateur.email),
+          capaciteNotification: "valider_rapport",
+          sujet: sujetAlerte(),
+          texte: texteAlerte(issue, motif, detail),
+        };
+      }
+      // REPLI SUR LE BUREAU (D241, point 2) — aucun `responsable_sav` actif :
+      // la société existe peut-être encore sans en avoir désigné un (ou plus
+      // aucun n'est actif), et l'alerte ne doit pas disparaître pour autant.
+      const bureau = await tx.utilisateurSociete.findMany({
+        where: {
+          societe_id: societeId,
+          role: { in: [...ROLES_BUREAU] },
+          utilisateur: { actif: true },
+        },
+        select: { utilisateur: { select: { email: true } } },
+      });
+      if (bureau.length === 0) {
         return { type: "sans_destinataire" };
       }
       return {
         type: "a_envoyer",
-        destinataires: responsables.map((r) => r.utilisateur.email),
+        destinataires: bureau.map((r) => r.utilisateur.email),
+        capaciteNotification: "consulter_clients_sites",
         sujet: sujetAlerte(),
-        texte: texteAlerte(issue, motif, {
-          site: intervention.site.libelle,
-          client: intervention.client.raison_sociale,
-        }),
+        texte: texteAlerte(issue, motif, detail),
       };
     },
     client,
@@ -129,17 +168,20 @@ async function planerAlerteResponsables(
 /**
  * POSE LA NOTIFICATION INTERNE ET SON JOURNAL D'ENVOI (9J11), au même point
  * que le courriel qu'elle accompagne — jamais avant de savoir ce qu'il est
- * devenu. `capacite_requise: "valider_rapport"` (ADMS, DIR, RM, RS au ●) :
- * les mêmes rôles qui valident un rapport terrain, pas un ensemble plus
- * large comme `consulter_parc_complet`, qui ouvrirait au technicien restreint.
+ * devenu. `capaciteNotification` vient du plan (D241) : `valider_rapport`
+ * (ADMS, DIR, RM, RS au ●) pour le SAV, `consulter_clients_sites` (ADMS, DIR,
+ * RM, RS, ADV au ●) pour le repli bureau — jamais un ensemble plus large
+ * comme `consulter_parc_complet`, qui ouvrirait au technicien restreint.
  *
  * `partie` dit si TOUS les envois sont partis — un seul motif de refus suffit
- * à dire que l'alerte n'a PAS pleinement atteint le SAV, jamais une moyenne.
+ * à dire que l'alerte n'a PAS pleinement atteint ses destinataires, jamais
+ * une moyenne.
  */
 async function journaliserEnvoi(
   contexte: ContexteSession,
   interventionId: string,
   envois: readonly Envoi[],
+  capaciteNotification: Capacite,
   connexion?: PrismaClient,
 ): Promise<void> {
   const societeId = exigerSocieteActive(contexte);
@@ -147,7 +189,7 @@ async function journaliserEnvoi(
     contexte,
     "signature_absente_ou_refusee",
     { cible: "intervention", intervention_id: interventionId },
-    "valider_rapport",
+    capaciteNotification,
     undefined,
     connexion,
   );
@@ -189,7 +231,13 @@ async function envoyerAlerte(
       ),
     ),
   );
-  await journaliserEnvoi(contexte, interventionId, envois, connexion);
+  await journaliserEnvoi(
+    contexte,
+    interventionId,
+    envois,
+    plan.capaciteNotification,
+    connexion,
+  );
   return { type: "envoyee", nombre: plan.destinataires.length };
 }
 

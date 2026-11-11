@@ -69,6 +69,17 @@ export const ROLES_INTERNES: readonly Role[] = Object.freeze([
 export const ROLE_PORTAIL: Role = Role.client;
 
 /**
+ * « Le bureau » (D241, amende D173) — les rôles internes hors technicien :
+ * exactement ceux que `docs/arbitrages.md` nomme ainsi, destinataires de
+ * repli de l'alerte de fin d'intervention sans signature quand la société
+ * n'a plus aucun `responsable_sav` actif. `ROLES_INTERNES` moins `technicien`,
+ * jamais une seconde liste écrite à la main.
+ */
+export const ROLES_BUREAU: readonly Role[] = Object.freeze(
+  ROLES_INTERNES.filter((role) => role !== Role.technicien),
+);
+
+/**
  * Second facteur obligatoire (§12.1 « second facteur obligatoire pour les rôles
  * administrateur et direction », §22.5 pour le super-administrateur plateforme,
  * et D40 pour l'administrateur de société). La liste est fermée : l'ouvrir est

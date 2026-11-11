@@ -26,6 +26,7 @@ describe("tonDuMotifDeFiche", () => {
     "terrain.rapport.enregistre",
     "terrain.prestations.enregistre",
     "terrain.signature.enregistre",
+    "terrain.terminer.reussite",
   ];
 
   it.each([
@@ -43,6 +44,7 @@ describe("tonDuMotifDeFiche", () => {
     "terrain.rapport.enregistre",
     "terrain.prestations.enregistre",
     "terrain.signature.enregistre",
+    "terrain.terminer.reussite",
   ])("« %s » est un succès (vert)", (cle) => {
     expect(tonDuMotifDeFiche(cle)).toBe("succes");
   });
@@ -59,6 +61,6 @@ describe("tonDuMotifDeFiche", () => {
   });
 
   it("la liste des clés de succès est fermée : aucune autre clé ne sort verte par accident", () => {
-    expect(CLES_REUSSITE).toHaveLength(14);
+    expect(CLES_REUSSITE).toHaveLength(15);
   });
 });

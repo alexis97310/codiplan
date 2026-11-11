@@ -3302,8 +3302,14 @@ export const fr = {
     "Le client a refusé de signer à la fin de l'intervention.",
   "terrain.terminer.alerte_client_libelle": "Client :",
   "terrain.terminer.alerte_motif_libelle": "Motif :",
-  "terrain.terminer.alerte_sans_destinataire":
-    "Intervention terminée. Aucun responsable SAV actif n'est enregistré : l'alerte n'a pas pu être envoyée, signalez-le vous-même.",
+  // D241 (amende D173, audit UX B1/M1 du 10/11/2026) — remplace
+  // `terrain.terminer.alerte_sans_destinataire`, qui conflatait la réussite
+  // du geste et l'échec de l'alerte dans un seul bandeau rouge, et renvoyait
+  // le technicien se substituer au SAV. Deux messages distincts désormais :
+  // la réussite (toujours verte) et l'alerte non partie (ambre, seulement
+  // quand ni le SAV ni le bureau n'ont pu être prévenus).
+  "terrain.terminer.reussite": "Intervention terminée.",
+  "terrain.terminer.alerte_non_partie": "L'alerte au bureau n'a pas pu partir.",
   // ── « TERMINER » NE TERMINE JAMAIS EN LAISSANT UNE SAISIE NON ENREGISTRÉE
   // (9F4A-TERMINER-SANS-PERTE, point 2) — remplace `terrain.terminer.
   // hors_reseau`, qui promettait un envoi automatique au retour du réseau
@@ -5500,6 +5506,15 @@ export const fr = {
   "tableau_de_bord.acces_detail_lien_envoye": "liens envoyés",
   "tableau_de_bord.acces_detail_sans_lien": "sans lien",
   "tableau_de_bord.acces_detail_a_ouvrir": "accès à ouvrir",
+
+  // ── D241 (amende D173, point 3, audit UX B1 du 10/11/2026) — l'absence de
+  // responsable SAV actif se signale à l'administrateur, jamais au
+  // technicien : visible sur le tableau de bord de l'administrateur et de
+  // la direction (D91/D199, mêmes blocs d'administration), tant qu'aucun
+  // responsable SAV actif n'existe.
+  "tableau_de_bord.sans_responsable_sav_titre":
+    "Aucun responsable SAV actif : les alertes de fin d'intervention partent à tout le bureau.",
+  "tableau_de_bord.sans_responsable_sav_lien": "Équipe",
 
   // ── « MISE EN ROUTE » (administrateur, `miseEnRoute`, maquette :2828-2836,
   // PU-1 — les huit critères sont un CHOIX DU PILOTE validé par Alexis le

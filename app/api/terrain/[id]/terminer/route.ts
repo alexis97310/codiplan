@@ -27,8 +27,22 @@ import {
  * ramène à la fiche avec un motif, jamais une page d'erreur brute.
  */
 
-function versLaFiche(id: string, cle?: string): Response {
-  const suffixe = cle === undefined ? "" : `?motif=${encodeURIComponent(cle)}`;
+/**
+ * `motif` porte le compte rendu principal (succès ou refus) ; `cleAlerte`
+ * (D241, M1 de l'audit UX du 10/11/2026) porte, EN PLUS et INDÉPENDAMMENT,
+ * l'avertissement « l'alerte au bureau n'a pas pu partir » — jamais le même
+ * paramètre que `motif`, pour que la fiche puisse rendre les deux bandeaux
+ * À LA FOIS plutôt que de n'en garder qu'un.
+ */
+function versLaFiche(id: string, cle?: string, cleAlerte?: string): Response {
+  const parametres = new URLSearchParams();
+  if (cle !== undefined) {
+    parametres.set("motif", cle);
+  }
+  if (cleAlerte !== undefined) {
+    parametres.set("alerte", cleAlerte);
+  }
+  const suffixe = parametres.size === 0 ? "" : `?${parametres.toString()}`;
   return new Response(null, {
     status: 303,
     headers: { Location: `/terrain/${id}${suffixe}` },
@@ -46,15 +60,17 @@ function reponse(
   ok: boolean,
   cle?: string,
   pointsManquants?: readonly PointObligatoireManquant[],
+  cleAlerte?: string,
 ): Response {
   if (veutJson(requete)) {
     return Response.json({
       ok,
       motif: cle ?? null,
+      alerte: cleAlerte ?? null,
       ...(pointsManquants === undefined ? {} : { pointsManquants }),
     });
   }
-  return versLaFiche(id, cle);
+  return versLaFiche(id, cle, cleAlerte);
 }
 
 async function contexteDuTerrain(): Promise<ContexteActif | null> {
@@ -138,9 +154,16 @@ async function traiter(requete: Request, id: string): Promise<Response> {
     }
 
     // UN REJEU RECONNU (9F4H2, décision n° 108 d'Alexis) N'ENVOIE AUCUN
-    // SECOND COURRIEL : le premier passage a déjà alerté le SAV, ou a déjà
-    // décidé de ne pas le faire — le rejouer ferait le second geste deux
-    // fois pour un seul fait.
+    // SECOND COURRIEL : le premier passage a déjà alerté le SAV ou le bureau,
+    // ou a déjà décidé de ne pas le faire — le rejouer ferait le second
+    // geste deux fois pour un seul fait.
+    //
+    // DEUX BANDEAUX DISTINCTS (D241, M1 de l'audit UX du 10/11/2026) : la
+    // réussite du « Terminer » est TOUJOURS verte (`terrain.terminer.
+    // reussite`) ; l'avertissement ambre ne s'ajoute que si l'alerte n'a pu
+    // atteindre NI le SAV ni le bureau — jamais le même bandeau que la
+    // réussite, et jamais « signalez-le vous-même ».
+    let cleAlerte: string | undefined;
     if (resultat.rejoue !== true && resultat.issueSignature !== "signee") {
       const etat = await alerterResponsablesSAV(
         contexte,
@@ -149,16 +172,18 @@ async function traiter(requete: Request, id: string): Promise<Response> {
         resultat.motifSignature ?? "",
       );
       if (etat.type === "sans_destinataire") {
-        return reponse(
-          requete,
-          id,
-          true,
-          "terrain.terminer.alerte_sans_destinataire",
-        );
+        cleAlerte = "terrain.terminer.alerte_non_partie";
       }
     }
 
-    return reponse(requete, id, true);
+    return reponse(
+      requete,
+      id,
+      true,
+      "terrain.terminer.reussite",
+      undefined,
+      cleAlerte,
+    );
   } catch (erreur) {
     console.error(`terrain terminer (${id})`, erreur);
     return reponse(requete, id, false, "intervention.refus.erreur_serveur");

@@ -31,6 +31,7 @@ import { RapportTerrainAutomatique } from "@/components/terrain/rapport-automati
 import { BoutonSuspendreTerrain } from "@/components/terrain/suspendre-terrain";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
 import { Button } from "@/components/ui/button";
+import { Message } from "@/components/ui/message";
 import { Priorite } from "@/components/ui/priorite";
 import { type ContexteActif } from "@/lib/auth/contexte";
 import { obtenirSession } from "@/lib/auth/session";
@@ -164,7 +165,7 @@ export default async function PageInterventionTerrain({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ motif?: string }>;
+  searchParams: Promise<{ motif?: string; alerte?: string }>;
 }) {
   const session = await obtenirSession(await headers());
   if (session === null) {
@@ -188,7 +189,7 @@ export default async function PageInterventionTerrain({
   }
 
   const { id } = await params;
-  const motif = (await searchParams).motif;
+  const { motif, alerte } = await searchParams;
 
   // UN IDENTIFIANT MAL FORMÉ EST UN REFUS, JAMAIS UNE PANNE (ADDENDUM 1 de
   // 9DU-TP-NAV3-RECHERCHE-RAIL) — même garde que `clients/[id]`.
@@ -448,6 +449,14 @@ export default async function PageInterventionTerrain({
 
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <BandeauMotif motif={motif}>{t(motif)}</BandeauMotif>
+      ) : null}
+
+      {/* D241 (amende D173, M1 de l'audit UX du 10/11/2026) — un SECOND
+          bandeau, distinct de celui ci-dessus : « Terminer » réussit
+          toujours (vert ci-dessus), et cet avertissement ambre ne s'ajoute
+          que si l'alerte de fin d'intervention n'a pu atteindre personne. */}
+      {typeof alerte === "string" && estCleTraduction(alerte) ? (
+        <Message ton="avertissement" titre={t(alerte)} />
       ) : null}
 
       {/* LE GESTE PRINCIPAL, EN TÊTE (point 1, 9G5-TERRAIN-ERGONOMIE) — à 375
