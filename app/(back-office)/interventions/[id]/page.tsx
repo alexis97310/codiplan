@@ -2068,7 +2068,7 @@ function AvantDeCloturer({
     },
   ] as const;
   return (
-    <Carte titre={t("intervention.avant_cloture.titre")}>
+    <Carte bloc="avant-cloture" titre={t("intervention.avant_cloture.titre")}>
       <ul
         className={`flex flex-col gap-1.5 px-4 pt-3.5 text-[12px] font-bold ${
           nonConformesChecklist === 0 ? "pb-3.5" : ""

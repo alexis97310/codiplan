@@ -176,9 +176,7 @@ describe("la tuile checklist de la fiche bureau — composition, provenance, aut
           sansObjet: 0,
         });
 
-        expect(checklist.sections.map((s) => s.section)).toEqual([
-          "Sécurité",
-        ]);
+        expect(checklist.sections.map((s) => s.section)).toEqual(["Sécurité"]);
         const [conforme, nonConforme] = checklist.sections[0]!.points;
         expect(conforme).toMatchObject({
           libelle: "Protections en place",
@@ -207,9 +205,8 @@ describe("la tuile checklist de la fiche bureau — composition, provenance, aut
 
 describe("la tuile checklist de la fiche bureau — isolation", () => {
   it("une AUTRE société ne lit aucune réponse", async () => {
-    const { modeleId, versionId } = await poserModeleEtVersion(
-      "CK9-FICHE-SOCIETE",
-    );
+    const { modeleId, versionId } =
+      await poserModeleEtVersion("CK9-FICHE-SOCIETE");
     try {
       const pointId = await poserPoint(versionId, {
         section: "Section",
