@@ -191,6 +191,12 @@ const AMENDEMENTS_ATTENDUS: ReadonlyArray<readonly [string, string]> = [
   // 9F4H4B-OUVERTURE-A-FROID) achève ce que D213 promettait de rouvrir :
   // la fiche de la coquille PUBLIQUE devient une fiche de travail.
   ["D213", "D216"],
+  // D242 (10/11/2026, 9K27-TERRAIN-TERMINER-CE-QUI-MANQUE) amende deux
+  // décisions : D212 (le bouton « Terminer l'intervention » ouvre une
+  // feuille plutôt que d'envoyer lui-même) et D219 (la feuille devient
+  // plein écran, avec des manques nommés et un temps qui défile).
+  ["D212", "D242"],
+  ["D219", "D242"],
 ];
 
 describe("câblage bidirectionnel entre décisions", () => {

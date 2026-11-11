@@ -7358,6 +7358,8 @@ Le calcul de la majoration (`lib/tarification/majoration.ts`, `minutesHorsOuvert
 
 *Alexis, après avoir réalisé une intervention avec l'application technicien : devoir cliquer « Enregistrer » à chaque bloc (commentaire, photo, signature…) est dérangeant. Décision : enregistrement AUTOMATIQUE en arrière-plan de tout ce qui est saisi, plus aucun bouton « Enregistrer » par bloc, et rien ne se perd si le téléphone se coupe.*
 
+**Amendé par D242.** (Le bouton « Terminer l'intervention » reste TOUJOURS affiché, comme ici — mais ce n'est plus LUI qui envoie et laisse le serveur trancher au clic : il ouvre une feuille, et c'est « Confirmer la fin », à l'intérieur, qui le fait, inactive tant qu'il manque quelque chose.)
+
 **Décisions amendées :** D161
 
 ### CE QUI A ÉTÉ MESURÉ
@@ -7602,6 +7604,8 @@ Aucune migration, aucune règle de prix, aucune clé i18n nouvelle : `statistiqu
 **Précision (9F5C, 22/10/2026)** — la ligne de ce fichier a bougé depuis : `expect(indexSemaine).toBe(indexDeuxSemaines)` est désormais à `tests/e2e/planning-deux-semaines.spec.ts:204`, jamais `:231`. Même règle que D93/D217 ci-dessus : un numéro de ligne cité ici est un REPÈRE à l'instant où il est écrit, pas une promesse qu'un fichier qui continue de vivre tiendrait pour toujours.
 
 ## D219 — CONFIRMATION AVANT « TERMINER », AVEC RÉSUMÉ (décision d'Alexis du 21/10/2026, 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES)
+
+**Amendé par D242.** (La confirmation inline devient une feuille PLEIN ÉCRAN, au-dessus de la barre basse ; le second geste, « Oui, terminer », devient « Confirmer la fin » et reste inactif tant qu'il manque le commentaire, la signature ou un point obligatoire de checklist — chacun nommé, avec un lien qui y mène ; le temps mesuré affiché fait défiler le segment encore ouvert plutôt que de montrer une valeur figée.)
 
 **Note de numérotation :** le ticket nommait cette décision « D138 ». Ce numéro est déjà pris — voir D138 ci-dessus (plancher typographique à 12 px, QE-1), une décision sans rapport. Elle est donc enregistrée ici sous D219, le prochain numéro libre ; aucune réouverture de D138 n'a eu lieu.
 
@@ -8345,3 +8349,27 @@ Aucune migration. Aucune règle du chapitre 10 ne nomme les destinataires de cet
 **Règles amendées :** aucune au chapitre 10 (voir « CE QUE ÇA NE TOUCHE PAS ») — D173 (ce document) est amendée sur ses points 4 et 5.
 
 Portée : `lib/avertissements/signature-terrain.ts`, `lib/auth/roles.ts` (`ROLES_BUREAU`), `lib/auth/habilitations.ts` (lu, non modifié), `lib/notifications/depot.ts` (lu, non modifié), `lib/tableau-de-bord/lectures.ts` (`aucunResponsableSavActif`), `app/(back-office)/tableau-de-bord/page.tsx`, `app/api/terrain/[id]/terminer/route.ts`, `app/(mobile)/terrain/[id]/page.tsx`, `components/ui/bandeau-motif.tsx`, `lib/i18n/fr.ts`, `tests/isolation/signature-terrain-repli-bureau.test.ts`, `tests/unit/interventions/terrain-routes-json.test.ts`, `tests/unit/ui/bandeau-motif.test.ts`.
+
+## D242 — « TERMINER » EXIGE UN COMMENTAIRE ; LE BOUTON DE CONFIRMATION RESTE INACTIF TANT QU'IL MANQUE QUELQUE CHOSE, NOMMÉ ET CLIQUABLE (décision verbatim d'Alexis, 10/11/2026 ~23:58 ; audit UX du 10/11/2026, constats B2 et M3 ; 9K27-TERRAIN-TERMINER-CE-QUI-MANQUE)
+
+**Décisions amendées :** D212, D219
+
+**CE QUI A ÉTÉ MESURÉ.** L'audit UX du 10/11/2026 a mesuré deux défauts sur la confirmation de « Terminer » (D219) : **B2 (bloquant)** — « Oui, terminer » restait ACTIF même avec « Rapport non rempli » et « Aucune signature » affichés juste au-dessus dans le même résumé, cliquable pour n'obtenir qu'un refus serveur après coup. **M3 (majeur)** — la confirmation s'affichait SOUS la barre de navigation basse (`barre-basse.tsx`, `z-50`), partiellement masquée ; et « Temps mesuré : 0 min » s'affichait alors même que le compteur tournait encore (segment ouvert, jamais recompté par l'écran).
+
+À la question « comment traiter B2 », réponse d'Alexis, verbatim : **« Inactif + commentaire exigé »** — deux décisions dans la même phrase : le bouton doit devenir inactif plutôt que de laisser un clic aboutir à un refus différé, ET une règle nouvelle naît à cette occasion, qu'aucun audit ne demandait : un commentaire non vide devient une condition de « Terminer », au même titre que le temps mesuré et la signature.
+
+**LA DÉCISION.**
+
+**1. RG-INT-02 est amendée : « Terminer » exige désormais un COMMENTAIRE non vide.** `peutTerminer` (`lib/interventions/cycle-de-vie.ts`) reçoit un troisième paramètre, `commentaireTechnicien: string | null` — la même colonne que `peutValiderRapport` exige déjà (`commentaire_technicien`, « LE RAPPORT DE TERRAIN », `lib/interventions/depot-rapport-terrain.ts`). `null`, ou un texte fait seulement d'espaces, refuse avec la clé `intervention.refus.commentaire_absent` — jugé APRÈS le temps mesuré, AVANT la checklist (le temps est un FAIT du compteur, jugé en premier comme avant cette décision ; le commentaire et la checklist sont tous deux des SAISIES du rapport, le commentaire d'abord). TOUS les appelants de `peutTerminer` sont mis à jour dans ce même lot : `terminerIntervention` (l'arbitre serveur, qui lit la colonne fraîchement relue dans sa transaction), `/api/terrain/instantane` (hors réseau) et `/terrain/[id]` (en ligne), qui lisent tous deux `rapportTexte?.commentaire_technicien`, déjà chargé pour d'autres besoins — et le verdict LOCAL hors réseau de `RapportTerrainAutomatique`, qui lit le brouillon affiché à l'écran. Le serveur reste l'ARBITRE final, dans sa propre transaction : un commentaire effacé entre l'affichage et le clic refuse quand même, nommé.
+
+**2. D212 est amendée : le bouton « Terminer l'intervention » reste TOUJOURS affiché et TOUJOURS actif — mais ce n'est plus lui qui envoie.** Il ouvre la feuille de confirmation (D219) ; c'est le bouton « Confirmer la fin », À L'INTÉRIEUR, qui envoie, et qui reste INACTIF tant qu'il manque le commentaire, l'ISSUE de signature complète (avec son motif si absence ou refus), ou un point obligatoire de la checklist (CK7, D240) — ces trois manques, et PAS le temps mesuré : aucun lien sensé ne mène, depuis cette feuille, à « démarrer le compteur », et un temps manquant reste un refus SERVEUR ordinaire après le clic, exactement comme avant cette décision (D212, inchangée sur ce point précis). `manquesPourTerminer` (`lib/interventions/cycle-de-vie.ts`) calcule les TROIS à la fois, jamais seulement le premier — même doctrine que `motifsNonTransmissible` applique déjà au tri « pretes / laissées » — pour que la feuille les nomme TOUS, chacun avec un lien qui y mène (le champ commentaire, le bloc signature, le point de checklist cité par section et libellé, même patron que CK7) et referme la feuille avant d'y amener. La raison de l'inactivité est un texte lisible par un lecteur d'écran (`aria-describedby`), pas seulement une opacité.
+
+**3. M3 : la feuille devient PLEIN ÉCRAN, et le temps affiché défile.** La confirmation (D219) n'est plus une carte inline sous le bouton : un panneau `position: fixed; inset: 0` d'un niveau SUPÉRIEUR à la barre basse (`z-[60]`, contre `z-50`), qui couvre tout le viewport — jamais à nouveau masquée par elle. Le « Temps mesuré » affiché compte désormais le segment ENCORE OUVERT jusqu'à maintenant (`CompteurVivant`, le même composant que le bandeau « Compteur en marche depuis… », D119/D120 : *le compteur fait foi, c'est lui qu'on montre, jamais une estimation*), cohérent avec ce que le serveur mesurera réellement au clic — qui ferme ce même segment avant de recompter (`terminerIntervention`, inchangé sur ce point, D212).
+
+**CE QUE ÇA NE TOUCHE PAS.** Aucune migration (la colonne `commentaire_technicien` existe déjà, D212). Les trois issues de signature elles-mêmes (D173, D-S5) ne changent pas, ni leur motif obligatoire. Le destinataire de l'alerte de fin (D241, 9K26) et la fiche en étapes (lot M2 de l'audit, pas encore décidé) sont hors de ce ticket. La checklist obligatoire (D240, CK7) n'est pas modifiée dans ses règles — seule sa présentation, désormais À L'INTÉRIEUR de la feuille plutôt que sous le bouton, change.
+
+**CONDITION DE RÉOUVERTURE, vérifiable** : le jour où le temps mesuré devrait, lui aussi, bloquer « Confirmer la fin » avant le clic plutôt que de rester un refus serveur après coup, cette décision se rouvre pour l'ajouter nommément à `manquesPourTerminer` — elle ne l'anticipe pas.
+
+**Règles amendées :** RG-INT-02
+
+Portée : `lib/interventions/cycle-de-vie.ts` (`peutTerminer`, `manquesPourTerminer`, `ManquesTerminer`), `lib/interventions/depot-rapport-terrain.ts` (`terminerIntervention`), `app/api/terrain/instantane/route.ts`, `app/(mobile)/terrain/[id]/page.tsx`, `components/terrain/rapport-automatique.tsx`, `components/terrain/compteur-vivant.tsx` (lu, non modifié), `lib/i18n/fr.ts`, `docs/cahier-des-charges.md` (RG-INT-02), `tests/unit/interventions/cycle-de-vie.test.ts`, `tests/unit/terrain/rapport-automatique.test.tsx`, `tests/isolation/terminer-intervention.test.ts`, `tests/isolation/9f4h2-hors-reseau-heure-et-rejeu.test.ts`, `tests/isolation/9f4h4b-depuis-file.test.ts`, `tests/e2e/9k27-terrain-terminer-ce-qui-manque.spec.ts`.

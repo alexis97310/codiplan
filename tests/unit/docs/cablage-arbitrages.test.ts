@@ -108,6 +108,10 @@ const CABLAGE_ATTENDU: ReadonlyArray<readonly [string, string]> = [
   // précisée à « chaque point obligatoire porte une réponse », amendement
   // écrit de la réponse « A » d'Alexis du 29/10/2026 (D235 le rappelait déjà).
   ["D240", "RG-INT-02"],
+  // D242 (11/11/2026, 9K27-TERRAIN-TERMINER-CE-QUI-MANQUE) : un commentaire
+  // non vide s'ajoute aux conditions de « Terminer » (décision « Inactif +
+  // commentaire exigé » d'Alexis du 10/11/2026).
+  ["D242", "RG-INT-02"],
 ];
 
 describe("câblage bidirectionnel entre le chapitre 10 et les arbitrages", () => {
