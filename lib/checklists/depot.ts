@@ -8,6 +8,7 @@ import {
   type TypeReponseChecklist,
 } from "@prisma/client";
 
+import { annuaireDesPersonnes, type Annuaire } from "@/lib/auth/annuaire";
 import {
   exigerContexteActif,
   exigerSocieteActive,
@@ -1320,6 +1321,105 @@ export async function checklistDuBon(
 
   const totalConformite = conformes + nonConformes + sansObjet;
   return {
+    resume:
+      totalConformite === 0 ? null : { conformes, nonConformes, sansObjet },
+    sections,
+  };
+}
+
+export type PointReponduFiche = PointReponduBon & {
+  /** Qui a répondu — « — » quand le compte est hors périmètre (I10). */
+  readonly auteur: string;
+  readonly reponduLe: Date;
+};
+
+export type SectionChecklistFiche = {
+  readonly section: string;
+  readonly points: readonly PointReponduFiche[];
+};
+
+export type ChecklistFiche = {
+  readonly checklistModeleLibelle: string;
+  readonly resume: ResumeChecklistBon | null;
+  readonly sections: readonly SectionChecklistFiche[];
+};
+
+function nomDeLAuteur(auteurId: string, annuaire: Annuaire): string {
+  const designation = annuaire(auteurId);
+  return designation.etat === "nom" ? designation.nom : "—";
+}
+
+/**
+ * LA CHECKLIST D'UNE FICHE BUREAU (9K25-CHECKLIST-FICHE-BUREAU, CK9) — même
+ * garde que `checklistDuBon` (`null` tant qu'aucune version n'est FIGÉE,
+ * `intervention_id` SEUL comme filtre, jamais de JOIN implicite vers
+ * `checklist_point`), mais pour un public DIFFÉRENT : le bureau, pas un
+ * document remis au client. Deux informations que le bon ne porte jamais y
+ * sont ajoutées — la PROVENANCE (le libellé du modèle, « Checklist : <X> »,
+ * même préfixe que la tuile terrain) et QUI a répondu CHAQUE point, et
+ * QUAND — d'où la fonction séparée plutôt qu'un paramètre optionnel sur
+ * `checklistDuBon`, dont la forme reste celle du bon.
+ */
+export async function checklistDeLaFiche(
+  tx: Prisma.TransactionClient,
+  interventionId: string,
+  checklistVersionId: string | null,
+): Promise<ChecklistFiche | null> {
+  if (checklistVersionId === null) {
+    return null;
+  }
+
+  const [reponses, version] = await Promise.all([
+    tx.checklistReponse.findMany({
+      where: { intervention_id: interventionId },
+      orderBy: [{ repondu_le: "asc" }, { id: "asc" }],
+    }),
+    tx.checklistVersion.findFirst({
+      where: { id: checklistVersionId },
+      select: { modele: { select: { libelle: true } } },
+    }),
+  ]);
+
+  const annuaire = await annuaireDesPersonnes(
+    tx,
+    reponses.map((reponse) => reponse.auteur_id),
+  );
+
+  const sections: { readonly section: string; points: PointReponduFiche[] }[] =
+    [];
+  const indexParSection = new Map<string, number>();
+  let conformes = 0;
+  let nonConformes = 0;
+  let sansObjet = 0;
+
+  for (const reponse of reponses) {
+    const rendu = renduDeLaReponseBon(reponse);
+    if (rendu.nature === "conforme") {
+      if (rendu.valeur === "conforme") conformes++;
+      else if (rendu.valeur === "non_conforme") nonConformes++;
+      else sansObjet++;
+    }
+
+    let index = indexParSection.get(reponse.section);
+    if (index === undefined) {
+      index = sections.length;
+      indexParSection.set(reponse.section, index);
+      sections.push({ section: reponse.section, points: [] });
+    }
+    sections[index]!.points.push({
+      id: reponse.checklist_point_id,
+      libelle: reponse.libelle,
+      rendu,
+      auteur: nomDeLAuteur(reponse.auteur_id, annuaire),
+      reponduLe: reponse.repondu_le,
+    });
+  }
+
+  const totalConformite = conformes + nonConformes + sansObjet;
+  return {
+    // JAMAIS `null` ICI — `checklistVersionId` non nul garantit une version
+    // déjà publiée, et son modèle ne se supprime jamais (`onDelete: Restrict`).
+    checklistModeleLibelle: version!.modele.libelle,
     resume:
       totalConformite === 0 ? null : { conformes, nonConformes, sansObjet },
     sections,

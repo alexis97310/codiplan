@@ -27,6 +27,10 @@ import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
 import { absenceCouvrant } from "@/lib/absences/periode";
 import {
+  checklistDeLaFiche,
+  type ChecklistFiche,
+} from "@/lib/checklists/depot";
+import {
   verdictAffectation,
   type VerdictAffectation,
 } from "@/lib/habilitations/affectation";
@@ -3308,6 +3312,11 @@ export async function lireFicheIntervention(
     readonly par: string | null;
     readonly le: Date;
   } | null;
+  /**
+   * LA CHECKLIST (9K25-CHECKLIST-FICHE-BUREAU, CK9) — `null` tant qu'aucune
+   * version n'est FIGÉE (`checklistDeLaFiche`), jamais résolue à la volée.
+   */
+  readonly checklist: ChecklistFiche | null;
 } | null> {
   return avecContexteApplicatif(
     contexte,
@@ -3346,6 +3355,9 @@ export async function lireFicheIntervention(
           // `CHAMPS_LIGNE`, même réserve que la trace de déplanification.
           hors_ouverture_confirmee_par: true,
           hors_ouverture_confirmee_le: true,
+          // LA CHECKLIST FIGÉE (9K25-CHECKLIST-FICHE-BUREAU, CK9) — voir
+          // `checklistDeLaFiche`.
+          checklist_version_id: true,
           client: { select: { raison_sociale: true } },
           site: { select: { libelle: true } },
           agence: {
@@ -3388,8 +3400,11 @@ export async function lireFicheIntervention(
         deplanifiee_le,
         hors_ouverture_confirmee_par,
         hors_ouverture_confirmee_le,
+        checklist_version_id,
         ...brute
       } = ligne;
+
+      const checklist = await checklistDeLaFiche(tx, id, checklist_version_id);
 
       // Le verdict porte sur la date VISÉE — celle de l'intervention —, jamais
       // sur aujourd'hui : une habilitation qui expire la semaine prochaine est
@@ -3503,6 +3518,7 @@ export async function lireFicheIntervention(
         deplanification,
         deplanifieeLe: deplanifiee_le,
         horsOuvertureConfirmee,
+        checklist,
       };
     },
     connexion,

@@ -5,6 +5,10 @@ import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 
+import {
+  libelleRenduChecklist,
+  resumeChecklistBon,
+} from "@/components/interventions/bon-tuiles";
 import { DialogueAnnuler } from "@/components/interventions/dialogue-annuler";
 import { DialogueChangerTechnicien } from "@/components/interventions/dialogue-changer-technicien";
 import { DialogueCloturer } from "@/components/interventions/dialogue-cloturer";
@@ -30,6 +34,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { absencesDeLaPeriode } from "@/lib/absences/depot";
 import { annuaireDesPersonnes } from "@/lib/auth/annuaire";
+import { type ChecklistFiche } from "@/lib/checklists/depot";
 import { type ContexteActif } from "@/lib/auth/contexte";
 import { peut, peutPleinement } from "@/lib/auth/habilitations";
 import { obtenirSession } from "@/lib/auth/session";
@@ -1404,6 +1409,9 @@ export default async function PageIntervention({
                   depuisId,
                   retour: retourRegistre,
                 })}
+                nonConformesChecklist={
+                  fiche.checklist?.resume?.nonConformes ?? 0
+                }
               />
             )}
 
@@ -1718,6 +1726,21 @@ export default async function PageIntervention({
             )}
 
             {/*
+              CHECKLIST (9K25-CHECKLIST-FICHE-BUREAU, CK9) — EN LECTURE,
+              après « Pièces remplacées » et avant « Suite à donner », même
+              position relative que `TuileChecklist` sur le bon (« après
+              prestations », CK8) : la tuile matérielle d'abord, le devenir
+              de l'intervention ensuite. Aucune checklist figée = aucune
+              tuile (voir `TuileChecklistFiche`).
+            */}
+            {fiche.checklist === null ? null : (
+              <TuileChecklistFiche
+                checklist={fiche.checklist}
+                fuseau={fiche.fuseau}
+              />
+            )}
+
+            {/*
               SUITE À DONNER (9I6) — même donnée que l'onglet Rapport et le
               bon, sa propre tuile ici : `fiche.suiteADonner`, jamais
               recalculée.
@@ -2013,6 +2036,12 @@ const TIRET = "—";
  * ce module explique, il ne suppose pas (même principe que
  * `lib/interventions/cycle-de-vie.ts`), et une régression qui les romprait
  * un jour se verrait ICI avant de se voir en base.
+ *
+ * **La mention des non-conformes (9K25-CHECKLIST-FICHE-BUREAU, CK9) n'est
+ * PAS une quatrième ligne de la liste ci-dessus** — ce n'en est toujours que
+ * trois, celles que `peutCloturer` juge. Un non conforme ne bloque JAMAIS la
+ * clôture (D240, 3.10) : la mention est une INFORMATION posée À CÔTÉ, avec
+ * un lien vers la tuile, jamais un quatrième `ok`.
  */
 function AvantDeCloturer({
   rapportValide,
@@ -2020,12 +2049,15 @@ function AvantDeCloturer({
   tempsMesure,
   peutValiderCeRapport,
   hrefOngletRapport,
+  nonConformesChecklist,
 }: {
   readonly rapportValide: boolean;
   readonly signaturePresente: boolean;
   readonly tempsMesure: number | null;
   readonly peutValiderCeRapport: boolean;
   readonly hrefOngletRapport: string;
+  /** `0` : aucune mention — aucune checklist, ou aucun non conforme. */
+  readonly nonConformesChecklist: number;
 }) {
   const points = [
     { cle: "intervention.avant_cloture.rapport_valide", ok: rapportValide },
@@ -2037,7 +2069,11 @@ function AvantDeCloturer({
   ] as const;
   return (
     <Carte titre={t("intervention.avant_cloture.titre")}>
-      <ul className="flex flex-col gap-1.5 px-4 py-3.5 text-[12px] font-bold">
+      <ul
+        className={`flex flex-col gap-1.5 px-4 pt-3.5 text-[12px] font-bold ${
+          nonConformesChecklist === 0 ? "pb-3.5" : ""
+        }`}
+      >
         {points.map((point) => (
           <li key={point.cle} className="flex items-center gap-1.5">
             <Icone
@@ -2069,6 +2105,97 @@ function AvantDeCloturer({
           </li>
         ))}
       </ul>
+      {nonConformesChecklist === 0 ? null : (
+        <p className="text-app-encre-faible px-4 py-3.5 text-[12px] font-bold">
+          {nonConformesChecklist} {t("checklist.terrain.points")}{" "}
+          {t("checklist.bon.resume_non_conformes")}
+          {t("ponctuation.separateur")}
+          <a href="#checklist-fiche" className="underline">
+            {t("checklist.fiche.lien_voir")}
+          </a>
+        </p>
+      )}
+    </Carte>
+  );
+}
+
+/**
+ * LA TUILE CHECKLIST DE LA FICHE BUREAU (9K25-CHECKLIST-FICHE-BUREAU, CK9) —
+ * EN LECTURE SEULE, et seulement si une version est FIGÉE
+ * (`fiche.checklist`, `checklistDeLaFiche`) : aucune checklist, aucune
+ * tuile, jamais la cascade résolue à la volée (même garde que la tuile du
+ * bon).
+ *
+ * **Pourquoi une tuile SÉPARÉE de `TuileChecklist`** (`components/
+ * interventions/bon-tuiles.tsx`, 9K24-CHECKLIST-BONS) plutôt qu'un appel
+ * direct : celle-ci vise un document remis au CLIENT, et ne porte donc
+ * jamais la PROVENANCE (le modèle résolu) ni QUI a répondu chaque point, et
+ * QUAND — les deux que le bureau demande ici. Le rendu d'une réponse
+ * (`libelleRenduChecklist`) et le résumé (`resumeChecklistBon`) restent les
+ * MÊMES fonctions, importées de ce même fichier : seule la forme qui les
+ * entoure diverge.
+ */
+function TuileChecklistFiche({
+  checklist,
+  fuseau,
+}: {
+  readonly checklist: ChecklistFiche;
+  readonly fuseau: Fuseau;
+}) {
+  return (
+    <Carte
+      id="checklist-fiche"
+      bloc="fiche-checklist"
+      titre={t("checklist.bon.titre")}
+    >
+      <div className="flex flex-col gap-3 px-4 py-3.5">
+        <p className="text-app-encre-faible text-[12px] font-bold">
+          {t("checklist.terrain.provenance_prefixe")}
+          {t("ponctuation.deux_points")}
+          {checklist.checklistModeleLibelle}
+        </p>
+        {checklist.resume === null ? null : (
+          <p className="text-13 font-bold">
+            {resumeChecklistBon(checklist.resume)}
+          </p>
+        )}
+        {checklist.sections.map((section) => (
+          <div key={section.section} className="flex flex-col gap-1.5">
+            <h3 className="text-app-encre-faible text-[12px] font-bold">
+              {section.section}
+            </h3>
+            <ul className="flex flex-col gap-2">
+              {section.points.map((point) => {
+                const nonConforme =
+                  point.rendu.nature === "conforme" &&
+                  point.rendu.valeur === "non_conforme";
+                return (
+                  <li key={point.id} className="text-13 font-bold">
+                    <div>
+                      <span>{point.libelle}</span>
+                      {t("ponctuation.deux_points")}
+                      <span
+                        className={
+                          nonConforme
+                            ? "text-app-oxyde font-extrabold"
+                            : undefined
+                        }
+                      >
+                        {libelleRenduChecklist(point.rendu)}
+                      </span>
+                    </div>
+                    <p className="text-app-encre-faible text-12 font-bold">
+                      {point.auteur}
+                      {t("ponctuation.separateur")}
+                      {dateHeureLocale(point.reponduLe, fuseau)}
+                    </p>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
+      </div>
     </Carte>
   );
 }

@@ -5078,6 +5078,9 @@ export const fr = {
   "checklist.bon.resume_non_conformes": "non conformes",
   "checklist.bon.resume_sans_objet": "sans objet",
 
+  // ── LA TUILE DE LA FICHE BUREAU (9K25-CHECKLIST-FICHE-BUREAU, CK9) ───────
+  "checklist.fiche.lien_voir": "Voir la checklist",
+
   // REPRIS MOT POUR MOT DE LA MAQUETTE (9EWD1-PARAMETRES-HUB-SOLDE, page
   // Paramètres, M:4385) — clé propre à ce hub (confronté par grep).
   "parametres.index_prestations_titre": "Prestations",

@@ -242,7 +242,7 @@ export function TuileConditionsFacturation({
  * UNIQUEMENT les réponses « conforme/non conforme/sans objet » ; les
  * mesures, cases et textes n'entrent dans aucun des trois comptes.
  */
-function resumeChecklistBon(resume: {
+export function resumeChecklistBon(resume: {
   readonly conformes: number;
   readonly nonConformes: number;
   readonly sansObjet: number;
@@ -259,7 +259,7 @@ function resumeChecklistBon(resume: {
  * Le texte d'une réponse — déduit de `rendu.nature` SEUL, jamais d'un type
  * relu sur `checklist_point` (voir `checklistDuBon`, `lib/checklists/depot.ts`).
  */
-function libelleRenduChecklist(rendu: RenduReponseChecklistBon): string {
+export function libelleRenduChecklist(rendu: RenduReponseChecklistBon): string {
   switch (rendu.nature) {
     case "conforme":
       return rendu.valeur === "conforme"
