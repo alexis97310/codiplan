@@ -11,7 +11,7 @@ import { type TypeIntervention } from "./saisie";
  *
  * `profilDuBon` ne lit rien, ne calcule aucun montant : elle ne fait que
  * nommer, pour un `TypeIntervention` (chapitre 11.2), le titre du document et
- * l'ordre des sept tuiles du bon. Le titre compose UNIQUEMENT des clés déjà
+ * l'ordre des neuf tuiles du bon. Le titre compose UNIQUEMENT des clés déjà
  * écrites (`intervention.bon.titre`, `type_intervention.*`) — jamais un
  * libellé inventé ici.
  *
@@ -24,16 +24,18 @@ import { type TypeIntervention } from "./saisie";
  * Commentaires et photos) qui prime, et qui vient juste après la tuile
  * Intervention — l'ordre de base ci-dessous le porte déjà.
  *
- * ## Un emplacement réservé, encore vide
+ * ## La tuile « checklist », TOUJOURS après « prestations » (CK8)
  *
- * Les données qui rempliraient une checklist préventive N'EXISTENT PAS
- * ENCORE en base : aucune tuile ne les affiche, vide ou non.
- * `EMPLACEMENT_CHECKLIST_PREVENTIVE` ci-dessous ne nomme qu'un emplacement
- * futur, pour le ticket qui écrira la tuile elle-même.
+ * L'emplacement réservé par 9I7 (« après prestations ») est désormais occupé
+ * — pour LES NEUF NATURES (9K24-CHECKLIST-BONS, demande d'Alexis : « aussi
+ * pour l'installation »), pas seulement les préventifs. `profilDuBon` ne
+ * décide toujours que l'ORDRE : une intervention sans checklist FIGÉE
+ * n'affiche AUCUNE tuile (`BonIntervention.checklist === null`), exactement
+ * comme « pieces » ci-dessous.
  *
  * ## La tuile « pieces » est TOUJOURS dans l'ordre, jamais TOUJOURS affichée
  *
- * `ordreTuiles` reste exhaustif sur les huit tuiles pour LES NEUF NATURES
+ * `ordreTuiles` reste exhaustif sur les neuf tuiles pour LES NEUF NATURES
  * (invariant posé par 9I7, gardé par `profil-bon.test.ts`) — `profilDuBon`
  * ne décide que l'ORDRE, jamais la présence à l'écran. **C'est la page qui
  * lit `aSectionPiecesRemplacees`** (`lib/interventions/depot-rapport-
@@ -43,7 +45,7 @@ import { type TypeIntervention } from "./saisie";
  * affiche toujours son absence).
  */
 
-/** Les huit tuiles de contenu du bon — hors en-tête, toujours en tête. */
+/** Les neuf tuiles de contenu du bon — hors en-tête, toujours en tête. */
 export const TUILES_BON = [
   "client",
   "materiel",
@@ -51,6 +53,7 @@ export const TUILES_BON = [
   "commentaires",
   "pieces",
   "prestations",
+  "checklist",
   "suite",
   "signataire",
 ] as const;
@@ -63,17 +66,11 @@ export type ProfilBon = {
 
 const ORDRE_BASE: readonly TuileBon[] = TUILES_BON;
 
-/**
- * EMPLACEMENT RÉSERVÉ (ticket 9J16, étude du 29/10/2026) — la checklist
- * préventive de l'équipement viendra ici, juste après "prestations", quand
- * sa donnée existera. Jusque-là, aucune tuile n'y figure.
- */
-export const EMPLACEMENT_CHECKLIST_PREVENTIVE = "après prestations";
-
 const ORDRE_PREVENTIF: readonly TuileBon[] = [
   "client",
   "materiel",
   "prestations",
+  "checklist",
   "intervention",
   "commentaires",
   "pieces",

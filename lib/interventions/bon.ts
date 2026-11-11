@@ -4,6 +4,7 @@ import { type ContexteSession } from "@/lib/auth/contexte";
 import { annuaireDesPersonnes, type Annuaire } from "@/lib/auth/annuaire";
 import { fuseauDeLAgence } from "@/lib/calendar/agence";
 import { type Fuseau } from "@/lib/calendar/fuseau";
+import { checklistDuBon, type ChecklistBon } from "@/lib/checklists/depot";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import {
   photosDeLIntervention,
@@ -172,6 +173,13 @@ export type BonIntervention = {
    * bon reste entière, ces lignes n'en portent aucun.
    */
   readonly conditionsFacturation: readonly string[];
+  /**
+   * LA TUILE CHECKLIST (9K24-CHECKLIST-BONS, CK8) — `null` : AUCUNE tuile,
+   * jamais une tuile vide (à la différence du reste du bon, voir l'entête du
+   * module) — tant qu'aucune version n'est FIGÉE, aucune réponse ne peut lui
+   * être rattachée. Voir `checklistDuBon` (`lib/checklists/depot.ts`).
+   */
+  readonly checklist: ChecklistBon | null;
 };
 
 /**
@@ -274,6 +282,8 @@ async function composerBon(
           // RÈGLE DES CONDITIONS DE FACTURATION (9I8B-CONDITIONS-DE-
           // FACTURATION-SANS-MONTANT) — voir `lignesConditionsFacturation`.
           valorisation_figee: true,
+          // LA CHECKLIST FIGÉE (9K24-CHECKLIST-BONS, CK8) — voir `checklistDuBon`.
+          checklist_version_id: true,
         },
       });
       if (ligne === null) {
@@ -289,6 +299,7 @@ async function composerBon(
         suite_a_donner,
         cloturee_le,
         valorisation_figee,
+        checklist_version_id,
         ...brute
       } = ligne;
 
@@ -372,6 +383,11 @@ async function composerBon(
       const forfaitMontant = await montantDuForfait(
         tx,
         brute.forfait_deplacement_id,
+      );
+      const checklist = await checklistDuBon(
+        tx,
+        id,
+        checklist_version_id,
       );
       const montantStocke =
         brute.montant_ht === null || brute.devise_code === null
@@ -479,6 +495,7 @@ async function composerBon(
         montantTotal: taux === null ? null : montantStocke,
         commentaireTechnicien: commentaire_technicien,
         suiteADonner: suite_a_donner,
+        checklist,
       };
     },
     connexion,

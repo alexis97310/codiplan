@@ -74,11 +74,6 @@ export function ligneSignatureDuBonPortail(
   return `${t("intervention.bon.signe_par")} ${nom}${suffixeQualite} ${t("intervention.bon.le")} ${date}`;
 }
 
-/** « Aucune machine n'est rattachée à cette intervention : elle porte sur l'ensemble du site. » */
-export function aucuneMachineDuBonPortail(): string {
-  return `${t("intervention.bon.aucune_machine")} ${motDansUnePhrase("site")}.`;
-}
-
 /** « Client absent — Motif : … » ou « Refus de signer — Motif : … » (9DE-TP-CY1, D-S5). */
 export function ligneSignatureAbsenteOuRefuseeDuBonPortail(
   issue: Exclude<IssueSignature, "signee">,

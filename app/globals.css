@@ -597,6 +597,24 @@
   body.print-bon .zone-impression-bon dl {
     break-inside: avoid;
   }
+  /*
+   * LA TUILE CHECKLIST (9K24-CHECKLIST-BONS, CK8) — SEULE EXCEPTION à la
+   * règle ci-dessus : une checklist longue doit pouvoir continuer sur la
+   * page suivante, section par section, plutôt que forcer toute la tuile
+   * (une `<section>`, donc déjà visée par la règle `section` ci-dessus) sur
+   * une seule page. `break-inside: avoid` se reporte sur chaque groupe
+   * `.checklist-section` (`components/interventions/bon-tuiles.tsx`),
+   * jamais sur la tuile entière.
+   */
+  body.print-bon .zone-impression-bon section[data-bloc="bon-checklist"] {
+    break-inside: auto;
+  }
+  body.print-bon
+    .zone-impression-bon
+    section[data-bloc="bon-checklist"]
+    .checklist-section {
+    break-inside: avoid;
+  }
 }
 
 /*

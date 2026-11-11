@@ -2,9 +2,20 @@ import type { Metadata } from "next";
 
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { cache, Fragment } from "react";
+import { cache } from "react";
 
 import { ActionsBonIntervention } from "@/components/interventions/actions-bon";
+import {
+  Ligne,
+  TuileChecklist,
+  TuileClient,
+  TuileCommentaires,
+  TuileConditionsFacturation,
+  TuileMateriel,
+  TuilePieces,
+  TuilePrestations,
+  TuileSuite,
+} from "@/components/interventions/bon-tuiles";
 import { Page } from "@/components/mise-en-page/page";
 import { Carte } from "@/components/ui/carte";
 import { estRolePortail } from "@/lib/auth/roles";
@@ -14,13 +25,11 @@ import { enDuree } from "@/lib/calendar/duree";
 import { estUuid } from "@/lib/identifiant";
 import { t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
-import { libellePieceRemplacee } from "@/lib/interventions/bon";
 import { profilDuBon, type TuileBon } from "@/lib/interventions/profil-bon";
 import {
   aSectionPiecesRemplacees,
   type TypeIntervention,
 } from "@/lib/interventions/saisie";
-import { lignesDetailMachine } from "@/lib/machines/presentation";
 import { ENTREES_PORTAIL } from "@/lib/navigation/entrees";
 import { rattachementsDuCompte } from "@/lib/portail/depot";
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
@@ -28,7 +37,6 @@ import { CLASSES_STATUT } from "@/lib/theme/statuts";
 import { bonInterventionDuParc } from "../../depot";
 import { identifiantDeLIntervention } from "../../presentation";
 import {
-  aucuneMachineDuBonPortail,
   dateHeureLocaleDuBonPortail,
   dateLocaleDuBonPortail,
   ligneSignatureAbsenteOuRefuseeDuBonPortail,
@@ -181,7 +189,6 @@ export default async function PageBonInterventionPortail({
   const { bon } = resultat;
   const typeLigne = bon.ligne.type as TypeIntervention;
   const perfil = profilDuBon(typeLigne);
-  const aucuneMachine = bon.machinesIdentifiees.length === 0;
   // `cloturee_le` est garanti non nul par `bonInterventionDuParc` ci-dessus.
   const dateDocumentAffichee = dateLocaleDuBonPortail(
     bon.clotureeLe as Date,
@@ -196,51 +203,9 @@ export default async function PageBonInterventionPortail({
   );
 
   const TUILES: Record<TuileBon, React.ReactNode> = {
-    client: (
-      <Carte key="client" titre={t("intervention.client")}>
-        <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 px-4 py-3.5 text-[13px] font-bold sm:grid-cols-[132px_1fr]">
-          <Ligne
-            libelle={t("intervention.client")}
-            valeur={bon.client ?? "—"}
-          />
-          <Ligne libelle={mot("site")} valeur={bon.site ?? "—"} />
-          <Ligne libelle={t("site.adresse")} valeur={bon.adresseSite ?? "—"} />
-          <Ligne
-            libelle={t("intervention.contact_sur_place")}
-            valeur={bon.contact ?? "—"}
-          />
-        </dl>
-      </Carte>
-    ),
+    client: <TuileClient bon={bon} />,
     materiel: (
-      <Carte key="materiel" titre={t("intervention.machine")}>
-        <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 px-4 py-3.5 text-[13px] font-bold sm:grid-cols-[132px_1fr]">
-          {aucuneMachine ? (
-            <Ligne
-              libelle={t("intervention.machine")}
-              valeur={aucuneMachineDuBonPortail()}
-            />
-          ) : (
-            bon.machinesDetaillees.map((machine, index) => (
-              <Fragment key={`${machine.libelle}-${index}`}>
-                <Ligne
-                  libelle={t("intervention.machine")}
-                  valeur={machine.libelle}
-                />
-                {lignesDetailMachine(machine.dates, jourReferenceGarantie).map(
-                  (detail) => (
-                    <Ligne
-                      key={detail.libelle}
-                      libelle={detail.libelle}
-                      valeur={detail.valeur}
-                    />
-                  ),
-                )}
-              </Fragment>
-            ))
-          )}
-        </dl>
-      </Carte>
+      <TuileMateriel bon={bon} jourReferenceGarantie={jourReferenceGarantie} />
     ),
     intervention: (
       <Carte key="intervention" titre={t("intervention.titre")}>
@@ -340,111 +305,11 @@ export default async function PageBonInterventionPortail({
         </div>
       </Carte>
     ),
-    commentaires: (
-      <Carte
-        key="commentaires"
-        titre={t("intervention.commentaires_photos.titre")}
-        className={
-          bon.commentaireTechnicien === null && bon.photos.length === 0
-            ? "print:hidden"
-            : undefined
-        }
-      >
-        <div className="flex flex-col gap-3 px-4 py-3.5">
-          <div
-            className={bon.commentaireTechnicien === null ? "print:hidden" : ""}
-          >
-            <h3 className="text-app-encre-faible text-[12px] font-bold">
-              {t("intervention.bon.commentaire_titre")}
-            </h3>
-            <p className="text-13 font-bold whitespace-pre-wrap">
-              {bon.commentaireTechnicien ?? (
-                <span className="text-app-encre-faible">
-                  {t("intervention.bon.aucun_commentaire")}
-                </span>
-              )}
-            </p>
-          </div>
-          <div className={bon.photos.length === 0 ? "print:hidden" : ""}>
-            <h3 className="text-app-encre-faible text-[12px] font-bold">
-              {t("intervention.bon.photos_titre")}
-            </h3>
-            {bon.photos.length === 0 ? (
-              <p className="text-app-encre-faible text-[12px] font-bold">
-                {t("intervention.bon.aucune_photo")}
-              </p>
-            ) : (
-              <div className="grid grid-cols-3 gap-2">
-                {bon.photos.map((photo) => (
-                  <figure key={photo.id} className="flex flex-col gap-1">
-                    {/* eslint-disable-next-line @next/next/no-img-element -- octets servis par une route applicative, pas un fichier statique optimisable */}
-                    <img
-                      src={`/api/documents/${photo.id}/octets`}
-                      alt={photo.libelle}
-                      className="border-app-bord aspect-square rounded border object-cover"
-                    />
-                    <figcaption className="text-app-encre-faible text-12 font-bold">
-                      {photo.libelle}
-                    </figcaption>
-                  </figure>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </Carte>
-    ),
-    pieces: (
-      <Carte key="pieces" titre={t("intervention.bon.pieces_titre")}>
-        <div className="px-4 py-3.5">
-          <ul className="list-disc pl-4 text-13 font-bold">
-            {bon.piecesRemplacees.map((piece, index) => (
-              <li key={index}>{libellePieceRemplacee(piece)}</li>
-            ))}
-          </ul>
-        </div>
-      </Carte>
-    ),
-    prestations: (
-      <Carte
-        key="prestations"
-        titre={t("intervention.bon.prestations_titre")}
-        className={
-          bon.prestationsRealisees.length === 0 ? "print:hidden" : undefined
-        }
-      >
-        <div className="px-4 py-3.5">
-          {bon.prestationsRealisees.length === 0 ? (
-            <p className="text-app-encre-faible text-[12px] font-bold">
-              {t("intervention.bon.aucune_prestation")}
-            </p>
-          ) : (
-            <ul className="list-disc pl-4 text-13 font-bold">
-              {bon.prestationsRealisees.map((prestation) => (
-                <li key={prestation.id}>{prestation.libelle}</li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </Carte>
-    ),
-    suite: (
-      <Carte
-        key="suite"
-        titre={t("intervention.bon.suite_titre")}
-        className={bon.suiteADonner === null ? "print:hidden" : undefined}
-      >
-        <div className="px-4 py-3.5">
-          <p className="text-13 font-bold whitespace-pre-wrap">
-            {bon.suiteADonner ?? (
-              <span className="text-app-encre-faible">
-                {t("intervention.bon.aucune_suite")}
-              </span>
-            )}
-          </p>
-        </div>
-      </Carte>
-    ),
+    commentaires: <TuileCommentaires bon={bon} />,
+    pieces: <TuilePieces bon={bon} />,
+    prestations: <TuilePrestations bon={bon} />,
+    checklist: <TuileChecklist bon={bon} />,
+    suite: <TuileSuite bon={bon} />,
     signataire: (
       <Carte
         key="signataire"
@@ -485,19 +350,7 @@ export default async function PageBonInterventionPortail({
     ),
   };
 
-  const conditionsTuile =
-    bon.conditionsFacturation.length === 0 ? null : (
-      <Carte
-        key="conditions-facturation"
-        titre={t("tarification.conditions.titre")}
-      >
-        <div className="flex flex-col gap-1.5 px-4 py-3.5 text-[13px] font-bold">
-          {bon.conditionsFacturation.map((ligne) => (
-            <p key={ligne}>{ligne}</p>
-          ))}
-        </div>
-      </Carte>
-    );
+  const conditionsTuile = <TuileConditionsFacturation bon={bon} />;
 
   return (
     <Page
@@ -575,14 +428,5 @@ export default async function PageBonInterventionPortail({
         </div>
       </div>
     </Page>
-  );
-}
-
-function Ligne({ libelle, valeur }: { libelle: string; valeur: string }) {
-  return (
-    <>
-      <dt className="text-app-encre-faible text-[12px] font-bold">{libelle}</dt>
-      <dd className="font-semibold break-words hyphens-auto">{valeur}</dd>
-    </>
   );
 }

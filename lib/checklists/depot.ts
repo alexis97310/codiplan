@@ -1166,3 +1166,158 @@ export async function enregistrerReponses(
     client,
   );
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LA TUILE DU BON (9K24-CHECKLIST-BONS, CK8) — LA VERSION FIGÉE SEULEMENT.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Ce qu'une réponse rend sur le bon — déduit des CINQ colonnes de
+ * `checklist_reponse` elles-mêmes (une seule non nulle, gardée en base),
+ * JAMAIS du type de point lu sur `checklist_point` : D235 l'écrit pour le
+ * portail (« via les RÉPONSES, jamais via les modèles »), et rien ne
+ * distingue ici le bureau du portail sur ce point.
+ */
+export type RenduReponseChecklistBon =
+  | { readonly nature: "conforme"; readonly valeur: ReponseConformite }
+  | { readonly nature: "mesure"; readonly valeur: number; readonly unite: string | null }
+  | { readonly nature: "case" }
+  | { readonly nature: "choix"; readonly valeur: string }
+  | { readonly nature: "texte"; readonly valeur: string };
+
+export type PointReponduBon = {
+  readonly id: string;
+  readonly libelle: string;
+  readonly rendu: RenduReponseChecklistBon;
+};
+
+export type ResumeChecklistBon = {
+  readonly conformes: number;
+  readonly nonConformes: number;
+  readonly sansObjet: number;
+};
+
+export type SectionChecklistBon = {
+  readonly section: string;
+  readonly points: readonly PointReponduBon[];
+};
+
+export type ChecklistBon = {
+  /** `null` : aucune réponse de type « conforme/non conforme/sans objet ». */
+  readonly resume: ResumeChecklistBon | null;
+  readonly sections: readonly SectionChecklistBon[];
+};
+
+/**
+ * EXACTEMENT UNE DES CINQ COLONNES EST NON NULLE (contrainte `num_nonnulls`
+ * en base) — une réponse qui n'en porterait aucune serait un défaut
+ * d'écriture, jamais un état qu'un bon doit savoir afficher.
+ */
+function renduDeLaReponseBon(reponse: {
+  readonly valeur_conforme: ReponseConformite | null;
+  readonly valeur_mesuree: Prisma.Decimal | null;
+  readonly valeur_fait: boolean | null;
+  readonly valeur_choix: string | null;
+  readonly valeur_texte: string | null;
+  readonly unite: string | null;
+}): RenduReponseChecklistBon {
+  if (reponse.valeur_conforme !== null) {
+    return { nature: "conforme", valeur: reponse.valeur_conforme };
+  }
+  if (reponse.valeur_mesuree !== null) {
+    return {
+      nature: "mesure",
+      valeur: reponse.valeur_mesuree.toNumber(),
+      unite: reponse.unite,
+    };
+  }
+  if (reponse.valeur_fait !== null) {
+    return { nature: "case" };
+  }
+  if (reponse.valeur_choix !== null) {
+    return { nature: "choix", valeur: reponse.valeur_choix };
+  }
+  if (reponse.valeur_texte !== null) {
+    return { nature: "texte", valeur: reponse.valeur_texte };
+  }
+  throw new Error(
+    `checklist_reponse ${JSON.stringify(reponse)} ne porte aucune des cinq colonnes — num_nonnulls aurait dû refuser son écriture.`,
+  );
+}
+
+/**
+ * LA CHECKLIST D'UN BON — la version FIGÉE SEULEMENT (`checklistVersionId`,
+ * `intervention.checklist_version_id`) : `null` quand elle l'est encore,
+ * c'est-à-dire AUCUNE tuile, jamais la cascade résolue à la volée (une
+ * lecture ne pinne jamais, et un bon n'a pas à en décider une pour le faire).
+ *
+ * Prend `tx: Prisma.TransactionClient` directement, comme
+ * `obligatoiresManquantsPourTerminer` ci-dessus : appelée DANS la transaction
+ * déjà cloisonnée de `composerBon` (`lib/interventions/bon.ts`), partagée
+ * entre le bureau et le portail — ni l'un ni l'autre ne filtre la liste des
+ * points rendus (D235 : le client voit TOUS les points de SA checklist
+ * remplie).
+ *
+ * Les points NON répondus n'y figurent pas : un bon ne se génère qu'après
+ * « Terminer » (`peutGenererLeBon`), qui a déjà bloqué sur tout obligatoire
+ * manquant (CK7) — ce que ce module rend ici n'est jamais un formulaire.
+ */
+export async function checklistDuBon(
+  tx: Prisma.TransactionClient,
+  interventionId: string,
+  checklistVersionId: string | null,
+): Promise<ChecklistBon | null> {
+  if (checklistVersionId === null) {
+    return null;
+  }
+
+  // JAMAIS DE FILTRE NI DE TRI PAR `checklist_point` — même sous le
+  // bureau, qui pourrait le lire : un `WHERE`/`ORDER BY` sur une relation
+  // Prisma s'y JOINT, et `checklist_point` est de forme « interne » (D94),
+  // fermée au portail. Un tel JOIN y renverrait silencieusement ZÉRO ligne,
+  // même pour le client DE l'intervention — exactement ce que D235 interdit
+  // (« jamais besoin d'ouvrir checklist_point »). `intervention_id` SEUL
+  // suffit : chaque réponse d'une intervention appartient à l'UNIQUE version
+  // qu'elle a pinnée (`enregistrerReponses`) ; l'ordre se fait sur
+  // `repondu_le`, la seule colonne de tri que `checklist_reponse` porte
+  // elle-même.
+  const reponses = await tx.checklistReponse.findMany({
+    where: { intervention_id: interventionId },
+    orderBy: [{ repondu_le: "asc" }, { id: "asc" }],
+  });
+
+  const sections: { readonly section: string; points: PointReponduBon[] }[] =
+    [];
+  const indexParSection = new Map<string, number>();
+  let conformes = 0;
+  let nonConformes = 0;
+  let sansObjet = 0;
+
+  for (const reponse of reponses) {
+    const rendu = renduDeLaReponseBon(reponse);
+    if (rendu.nature === "conforme") {
+      if (rendu.valeur === "conforme") conformes++;
+      else if (rendu.valeur === "non_conforme") nonConformes++;
+      else sansObjet++;
+    }
+
+    let index = indexParSection.get(reponse.section);
+    if (index === undefined) {
+      index = sections.length;
+      indexParSection.set(reponse.section, index);
+      sections.push({ section: reponse.section, points: [] });
+    }
+    sections[index]!.points.push({
+      id: reponse.checklist_point_id,
+      libelle: reponse.libelle,
+      rendu,
+    });
+  }
+
+  const totalConformite = conformes + nonConformes + sansObjet;
+  return {
+    resume:
+      totalConformite === 0 ? null : { conformes, nonConformes, sansObjet },
+    sections,
+  };
+}

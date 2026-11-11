@@ -67,4 +67,16 @@ describe("profilDuBon — exhaustif sur les neuf natures du chapitre 11.2", () =
       expect(indexCommentaires).toBe(indexIntervention + 1);
     }
   });
+
+  it.each(TYPES_INTERVENTION)(
+    "%s — « checklist » vient toujours juste après « prestations » (CK8, emplacement réservé par 9I7)",
+    (type) => {
+      const profil = profilDuBon(type);
+      const indexPrestations = profil.ordreTuiles.indexOf("prestations");
+      const indexChecklist = profil.ordreTuiles.indexOf(
+        "checklist" satisfies TuileBon,
+      );
+      expect(indexChecklist).toBe(indexPrestations + 1);
+    },
+  );
 });

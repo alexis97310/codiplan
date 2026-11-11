@@ -2,9 +2,20 @@ import type { Metadata } from "next";
 
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { cache, Fragment } from "react";
+import { cache } from "react";
 
 import { ActionsBonIntervention } from "@/components/interventions/actions-bon";
+import {
+  Ligne,
+  TuileChecklist,
+  TuileClient,
+  TuileCommentaires,
+  TuileConditionsFacturation,
+  TuileMateriel,
+  TuilePieces,
+  TuilePrestations,
+  TuileSuite,
+} from "@/components/interventions/bon-tuiles";
 import { Carte } from "@/components/ui/carte";
 import { exigerCapacite } from "@/lib/auth/porte";
 import {
@@ -18,13 +29,9 @@ import { enDuree } from "@/lib/calendar/duree";
 import { estUuid } from "@/lib/identifiant";
 import { t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
-import {
-  libellePieceRemplacee,
-  lireBonIntervention,
-} from "@/lib/interventions/bon";
+import { lireBonIntervention } from "@/lib/interventions/bon";
 import { peutGenererLeBon } from "@/lib/interventions/cycle-de-vie";
 import { aSectionPiecesRemplacees } from "@/lib/interventions/depot-rapport-terrain";
-import { lignesDetailMachine } from "@/lib/machines/presentation";
 import {
   accesAuxMontants,
   aDroitRoleAuxMontants,
@@ -41,7 +48,6 @@ import { lireAfficherMontants } from "@/lib/societes/identite";
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
 
 import {
-  aucuneMachineSurLeSite,
   dateHeureLocale,
   dateLocale,
   heureDuCreneau,
@@ -182,7 +188,6 @@ export default async function PageBonIntervention({
   const droitRole = aDroitRoleAuxMontants(contexte.role);
   const parametres = await searchParams;
   const interne = versionDuBon(parametres.version, droitRole) === "interne";
-  const aucuneMachine = bon.machinesIdentifiees.length === 0;
   // LA DATE ET L'HEURE PLANIFIÉES (BON-3) — même composition que la fiche
   // (`FICHE-INTERVENTION-1`) : `date_planifiee` est un jour CIVIL
   // (`dateCivile`), l'heure, si le créneau en porte une, est lue dans le
@@ -220,57 +225,15 @@ export default async function PageBonIntervention({
           }
         : jourDe(maintenant(bon.fuseau).local);
 
-  // ── LES SEPT TUILES DE CONTENU, DANS L'ORDRE DE `perfil.ordreTuiles` ─────
+  // ── LES NEUF TUILES DE CONTENU, DANS L'ORDRE DE `perfil.ordreTuiles` ─────
   //
   // Un `Record` plutôt qu'un `switch` : chaque tuile se construit une seule
   // fois, puis `perfil.ordreTuiles` ne fait que choisir l'ORDRE de lecture —
   // jamais une seconde écriture du contenu selon la nature de l'intervention.
   const TUILES: Record<TuileBon, React.ReactNode> = {
-    client: (
-      <Carte key="client" titre={t("intervention.client")}>
-        <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 px-4 py-3.5 text-[13px] font-bold sm:grid-cols-[132px_1fr]">
-          <Ligne
-            libelle={t("intervention.client")}
-            valeur={bon.client ?? "—"}
-          />
-          <Ligne libelle={mot("site")} valeur={bon.site ?? "—"} />
-          <Ligne libelle={t("site.adresse")} valeur={bon.adresseSite ?? "—"} />
-          <Ligne
-            libelle={t("intervention.contact_sur_place")}
-            valeur={bon.contact ?? "—"}
-          />
-        </dl>
-      </Carte>
-    ),
+    client: <TuileClient bon={bon} />,
     materiel: (
-      <Carte key="materiel" titre={t("intervention.machine")}>
-        <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 px-4 py-3.5 text-[13px] font-bold sm:grid-cols-[132px_1fr]">
-          {aucuneMachine ? (
-            <Ligne
-              libelle={t("intervention.machine")}
-              valeur={aucuneMachineSurLeSite()}
-            />
-          ) : (
-            bon.machinesDetaillees.map((machine, index) => (
-              <Fragment key={`${machine.libelle}-${index}`}>
-                <Ligne
-                  libelle={t("intervention.machine")}
-                  valeur={machine.libelle}
-                />
-                {lignesDetailMachine(machine.dates, jourReferenceGarantie).map(
-                  (detail) => (
-                    <Ligne
-                      key={detail.libelle}
-                      libelle={detail.libelle}
-                      valeur={detail.valeur}
-                    />
-                  ),
-                )}
-              </Fragment>
-            ))
-          )}
-        </dl>
-      </Carte>
+      <TuileMateriel bon={bon} jourReferenceGarantie={jourReferenceGarantie} />
     ),
     intervention: (
       <Carte key="intervention" titre={t("intervention.titre")}>
@@ -363,111 +326,11 @@ export default async function PageBonIntervention({
         </div>
       </Carte>
     ),
-    commentaires: (
-      <Carte
-        key="commentaires"
-        titre={t("intervention.commentaires_photos.titre")}
-        className={
-          bon.commentaireTechnicien === null && bon.photos.length === 0
-            ? "print:hidden"
-            : undefined
-        }
-      >
-        <div className="flex flex-col gap-3 px-4 py-3.5">
-          <div
-            className={bon.commentaireTechnicien === null ? "print:hidden" : ""}
-          >
-            <h3 className="text-app-encre-faible text-[12px] font-bold">
-              {t("intervention.bon.commentaire_titre")}
-            </h3>
-            <p className="text-13 font-bold whitespace-pre-wrap">
-              {bon.commentaireTechnicien ?? (
-                <span className="text-app-encre-faible">
-                  {t("intervention.bon.aucun_commentaire")}
-                </span>
-              )}
-            </p>
-          </div>
-          <div className={bon.photos.length === 0 ? "print:hidden" : ""}>
-            <h3 className="text-app-encre-faible text-[12px] font-bold">
-              {t("intervention.bon.photos_titre")}
-            </h3>
-            {bon.photos.length === 0 ? (
-              <p className="text-app-encre-faible text-[12px] font-bold">
-                {t("intervention.bon.aucune_photo")}
-              </p>
-            ) : (
-              <div className="grid grid-cols-3 gap-2">
-                {bon.photos.map((photo) => (
-                  <figure key={photo.id} className="flex flex-col gap-1">
-                    {/* eslint-disable-next-line @next/next/no-img-element -- octets servis par une route applicative, pas un fichier statique optimisable */}
-                    <img
-                      src={`/api/documents/${photo.id}/octets`}
-                      alt={photo.libelle}
-                      className="border-app-bord aspect-square rounded border object-cover"
-                    />
-                    <figcaption className="text-app-encre-faible text-12 font-bold">
-                      {photo.libelle}
-                    </figcaption>
-                  </figure>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </Carte>
-    ),
-    pieces: (
-      <Carte key="pieces" titre={t("intervention.bon.pieces_titre")}>
-        <div className="px-4 py-3.5">
-          <ul className="list-disc pl-4 text-13 font-bold">
-            {bon.piecesRemplacees.map((piece, index) => (
-              <li key={index}>{libellePieceRemplacee(piece)}</li>
-            ))}
-          </ul>
-        </div>
-      </Carte>
-    ),
-    prestations: (
-      <Carte
-        key="prestations"
-        titre={t("intervention.bon.prestations_titre")}
-        className={
-          bon.prestationsRealisees.length === 0 ? "print:hidden" : undefined
-        }
-      >
-        <div className="px-4 py-3.5">
-          {bon.prestationsRealisees.length === 0 ? (
-            <p className="text-app-encre-faible text-[12px] font-bold">
-              {t("intervention.bon.aucune_prestation")}
-            </p>
-          ) : (
-            <ul className="list-disc pl-4 text-13 font-bold">
-              {bon.prestationsRealisees.map((prestation) => (
-                <li key={prestation.id}>{prestation.libelle}</li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </Carte>
-    ),
-    suite: (
-      <Carte
-        key="suite"
-        titre={t("intervention.bon.suite_titre")}
-        className={bon.suiteADonner === null ? "print:hidden" : undefined}
-      >
-        <div className="px-4 py-3.5">
-          <p className="text-13 font-bold whitespace-pre-wrap">
-            {bon.suiteADonner ?? (
-              <span className="text-app-encre-faible">
-                {t("intervention.bon.aucune_suite")}
-              </span>
-            )}
-          </p>
-        </div>
-      </Carte>
-    ),
+    commentaires: <TuileCommentaires bon={bon} />,
+    pieces: <TuilePieces bon={bon} />,
+    prestations: <TuilePrestations bon={bon} />,
+    checklist: <TuileChecklist bon={bon} />,
+    suite: <TuileSuite bon={bon} />,
     signataire: (
       <Carte
         key="signataire"
@@ -513,9 +376,9 @@ export default async function PageBonIntervention({
     ),
   };
 
-  // ── VALORISATION — hors des sept tuiles ci-dessus (absente de la demande
+  // ── VALORISATION — hors des neuf tuiles ci-dessus (absente de la demande
   // d'Alexis, 2bis), toujours juste après la tuile « Intervention », quelle
-  // que soit la nature : `profilDuBon` ne réordonne que les sept tuiles de
+  // que soit la nature : `profilDuBon` ne réordonne que les neuf tuiles de
   // contenu, jamais ce bloc réservé aux rôles qui ont le droit de voir un
   // montant (`accesAuxMontants`).
   const valorisationTuile = !interne ? null : (
@@ -562,19 +425,7 @@ export default async function PageBonIntervention({
   // « Signature du client », quelle que soit la nature : la règle de ne
   // montrer aucun montant sur le bon reste entière, ces lignes n'en portent
   // jamais.
-  const conditionsTuile =
-    bon.conditionsFacturation.length === 0 ? null : (
-      <Carte
-        key="conditions-facturation"
-        titre={t("tarification.conditions.titre")}
-      >
-        <div className="flex flex-col gap-1.5 px-4 py-3.5 text-[13px] font-bold">
-          {bon.conditionsFacturation.map((ligne) => (
-            <p key={ligne}>{ligne}</p>
-          ))}
-        </div>
-      </Carte>
-    );
+  const conditionsTuile = <TuileConditionsFacturation bon={bon} />;
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4">
@@ -743,13 +594,4 @@ function ligneSignature(
   }
   const suffixeQualite = qualite === null ? "" : ` (${qualite})`;
   return `${t("intervention.bon.signe_par")} ${nom}${suffixeQualite} ${t("intervention.bon.le")} ${date}`;
-}
-
-function Ligne({ libelle, valeur }: { libelle: string; valeur: string }) {
-  return (
-    <>
-      <dt className="text-app-encre-faible text-[12px] font-bold">{libelle}</dt>
-      <dd className="font-semibold break-words hyphens-auto">{valeur}</dd>
-    </>
-  );
 }

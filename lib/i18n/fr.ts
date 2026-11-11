@@ -5072,6 +5072,12 @@ export const fr = {
   "checklist.refus.refus":
     "Cette action n'est pas autorisée sur cette intervention.",
 
+  // ── LA TUILE DU BON (9K24-CHECKLIST-BONS, CK8) ───────────────────────────
+  "checklist.bon.titre": "Checklist",
+  "checklist.bon.resume_conformes": "conformes",
+  "checklist.bon.resume_non_conformes": "non conformes",
+  "checklist.bon.resume_sans_objet": "sans objet",
+
   // REPRIS MOT POUR MOT DE LA MAQUETTE (9EWD1-PARAMETRES-HUB-SOLDE, page
   // Paramètres, M:4385) — clé propre à ce hub (confronté par grep).
   "parametres.index_prestations_titre": "Prestations",
