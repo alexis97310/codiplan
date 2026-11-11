@@ -139,3 +139,68 @@ git log --oneline -6
 ```
 
 Arbre propre, `git status --porcelain` vide. Jamais poussé.
+
+## Reprise 9K26A — l'épreuve d'isolation rendue indépendante (12/11/2026)
+
+Budget 60 min. T0 = 05:46 (Pacific/Noumea). Worktree `/home/aplou/codiplan-voie1`, `main`
+extrait ailleurs. Branche `9K26A-REPRISE-ALERTE-FIN-EPREUVE-ISOLEE`, partant
+d'`origin/main` ; les cinq commits de `9K26-TERRAIN-ALERTE-FIN-DESTINATAIRES-garde`
+reportés par `cherry-pick`, sans conflit, sans les modifier. Jamais poussé.
+
+**La cause mesurée au premier passage de `verify:full`** (pilote, 11/11 ~23:30) :
+`tests/isolation/signature-terrain-repli-bureau.test.ts` comptait un nombre FIXE de
+destinataires actifs dans `SOCIETE_A` — « les DEUX comptes fixtures `adv`... » (passation
+ci-dessus, § Épreuves) — en ne (dés)activant que les comptes fixtures qu'IL connaissait
+(`UTILISATEUR_PAR_ROLE`, `UTILISATEUR_INTERNE_A`). `SOCIETE_A` est PARTAGÉE par toute la
+suite d'isolation (`fileParallelism: false`, un seul fichier à la fois, mais sans garantie
+d'ordre entre fichiers) : dans la suite complète, deux comptes `responsable_sav` actifs
+que ce fichier n'avait pas créés s'y trouvaient déjà, posés par un autre fichier. Seul, le
+fichier passait (rien d'autre n'avait encore écrit dans `SOCIETE_A`) ; dans la suite,
+`alerterResponsablesSAV` trouvait ces deux comptes SAV actifs AVANT de replier sur le
+bureau, et les trois assertions qui comptaient sur le repli échouaient (`nombre: 2` au
+lieu de `5`, `envoyee` au lieu de `sans_destinataire`, `aucunResponsableSavActif` resté
+faux).
+
+**Le correctif — aucune ligne de `lib/` touchée** (mesure : les deux fonctions éprouvées,
+`alerterResponsablesSAV` et `aucunResponsableSavActif`, ne lisent que la société de leur
+propre contexte, jamais `SOCIETE_A` par son nom ; rien n'indiquait un défaut de
+cloisonnement, donc pas de point d'arrêt). Le fichier pose désormais, dans un `beforeAll`,
+sa PROPRE société (`9K26A-REPLI`), son calendrier, son agence, son client, son site, et six
+comptes neufs — les cinq rôles `ROLES_BUREAU` (`admin_societe`, `direction`,
+`responsable_materiel`, `responsable_sav`, `adv`) plus un `technicien` pour le FK
+`intervention.technicien_id` et pour le cas « le technicien ne voit pas la notification de
+repli » — tous nettoyés en `afterAll` (ordre inverse des clés étrangères). Plus aucun
+compte d'un autre fichier ne peut y entrer : la société n'existe que pour celui-ci.
+Les nombres attendus changent en conséquence (4, pas 5 — cette société n'a qu'UN compte
+`adv`, pas deux) mais restent un calcul déduit de la population que le fichier pose
+lui-même, jamais de la base entière. Mêmes assertions, même structure de test, même
+commentaire doctrinal (D241) conservé en tête.
+
+**Écueil rencontré et corrigé** : le premier essai de création omettait
+`utilisateur.modifie_le` (colonne `NOT NULL` sans défaut en base — `@updatedAt` n'est posé
+par Prisma qu'au travers du client ORM, jamais par un `INSERT` SQL brut) ; `now()` ajouté à
+l'`INSERT`.
+
+### Épreuves (toutes au premier plan, comme demandé)
+
+- `pnpm vitest run --project isolation tests/isolation/signature-terrain-repli-bureau.test.ts`
+  seul : 5/5 verts, avant de rejouer la suite complète.
+- `pnpm test:isolation` complet, **TROIS fois de suite** : 240 fichiers / 2152 tests,
+  verts les trois fois, sans aucune modification entre les passages.
+- `CI=1 pnpm exec playwright test tests/e2e/9k26-alerte-fin-destinataires.spec.ts --workers=1` :
+  3/3 verts (captures non reprises — ticket 9K26 déjà porté, rien à refaire).
+- `CI=1 pnpm exec playwright test tests/e2e/tous-les-ecrans-rendent.spec.ts --workers=1` :
+  61 passés, 4 ignorés comme avant, aucun échec.
+- `CI=1 pnpm verify` : vert (format, typecheck, lint, test, test:isolation, build).
+- `pnpm verify:full` **non rejoué** — la file le joue après cette reprise, comme demandé.
+
+### État final
+
+```
+git log --oneline -3
+584cab911 9K26A-REPRISE-ALERTE-FIN-EPREUVE-ISOLEE — point 1 : épreuve indépendante de la population d'autres fichiers
+d60f2b03a 9K26-TERRAIN-ALERTE-FIN-DESTINATAIRES — passation
+e0896072b 9K26-TERRAIN-ALERTE-FIN-DESTINATAIRES — captures AVANT/APRÈS de l'épreuve
+```
+
+Arbre propre, `git status --porcelain` vide. Jamais poussé.
