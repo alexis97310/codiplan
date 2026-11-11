@@ -95,7 +95,6 @@ import {
 } from "@/lib/tableau-de-bord/lectures";
 import { faitsMiseEnRoute } from "@/lib/tableau-de-bord/mise-en-route";
 import { listerLesTechniciens } from "@/lib/techniciens/depot";
-import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { CLASSES_STATUT, type StatutAffiche } from "@/lib/theme/statuts";
 
 import { referenceAffichee } from "../interventions/presentation";
@@ -927,7 +926,17 @@ export default async function PageTableauDeBord({
               ton="avertissement"
               titre={t("tableau_de_bord.sans_responsable_sav_titre")}
               action={
-                <Link href="/parametres/equipe" className={CLASSES_LIEN}>
+                // Jamais l'habillage de lien partagé (D185/D140) — ce
+                // tableau de bord en est délibérément sorti : aucune ligne de
+                // navigation n'y porte un lien texte, seulement un chevron ou
+                // un bouton bordé. Même habillage que l'action de `Carte`
+                // (`components/ui/carte.tsx`) : un lien d'action de BANDEAU,
+                // pas une ligne de navigation — la même famille que
+                // celle-là, jamais celle que D185 a retirée.
+                <Link
+                  href="/parametres/equipe"
+                  className="text-app-marque text-12 font-bold whitespace-nowrap underline underline-offset-2"
+                >
                   {t("tableau_de_bord.sans_responsable_sav_lien")}
                 </Link>
               }

@@ -5698,6 +5698,8 @@ Aucune migration, aucune politique RLS : `demande` reste de forme « parc » (D1
 
 ## D173 — LA SIGNATURE EST EXIGÉE AU « TERMINER », SAUF MOTIF TRACÉ ET NOTIFIÉ AU RESPONSABLE SAV
 
+**Amendé par D241.** (Points 4 et 5 : repli sur le bureau quand aucun `responsable_sav` n'est actif, et deux messages distincts côté technicien.)
+
 *Décide QT-5(a) de l'audit du 28/09/2026 (point (a)) et les points 10 et 11 des décisions d'Alexis Plouvier, directeur d'exploitation, du 03/10/2026 (document du Projet `claude/decisions-alexis-03-10.md`), appliqués par le ticket 9DE-TP-CY1-TERMINER-SIGNATURE. Reprend à la lettre le texte source « D-S5, 16/09/2026 » (document du Projet `claude/passation-stockage-documents.md` §3) : la signature est « recueillie par le technicien, en fin d'intervention ; elle conditionne le terminé ». Décide aussi QT-4(a) : « Terminer » (En cours → Terminée) D8 à la lettre — la clôture ne part que de Terminée (ticket suivant, T2).*
 
 ### CE QUI A ÉTÉ MESURÉ
@@ -8309,3 +8311,37 @@ RG-INT-02 (chapitre 10) est réécrite : « la checklist complétée » signifie
 **Règles amendées :** RG-INT-02
 
 Portée : `lib/interventions/cycle-de-vie.ts` (`peutTerminer`, `Refus.pointsManquants`), `lib/checklists/completude.ts` (`PointPourCompletude.section`, `PointObligatoireManquant.section`), `lib/checklists/depot.ts` (`obligatoiresManquantsPourTerminer`), `lib/interventions/depot-rapport-terrain.ts` (`terminerIntervention`, `ResultatTerminer.pointsManquants`), `app/api/terrain/[id]/terminer/route.ts`, `app/(mobile)/terrain/[id]/page.tsx`, `app/api/terrain/instantane/route.ts`, `components/terrain/rapport-automatique.tsx`, `components/terrain/checklist-terrain.tsx`, `components/terrain/consultation-hors-reseau.tsx`, `lib/checklists/suite-preremplie.ts` (`libelleDuPoint`), `lib/terrain/file-saisies.ts` (`EVENEMENT_CHECKLIST_SAUTER_AU_POINT`), `lib/i18n/fr.ts`, `docs/cahier-des-charges.md` (RG-INT-02), `tests/unit/checklists/completude.test.ts`, `tests/unit/interventions/cycle-de-vie.test.ts`, `tests/unit/terrain/rapport-automatique.test.tsx`, `tests/isolation/checklists.test.ts`, `tests/e2e/9k23-checklist-blocage-terminer.spec.ts`.
+
+## D241 — L'ALERTE DE FIN D'INTERVENTION SANS SIGNATURE TROUVE TOUJOURS UN DESTINATAIRE ; LE TECHNICIEN LIT DEUX MESSAGES DISTINCTS (amende D173 ; audit UX du 10/11/2026, constats B1 et M1 ; 9K26-TERRAIN-ALERTE-FIN-DESTINATAIRES)
+
+**Décisions amendées :** D173
+
+### CE QUI A ÉTÉ MESURÉ
+
+D173 (point 4) posait : « absent ou refus → un courriel à chaque `responsable_sav` de la société », et « aucun destinataire ne laisse rien partir en silence : l'écran terrain le dit ». L'audit UX du 10/11/2026 a mesuré ce que ce second volet produisait réellement sur une société sans aucun `responsable_sav` actif (les deux comptes de bureau de la société mesurée sont tous deux `admin_societe`) : le technicien lisait « Intervention terminée. Aucun responsable SAV actif n'est enregistré : l'alerte n'a pas pu être envoyée, signalez-le vous-même » (B1, bloquant) — un seul bandeau rouge qui conflate la réussite du geste et l'échec de l'alerte, et qui renvoie le technicien se substituer au SAV plutôt qu'au bureau qui administre sa société. M1 (majeur) : la réussite et l'échec de l'alerte partageaient de toute façon le même bandeau, y compris quand l'alerte partait réellement.
+
+À la question « B1 contredit D173 point 4 », réponse d'Alexis, verbatim : **« Suivre l'audit »**.
+
+### LA DÉCISION
+
+**1. L'alerte va d'abord à chaque `responsable_sav` actif de la société** (inchangé, D173 point 4).
+
+**2. S'il n'y en a aucun, elle va à chaque compte ACTIF du bureau** — exactement les rôles que ce document nomme « le bureau » (`admin_societe`, `direction`, `responsable_materiel`, `responsable_sav`, `adv` ; `ROLES_BUREAU`, `lib/auth/roles.ts`, `ROLES_INTERNES` moins `technicien`) —, un courriel PAR PERSONNE (jamais une liste de `To`, inchangé), et une notification dans l'application. La notification du repli porte `capaciteNotification: "consulter_clients_sites"` — la SEULE capacité de la matrice (`lib/auth/habilitations.ts`) dont l'ensemble `complet` est exactement `ROLES_BUREAU` ; la notification au SAV garde `"valider_rapport"`, inchangée. `type: "sans_destinataire"` (`lib/avertissements/signature-terrain.ts`) ne voyage donc plus que si AUCUN compte de bureau n'est actif.
+
+**3. L'absence de responsable SAV actif se signale à l'administrateur de la société, jamais au technicien.** Le tableau de bord de l'administrateur (et de la direction, qui reçoit les mêmes blocs d'administration depuis D91/D199) porte un bandeau ambre (`tableau_de_bord.sans_responsable_sav_titre`) tant qu'aucun `responsable_sav` actif n'existe (`aucunResponsableSavActif`, `lib/tableau-de-bord/lectures.ts`, même filtre que le repli du point 2), avec un lien vers Paramètres › Équipe. Il disparaît dès qu'un responsable SAV actif existe.
+
+**4. Côté technicien, deux messages distincts, jamais un seul (M1).** La fin de « Terminer » est TOUJOURS verte (`terrain.terminer.reussite`, remplace le silence d'avant cette décision). Un second message, ambre, ne s'ajoute que si l'alerte n'a pu atteindre PERSONNE — ni le SAV, ni le bureau (`terrain.terminer.alerte_non_partie`, « L'alerte au bureau n'a pas pu partir. », remplace `terrain.terminer.alerte_sans_destinataire`, retirée) — jamais « signalez-le vous-même ». La route `app/api/terrain/[id]/terminer/route.ts` porte les deux clés par deux paramètres distincts (`motif`, `alerte`), jamais le même ; le même message s'applique au chemin hors réseau (la file des saisies, `lib/terrain/envoi-file.ts`), qui ne rendait déjà, avant comme après cette décision, aucun bandeau de compte rendu après un envoi réussi — ce point n'est pas construit ici, voir la passation.
+
+« Désigner un destinataire » (audit) est donc le SAV, puis le bureau, comme ci-dessus — jamais un rôle ou un compte choisi par société, qu'aucune migration ne pose ici.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune migration. Aucune règle du chapitre 10 ne nomme les destinataires de cette alerte (mesuré en relisant le chapitre 10 : seules les lignes sur le responsable SAV « pilote l'atelier » et « valide les rapports » y figurent, pas ses destinataires de courriel) — cette décision n'en amende donc aucune. Les conditions de « Terminer » elles-mêmes (D240), les checklists et le dépôt de fichiers (`depot/`) ne changent pas.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où l'exploitation demande un destinataire CHOISI par société (un réglage, pas une déduction des rôles actifs), cette décision se rouvre pour poser ce réglage — elle ne l'anticipe pas.
+
+**Règles amendées :** aucune au chapitre 10 (voir « CE QUE ÇA NE TOUCHE PAS ») — D173 (ce document) est amendée sur ses points 4 et 5.
+
+Portée : `lib/avertissements/signature-terrain.ts`, `lib/auth/roles.ts` (`ROLES_BUREAU`), `lib/auth/habilitations.ts` (lu, non modifié), `lib/notifications/depot.ts` (lu, non modifié), `lib/tableau-de-bord/lectures.ts` (`aucunResponsableSavActif`), `app/(back-office)/tableau-de-bord/page.tsx`, `app/api/terrain/[id]/terminer/route.ts`, `app/(mobile)/terrain/[id]/page.tsx`, `components/ui/bandeau-motif.tsx`, `lib/i18n/fr.ts`, `tests/isolation/signature-terrain-repli-bureau.test.ts`, `tests/unit/interventions/terrain-routes-json.test.ts`, `tests/unit/ui/bandeau-motif.test.ts`.

@@ -83,6 +83,9 @@ const AMENDEMENTS_ATTENDUS: ReadonlyArray<readonly [string, string]> = [
   // TABLEAU DE BORD SEULEMENT : le libellé « indisponible » de la bande
   // (D136, D175) et la construction de « Demande à qualifier » (D176).
   ["D136", "D185"],
+  // D241 (10/11/2026, 9K26-TERRAIN-ALERTE-FIN-DESTINATAIRES) amende D173 :
+  // repli sur le bureau, deux messages distincts côté technicien.
+  ["D173", "D241"],
   ["D175", "D185"],
   ["D176", "D185"],
   // D188 (09/10/2026, 9EDZ-DEMANDES-CONNEXION-MAQUETTE) amende quatre
