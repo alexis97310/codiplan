@@ -2685,6 +2685,10 @@ export const fr = {
     "Seule une intervention en cours peut être terminée.",
   "intervention.refus.signature_manquante":
     "Aucune signature n'a été recueillie : signez, notez l'absence ou le refus de signer avant de terminer.",
+  // RG-INT-02 amendée (décision « Inactif + commentaire exigé » d'Alexis du
+  // 10/11/2026 ; 9K27-TERRAIN-TERMINER-CE-QUI-MANQUE).
+  "intervention.refus.commentaire_absent":
+    "Aucun commentaire n'a été écrit : décrivez l'intervention avant de terminer.",
   "intervention.refus.compteur_tourne_encore":
     "Un compteur tourne encore sur cette intervention.",
   // CK7 (9K23-CHECKLIST-BLOCAGE-TERMINER, D240) — RG-INT-02 amendée : un
@@ -3393,7 +3397,10 @@ export const fr = {
   "terrain.terminer.en_attente_envoi":
     "Intervention terminée sur ce téléphone : en attente d'envoi.",
   // ── CONFIRMATION DE « TERMINER », AVEC SON RÉSUMÉ (D219, décision
-  // d'Alexis du 21/10/2026) ────────────────────────────────────────────────
+  // d'Alexis du 21/10/2026 ; D219 amendée par la décision « Inactif +
+  // commentaire exigé » d'Alexis du 10/11/2026, 9K27-TERRAIN-TERMINER-CE-
+  // QUI-MANQUE — feuille plein écran, manques nommés et cliquables)
+  // ────────────────────────────────────────────────────────────────────────
   "terrain.terminer.confirmation.titre": "Terminer l'intervention ?",
   "terrain.terminer.confirmation.temps": "Temps mesuré :",
   "terrain.terminer.confirmation.rapport_rempli": "Rapport rempli",
@@ -3401,7 +3408,16 @@ export const fr = {
   "terrain.terminer.confirmation.prestations": "Prestations cochées :",
   "terrain.terminer.confirmation.signature_rien": "Aucune signature",
   "terrain.terminer.confirmation.non": "Non",
-  "terrain.terminer.confirmation.oui": "Oui, terminer",
+  "terrain.terminer.confirmation.oui": "Confirmer la fin",
+  "terrain.terminer.confirmation.manques_titre":
+    "Avant de confirmer, il manque :",
+  "terrain.terminer.confirmation.manque_commentaire":
+    "Le commentaire du rapport",
+  "terrain.terminer.confirmation.aller_commentaire": "Aller au commentaire",
+  "terrain.terminer.confirmation.manque_signature": "La signature du client",
+  "terrain.terminer.confirmation.aller_signature": "Aller à la signature",
+  "terrain.terminer.confirmation.indisponible":
+    "Confirmer la fin — disponible dès que tout ce qui manque est renseigné.",
   // ── LE COMPTEUR, DÉMARRÉ OU ARRÊTÉ HORS RÉSEAU (point 1) ─────────────
   "terrain.compteur.hors_reseau_depuis": "Démarré hors réseau depuis",
   "terrain.compteur.hors_reseau_arrete": "Arrêté hors réseau à",

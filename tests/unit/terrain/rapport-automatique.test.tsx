@@ -157,8 +157,13 @@ function elementDeScene(props: ProprietesScene = {}) {
       minutesConnues={props.minutesConnues ?? 60}
       segmentOuvertConnu={props.segmentOuvertConnu ?? null}
       rapportInitial={
+        // UN COMMENTAIRE NON VIDE PAR DÉFAUT (9K27-TERRAIN-TERMINER-CE-QUI-
+        // MANQUE) — la plupart des scènes de ce fichier n'éprouvent PAS le
+        // refus « commentaire absent », et ne doivent pas s'y heurter par
+        // accident ; voir `describe("le commentaire exigé, …")` plus bas
+        // pour le cas qui l'éprouve explicitement.
         props.rapportInitial ?? {
-          commentaire_technicien: null,
+          commentaire_technicien: "Un commentaire.",
           suite_a_donner: null,
         }
       }
@@ -182,10 +187,13 @@ function scene(props: ProprietesScene = {}) {
 
 /**
  * « TERMINER », AVEC SA CONFIRMATION (D219, décision d'Alexis du 21/10/2026,
- * 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES) — même raison que `cliquerTerminer` de
- * `tests/e2e/setup/terrain-gestes.ts` : un clic ouvre le résumé, un second
- * sur « Oui, terminer » déclenche le geste qu'un seul clic déclenchait avant
- * ce ticket.
+ * 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES ; feuille plein écran depuis le
+ * 10/11/2026, 9K27-TERRAIN-TERMINER-CE-QUI-MANQUE) — même raison que
+ * `cliquerTerminer` de `tests/e2e/setup/terrain-gestes.ts` : un clic ouvre
+ * la feuille, un second sur « Confirmer la fin » déclenche le geste qu'un
+ * seul clic déclenchait avant 9G8. N'appeler qu'après s'être assuré que rien
+ * ne manque (commentaire, signature, checklist) : sinon ce second clic
+ * trouve le bouton INACTIF.
  */
 function cliquerTerminer(): void {
   fireEvent.click(
@@ -1072,13 +1080,16 @@ describe("le bouton Terminer, hors connexion", () => {
   // DEPUIS 9F4H3-HORS-RESEAU-ENVOYER (point 1, décision n° 108 d'Alexis) —
   // « Terminer » hors réseau n'est plus un refus générique
   // (`terrain.terminer.sans_reseau`, superseded) : il est ACCEPTÉ et mis en
-  // file, SIGNATURE COMPRISE. Sans signature saisie (ce `scene()` n'en pose
-  // aucune), le refus vient désormais du verdict LOCAL `peutTerminer`
-  // (point 4, 9F4H3A, C5) — même clé que le serveur poserait pour ce même
-  // manque, mais SEUL (plus de prefixe `signature_non_enregistree`) : le
-  // verdict local nomme la cause réelle, qu'elle soit le temps ou la
-  // signature, jamais une seule d'entre elles supposée par construction.
-  it("sans signature saisie, affiche le motif de signature manquante et n'appelle jamais la route", async () => {
+  // file, SIGNATURE COMPRISE.
+  //
+  // DEPUIS LA DÉCISION « Inactif + commentaire exigé » D'ALEXIS DU 10/11/2026
+  // (D212 amendée, 9K27-TERRAIN-TERMINER-CE-QUI-MANQUE) : sans signature
+  // saisie (ce `scene()` n'en pose aucune), le manque n'attend plus un clic
+  // sur « Confirmer la fin » pour se nommer — la feuille le nomme, cliquable,
+  // dès son ouverture, et « Confirmer la fin » y reste INACTIF. Le second
+  // clic de `cliquerTerminer()` ne ferait donc rien : cette épreuve s'arrête
+  // au premier, sur la feuille elle-même.
+  it("sans signature saisie, nomme le manque dans la feuille et laisse « Confirmer la fin » inactif, sans jamais appeler la route", async () => {
     Object.defineProperty(window.navigator, "onLine", {
       configurable: true,
       value: false,
@@ -1086,13 +1097,22 @@ describe("le bouton Terminer, hors connexion", () => {
     try {
       scene({ afficherTerminer: true });
 
-      cliquerTerminer();
+      fireEvent.click(
+        screen.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
+      );
 
       await waitFor(() =>
         expect(
-          screen.getByText(fr["intervention.refus.signature_manquante"]),
+          screen.getByText(
+            fr["terrain.terminer.confirmation.manque_signature"],
+          ),
         ).toBeVisible(),
       );
+      expect(
+        screen.getByRole("button", {
+          name: fr["terrain.terminer.confirmation.oui"],
+        }),
+      ).toBeDisabled();
       expect(fetchMock).not.toHaveBeenCalled();
     } finally {
       delete (window.navigator as { onLine?: boolean }).onLine;
@@ -1115,7 +1135,9 @@ describe("« Terminer » n'appelle jamais /terminer tant qu'un bloc n'est pas ac
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    scene({ afficherTerminer: true });
+    // `dejaSignee` (9K27-TERRAIN-TERMINER-CE-QUI-MANQUE) — cette épreuve
+    // mesure le refus serveur du RAPPORT, pas la signature.
+    scene({ afficherTerminer: true, dejaSignee: true });
 
     const champ = screen.getByLabelText(
       fr["terrain.rapport.commentaire_libelle"],
@@ -1159,7 +1181,8 @@ describe("« Terminer » n'appelle jamais /terminer tant qu'un bloc n'est pas ac
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    scene({ afficherTerminer: true });
+    // `dejaSignee` — voir le commentaire de l'épreuve précédente.
+    scene({ afficherTerminer: true, dejaSignee: true });
 
     const champ = screen.getByLabelText(
       fr["terrain.rapport.commentaire_libelle"],
@@ -1196,7 +1219,12 @@ describe("« Terminer » n'appelle jamais /terminer tant qu'un bloc n'est pas ac
       }),
     );
 
-    scene({ afficherTerminer: true });
+    // `dejaSignee` (9K27-TERRAIN-TERMINER-CE-QUI-MANQUE) — cette scène
+    // n'éprouve ni le commentaire ni la signature, mais « Confirmer la fin »
+    // reste inactif tant que l'une des deux manque : une signature déjà
+    // acceptée, plutôt qu'une saisie hors de propos ici, garde l'épreuve sur
+    // ce qu'elle mesure réellement.
+    scene({ afficherTerminer: true, dejaSignee: true });
 
     await waitFor(() =>
       expect(screen.getByText(fr["terrain.rapport.enregistre"])).toBeVisible(),
@@ -1227,7 +1255,9 @@ describe("chaque envoi abandonne après 15 s, plutôt que de bloquer Terminer in
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    scene({ afficherTerminer: true });
+    // `dejaSignee` — voir le commentaire de la scène précédente : cette
+    // épreuve mesure l'abandon après 15 s, pas la signature.
+    scene({ afficherTerminer: true, dejaSignee: true });
 
     fireEvent.change(
       screen.getByLabelText(fr["terrain.rapport.commentaire_libelle"]),

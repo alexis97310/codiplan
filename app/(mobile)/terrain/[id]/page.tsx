@@ -322,6 +322,7 @@ export default async function PageInterventionTerrain({
   const verdictTerminer = peutTerminer(
     statut,
     mesure.minutes,
+    rapportTexte?.commentaire_technicien ?? null,
     signature?.issue ?? null,
     checklist !== null && checklist.disponible
       ? checklist.completude.obligatoiresManquants

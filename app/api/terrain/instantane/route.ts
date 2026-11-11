@@ -392,6 +392,7 @@ async function ficheEnJSON(
       verdictTerminer: peutTerminer(
         statut,
         mesure.minutes,
+        rapportTexte?.commentaire_technicien ?? null,
         signature?.issue ?? null,
         checklist?.disponible === true
           ? checklist.completude.obligatoiresManquants

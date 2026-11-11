@@ -17,7 +17,10 @@ import {
   suiteAvecLigne,
 } from "@/lib/checklists/suite-preremplie";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
-import { peutTerminer } from "@/lib/interventions/cycle-de-vie";
+import {
+  manquesPourTerminer,
+  peutTerminer,
+} from "@/lib/interventions/cycle-de-vie";
 import type {
   IssueSignature,
   StatutIntervention,
@@ -46,6 +49,8 @@ import {
   retirerSaisieCoalescable,
   signalerChecklistSauterAuPoint,
 } from "@/lib/terrain/file-saisies";
+
+import { CompteurVivant } from "./compteur-vivant";
 
 /**
  * LE RAPPORT DE TERRAIN, ENTIÈREMENT AUTOMATIQUE (9F4-TERRAIN-ENREGISTREMENT-
@@ -435,6 +440,14 @@ function mesureCompteurDeLaFile(
 ): {
   readonly minutes: number;
   readonly segmentOuvert: boolean;
+  /**
+   * LE DÉBUT DU SEGMENT ENCORE OUVERT, S'IL EN RESTE UN (M3, 9K27-TERRAIN-
+   * TERMINER-CE-QUI-MANQUE) — `null` si `segmentOuvert` est faux. Lu par la
+   * feuille de confirmation pour faire DÉFILER le « Temps mesuré » affiché
+   * (`CompteurVivant`) jusqu'à maintenant, plutôt que de montrer une valeur
+   * figée au rendu — même source que ce que le serveur mesurera au clic.
+   */
+  readonly debutSegmentOuvert: string | null;
 } {
   let minutes = 0;
   let debut: string | null = segmentOuvertConnu?.debut ?? null;
@@ -453,7 +466,40 @@ function mesureCompteurDeLaFile(
       debut = null;
     }
   }
-  return { minutes, segmentOuvert: debut !== null };
+  return { minutes, segmentOuvert: debut !== null, debutSegmentOuvert: debut };
+}
+
+/**
+ * LES POINTS OBLIGATOIRES ENCORE SANS RÉPONSE, DEPUIS LA COPIE LOCALE ET LA
+ * FILE (CK7 ; M3/point 2, 9K27-TERRAIN-TERMINER-CE-QUI-MANQUE) — extrait de
+ * `onClickTerminer` pour être rejoué AUSSI par la feuille de confirmation,
+ * qui doit nommer ce manque AVANT le clic, pas seulement après un refus.
+ * Même discipline que `ChecklistTerrain` au montage : une saisie `checklist`
+ * déjà en file prend le pas, point par point, sur la réponse connue du
+ * serveur.
+ */
+function obligatoiresManquantsDepuisFile(
+  entreesCompteur: readonly EntreeFile[],
+  checklistPourTerminer: {
+    readonly points: readonly PointPourCompletude[];
+    readonly reponsesInitiales: Readonly<Record<string, unknown>>;
+  } | null,
+): readonly PointObligatoireManquant[] {
+  const gesteChecklistEnFile = entreesCompteur.find(
+    (e): e is EntreeFile & { readonly geste: GesteChecklist } =>
+      e.geste.type === "checklist",
+  );
+  const reponduLocalement = new Set([
+    ...Object.keys(checklistPourTerminer?.reponsesInitiales ?? {}),
+    ...Object.keys(gesteChecklistEnFile?.geste.difference ?? {}),
+  ]);
+  return etatDeCompletude(
+    checklistPourTerminer?.points ?? [],
+    [...reponduLocalement].map((checklistPointId) => ({
+      checklistPointId,
+      nonConforme: false,
+    })),
+  ).obligatoiresManquants;
 }
 
 /**
@@ -727,11 +773,30 @@ export function RapportTerrainAutomatique({
   // serveur avant le retour du réseau.
   const [enCoursLocalement, setEnCoursLocalement] = useState(false);
   // LA CONFIRMATION DE « TERMINER », AVEC SON RÉSUMÉ (D219, décision
-  // d'Alexis du 21/10/2026) — même patron inline que `LigneRefus`
-  // (`bouton-envoyer.tsx`) plutôt qu'un `<dialog>` modal : un geste d'écran
-  // de plus, jamais un second aller-retour réseau.
+  // d'Alexis du 21/10/2026 ; FEUILLE PLEIN ÉCRAN depuis la décision
+  // d'Alexis du 10/11/2026, M3, 9K27-TERRAIN-TERMINER-CE-QUI-MANQUE) — même
+  // patron inline que `LigneRefus` (`bouton-envoyer.tsx`) plutôt qu'un
+  // `<dialog>` modal : un geste d'écran de plus, jamais un second
+  // aller-retour réseau.
   const [confirmationTerminerOuverte, setConfirmationTerminerOuverte] =
     useState(false);
+  // LES POINTS OBLIGATOIRES ENCORE SANS RÉPONSE, À JOUR EN PERMANENCE — PAS
+  // SEULEMENT APRÈS UN REFUS (M3/point 2, 9K27) — la feuille de confirmation
+  // doit les nommer AVANT le clic ; `relire()` (plus bas) les recalcule à
+  // chaque changement de la file. Valeur initiale sans la file (connue au
+  // premier rendu), corrigée dès le montage.
+  const [pointsManquantsAffiches, setPointsManquantsAffiches] = useState<
+    readonly PointObligatoireManquant[]
+  >(() => obligatoiresManquantsDepuisFile([], checklistPourTerminer));
+  // LE TEMPS AFFICHÉ DANS LA FEUILLE DE CONFIRMATION, EN DIRECT (M3) — les
+  // minutes déjà FERMÉES (serveur + file) et le DÉBUT du segment encore
+  // ouvert, s'il y en a un ; `null` si rien ne tourne. `CompteurVivant` fait
+  // défiler le second à partir du premier, jamais une estimation figée.
+  const [minutesFermeesAffichees, setMinutesFermeesAffichees] =
+    useState(minutesConnues);
+  const [debutSegmentOuvertAffiche, setDebutSegmentOuvertAffiche] = useState<
+    string | null
+  >(segmentOuvertConnu?.debut ?? null);
 
   // JAMAIS DE RAFRAÎCHISSEMENT AUTOMATIQUE PENDANT UNE SAISIE DU RAPPORT
   // (point 2, 9F4H5-TERRAIN-VIVANT) — « attente » est le debounce qui
@@ -765,6 +830,11 @@ export function RapportTerrainAutomatique({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const traceEnCoursRef = useRef(false);
   const minuteurRapportRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // LES LIENS DE LA FEUILLE DE CONFIRMATION (M3/point 2, 9K27-TERRAIN-
+  // TERMINER-CE-QUI-MANQUE) — « Aller au commentaire »/« Aller à la
+  // signature » referment la feuille puis y amènent, jamais une navigation.
+  const commentaireTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const signatureSectionRef = useRef<HTMLDivElement>(null);
 
   // LA RÉSOLUTION DE DESSIN SUIT LA TAILLE RÉELLEMENT AFFICHÉE (point 1,
   // 9H4-FINITIONS-AVANT-AUDIT) — au-delà de 320 px affichés (tablette), une
@@ -1379,11 +1449,27 @@ export function RapportTerrainAutomatique({
             (e) => e.geste.type === "compteur" && e.geste.action === "demarrer",
           ),
         );
+        // LA FEUILLE DE CONFIRMATION, À JOUR SANS ATTENDRE UN REFUS (M3/
+        // point 2-3, 9K27-TERRAIN-TERMINER-CE-QUI-MANQUE) — même calcul que
+        // le verdict local hors réseau d'`onClickTerminer`, rejoué ICI pour
+        // que « Confirmer la fin » et le temps affiché restent corrects
+        // pendant que la feuille est ouverte, pas seulement juste avant un
+        // envoi.
+        setPointsManquantsAffiches(
+          obligatoiresManquantsDepuisFile(entrees, checklistPourTerminer),
+        );
+        const mesureAffichage = mesureCompteurDeLaFile(
+          entrees,
+          segmentOuvertConnu,
+        );
+        setMinutesFermeesAffichees(minutesConnues + mesureAffichage.minutes);
+        setDebutSegmentOuvertAffiche(mesureAffichage.debutSegmentOuvert);
       });
     }
     relire();
     window.addEventListener(EVENEMENT_FILE_MODIFIEE, relire);
     return () => window.removeEventListener(EVENEMENT_FILE_MODIFIEE, relire);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `checklistPourTerminer`/`segmentOuvertConnu`/`minutesConnues` sont les props du rendu COURANT, jamais réécrits par une saisie ; seuls l'identité de la fiche et la session doivent réabonner cet écouteur.
   }, [interventionId, utilisateurId, societeId]);
 
   // UN « DÉMARRER » RÉUSSI EN LIGNE (D220, décision d'Alexis du 21/10/2026,
@@ -1809,28 +1895,17 @@ export function RapportTerrainAutomatique({
       const tempsMesureLocal = mesureCompteur.segmentOuvert
         ? Math.max(minutesConnues + mesureCompteur.minutes, 1)
         : minutesConnues + mesureCompteur.minutes;
-      // LA CHECKLIST, DEPUIS LA COPIE LOCALE ET LA FILE (CK7) — une saisie
-      // `checklist` déjà en file (reprise après coupure, ou cette même
-      // visite) PREND LE PAS, point par point, sur la réponse connue du
-      // serveur — même discipline que `ChecklistTerrain` au montage.
-      const gesteChecklistEnFile = entreesCompteur.find(
-        (e): e is EntreeFile & { readonly geste: GesteChecklist } =>
-          e.geste.type === "checklist",
+      // LA CHECKLIST, DEPUIS LA COPIE LOCALE ET LA FILE (CK7) — voir
+      // `obligatoiresManquantsDepuisFile`, rejouée aussi par la feuille de
+      // confirmation (M3/point 2, 9K27-TERRAIN-TERMINER-CE-QUI-MANQUE).
+      const obligatoiresManquantsLocal = obligatoiresManquantsDepuisFile(
+        entreesCompteur,
+        checklistPourTerminer,
       );
-      const reponduLocalement = new Set([
-        ...Object.keys(checklistPourTerminer?.reponsesInitiales ?? {}),
-        ...Object.keys(gesteChecklistEnFile?.geste.difference ?? {}),
-      ]);
-      const obligatoiresManquantsLocal = etatDeCompletude(
-        checklistPourTerminer?.points ?? [],
-        [...reponduLocalement].map((checklistPointId) => ({
-          checklistPointId,
-          nonConforme: false,
-        })),
-      ).obligatoiresManquants;
       const verdictLocal = peutTerminer(
         statutEffectif,
         tempsMesureLocal,
+        commentaireRef.current,
         issueSignatureLocaleComplete(),
         obligatoiresManquantsLocal,
       );
@@ -1937,6 +2012,48 @@ export function RapportTerrainAutomatique({
     setPointsManquantsTerminer(resultat.pointsManquants ?? []);
   }
 
+  /**
+   * LES MANQUES DE LA FEUILLE DE CONFIRMATION, EN DIRECT (D219 amendée, M3/
+   * point 2, décision « Inactif + commentaire exigé » d'Alexis du
+   * 10/11/2026, 9K27-TERRAIN-TERMINER-CE-QUI-MANQUE) — `manquesPourTerminer`
+   * TEL QUEL (aucune recopie), jugé sur l'état LOCAL affiché : le même
+   * brouillon que la feuille montre déjà, jamais une seconde source qui
+   * pourrait diverger (§9, 01/09). Le TEMPS n'y figure pas (voir le
+   * docblock de `manquesPourTerminer`) : « Confirmer la fin » ne se bloque
+   * jamais sur lui, un refus serveur reste le repli (D212).
+   */
+  const manquesTerminer = manquesPourTerminer(
+    commentaire,
+    issueSignatureLocaleComplete(),
+    pointsManquantsAffiches,
+  );
+  const confirmerFinDesactive =
+    manquesTerminer.commentaireManquant ||
+    manquesTerminer.signatureManquante ||
+    manquesTerminer.pointsManquants.length > 0;
+
+  /** « Aller au commentaire » — referme la feuille, puis y amène (M3/point 2). */
+  function allerAuCommentaire(): void {
+    setConfirmationTerminerOuverte(false);
+    commentaireTextareaRef.current?.focus();
+    commentaireTextareaRef.current?.scrollIntoView({ block: "center" });
+  }
+
+  /** « Aller à la signature » — même geste, sur le bloc signature. */
+  function allerALaSignature(): void {
+    setConfirmationTerminerOuverte(false);
+    signatureSectionRef.current?.scrollIntoView({ block: "start" });
+  }
+
+  /** Un point de checklist cité dans la feuille — referme-la avant d'y saisir. */
+  function allerAuPointChecklist(point: PointObligatoireManquant): void {
+    setConfirmationTerminerOuverte(false);
+    signalerChecklistSauterAuPoint({
+      interventionId,
+      checklistPointId: point.id,
+    });
+  }
+
   return (
     <>
       <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
@@ -1948,6 +2065,7 @@ export function RapportTerrainAutomatique({
             {t("terrain.rapport.commentaire_libelle")}
           </span>
           <textarea
+            ref={commentaireTextareaRef}
             name="commentaire_technicien"
             rows={3}
             value={commentaire}
@@ -2140,7 +2258,10 @@ export function RapportTerrainAutomatique({
         </section>
       )}
 
-      <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
+      <section
+        ref={signatureSectionRef}
+        className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5"
+      >
         <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
           {t("terrain.signature.titre")}
         </h2>
@@ -2298,47 +2419,6 @@ export function RapportTerrainAutomatique({
             >
               {t("terrain.terminer.en_attente_envoi")}
             </p>
-          ) : confirmationTerminerOuverte ? (
-            <div className="flex flex-col gap-2">
-              <p className="text-16 font-bold">
-                {t("terrain.terminer.confirmation.titre")}
-              </p>
-              <ul className="list-disc pl-5 text-16 font-bold">
-                <li>{texteConfirmationTemps(minutesConnues)}</li>
-                <li>
-                  {texteConfirmationRapport(commentaire.trim().length > 0)}
-                </li>
-                <li>
-                  {texteConfirmationPrestations(prestationsChoisies.size)}
-                </li>
-                <li>
-                  {texteConfirmationSignature(issueSignatureLocaleComplete())}
-                </li>
-              </ul>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="lg"
-                  className="flex-1 text-16"
-                  onClick={() => setConfirmationTerminerOuverte(false)}
-                >
-                  {t("terrain.terminer.confirmation.non")}
-                </Button>
-                <Button
-                  type="button"
-                  size="lg"
-                  className="flex-1 text-16"
-                  disabled={enEnvoiTerminer}
-                  onClick={() => {
-                    setConfirmationTerminerOuverte(false);
-                    void onClickTerminer();
-                  }}
-                >
-                  {t("terrain.terminer.confirmation.oui")}
-                </Button>
-              </div>
-            </div>
           ) : (
             <>
               <Button
@@ -2396,6 +2476,143 @@ export function RapportTerrainAutomatique({
             {texteDuMotif(verdictTerminerRefuseCle)}
           </p>
         </section>
+      )}
+
+      {!confirmationTerminerOuverte ? null : (
+        // LA FEUILLE DE CONFIRMATION, PLEIN ÉCRAN (M3, décision d'Alexis du
+        // 10/11/2026, 9K27-TERRAIN-TERMINER-CE-QUI-MANQUE) — AU-DESSUS de la
+        // barre basse (`barre-basse.tsx`, `z-50`), jamais dessous : un
+        // `z-[60]` fixe sur tout le viewport, jamais un `<div>` inline qui
+        // laissait la confirmation défiler SOUS cette barre (M3, audit UX du
+        // 10/11). D212 AMENDÉE : le bouton « Terminer l'intervention »
+        // au-dessus ouvre TOUJOURS cette feuille ; c'est « Confirmer la fin »,
+        // ICI, qui reste inactif tant qu'il manque quelque chose.
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="terrain-terminer-confirmation-titre"
+          className="bg-app-surface fixed inset-0 z-[60] flex flex-col gap-3 overflow-y-auto p-4"
+        >
+          <h2
+            id="terrain-terminer-confirmation-titre"
+            className="text-18 font-bold"
+          >
+            {t("terrain.terminer.confirmation.titre")}
+          </h2>
+          <ul className="list-disc pl-5 text-16 font-bold">
+            <li>
+              {debutSegmentOuvertAffiche === null ? (
+                texteConfirmationTemps(minutesFermeesAffichees)
+              ) : (
+                <>
+                  {t("terrain.terminer.confirmation.temps")}{" "}
+                  <CompteurVivant
+                    depart={new Date(debutSegmentOuvertAffiche)}
+                    minutesFermees={minutesFermeesAffichees}
+                  />
+                </>
+              )}
+            </li>
+            <li>{texteConfirmationRapport(commentaire.trim().length > 0)}</li>
+            <li>{texteConfirmationPrestations(prestationsChoisies.size)}</li>
+            <li>
+              {texteConfirmationSignature(issueSignatureLocaleComplete())}
+            </li>
+          </ul>
+
+          {!confirmerFinDesactive ? null : (
+            // CE QUI MANQUE, NOMMÉ ET CLIQUABLE (point 2, 9K27) — jamais
+            // seulement « il manque quelque chose » : chaque manque mène à
+            // l'endroit qui le résout.
+            <div className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre flex flex-col gap-2 rounded-md border px-3 py-2">
+              <p className="text-16 font-bold">
+                {t("terrain.terminer.confirmation.manques_titre")}
+              </p>
+              <ul className="flex flex-col gap-1">
+                {!manquesTerminer.commentaireManquant ? null : (
+                  <li>
+                    <button
+                      type="button"
+                      className="text-16 font-bold underline"
+                      onClick={allerAuCommentaire}
+                    >
+                      {t("terrain.terminer.confirmation.aller_commentaire")}
+                    </button>
+                    {t("ponctuation.separateur")}
+                    <span>
+                      {t("terrain.terminer.confirmation.manque_commentaire")}
+                    </span>
+                  </li>
+                )}
+                {!manquesTerminer.signatureManquante ? null : (
+                  <li>
+                    <button
+                      type="button"
+                      className="text-16 font-bold underline"
+                      onClick={allerALaSignature}
+                    >
+                      {t("terrain.terminer.confirmation.aller_signature")}
+                    </button>
+                    {t("ponctuation.separateur")}
+                    <span>
+                      {t("terrain.terminer.confirmation.manque_signature")}
+                    </span>
+                  </li>
+                )}
+                {manquesTerminer.pointsManquants.map((point) => (
+                  <li key={point.id}>
+                    <button
+                      type="button"
+                      className="text-16 font-bold underline"
+                      onClick={() => allerAuPointChecklist(point)}
+                    >
+                      {libelleDuPoint(point.section, point.libelle)}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="mt-auto flex flex-col gap-2">
+            {!confirmerFinDesactive ? null : (
+              <p
+                id="terrain-terminer-confirmation-indisponible"
+                className="text-app-encre-faible text-16 font-bold"
+              >
+                {t("terrain.terminer.confirmation.indisponible")}
+              </p>
+            )}
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                className="flex-1 text-16"
+                onClick={() => setConfirmationTerminerOuverte(false)}
+              >
+                {t("terrain.terminer.confirmation.non")}
+              </Button>
+              <Button
+                type="button"
+                size="lg"
+                className="flex-1 text-16"
+                disabled={enEnvoiTerminer || confirmerFinDesactive}
+                aria-describedby={
+                  confirmerFinDesactive
+                    ? "terrain-terminer-confirmation-indisponible"
+                    : undefined
+                }
+                onClick={() => {
+                  setConfirmationTerminerOuverte(false);
+                  void onClickTerminer();
+                }}
+              >
+                {t("terrain.terminer.confirmation.oui")}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

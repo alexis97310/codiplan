@@ -7,6 +7,7 @@ import {
   demarrerLeCompteur,
 } from "@/lib/interventions/depot-compteur";
 import {
+  enregistrerRapportTexte,
   enregistrerSignature,
   terminerIntervention,
 } from "@/lib/interventions/depot-rapport-terrain";
@@ -204,6 +205,14 @@ describe("depuisFile=false — le tout premier essai EN LIGNE n'est jamais hors 
   it("terminer : même heure future acceptée, saisi_hors_reseau faux sur le segment fermé", async () => {
     const id = await jetable(TECHNICIEN);
     const h8 = new Date("2026-09-14T08:00:00.000Z");
+    // UN COMMENTAIRE NON VIDE (RG-INT-02 amendée, 9K27-TERRAIN-TERMINER-CE-
+    // QUI-MANQUE) — cette scène n'éprouve pas ce manque.
+    await enregistrerRapportTexte(
+      SESSION_TECH,
+      id,
+      { commentaire_technicien: "Filtre remplacé.", suite_a_donner: null },
+      clientApp(),
+    );
     await demarrerLeCompteur(SESSION_TECH, id, h8, clientApp());
     await enregistrerSignature(
       SESSION_TECH,

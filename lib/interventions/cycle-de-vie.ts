@@ -171,7 +171,7 @@ export function peutValiderRapport(
  * « terminée » (9DE-TP-CY1, D8 à la lettre : QT-4(a), décision d'Alexis du
  * 28/09/2026) ?
  *
- * **Quatre conditions, et les quatre sont des FAITS, jamais une saisie.**
+ * **Cinq conditions, et les cinq sont des FAITS, jamais une saisie.**
  *
  *   - **Le statut est `en_cours`, et rien d'autre.** Une figée (annulée,
  *     clôturée) garde ses clés habituelles ; toute autre valeur — à
@@ -182,6 +182,13 @@ export function peutValiderRapport(
  *     que `peutCloturer`, pour la même raison : *le compteur du technicien
  *     est la seule source du temps*, et terminer sans qu'aucun compteur
  *     n'ait tourné facturerait un travail que personne n'a mesuré.
+ *   - **UN COMMENTAIRE NON VIDE EST ÉCRIT** (RG-INT-02 amendée, décision
+ *     « Inactif + commentaire exigé » d'Alexis du 10/11/2026 ;
+ *     9K27-TERRAIN-TERMINER-CE-QUI-MANQUE) — même colonne que
+ *     `peutValiderRapport` exige déjà (`commentaireTechnicien`,
+ *     « LE RAPPORT DE TERRAIN », `lib/interventions/depot-rapport-terrain.
+ *     ts`). Un commentaire fait seulement d'espaces compte comme absent :
+ *     même garde que `peutSuspendre` applique à son motif.
  *   - **AUCUN POINT OBLIGATOIRE DE LA CHECKLIST NE RESTE SANS RÉPONSE**
  *     (RG-INT-02 amendée, décision « A » d'Alexis du 29/10/2026, D240 ;
  *     9K23-CHECKLIST-BLOCAGE-TERMINER). `obligatoiresManquants` est déjà
@@ -198,6 +205,16 @@ export function peutValiderRapport(
  *     issue_coherente`) : D-S5 exige la signature au « Terminer », sauf motif
  *     tracé. `null` dit qu'aucune des trois issues n'a encore été choisie.
  *
+ * **L'écran, lui, affiche les manques AUTREMENT** (9K27) : le bouton
+ * « Terminer l'intervention » ouvre toujours la confirmation (D212 amendée)
+ * — c'est le bouton « Confirmer la fin », À L'INTÉRIEUR, qui reste inactif
+ * tant que le commentaire, la signature ou un point obligatoire manque,
+ * EN LES NOMMANT TOUS À LA FOIS. Ce verdict-ci, lui, s'arrête au PREMIER
+ * refus — c'est tout ce qu'il faut pour le serveur, l'arbitre final, et
+ * pour le repli affiché quand aucune saisie locale n'a encore corrigé ce
+ * que le rendu connaissait. Voir `manquesPourTerminer`, plus bas, pour la
+ * liste ENTIÈRE que la feuille de confirmation lit.
+ *
  * La cloture (statut suivant, D8) n'est PAS jugée ici — elle reste
  * `peutCloturer`, inchangée, et ne part que de `terminee` (ticket suivant,
  * T2).
@@ -205,6 +222,7 @@ export function peutValiderRapport(
 export function peutTerminer(
   statut: StatutIntervention,
   tempsMesureMin: number | null,
+  commentaireTechnicien: string | null,
   issueSignature: IssueSignature | null,
   obligatoiresManquants: readonly PointObligatoireManquant[],
 ): Verdict {
@@ -220,6 +238,12 @@ export function peutTerminer(
   if (tempsMesureMin === null || tempsMesureMin <= 0) {
     return { refuse: true, cle: "intervention.refus.temps_manquant" };
   }
+  if (
+    commentaireTechnicien === null ||
+    commentaireTechnicien.trim().length === 0
+  ) {
+    return { refuse: true, cle: "intervention.refus.commentaire_absent" };
+  }
   if (obligatoiresManquants.length > 0) {
     return {
       refuse: true,
@@ -231,6 +255,41 @@ export function peutTerminer(
     return { refuse: true, cle: "intervention.refus.signature_manquante" };
   }
   return PERMIS;
+}
+
+/**
+ * TOUS LES MANQUES DE « TERMINER », PAS LE PREMIER (9K27-TERRAIN-TERMINER-
+ * CE-QUI-MANQUE, décision « Inactif + commentaire exigé » d'Alexis du
+ * 10/11/2026) — la feuille de confirmation (D219 amendée) doit nommer
+ * CHAQUE manque à la fois, jamais seulement le premier que `peutTerminer`
+ * rendrait : même doctrine que `motifsNonTransmissible` applique déjà au tri
+ * « pretes / laissées ».
+ *
+ * **Le temps mesuré n'y figure pas** : la décision d'Alexis ne nomme que
+ * trois manques pour le bouton « Confirmer la fin » — le commentaire,
+ * l'issue de signature (avec son motif) et un point obligatoire — jamais le
+ * temps. Un temps manquant reste un refus SERVEUR ordinaire (D212), affiché
+ * comme n'importe quel autre après un clic, parce qu'aucun lien sensé ne
+ * mène à « démarrer le compteur » depuis cette feuille.
+ */
+export type ManquesTerminer = {
+  readonly commentaireManquant: boolean;
+  readonly signatureManquante: boolean;
+  readonly pointsManquants: readonly PointObligatoireManquant[];
+};
+
+export function manquesPourTerminer(
+  commentaireTechnicien: string | null,
+  issueSignature: IssueSignature | null,
+  obligatoiresManquants: readonly PointObligatoireManquant[],
+): ManquesTerminer {
+  return {
+    commentaireManquant:
+      commentaireTechnicien === null ||
+      commentaireTechnicien.trim().length === 0,
+    signatureManquante: issueSignature === null,
+    pointsManquants: obligatoiresManquants,
+  };
 }
 
 /**

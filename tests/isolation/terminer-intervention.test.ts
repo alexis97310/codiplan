@@ -103,6 +103,16 @@ afterEach(async () => {
 describe("terminerIntervention — le chemin accepté", () => {
   it("le technicien termine SA PROPRE intervention : statut terminee, segment fermé, temps = somme", async () => {
     const id = await jetable(TECHNICIEN);
+    // UN COMMENTAIRE NON VIDE (RG-INT-02 amendée, décision « Inactif +
+    // commentaire exigé » d'Alexis du 10/11/2026, 9K27-TERRAIN-TERMINER-CE-
+    // QUI-MANQUE) — voir le `describe` dédié plus bas pour le refus qui
+    // l'éprouve.
+    await enregistrerRapportTexte(
+      SESSION_TECH,
+      id,
+      { commentaire_technicien: "Filtre remplacé.", suite_a_donner: null },
+      clientApp(),
+    );
 
     const demarrage = await demarrerLeCompteur(
       SESSION_TECH,
@@ -153,6 +163,12 @@ describe("terminerIntervention — le chemin accepté", () => {
 
   it("ferme le segment OUVERT de l'appelant lui-même, sans arrêt préalable", async () => {
     const id = await jetable(TECHNICIEN);
+    await enregistrerRapportTexte(
+      SESSION_TECH,
+      id,
+      { commentaire_technicien: "Filtre remplacé.", suite_a_donner: null },
+      clientApp(),
+    );
 
     const demarrage = await demarrerLeCompteur(
       SESSION_TECH,
@@ -196,6 +212,12 @@ describe("terminerIntervention — le chemin accepté", () => {
 describe("terminerIntervention — les refus", () => {
   it("refuse sans aucune issue de signature enregistrée", async () => {
     const id = await jetable(TECHNICIEN);
+    await enregistrerRapportTexte(
+      SESSION_TECH,
+      id,
+      { commentaire_technicien: "Filtre remplacé.", suite_a_donner: null },
+      clientApp(),
+    );
     await demarrerLeCompteur(
       SESSION_TECH,
       id,
@@ -217,6 +239,91 @@ describe("terminerIntervention — les refus", () => {
     expect(resultat.accepte).toBe(false);
     if (!resultat.accepte) {
       expect(resultat.cle).toBe("intervention.refus.signature_manquante");
+    }
+  });
+
+  // RG-INT-02 amendée (décision « Inactif + commentaire exigé » d'Alexis du
+  // 10/11/2026, 9K27-TERRAIN-TERMINER-CE-QUI-MANQUE) — le serveur reste
+  // l'ARBITRE final : un commentaire absent refuse MÊME avec un temps mesuré
+  // et une signature, exactement comme l'écran le prévient désormais avant
+  // le clic.
+  it("refuse — nommé — sans commentaire écrit, même avec temps mesuré et signature", async () => {
+    const id = await jetable(TECHNICIEN);
+    await demarrerLeCompteur(
+      SESSION_TECH,
+      id,
+      new Date("2026-09-14T08:00:00.000Z"),
+      clientApp(),
+    );
+    await arreterLeCompteur(
+      SESSION_TECH,
+      new Date("2026-09-14T09:00:00.000Z"),
+      clientApp(),
+    );
+    await enregistrerSignature(
+      SESSION_TECH,
+      id,
+      {
+        issue: "signee",
+        image_base64: "data:image/png;base64,9K27A",
+        signataire_nom: "Jean Dupont",
+      },
+      clientApp(),
+    );
+
+    const resultat = await terminerIntervention(
+      SESSION_TECH,
+      id,
+      new Date("2026-09-14T09:05:00.000Z"),
+      clientApp(),
+    );
+    expect(resultat.accepte).toBe(false);
+    if (!resultat.accepte) {
+      expect(resultat.cle).toBe("intervention.refus.commentaire_absent");
+    }
+  });
+
+  // UN COMMENTAIRE FAIT SEULEMENT D'ESPACES COMPTE COMME ABSENT — même garde
+  // que `peutSuspendre` applique à son motif (voir `peutTerminer`).
+  it("refuse — un commentaire fait seulement d'espaces", async () => {
+    const id = await jetable(TECHNICIEN);
+    await enregistrerRapportTexte(
+      SESSION_TECH,
+      id,
+      { commentaire_technicien: "   ", suite_a_donner: null },
+      clientApp(),
+    );
+    await demarrerLeCompteur(
+      SESSION_TECH,
+      id,
+      new Date("2026-09-14T08:00:00.000Z"),
+      clientApp(),
+    );
+    await arreterLeCompteur(
+      SESSION_TECH,
+      new Date("2026-09-14T09:00:00.000Z"),
+      clientApp(),
+    );
+    await enregistrerSignature(
+      SESSION_TECH,
+      id,
+      {
+        issue: "signee",
+        image_base64: "data:image/png;base64,9K27B",
+        signataire_nom: "Jean Dupont",
+      },
+      clientApp(),
+    );
+
+    const resultat = await terminerIntervention(
+      SESSION_TECH,
+      id,
+      new Date("2026-09-14T09:05:00.000Z"),
+      clientApp(),
+    );
+    expect(resultat.accepte).toBe(false);
+    if (!resultat.accepte) {
+      expect(resultat.cle).toBe("intervention.refus.commentaire_absent");
     }
   });
 
@@ -435,6 +542,12 @@ describe("terminerIntervention — les refus", () => {
     }
 
     async function preparerAccepte(id: string): Promise<void> {
+      await enregistrerRapportTexte(
+        SESSION_TECH,
+        id,
+        { commentaire_technicien: "Filtre remplacé.", suite_a_donner: null },
+        clientApp(),
+      );
       await demarrerLeCompteur(
         SESSION_TECH,
         id,
@@ -535,6 +648,12 @@ describe("terminerIntervention — les refus", () => {
 describe("terminerIntervention — deux appels simultanés, un seul gagnant (point 2, 9F4H2A-REJEU-SANS-DOUBLON)", () => {
   it("un seul passe en terminee ; l'autre refuse (pas_en_cours), rien n'est doublé", async () => {
     const id = await jetable(TECHNICIEN);
+    await enregistrerRapportTexte(
+      SESSION_TECH,
+      id,
+      { commentaire_technicien: "Filtre remplacé.", suite_a_donner: null },
+      clientApp(),
+    );
     await demarrerLeCompteur(
       SESSION_TECH,
       id,

@@ -811,6 +811,7 @@ export async function terminerIntervention(
           technicien_id: true,
           terminer_operation_id: true,
           checklist_version_id: true,
+          commentaire_technicien: true,
         },
       });
       if (ligne === null) {
@@ -929,6 +930,7 @@ export async function terminerIntervention(
       const verdict = peutTerminer(
         ligne.statut as StatutIntervention,
         tempsMesure,
+        ligne.commentaire_technicien,
         derniere?.issue ?? null,
         obligatoiresManquants,
       );

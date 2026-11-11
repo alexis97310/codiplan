@@ -7,6 +7,7 @@ import {
   demarrerLeCompteur,
 } from "@/lib/interventions/depot-compteur";
 import {
+  enregistrerRapportTexte,
   enregistrerSignature,
   terminerIntervention,
 } from "@/lib/interventions/depot-rapport-terrain";
@@ -331,6 +332,14 @@ describe("terminer en différé — le rejeu n'envoie jamais un second geste", (
     const H845 = new Date("2026-09-14T08:45:00.000Z");
     const OP = uuidv7();
 
+    // UN COMMENTAIRE NON VIDE (RG-INT-02 amendée, 9K27-TERRAIN-TERMINER-CE-
+    // QUI-MANQUE) — cette scène n'éprouve pas ce manque.
+    await enregistrerRapportTexte(
+      SESSION_TECH,
+      id,
+      { commentaire_technicien: "Filtre remplacé.", suite_a_donner: null },
+      clientApp(),
+    );
     await demarrerLeCompteur(SESSION_TECH, id, H8, clientApp());
     await enregistrerSignature(
       SESSION_TECH,
@@ -396,6 +405,12 @@ describe("terminer en différé — le rejeu n'envoie jamais un second geste", (
     const H8 = new Date("2026-09-14T08:00:00.000Z");
     const H845 = new Date("2026-09-14T08:45:00.000Z");
 
+    await enregistrerRapportTexte(
+      SESSION_TECH,
+      id,
+      { commentaire_technicien: "Filtre remplacé.", suite_a_donner: null },
+      clientApp(),
+    );
     await demarrerLeCompteur(SESSION_TECH, id, H8, clientApp());
     await enregistrerSignature(
       SESSION_TECH,
