@@ -168,6 +168,11 @@ test.beforeAll(async () => {
       mode_valorisation: "temps_passe" as const,
       devise_code: "XPF",
       date_planifiee: new Date(),
+      // UN COMMENTAIRE DÉJÀ ÉCRIT PAR DÉFAUT (RG-INT-02 amendée, 9K27-
+      // TERRAIN-TERMINER-CE-QUI-MANQUE) — hors du périmètre des épreuves de
+      // ce fichier ; celles qui le saisissent elles-mêmes à l'écran
+      // (mode avion, route interceptée) l'écrasent sans conflit.
+      commentaire_technicien: "zz9F4 Commentaire pré-semé.",
     };
 
     // — POUR LA DÉ-DUPLICATION : n'importe quel statut non figé suffit.
@@ -215,8 +220,12 @@ test.beforeAll(async () => {
     });
 
     // — POUR LE MESSAGE « TERMINER INCOMPLET » : EN COURS, sans aucun temps
-    // mesuré ni signature — le bouton reste affiché (9F4 : le refus ne le
-    // remplace plus) et le motif du serveur s'affiche dessous au clic.
+    // mesuré — le bouton reste affiché (9F4 : le refus ne le remplace plus)
+    // et le motif du serveur s'affiche dessous au clic. Le commentaire
+    // (`commun`) et la signature ci-dessous sont déjà complets : seul le
+    // temps manque, pour isoler CE refus précis de celui que « Confirmer la
+    // fin » bloquerait désormais à l'écran (9K27-TERRAIN-TERMINER-CE-QUI-
+    // MANQUE) — le temps, lui, reste un repli SERVEUR (D212 inchangée).
     await client.intervention.create({
       data: {
         id: INTERVENTION_INCOMPLETE,
@@ -224,6 +233,15 @@ test.beforeAll(async () => {
         priorite: "p3",
         duree_estimee_min: 30,
         ...commun,
+      },
+    });
+    await client.interventionSignature.create({
+      data: {
+        id: uuidv7(),
+        societe_id: reperes.societeId,
+        intervention_id: INTERVENTION_INCOMPLETE,
+        issue: "client_absent",
+        motif: "zz9F4 client injoignable",
       },
     });
 

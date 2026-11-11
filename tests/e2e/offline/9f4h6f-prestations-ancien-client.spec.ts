@@ -109,6 +109,21 @@ test.beforeAll(async () => {
         description: "9F4H6F — intervention forgée par l'épreuve",
         statut: "en_cours",
         date_planifiee: null,
+        // UN COMMENTAIRE DÉJÀ ÉCRIT (RG-INT-02 amendée, 9K27-TERRAIN-
+        // TERMINER-CE-QUI-MANQUE) — hors du périmètre de cette épreuve.
+        commentaire_technicien: "zz9F4H6F Filtre remplacé.",
+      },
+    });
+    // UNE SIGNATURE DÉJÀ ENREGISTRÉE (même amendement) — « Confirmer la
+    // fin » doit pouvoir être cliqué pour que ce fichier éprouve le refus
+    // SERVEUR des prestations, pas un manque de l'écran.
+    await client.interventionSignature.create({
+      data: {
+        id: uuidv7(),
+        societe_id: societeId,
+        intervention_id: INTERVENTION_9F4H6F,
+        issue: "client_absent",
+        motif: "zz9F4H6F client injoignable",
       },
     });
   } finally {

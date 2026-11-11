@@ -150,6 +150,9 @@ test.beforeAll(async () => {
       description: "9F4H6D — intervention forgée par l'épreuve",
       statut: "affectee" as const,
       date_planifiee: null,
+      // UN COMMENTAIRE DÉJÀ ÉCRIT (RG-INT-02 amendée, 9K27-TERRAIN-
+      // TERMINER-CE-QUI-MANQUE) — hors du périmètre de cette épreuve.
+      commentaire_technicien: "zz9F4H6D Filtre remplacé.",
     };
     await client.intervention.create({
       data: { id: INTERVENTION_COCHER_ENVOYER_DECOCHER, ...commun },

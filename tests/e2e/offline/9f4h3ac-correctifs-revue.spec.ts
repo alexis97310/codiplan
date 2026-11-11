@@ -84,6 +84,9 @@ test.beforeAll(async () => {
       devise_code: "XPF",
       description: "9F4H3AC — intervention forgée par l'épreuve",
       date_planifiee: null,
+      // UN COMMENTAIRE DÉJÀ ÉCRIT (RG-INT-02 amendée, 9K27-TERRAIN-
+      // TERMINER-CE-QUI-MANQUE) — hors du périmètre de cette épreuve.
+      commentaire_technicien: "zz9F4H3AC Filtre remplacé.",
     };
     await client.intervention.create({
       data: { id: INTERVENTION_9F4H3AC, ...commun, statut: "affectee" },

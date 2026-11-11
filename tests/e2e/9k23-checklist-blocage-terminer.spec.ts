@@ -119,6 +119,10 @@ async function creerScene(
       mode_valorisation: "temps_passe",
       devise_code: "XPF",
       description: `zz${prefixe}-blocage-terminer`,
+      // UN COMMENTAIRE DÉJÀ ÉCRIT (RG-INT-02 amendée, 9K27-TERRAIN-TERMINER-
+      // CE-QUI-MANQUE) — ce fichier éprouve le blocage CHECKLIST, pas le
+      // commentaire, déjà éprouvé par 9k27-terrain-terminer-ce-qui-manque.
+      commentaire_technicien: `zz${prefixe} Filtre remplacé.`,
     },
   });
 
@@ -246,25 +250,27 @@ test("375/1280 px, EN LIGNE — refus nommé, lien qui déplie et saute, puis Te
       page.getByRole("button", { name: fr["terrain.terminer.bouton"] }),
     ).toBeVisible();
 
-    await cliquerTerminer(page);
-
-    await expect(
-      page.getByText(fr["intervention.refus.checklist_obligatoire_manquante"]),
-    ).toBeVisible();
+    // « TERMINER » OUVRE TOUJOURS LA FEUILLE (D212 amendée, 9K27-TERRAIN-
+    // TERMINER-CE-QUI-MANQUE) — c'est « Confirmer la fin », à l'intérieur,
+    // qui reste INACTIF tant que le point obligatoire manque, NOMMÉ.
+    await page
+      .getByRole("button", { name: fr["terrain.terminer.bouton"] })
+      .click();
     const lien = page.getByRole("button", {
       name: libelleAttenduDuPoint(scene),
     });
     await expect(lien).toBeVisible();
+    await expect(
+      page.getByRole("button", {
+        name: fr["terrain.terminer.confirmation.oui"],
+      }),
+    ).toBeDisabled();
 
     await capturer(page, "refus-nomme-en-ligne", 375);
     await capturer(page, "refus-nomme-en-ligne", 1280);
 
-    // LE LIEN DÉPLIE LA TUILE ET Y SAUTE.
-    await expect(
-      page.getByRole("button", {
-        name: fr["checklist.terrain.afficher_detail"],
-      }),
-    ).toBeVisible();
+    // LE LIEN REFERME LA FEUILLE, DÉPLIE LA TUILE ET Y SAUTE.
+    await page.setViewportSize({ width: 375, height: 900 });
     await lien.click();
     await expect(
       page.getByRole("button", {
@@ -279,7 +285,7 @@ test("375/1280 px, EN LIGNE — refus nommé, lien qui déplie et saute, puis Te
 
     await capturer(page, "tuile-depliee-sur-le-point", 375);
 
-    // RÉPONDU — « Terminer » passe désormais.
+    // RÉPONDU — « Confirmer la fin » se débloque, « Terminer » passe.
     await boutonConforme.click();
     await cliquerTerminer(page);
     await expect(page).toHaveURL(
@@ -316,15 +322,22 @@ test("375 px, MODE AVION — même refus nommé depuis la copie locale, répondu
 
     await context.setOffline(true);
 
-    await cliquerTerminer(page);
-
-    await expect(
-      page.getByText(fr["intervention.refus.checklist_obligatoire_manquante"]),
-    ).toBeVisible();
+    // « TERMINER » OUVRE TOUJOURS LA FEUILLE, MÊME HORS RÉSEAU (D212
+    // amendée, 9K27-TERRAIN-TERMINER-CE-QUI-MANQUE) — purement locale, elle
+    // nomme le point obligatoire manquant et laisse « Confirmer la fin »
+    // inactif, sans aucun appel réseau.
+    await page
+      .getByRole("button", { name: fr["terrain.terminer.bouton"] })
+      .click();
     const lien = page.getByRole("button", {
       name: libelleAttenduDuPoint(scene),
     });
     await expect(lien).toBeVisible();
+    await expect(
+      page.getByRole("button", {
+        name: fr["terrain.terminer.confirmation.oui"],
+      }),
+    ).toBeDisabled();
 
     await capturer(page, "refus-nomme-mode-avion", 375);
 

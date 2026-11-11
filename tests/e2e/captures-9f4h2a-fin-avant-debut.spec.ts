@@ -81,6 +81,9 @@ test.beforeAll(async () => {
         description: "9F4H2A — intervention forgée par l'épreuve",
         statut: "affectee",
         date_planifiee: null,
+        // UN COMMENTAIRE DÉJÀ ÉCRIT (RG-INT-02 amendée, 9K27-TERRAIN-
+        // TERMINER-CE-QUI-MANQUE) — hors du périmètre de cette épreuve.
+        commentaire_technicien: "zz9F4H2A Filtre remplacé.",
       },
     });
   } finally {

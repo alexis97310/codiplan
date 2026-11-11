@@ -95,6 +95,10 @@ test.beforeAll(async () => {
         statut: "affectee",
         date_planifiee: new Date("2026-09-25T00:00:00Z"),
         duree_estimee_min: 60,
+        // UN COMMENTAIRE DÉJÀ ÉCRIT (RG-INT-02 amendée, 9K27-TERRAIN-
+        // TERMINER-CE-QUI-MANQUE) — ce fichier éprouve la SIGNATURE, pas le
+        // commentaire, déjà éprouvé par 9k27-terrain-terminer-ce-qui-manque.
+        commentaire_technicien: "zz9DE Filtre remplacé.",
       },
     });
   } finally {
