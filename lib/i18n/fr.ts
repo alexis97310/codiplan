@@ -4725,7 +4725,8 @@ export const fr = {
   // coché : jamais une case à décocher, seulement un ÉTAT à lire.
   "prestations.types": "Types d'intervention",
   "prestations.types_tous": "Tous les types",
-  "prestations.types_tous_indice": "Aucun type coché = proposée pour tous les types",
+  "prestations.types_tous_indice":
+    "Aucun type coché = proposée pour tous les types",
   "prestations.refus.saisie":
     "Une prestation se saisit avec un code et un libellé. La durée est facultative ; si elle est donnée, elle est en minutes entières et supérieure à zéro.",
   "prestations.refus.code_pris":

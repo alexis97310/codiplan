@@ -19,7 +19,10 @@ import type { TypeIntervention } from "@/lib/interventions/saisie";
  * de ce qu'une intervention PORTE déjà.
  */
 export function prestationsProposees<
-  T extends { readonly id: string; readonly types: readonly TypeIntervention[] },
+  T extends {
+    readonly id: string;
+    readonly types: readonly TypeIntervention[];
+  },
 >(
   catalogue: readonly T[],
   type: TypeIntervention,

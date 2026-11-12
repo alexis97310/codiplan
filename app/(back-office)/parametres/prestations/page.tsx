@@ -14,7 +14,10 @@ import { peutPleinement } from "@/lib/auth/habilitations";
 import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import { enDuree } from "@/lib/calendar/duree";
-import { TYPES_INTERVENTION, type TypeIntervention } from "@/lib/interventions/saisie";
+import {
+  TYPES_INTERVENTION,
+  type TypeIntervention,
+} from "@/lib/interventions/saisie";
 import {
   famillesVisables,
   listerLesPrestations,
@@ -273,7 +276,9 @@ const SEPARATEUR_TYPES = ", ";
  */
 function libellesDesTypes(types: readonly TypeIntervention[]): string {
   if (types.length === 0) return t("prestations.types_tous");
-  return types.map((type) => t(`type_intervention.${type}`)).join(SEPARATEUR_TYPES);
+  return types
+    .map((type) => t(`type_intervention.${type}`))
+    .join(SEPARATEUR_TYPES);
 }
 
 /** La carte d'une prestation, sous 900 px — même contenu que sa ligne de tableau. */
