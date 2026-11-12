@@ -8515,3 +8515,32 @@ Le ticket parlait de « 24 gabarits nouveaux ». La source (`gabarits-valides-11
 **Règles amendées :** chapitre 11.2 — `checklist_modele` (la colonne `type_intervention` disparaît) et `checklist_modele_type_intervention` (table ajoutée).
 
 Portée : `prisma/schema.prisma` (`ChecklistModeleTypeIntervention`, `ChecklistModele.types`, `Societe.checklistModeleTypes` `@ignore`), `prisma/migrations/20261112200000_checklist_modele_types_intervention_9k30a/`, `scripts/lib/politiques-rls.ts` (`TABLES_FILIATION`, `FILIATION_ARBITREE`), `lib/checklists/cascade.ts`, `lib/checklists/depot.ts`, `lib/checklists/saisie.ts` (`schemaTypesIntervention`), `lib/checklists/gabarits-de-depart.ts`, `app/api/parametres/checklists/saisie-recue.ts`, `app/api/parametres/checklists/creer/route.ts`, `app/api/parametres/checklists/[id]/dupliquer/route.ts`, `app/api/parametres/checklists/gabarit/route.ts`, `app/(back-office)/parametres/checklists/page.tsx`, `app/(back-office)/parametres/checklists/volet-partir-gabarit.tsx` (créé), `lib/i18n/fr.ts`, `prisma/seed.ts`, `prisma/seed-data.ts` (`identifiantParc`, famille `checklist_modele_type`), `docs/cahier-des-charges.md` (chapitre 11.2), `lib/db/migrations-attendues.ts`, `package.json` (plafond mémoire `build`/`typecheck`), `tests/unit/checklists/cascade.test.ts`, `tests/unit/checklists/saisie.test.ts`, `tests/unit/checklists/gabarits-de-depart.test.ts`, `tests/unit/db/inventaire.test.ts`, `tests/unit/db/perimetre-audit.test.ts`, `tests/unit/ui/carte-pas-recopiee.test.ts`, `tests/isolation/portail-matrice.test.ts`, `tests/isolation/checklist-parametrage.test.ts`, `tests/isolation/checklist-domaine.test.ts`, `tests/e2e/9k30a-checklist-gabarits-valides.spec.ts`.
+
+## D247 — COPIER LE PREMIER LIEN D'ACCÈS, ET RATTACHER UN COURRIEL À LA CRÉATION, APPLIQUENT DÉSORMAIS L'EXCLUSIVITÉ À LA SOCIÉTÉ (décision d'Alexis du 10/11/2026 ; 9L01-COPIE-LIEN-EXCLUSIVITE)
+
+**Décision amendée :** D226 (01/11/2026, 9I8D1-REPRISE-9I8D), dans sa PORTÉE — la règle elle-même (`identiteExclusiveALaSociete`, la fonction `SECURITY DEFINER` qui la tranche) ne change pas d'un mot ; ce qui change, c'est la LISTE des gestes qui la posent avant d'agir.
+
+### CE QUI A ÉTÉ MESURÉ
+
+D226 fermait déjà la copie d'un NOUVEAU lien d'accès (mot de passe oublié, `copierNouveauLienDAcces`/`copierNouveauLienDAccesBureau`) pour une identité aussi rattachée à une autre société. Deux chemins voisins, mesurés le 10/11/2026, ne posaient pas la même question :
+
+- **copier le PREMIER lien** (`copierLienDAcces`/`copierLienDAccesBureau`, `lib/auth/acces-technicien.ts`/`lib/auth/acces-bureau.ts`) ne vérifiait que l'appartenance à la société active, jamais l'exclusivité — l'en-tête de `lib/auth/acces-technicien.ts` nommait déjà ce trou pour le technicien (« le ticket nomme un quatrième refus [...] il N'EST PAS implémenté ») sans le fermer ;
+- **créer un compte de bureau ou un technicien** (`creerCompteDeBureau`/`creerTechnicien`) rattachait, sans aucun contrôle, une identité déjà connue d'une AUTRE société dès qu'elle partageait son courriel — la même situation que D226 traitait déjà pour la copie d'un lien, jamais encore posée à la création.
+
+### LA DÉCISION
+
+**1. Copier le PREMIER lien pose `identiteExclusiveALaSociete` (D226), juste après l'appartenance, jamais de « cible protégée » (D223).** Même motif nommé, `autre_societe`, que la copie d'un NOUVEAU lien — mais sans le contrôle de rôle protégé (D223), qui ne vaut que pour cette seconde copie (le premier lien d'un compte de direction ou d'un autre administrateur de société reste permis, comme avant). Aucun jeton n'est émis quand ce refus tient ; aucune trace n'est écrite, par cohérence avec les autres refus de ce même geste (`introuvable`, `deja_un_mot_de_passe`), eux-mêmes muets.
+
+**2. Créer un compte de bureau ou un technicien pose la même fonction avant de rattacher une identité trouvée par courriel, avec UN SEUL motif, délibérément NEUTRE : `courriel_connu_ailleurs`.** Ce motif ne distingue ni le rôle de cette identité dans l'autre société, ni si son compte y est déjà activé — un administrateur qui ne connaît pas encore cette adresse n'apprend donc rien de plus que « elle ne peut pas être rattachée ici ». Un courriel connu de la MÊME société garde son refus propre (`deja_membre`), inchangé.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+L'ENVOI d'un lien par courriel (`envoyerLienDAcces`/`envoyerLienDAccesBureau`, premier ou nouveau) n'est pas concerné : il pose l'URL dans un message adressé à la personne elle-même, jamais à l'administrateur, qui ne la voit jamais. Le trou que D34 nomme pour l'envoi (aucune lecture ne peut voir, sous RLS, une ligne d'une autre société) reste donc hors de portée de ce lot, comme avant lui — seule la COPIE, qui rend le secret au porteur à l'administrateur, le justifiait.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où un geste administratif nouveau rend un secret au porteur (lien, jeton, mot de passe) directement à l'administrateur plutôt qu'à la personne visée, cette décision se relit : la question qu'elle pose (« cette identité est-elle exclusive à la société active ? ») est la même à chaque fois, et un nouveau chemin qui l'omettrait reconstruirait le même trou.
+
+**Règles amendées :** aucune — D226 s'applique telle quelle à deux chemins de plus ; aucun schéma, aucune migration.
+
+Portée : `lib/auth/acces-technicien.ts` (`copierLienDAcces`, `MotifRefusCopieLienAcces`), `lib/auth/acces-bureau.ts` (`copierLienDAccesBureau`, `MotifRefusCopieLienBureau`, `creerCompteDeBureau`, `MotifRefusCompteDeBureau`), `lib/techniciens/depot.ts` (`creerTechnicien`, `MotifRefusTechnicien`), `lib/i18n/fr.ts`, `tests/unit/techniciens/depot.test.ts`, `tests/unit/equipe/bureau-creer-envoi-acces-non-parti.test.ts`, `tests/unit/techniciens/creer-envoi-acces-non-parti.test.ts`, `tests/unit/equipe/copier-lien-cache-control.test.ts`, `tests/isolation/acces-bureau.test.ts`, `tests/isolation/acces-technicien.test.ts`, `tests/e2e/captures-9l01-copie-lien-exclusivite.spec.ts`.

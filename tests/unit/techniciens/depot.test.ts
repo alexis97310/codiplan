@@ -128,9 +128,7 @@ function fabriquerClientFactice(options: {
     // `avecSociete` route ici son `$queryRaw` tagué. Fonctionne comme balise
     // de gabarit : les arguments (chaînes, valeurs interpolées) ne comptent
     // pas pour ce gardien, seule la réponse importe.
-    $queryRaw: async () => [
-      { exclusif: options.identiteExclusive ?? true },
-    ],
+    $queryRaw: async () => [{ exclusif: options.identiteExclusive ?? true }],
     utilisateur: {
       findUnique: async () => options.utilisateurExistant ?? null,
       create: async ({ data }: { data: { id: string } }) => {

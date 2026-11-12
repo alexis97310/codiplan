@@ -161,9 +161,7 @@ test("création d'un compte de bureau avec un courriel connu d'une autre sociét
   await page.goto("/parametres/equipe?onglet=bureau&ajouter=1&type=bureau");
 
   await page.locator("#ajout-bureau-nom").fill("9L01 — Tentative bureau");
-  await page
-    .locator("#ajout-bureau-courriel")
-    .fill(COURRIEL_BUREAU_AILLEURS);
+  await page.locator("#ajout-bureau-courriel").fill(COURRIEL_BUREAU_AILLEURS);
   await page.locator("#ajout-bureau-role").selectOption(Role.adv);
   await page.getByRole("button", { name: fr["equipe.creer_action"] }).click();
 
@@ -203,7 +201,9 @@ test("création d'un technicien avec un courriel connu d'une autre société —
     "/parametres/equipe?onglet=techniciens&ajouter=1&type=technicien",
   );
 
-  await page.locator("#ajout-technicien-nom").fill("9L01 — Tentative technicien");
+  await page
+    .locator("#ajout-technicien-nom")
+    .fill("9L01 — Tentative technicien");
   await page
     .locator("#ajout-technicien-email")
     .fill(COURRIEL_TECHNICIEN_AILLEURS);

@@ -179,9 +179,7 @@ export type SaisieCompteDeBureau = z.infer<typeof schemaCreationCompteDeBureau>;
  * son rôle là-bas ou si son compte y est déjà activé.
  */
 export type MotifRefusCompteDeBureau =
-  | "role_hors_liste"
-  | "deja_membre"
-  | "courriel_connu_ailleurs";
+  "role_hors_liste" | "deja_membre" | "courriel_connu_ailleurs";
 
 export type ResultatCreationCompteDeBureau =
   | {
@@ -467,7 +465,8 @@ export async function envoyerNouveauLienDAccesBureau(
  * les motifs partagés (`MotifRefusAccesPartage`) plus `autre_societe` (D226,
  * 9L01-COPIE-LIEN-EXCLUSIVITE), jamais rendu par l'envoi par courriel.
  */
-export type MotifRefusCopieLienBureau = MotifRefusAccesPartage | "autre_societe";
+export type MotifRefusCopieLienBureau =
+  MotifRefusAccesPartage | "autre_societe";
 
 export type ResultatCopieLienBureau =
   | { readonly accepte: true; readonly url: string }
