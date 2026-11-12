@@ -122,3 +122,75 @@ définition du §5.
 ## Portée (fichiers touchés)
 
 Voir `docs/arbitrages.md` D244, section « Portée ».
+
+## Reprise 9K28A (12/11/2026) — ce qui a été fait, et ce qui reste dû
+
+**1. La cause du recalage (D243/D244) : une collision de numéro, pas une ligne mal écrite.**
+9K29-PRESTATIONS-PAR-TYPE-INTERVENTION a publié SA décision sous le numéro D243 pendant que ce
+ticket l'avait déjà pris pour la sienne — les deux sections partageaient le même titre `## D243`
+dans `docs/arbitrages.md`. Le gardien (`scripts/lib/cablage-arbitrages.ts`,
+`lireDecisions`) fusionne alors les deux corps sous UNE SEULE entrée (« deux sections distinctes
+portent cette référence »), et le mélange qui en résulte casse la ligne `**Règles amendées :**`
+des deux côtés — c'est cette casse, pas une faute de frappe, que les deux gardiens
+(`tests/unit/docs/amendements-arbitrages.test.ts`, `tests/unit/docs/cablage-arbitrages.test.ts`)
+rapportaient. **Renumérotée D244** (prochain numéro libre, mesuré par grep sur tout le dépôt avant
+de l'écrire), avec la mise à jour de ses deux références dans ce document. Au passage, sa section
+a été reformatée en `### ` (sous-titres), comme le fait TOUTE autre décision de ce document :
+c'est cette forme — et non le texte de la ligne « Règles amendées » elle-même — qui fait sortir
+cette ligne du corps scruté par `lireDecisions` une fois la section correctement reconnue (la
+forme à bloc `**gras.**` que ce ticket avait écrite la laissait, elle, DANS le corps scruté, où
+elle doit alors correspondre exactement à `**Règles amendées :** RG-xxx-nn[, …]` ou être absente —
+jamais une prose libre). Les deux gardiens passent (`pnpm vitest run
+tests/unit/docs/cablage-arbitrages.test.ts tests/unit/docs/amendements-arbitrages.test.ts`).
+
+**2. L'échec intermittent d'isolation — trouvé et corrigé.** Reproduit en 2 essais sur 4 en
+lançant `pnpm test:isolation` en boucle (jamais en solo : le fichier `9k28-checklist-reponse-
+photo.test.ts` seul est toujours vert, la cause est donc forcément un AUTRE fichier de la suite).
+Diagnostic posé dans `enregistrerReponsePhoto` (retiré avant de rendre la main) : au moment de
+l'échec, AUCUNE ligne `checklist_reponse` ne préexistait sous la clé visée (donc pas une ligne
+orpheline d'une autre épreuve) — mais `pg_get_constraintdef` montrait que la contrainte
+`checklist_reponse_valeur_unique`, EN FORCE à cet instant, portait encore CINQ colonnes
+(`valeur_conforme, valeur_mesuree, valeur_fait, valeur_choix, valeur_texte`), sans `valeur_photo`.
+**Cause : `tests/isolation/checklists.test.ts`, test JUMEAU « la contrainte retirée, DEUX valeurs
+à la fois PASSENT »** (describe `checklist_reponse — l'exclusivité…`) DROP la vraie contrainte
+pour la durée du test, puis la REPOSE dans son `finally` — mais sur la forme à CINQ colonnes
+d'avant 9K18/9K28, jamais mise à jour quand 9K28 a étendu la contrainte réelle à SIX colonnes. La
+base de test étant PARTAGÉE entre tous les fichiers de la suite d'isolation (une seule base,
+jamais réinitialisée entre fichiers), ce test laissait la contrainte affaiblie pour le reste de
+l'exécution : toute réponse `photo` insérée APRÈS lui (num_nonnulls = 0 sur les cinq anciennes
+colonnes, `valeur_photo` n'étant pas compté) violait alors la contrainte — selon l'ordre
+d'exécution des fichiers, non garanti, d'où l'intermittence. **Corrigé** : la restauration du
+`finally` porte désormais les SIX colonnes, avec un commentaire qui nomme explicitement le piège
+pour la prochaine extension de cette contrainte. `pnpm test:isolation` complet joué **CINQ fois de
+suite après le correctif : vert les cinq fois.**
+
+**3. E2e et captures (375/1280) — ÉCRITES, NON VÉRIFIÉES.**
+`tests/e2e/9k28a-point-photo-hors-reseau.spec.ts` : une photo au point en ligne, une seconde hors
+réseau sur la page déjà chargée, l'envoi au retour du réseau (même patron que
+`tests/e2e/offline/9f4h3-mode-avion.spec.ts`), puis le bon client et le bon interne à 1280 —
+captures prévues dans `docs/propositions/9K28-CHECKLIST-REPONSE-PHOTO/captures/`. **Blocage
+d'environnement, mesuré et reproduit indépendamment de ce lot** : `next build` (invoqué par
+`playwright.config.ts` pour son serveur) sature le tas à 6144 Mo et échoue par
+« JavaScript heap out of memory » — reproduit à l'identique par un `pnpm run build` NU, sur `main`
+avant tout changement de ce lot, donc pas une régression de 9K28A. Le tas accepte 9500 Mo en
+contournant le script (`NODE_OPTIONS=--max-old-space-size=9500 pnpm exec next build`, qui build
+SEUL réussit deux fois de suite) mais `pnpm run build` RÉÉCRIT `NODE_OPTIONS` à 6144 quoi qu'on y
+mette avant (`"${NODE_OPTIONS:-} --max-old-space-size=6144"` : la valeur la PLUS À DROITE gagne
+toujours chez V8) — et lancer le serveur à la main en aval de ce contournement le prive des
+variables que `environnementDuServeur()` lui aurait posées, la connexion échouant alors. L'épreuve
+n'a donc **jamais tourné** ; ses sélecteurs et son scénario sont écrits par analogie stricte avec
+des épreuves existantes déjà vertes (`9f4h3-mode-avion.spec.ts`, `9k22-checklist-hors-
+reseau.spec.ts`) mais RIEN NE PROUVE qu'ils soient exacts. `tests/e2e/tous-les-ecrans-
+rendent.spec.ts` et `CI=1 pnpm verify` (étape 5 de ce ticket) sont, pour la même raison,
+**NON JOUÉS** — les deux exigent ce même `build`.
+
+**CE QUI RESTE DÛ** : faire tourner `tests/e2e/9k28a-point-photo-hors-reseau.spec.ts` dès qu'un
+environnement dispose d'assez de mémoire pour `next build` (ou que le plafond du script `build`
+est revu — hors du périmètre de ce lot, qui touche aux scripts de file et à `depot/`, les deux
+interdits ici), corriger ce que l'épreuve révélera, prendre les captures, puis rejouer
+`tous-les-ecrans-rendent.spec.ts` et `CI=1 pnpm verify` au complet avant de considérer ce lot
+terminé au sens du §5.
+
+**MIGRATION À JOUER par Alexis : staging puis DB migrate & seed, puis Vercel** —
+**`20261111090000_checklist_reponse_photo_9k28`**, inchangée depuis 9K28 (voir l'encadré en tête
+de ce document) ; pas encore jouée en production.
