@@ -703,6 +703,9 @@ export default async function PageInterventionTerrain({
           libelle: prestation.libelle,
         }))}
         prestationsInitiales={[...idsRealises]}
+        aucunePrestationPourCeType={
+          prestationsActives.length > 0 && prestationsAProposer.length === 0
+        }
         afficherPieces={aSectionPiecesRemplacees(
           ligne.type as TypeIntervention,
         )}

@@ -648,6 +648,7 @@ export function RapportTerrainAutomatique({
   checklistPourTerminer,
   sectionPhotos,
   catalogueIndisponibleHorsReseau = false,
+  aucunePrestationPourCeType = false,
   sansSession = false,
 }: {
   readonly interventionId: string;
@@ -722,6 +723,16 @@ export function RapportTerrainAutomatique({
    * pour la fiche EN LIGNE.
    */
   readonly catalogueIndisponibleHorsReseau?: boolean;
+  /**
+   * LE CATALOGUE N'EST PAS VIDE, MAIS RIEN N'EST PROPOSÉ POUR CE TYPE (9K29,
+   * D243) — troisième cas, distinct des deux ci-dessus : l'appelant le pose
+   * quand sa prestation ACTIVE existe, mais que la règle de proposition
+   * (`lib/prestations/regle-type.ts`) les a toutes écartées pour le type de
+   * CETTE intervention. Confondre avec `terrain.prestations.aucune` dirait
+   * « rien n'est paramétré » quand la vraie réponse est « rien ne s'applique
+   * ici » — pas une anomalie, la règle elle-même. `false` par défaut.
+   */
+  readonly aucunePrestationPourCeType?: boolean;
   /** LA COQUILLE `/terrain-hors-reseau` (9F4H4D, point 2) — voir le docblock
    * du même nom dans `compteur-terrain.tsx` et celui d'`envoyerJson`
    * ci-dessus : aucune session n'y existe jamais, et un refus `"auth.refus"`
@@ -2210,7 +2221,9 @@ export function RapportTerrainAutomatique({
           <p className="text-app-encre-faible text-16 font-bold">
             {catalogueIndisponibleHorsReseau
               ? t("terrain.prestations.catalogue_indisponible_hors_reseau")
-              : t("terrain.prestations.aucune")}
+              : aucunePrestationPourCeType
+                ? t("terrain.prestations.aucune_pour_ce_type")
+                : t("terrain.prestations.aucune")}
           </p>
         ) : (
           <div className="flex flex-col gap-2">

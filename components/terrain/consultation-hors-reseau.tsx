@@ -411,6 +411,17 @@ function Fiche({
   // rien d'autre n'est su : un statut déjà « en_cours » sans compteur connu
   // ICI est une pause, jamais un nouveau départ.
   const enPause = fiche.statut === "en_cours";
+  // PAR TYPE D'INTERVENTION (9K29, D243), même règle pure qu'en ligne
+  // (`app/(mobile)/terrain/[id]/page.tsx`) : calculée UNE FOIS, partagée par
+  // la liste proposée et par le message d'état vide qui la distingue d'un
+  // catalogue réellement vide.
+  const prestationsAProposer = catalogueIndisponibleHorsReseau
+    ? []
+    : prestationsProposees(
+        catalogue,
+        fiche.type as TypeIntervention,
+        new Set(prestationsInitiales),
+      );
   return (
     <>
       <Link href="/terrain-hors-reseau" className="text-16 font-bold underline">
@@ -542,19 +553,16 @@ function Fiche({
           commentaire_technicien: rapportDeLaFiche(fiche).commentaireTechnicien,
           suite_a_donner: rapportDeLaFiche(fiche).suiteADonner,
         }}
-        prestations={
-          catalogueIndisponibleHorsReseau
-            ? []
-            : // PAR TYPE D'INTERVENTION (9K29, D243), même règle pure
-              // qu'en ligne (`app/(mobile)/terrain/[id]/page.tsx`) : la
-              // coquille hors réseau l'applique sur le catalogue emporté.
-              prestationsProposees(
-                catalogue,
-                fiche.type as TypeIntervention,
-                new Set(prestationsInitiales),
-              ).map((p) => ({ id: p.id, libelle: p.libelle }))
-        }
+        prestations={prestationsAProposer.map((p) => ({
+          id: p.id,
+          libelle: p.libelle,
+        }))}
         prestationsInitiales={prestationsInitiales}
+        aucunePrestationPourCeType={
+          !catalogueIndisponibleHorsReseau &&
+          catalogue.length > 0 &&
+          prestationsAProposer.length === 0
+        }
         afficherPieces={aSectionPiecesRemplacees(
           fiche.type as TypeIntervention,
         )}

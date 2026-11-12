@@ -10,7 +10,6 @@ import {
   COMPTE_ADMIN_SOCIETE_EPREUVE,
   COMPTE_TECHNICIEN_EPREUVE,
   MOT_DE_PASSE_EPREUVE,
-  SCENE,
 } from "./setup/scene";
 import { ouvrirLaSessionSensible } from "./setup/session";
 
@@ -27,10 +26,14 @@ import { ouvrirLaSessionSensible } from "./setup/session";
  *
  * ## SA PROPRE SCÈNE, PRÉFIXÉE `9K29-`, SANS TOUCHER À `setup/scene.ts`
  *
- * Une prestation « curatif seulement » et une intervention curative —
- * créées en `beforeAll`, supprimées en `afterAll` (même discipline que
- * `tests/e2e/9de-terminer-signature.spec.ts`). Le préventif de la scène
- * partagée (`SCENE.rapportTravaillee`) n'est jamais écrit, seulement lu.
+ * Une prestation « curatif seulement » et DEUX interventions (une curative,
+ * une préventive) — créées en `beforeAll`, supprimées en `afterAll` (même
+ * discipline que `tests/e2e/9de-terminer-signature.spec.ts`). **Jamais
+ * `SCENE.rapportTravaillee`** : `tests/unit/e2e-donnees-partagees.test.ts`
+ * refuse qu'un fichier écrive en SQL brut sur une fixture qu'un AUTRE fichier
+ * lit (mesuré : `rapport-terrain.spec.ts` écrit sur `SCENE.rapportTravaillee`
+ * par `$executeRawUnsafe`) — une fixture qui a besoin d'être lue s'en donne
+ * une à elle, sur le modèle de `SCENE.redimensionnable`.
  *
  * ## SÉRIEL — la scène de réglage (dernier test) crée une prestation que le
  * premier test terrain ne doit jamais voir sur SON intervention curative.
@@ -40,6 +43,7 @@ test.describe.configure({ mode: "serial" });
 const CLIENT_9K29 = uuidv7();
 const SITE_9K29 = uuidv7();
 const INTERVENTION_CURATIVE_9K29 = uuidv7();
+const INTERVENTION_PREVENTIVE_9K29 = uuidv7();
 const PRESTATION_CURATIF_9K29 = uuidv7();
 const PRESTATION_UNIVERSELLE_9K29 = uuidv7();
 
@@ -85,6 +89,20 @@ test.beforeAll(async () => {
         technicien_id: reperes.technicienDucos,
         type: "curatif",
         // `affectee` — le terrain ne montre que le TRANSMIS depuis 9DD.
+        statut: "affectee",
+        date_planifiee: new Date("2026-09-25T00:00:00Z"),
+        duree_estimee_min: 60,
+      },
+    });
+    await client.intervention.create({
+      data: {
+        id: INTERVENTION_PREVENTIVE_9K29,
+        societe_id: reperes.societeId,
+        client_id: CLIENT_9K29,
+        site_id: SITE_9K29,
+        agence_id: agence.id,
+        technicien_id: reperes.technicienDucos,
+        type: "preventif_contrat",
         statut: "affectee",
         date_planifiee: new Date("2026-09-25T00:00:00Z"),
         duree_estimee_min: 60,
@@ -163,7 +181,7 @@ test.describe("le terrain ne propose une prestation que pour son type", () => {
     page,
   }) => {
     await ouvrirLaSessionDuTerrain(page);
-    await page.goto(`/terrain/${SCENE.rapportTravaillee}`);
+    await page.goto(`/terrain/${INTERVENTION_PREVENTIVE_9K29}`);
     await expect(
       page.getByText(fr["terrain9k29.e2e.prestation_curatif_libelle"]),
     ).not.toBeVisible();

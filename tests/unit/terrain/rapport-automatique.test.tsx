@@ -389,6 +389,67 @@ describe("le plafond de 50 pièces (9I8E-RESERVES-LISTES-ET-PIECES, point 4 ; r�
   });
 });
 
+describe("le catalogue vide se distingue du catalogue filtré par type (9K29, D243)", () => {
+  function sceneVide(props: {
+    catalogueIndisponibleHorsReseau?: boolean;
+    aucunePrestationPourCeType?: boolean;
+  }) {
+    return render(
+      <RapportTerrainAutomatique
+        interventionId={INTERVENTION_ID}
+        utilisateurId={UTILISATEUR_ID}
+        societeId={SOCIETE_ID}
+        statut="en_cours"
+        minutesConnues={60}
+        segmentOuvertConnu={null}
+        rapportInitial={{
+          commentaire_technicien: "Un commentaire.",
+          suite_a_donner: null,
+        }}
+        prestations={[]}
+        prestationsInitiales={[]}
+        afficherPieces={false}
+        piecesInitiales={[]}
+        conditionsFacturation={[]}
+        dejaSignee={false}
+        afficherTerminer={false}
+        verdictTerminerRefuseCle={null}
+        checklistPourTerminer={null}
+        sectionPhotos={null}
+        catalogueIndisponibleHorsReseau={props.catalogueIndisponibleHorsReseau}
+        aucunePrestationPourCeType={props.aucunePrestationPourCeType}
+      />,
+    );
+  }
+
+  it("catalogue réellement vide — le message par défaut, inchangé", () => {
+    sceneVide({});
+    expect(screen.getByText(fr["terrain.prestations.aucune"])).toBeVisible();
+  });
+
+  it("catalogue non vide, mais rien pour ce type — un message DISTINCT", () => {
+    sceneVide({ aucunePrestationPourCeType: true });
+    expect(
+      screen.getByText(fr["terrain.prestations.aucune_pour_ce_type"]),
+    ).toBeVisible();
+    expect(
+      screen.queryByText(fr["terrain.prestations.aucune"]),
+    ).not.toBeInTheDocument();
+  });
+
+  it("catalogue non emporté hors réseau — prime sur les deux autres", () => {
+    sceneVide({
+      catalogueIndisponibleHorsReseau: true,
+      aucunePrestationPourCeType: true,
+    });
+    expect(
+      screen.getByText(
+        fr["terrain.prestations.catalogue_indisponible_hors_reseau"],
+      ),
+    ).toBeVisible();
+  });
+});
+
 describe("les prestations s'envoient à chaque changement, une DIFFÉRENCE jamais l'ensemble (D143, 9F4H6E-PRESTATIONS-DIFFERENCE-EN-LIGNE)", () => {
   it("cocher une prestation l'envoie sans attendre", async () => {
     scene();

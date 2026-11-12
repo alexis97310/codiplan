@@ -3227,6 +3227,12 @@ export const fr = {
   "terrain.prestations.titre": "Prestations réalisées",
   "terrain.prestations.aucune":
     "Aucune prestation n'est définie dans le catalogue de votre société.",
+  // 9K29, D243 — le catalogue N'EST PAS vide, mais aucune de ses prestations
+  // n'est proposée pour CE type d'intervention. Confondre les deux dirait
+  // « rien n'est paramétré » quand la vraie réponse est « rien ne s'applique
+  // ici », qui n'est l'un ni l'autre une anomalie.
+  "terrain.prestations.aucune_pour_ce_type":
+    "Aucune prestation du catalogue n'est proposée pour ce type d'intervention.",
   "terrain.prestations.enregistre": "Prestations enregistrées.",
   "terrain.prestations.refus":
     "Les prestations n'ont pas pu être enregistrées. Réessayez.",
