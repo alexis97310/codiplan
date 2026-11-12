@@ -6286,6 +6286,12 @@ export const fr = {
   "equipe.refus.saisie": "Saisie invalide : vérifiez les champs du formulaire.",
   "equipe.refus.deja_membre":
     "Cette personne est déjà membre de la société active.",
+  // D226 (10/11/2026, 9L01-COPIE-LIEN-EXCLUSIVITE) — UN SEUL message neutre
+  // pour toute adresse déjà connue d'une autre société, quel que soit son
+  // rôle là-bas ou si son compte y est déjà activé. Même texte que
+  // `equipe.bureau.refus.courriel_connu_ailleurs`.
+  "equipe.refus.courriel_connu_ailleurs":
+    "Cette adresse courriel est déjà utilisée ailleurs sur la plateforme : elle ne peut pas être rattachée à cette société.",
   "equipe.refus.agence_hors_societe":
     "Le rattachement choisi n'appartient pas à la société active.",
   // AGENCE-ACTIVE (AA-3) — une agence inactive ne se propose plus dans le
@@ -7419,6 +7425,10 @@ export const fr = {
     "Ce rôle n'est pas un rôle de bureau : choisissez parmi les rôles proposés.",
   "equipe.bureau.refus.deja_membre":
     "Cette personne est déjà membre de la société active.",
+  // D226 (10/11/2026, 9L01-COPIE-LIEN-EXCLUSIVITE) — même texte que
+  // `equipe.refus.courriel_connu_ailleurs`, voir cette clé.
+  "equipe.bureau.refus.courriel_connu_ailleurs":
+    "Cette adresse courriel est déjà utilisée ailleurs sur la plateforme : elle ne peut pas être rattachée à cette société.",
   "equipe.bureau.refus.introuvable":
     "Aucun compte de bureau ne correspond à cette fiche.",
   "equipe.bureau.acces.refus.deja_un_mot_de_passe":

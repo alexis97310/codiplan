@@ -64,21 +64,32 @@ export { RefusEnvoiAcces, viseCetteCible };
  * a pas choisi un (D65), et `requestPasswordReset` exige qu'une ligne de
  * `compte` existe déjà pour émettre un jeton.
  *
- * ## CE QUI N'EST PAS VÉRIFIÉ, ET POURQUOI
+ * ## CE QUI N'EST PAS VÉRIFIÉ, ET POURQUOI — DÉSORMAIS BORNÉ À L'ENVOI
  *
- * Le ticket nomme un quatrième refus : « cette personne a un accès dans une
- * autre société ». Il N'EST PAS implémenté. `utilisateur_societe` porte la
- * forme « société » (I1) — une politique RLS ordinaire, filtrée par
+ * Le ticket 9DJ-TP-ACC1-DONNER-ACCES nommait un quatrième refus : « cette
+ * personne a un accès dans une autre société ». Il reste NON implémenté pour
+ * `envoyerLienDAcces`/`envoyerNouveauLienDAcces` : `utilisateur_societe`
+ * porte la forme « société » (I1) — une politique RLS ordinaire, filtrée par
  * `app.societe_id` — et aucune lecture de ce module ne peut, sous le contexte
  * de l'administrateur, voir une ligne d'une AUTRE société : la base rend zéro
  * ligne, à l'aveugle comme en nommant. `journal_acces` porte bien
  * `societe_id_cible`, mais ces deux colonnes sont INFORMATIVES PAR
  * ARBITRAGE (D34) et ne doivent JAMAIS filtrer une décision —
  * `tests/unit/auth/journal-acces-informatif.test.ts` le garde. Détecter ce
- * cas exigerait donc soit une nouvelle politique RLS (une migration), soit
- * une lecture sous un rôle qui voit toutes les sociétés (hors de propos pour
- * un geste d'`admin_societe`) : les deux sont hors du territoire de ce lot
- * (« Migration : NON »). Voir la passation de 9DJ-TP-ACC1-DONNER-ACCES.
+ * cas pour un COURRIEL ENVOYÉ exigerait donc soit une nouvelle politique RLS
+ * (une migration), soit une lecture sous un rôle qui voit toutes les sociétés
+ * (hors de propos pour un geste d'`admin_societe`) : les deux restent hors du
+ * territoire de ce module. Voir la passation de 9DJ-TP-ACC1-DONNER-ACCES.
+ *
+ * **`copierLienDAcces` ferme ce même trou pour la COPIE** (décision d'Alexis
+ * du 10/11/2026, 9L01-COPIE-LIEN-EXCLUSIVITE) — la différence tient au geste,
+ * pas à une politique RLS nouvelle : copier rend l'URL, un secret au porteur,
+ * À L'ADMINISTRATEUR lui-même, qui pourrait l'ouvrir et poser le mot de passe
+ * d'une identité qu'il ne contrôle pas entièrement ; envoyer la pose dans un
+ * courriel adressé à la personne, jamais à l'administrateur. `copierLienDAcces`
+ * appelle donc `identiteExclusiveALaSociete` (D226, `lib/auth/lien-d-acces.ts`)
+ * — la même fonction `SECURITY DEFINER` déjà posée sur `copierNouveauLienDAcces`
+ * — APRÈS l'appartenance, AVANT tout jeton.
  *
  * ## DEPUIS 9ET-COMPTES-BUREAU-1 : LES ÉTAPES 2 À 6 SONT PARTAGÉES
  *
@@ -106,10 +117,18 @@ export type ResultatEnvoiAcces =
     }
   | { readonly accepte: false; readonly motif: MotifRefusAcces };
 
+/**
+ * Ce qu'un refus NOMMÉ dit pour LA SEULE copie d'un PREMIER lien de
+ * technicien — les motifs partagés (`MotifRefusAcces`) plus `autre_societe`
+ * (D226, 9L01-COPIE-LIEN-EXCLUSIVITE), jamais rendu par l'envoi par courriel
+ * (voir l'en-tête du module).
+ */
+export type MotifRefusCopieLienAcces = MotifRefusAcces | "autre_societe";
+
 /** Même forme que `ResultatEnvoiAcces`, pour le geste « copier » (9I6B). */
 export type ResultatCopieAcces =
   | { readonly accepte: true; readonly url: string }
-  | { readonly accepte: false; readonly motif: MotifRefusAcces };
+  | { readonly accepte: false; readonly motif: MotifRefusCopieLienAcces };
 
 /**
  * Ce qu'un refus NOMMÉ dit pour LA SEULE copie d'un NOUVEAU lien de
@@ -245,6 +264,14 @@ export async function envoyerNouveauLienDAcces(
  * (`lib/auth/lien-d-acces.ts`) pour le pourquoi (9I6B-LIEN-ACCES-A-COPIER,
  * D170). Même garde d'appartenance que `envoyerLienDAcces`.
  *
+ * **D226, ajoutée par 9L01-COPIE-LIEN-EXCLUSIVITE** — voir l'en-tête du
+ * module : une identité aussi rattachée à une AUTRE société refuse ICI,
+ * AVANT tout jeton émis, exactement comme `copierNouveauLienDAcces` plus bas.
+ * Aucune « cible protégée » (D223) ici : ce contrôle n'existe que pour la
+ * copie d'un NOUVEAU lien (mot de passe oublié) — le PREMIER lien d'une
+ * cible `direction` ou `admin_societe` reste permis, rôle que ne porte
+ * jamais un technicien de toute façon.
+ *
  * @param contexteAdmin voir `envoyerLienDAcces`.
  * @param utilisateurId le technicien visé.
  */
@@ -260,6 +287,11 @@ export async function copierLienDAcces(
   );
   if (refus !== null) {
     return { accepte: false, motif: refus };
+  }
+  if (
+    !(await identiteExclusiveALaSociete(contexteAdmin, utilisateurId, client))
+  ) {
+    return { accepte: false, motif: "autre_societe" };
   }
 
   return copierLienDAccesPartage(

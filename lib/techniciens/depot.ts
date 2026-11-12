@@ -13,6 +13,7 @@ import {
   avecDesignationAuth,
   type ContexteAdministratif,
 } from "@/lib/auth/lecture-identite";
+import { identiteExclusiveALaSociete } from "@/lib/auth/lien-d-acces";
 import { Role } from "@/lib/auth/roles";
 import {
   instantDuJour,
@@ -111,6 +112,15 @@ import type { SaisieModificationTechnicien, SaisieTechnicien } from "./saisie";
  * quelle que soit la société qui l'a ouverte : si elle existe, l'écriture de
  * `utilisateur` est simplement SAUTÉE, et les deux lignes suivantes la
  * rattachent à cette société.
+ *
+ * **SAUF SI CETTE IDENTITÉ APPARTIENT DÉJÀ À UNE AUTRE SOCIÉTÉ — FERMÉ PAR
+ * D226 (décision d'Alexis du 10/11/2026, 9L01-COPIE-LIEN-EXCLUSIVITE)** —
+ * avant ce lot, aucun contrôle ne distinguait ce rattachement de celui d'une
+ * identité SANS AUCUNE autre société : `identiteExclusiveALaSociete` (D226,
+ * `lib/auth/lien-d-acces.ts`) tranche maintenant la question AVANT toute
+ * écriture, même garde que `creerCompteDeBureau` (`lib/auth/acces-bureau.ts`),
+ * et son refus, `courriel_connu_ailleurs`, est le MÊME motif, délibérément
+ * UNIQUE et NEUTRE.
  */
 
 /** Les codes Prisma que ce module sait traduire. */
@@ -140,7 +150,14 @@ export type MotifRefusTechnicien =
    */
   | "statut_deja_pose"
   /** Hors périmètre — jamais dit si le technicien existe ailleurs (D50). */
-  | "introuvable";
+  | "introuvable"
+  /**
+   * Cette adresse appartient déjà à une identité d'une AUTRE société (D226,
+   * 9L01-COPIE-LIEN-EXCLUSIVITE) — motif UNIQUE et NEUTRE, partagé avec
+   * `creerCompteDeBureau` (`lib/auth/acces-bureau.ts`) : il ne révèle ni le
+   * rôle de cette identité ailleurs, ni si son compte y est déjà activé.
+   */
+  | "courriel_connu_ailleurs";
 
 export type ResultatCreationTechnicien =
   | {
@@ -421,6 +438,9 @@ export async function creerTechnicien(
   let utilisateurId: string;
   const rattache = existant !== null;
   if (existant !== null) {
+    if (!(await identiteExclusiveALaSociete(contexte, existant.id, base))) {
+      return { accepte: false, motif: "courriel_connu_ailleurs" };
+    }
     utilisateurId = existant.id;
   } else {
     const nouveauId = uuidv7();

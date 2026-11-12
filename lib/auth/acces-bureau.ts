@@ -25,7 +25,6 @@ import {
   identiteExclusiveALaSociete,
   type MotifRefusAccesPartage,
   roleDansLaSocieteActive,
-  type ResultatCopieLien,
   type ResultatEnvoiLien,
   viseCetteCible,
 } from "./lien-d-acces";
@@ -171,8 +170,18 @@ export const schemaCreationCompteDeBureau = z.object({
 
 export type SaisieCompteDeBureau = z.infer<typeof schemaCreationCompteDeBureau>;
 
-/** Ce qu'un refus NOMMÉ dit, et il n'en dit jamais plus (D50). */
-export type MotifRefusCompteDeBureau = "role_hors_liste" | "deja_membre";
+/**
+ * Ce qu'un refus NOMMÉ dit, et il n'en dit jamais plus (D50).
+ *
+ * `courriel_connu_ailleurs` (décision d'Alexis du 10/11/2026,
+ * 9L01-COPIE-LIEN-EXCLUSIVITE) — voir `creerCompteDeBureau` : UN SEUL motif,
+ * neutre, pour toute adresse déjà connue d'une AUTRE société, quel que soit
+ * son rôle là-bas ou si son compte y est déjà activé.
+ */
+export type MotifRefusCompteDeBureau =
+  | "role_hors_liste"
+  | "deja_membre"
+  | "courriel_connu_ailleurs";
 
 export type ResultatCreationCompteDeBureau =
   | {
@@ -247,6 +256,21 @@ const VIOLATION_UNICITE = "P2002";
  *
  * Le rôle hors liste est refusé AVANT toute écriture : c'est une saisie
  * invalide pour CE chemin, jamais une course avec la base.
+ *
+ * **UN COURRIEL DÉJÀ PRIS, RATTACHÉ SANS CONTRÔLE — FERMÉ PAR D226 (décision
+ * d'Alexis du 10/11/2026, 9L01-COPIE-LIEN-EXCLUSIVITE)** — avant ce lot,
+ * `designe.utilisateur.findUnique` rattachait l'identité trouvée par courriel
+ * à la société active QUELLE QUE SOIT SA SITUATION AILLEURS : une adresse déjà
+ * membre d'une AUTRE société recevait ici une SECONDE habilitation, offrant à
+ * cette société un degré de contrôle sur une identité qu'elle ne possédait pas
+ * entièrement. `identiteExclusiveALaSociete` (D226, `lib/auth/lien-d-acces.ts`)
+ * tranche maintenant la question AVANT toute écriture, et son seul refus
+ * nommé, `courriel_connu_ailleurs`, est délibérément UNIQUE et NEUTRE
+ * (D50 renforcé) : il ne distingue ni le rôle de cette identité ailleurs, ni
+ * si son compte y est déjà activé — un appelant qui ne connaît pas encore
+ * cette adresse n'apprend donc rien de plus que « elle ne peut pas être
+ * rattachée ici ». Un courriel connu de la MÊME société (déjà membre) garde
+ * son refus propre, `deja_membre`, inchangé.
  */
 export async function creerCompteDeBureau(
   contexte: ContexteSession,
@@ -278,6 +302,9 @@ export async function creerCompteDeBureau(
   let utilisateurId: string;
   const rattache = existant !== null;
   if (existant !== null) {
+    if (!(await identiteExclusiveALaSociete(contexte, existant.id, base))) {
+      return { accepte: false, motif: "courriel_connu_ailleurs" };
+    }
     utilisateurId = existant.id;
   } else {
     const cree = await designe.utilisateur.create({
@@ -436,18 +463,43 @@ export async function envoyerNouveauLienDAccesBureau(
 }
 
 /**
+ * Ce qu'un refus NOMMÉ dit pour LA SEULE copie d'un PREMIER lien de bureau —
+ * les motifs partagés (`MotifRefusAccesPartage`) plus `autre_societe` (D226,
+ * 9L01-COPIE-LIEN-EXCLUSIVITE), jamais rendu par l'envoi par courriel.
+ */
+export type MotifRefusCopieLienBureau = MotifRefusAccesPartage | "autre_societe";
+
+export type ResultatCopieLienBureau =
+  | { readonly accepte: true; readonly url: string }
+  | { readonly accepte: false; readonly motif: MotifRefusCopieLienBureau };
+
+/**
  * COPIE (SANS L'ENVOYER) le lien de premier accès d'un compte de bureau de la
  * société active — voir `copierLienDAccesPartage`
  * (`lib/auth/lien-d-acces.ts`) pour le pourquoi (9I6B-LIEN-ACCES-A-COPIER,
  * D170). Même garde d'appartenance que `envoyerLienDAccesBureau`.
+ *
+ * **D226, ajoutée par 9L01-COPIE-LIEN-EXCLUSIVITE** — une identité aussi
+ * rattachée à une AUTRE société refuse ICI, AVANT tout jeton émis, exactement
+ * comme `copierNouveauLienDAccesBureau` plus bas : copier rend l'URL — un
+ * secret au porteur — à l'administrateur lui-même, qui pourrait l'ouvrir et
+ * poser le mot de passe d'une identité qu'il ne contrôle pas entièrement.
+ * Aucune « cible protégée » (décision B, D223) ici : ce contrôle ne porte que
+ * sur la copie d'un NOUVEAU lien — le PREMIER lien d'une cible `direction` ou
+ * `admin_societe` reste permis, comme avant ce lot.
  */
 export async function copierLienDAccesBureau(
   contexteAdmin: ContexteSession,
   utilisateurId: string,
   client: PrismaClient = prisma,
-): Promise<ResultatCopieLien> {
+): Promise<ResultatCopieLienBureau> {
   if (!(await compteDeBureauMembre(contexteAdmin, utilisateurId, client))) {
     return { accepte: false, motif: "introuvable" };
+  }
+  if (
+    !(await identiteExclusiveALaSociete(contexteAdmin, utilisateurId, client))
+  ) {
+    return { accepte: false, motif: "autre_societe" };
   }
 
   return copierLienDAccesPartage(
