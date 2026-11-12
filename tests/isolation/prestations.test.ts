@@ -4,8 +4,10 @@ import { Role } from "@/lib/auth/roles";
 import { uuidv7 } from "@/lib/db/uuid";
 import {
   basculerActivite,
+  catalogueActifPourTerrain,
   creerPrestation,
   famillesVisables,
+  lirePrestation,
   listerLesPrestations,
   modifierPrestation,
 } from "@/lib/prestations/depot";
@@ -259,5 +261,96 @@ describe("R3-15 — le catalogue des prestations", () => {
     // ELLE EST TOUJOURS LÀ, et c'est le sujet : le catalogue la rend inactive
     // plutôt que de la faire disparaître.
     expect(ligne?.actif).toBe(false);
+  });
+});
+
+/**
+ * 9K29-PRESTATIONS-PAR-TYPE-INTERVENTION, D243 — `prestation_type_
+ * intervention`, SOUS LE RÔLE APPLICATIF, forme « filiation » (D103).
+ */
+describe("9K29 — les types d'intervention d'une prestation", () => {
+  afterEach(async () => {
+    if (posees.length > 0) {
+      await clientOwner().$executeRawUnsafe(
+        `DELETE FROM "prestation" WHERE "id" IN (${posees.map((id) => `'${id}'`).join(",")})`,
+      );
+      posees.length = 0;
+    }
+  });
+
+  afterAll(fermerClients);
+
+  it("VIDE à la création — proposée pour tous les types", async () => {
+    const id = await creer();
+    const ligne = (await listerLesPrestations(SESSION, clientApp())).find(
+      (p) => p.id === id,
+    );
+    expect(ligne?.types).toEqual([]);
+  });
+
+  it("une liste de types est écrite à la création, et relue", async () => {
+    const id = await creer({ types: ["curatif", "garantie"] });
+    const ligne = await lirePrestation(SESSION, id, clientApp());
+    expect(ligne?.types.slice().sort()).toEqual(["curatif", "garantie"]);
+  });
+
+  it("la modification REMPLACE L'ENSEMBLE — retire un type, en ajoute un autre", async () => {
+    const id = await creer({ types: ["curatif"] });
+    const modifiee = await modifierPrestation(
+      SESSION,
+      id,
+      saisie({ types: ["installation"] }),
+      clientApp(),
+    );
+    expect(modifiee.accepte).toBe(true);
+    const ligne = await lirePrestation(SESSION, id, clientApp());
+    expect(ligne?.types).toEqual(["installation"]);
+  });
+
+  it("la modification VERS VIDE retire tous les types — redevient « tous »", async () => {
+    const id = await creer({ types: ["curatif"] });
+    await modifierPrestation(SESSION, id, saisie({ types: [] }), clientApp());
+    const ligne = await lirePrestation(SESSION, id, clientApp());
+    expect(ligne?.types).toEqual([]);
+  });
+
+  it("le catalogue hors réseau porte les types (promesse D216, étendue au 9K29)", async () => {
+    const id = await creer({ types: ["curatif"] });
+    const catalogue = await catalogueActifPourTerrain(SESSION, clientApp());
+    expect(catalogue.find((p) => p.id === id)?.types).toEqual(["curatif"]);
+  });
+
+  it("une AUTRE société ne lit ni n'écrit les types d'une prestation qui n'est pas la sienne", async () => {
+    // Forme « filiation » (D103) : la fille n'est visible que si son parent
+    // l'est — la politique sur `prestation` referme déjà l'accès, et
+    // `lirePrestation` sous SESSION_B doit rendre `null`, jamais une fiche
+    // dont les types auraient fuité.
+    const id = await creer({ types: ["curatif"] });
+    const depuisB = await lirePrestation(SESSION_B, id, clientApp());
+    expect(depuisB).toBeNull();
+
+    const modifieeDepuisB = await modifierPrestation(
+      SESSION_B,
+      id,
+      saisie({ types: ["installation"] }),
+      clientApp(),
+    );
+    expect(modifieeDepuisB).toStrictEqual({
+      accepte: false,
+      motif: "introuvable",
+    });
+    // TÉMOIN : la tentative depuis B n'a rien changé chez A.
+    const ligne = await lirePrestation(SESSION, id, clientApp());
+    expect(ligne?.types).toEqual(["curatif"]);
+  });
+
+  it("un type coché deux fois dans la saisie est refusé avant d'atteindre la base", () => {
+    expect(
+      schemaPrestation.safeParse({
+        code: code(),
+        libelle: "x",
+        types: ["curatif", "curatif"],
+      }).success,
+    ).toBe(false);
   });
 });
