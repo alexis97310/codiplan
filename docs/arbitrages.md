@@ -8373,3 +8373,45 @@ Portée : `lib/avertissements/signature-terrain.ts`, `lib/auth/roles.ts` (`ROLES
 **Règles amendées :** RG-INT-02
 
 Portée : `lib/interventions/cycle-de-vie.ts` (`peutTerminer`, `manquesPourTerminer`, `ManquesTerminer`), `lib/interventions/depot-rapport-terrain.ts` (`terminerIntervention`), `app/api/terrain/instantane/route.ts`, `app/(mobile)/terrain/[id]/page.tsx`, `components/terrain/rapport-automatique.tsx`, `components/terrain/compteur-vivant.tsx` (lu, non modifié), `lib/i18n/fr.ts`, `docs/cahier-des-charges.md` (RG-INT-02), `tests/unit/interventions/cycle-de-vie.test.ts`, `tests/unit/terrain/rapport-automatique.test.tsx`, `tests/isolation/terminer-intervention.test.ts`, `tests/isolation/9f4h2-hors-reseau-heure-et-rejeu.test.ts`, `tests/isolation/9f4h4b-depuis-file.test.ts`, `tests/e2e/9k27-terrain-terminer-ce-qui-manque.spec.ts`.
+
+## D243 — LES PRESTATIONS SONT PROPOSÉES PAR TYPE D'INTERVENTION ; UNE TABLE DE RELATION REMPLACE, POUR CE SEUL CAS, LA COLONNE SCALAIRE DE D235 (décision verbatim d'Alexis, 11/11/2026 ~08:05 ; 9K29-PRESTATIONS-PAR-TYPE-INTERVENTION)
+
+**Décision amendée :** D235, dans un seul sens, nommé ci-dessous.
+
+### CE QUI A ÉTÉ MESURÉ
+
+Signalement du 02/11/2026 : sur une intervention PRÉVENTIVE, le rapport terrain proposait au technicien de cocher « remplacement écrou porteur » — une prestation qui ne concerne qu'un CURATIF. Le catalogue (`prestation`, L1-12) ne porte aucune notion de type d'intervention ; toute prestation active de la société est proposée à toute intervention, quel que soit son type.
+
+À la question d'Alexis, réponse verbatim : **« Prestations proposées selon le type d'intervention : Oui, par type »** — placée « Après les check-lists » dans l'ordre de ses réponses. Alexis prépare lui-même le fichier du catalogue des prestations (audit UX P6) : l'import doit donc porter cette colonne dès ce ticket, pas dans un suivant.
+
+### LA DÉCISION
+
+**1. Une prestation porte la liste des types d'intervention où elle est proposée.** VIDE = proposée pour TOUS les types — **choix du pilote, confirmé par Alexis au compte rendu** : aucune prestation existante ne disparaît du terrain le jour de la migration, qui ne sème aucune ligne sur le catalogue déjà en place. Dès qu'une ligne existe pour une prestation, elle n'est proposée QUE pour les types listés.
+
+**2. Une prestation déjà déclarée RÉALISÉE sur une intervention reste affichée**, même si elle ne serait plus proposée pour le type de cette intervention — jamais une réalisation qui disparaît de l'écran après coup. La règle (`lib/prestations/regle-type.ts`, pure, sans Prisma) prend l'ensemble des identifiants déjà réalisés en paramètre, exactement pour cette raison.
+
+**3. `prestation_type_intervention` est une TABLE DE RELATION, jamais le tableau `TypeIntervention[]` qu'un brouillon de ce ticket envisageait.** C'est là que cette décision AMENDE D235, et dans ce seul sens : D235 avait tranché contre tout tableau d'énumération typé, SANS PRÉCÉDENT dans ce dépôt (mesuré au ticket 9K08) — l'ancien brouillon 9J12 en envisageait un sur `checklist_modele`, remplacé par une colonne nullable scalaire, parce qu'un contrôle qui viserait plusieurs types s'y pose comme PLUSIEURS modèles, un code chacun. **Ce raisonnement ne transpose pas à `prestation`** : son `code` est unique par société, et `intervention_prestation` la désigne par un identifiant unique — une prestation ne peut pas se dédoubler par type sans casser l'une des deux. Une colonne nullable scalaire ne porterait donc qu'UN type, jamais « zéro, un ou plusieurs à la fois », qui est le besoin réel. La table de relation reste fidèle au PRINCIPE de D235 (aucun tableau d'énumération typé n'existe dans ce dépôt) tout en répondant au besoin que D235 ne pouvait pas anticiper pour ce cas précis. Forme de politique « filiation » (D103), sur le modèle exact d'`intervention_prestation`.
+
+**4. L'import du catalogue gagne une colonne « Types d'intervention »**, libellés du dictionnaire (`type_intervention.*`, `lib/i18n/fr.ts`) séparés par « ; », vide = tous — contrôlée avant application (I6) : un libellé inconnu est refusé ligne par ligne, avec son motif, jamais résolu par approximation.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune checklist (CK*, 9K08/9K17A/9K18, hors territoire). Aucun montant, taux ni durée inventés — une prestation ne porte toujours aucun taux (D109). Aucune prestation créée, modifiée ou désactivée en production par cette migration. Le back-office ne propose aujourd'hui aucun sélecteur de prestations sur la fiche d'intervention — seule la LISTE DES RÉALISÉES s'y affiche, en lecture ; la règle n'y a donc, à ce jour, aucun second point d'application que le terrain (mesuré au ticket, `app/(back-office)/interventions/[id]/page.tsx`).
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où une seconde table du dépôt aurait besoin d'un tableau d'énumération typé pour une raison qui NE TIENT PAS à un code unique par société, cette décision et D235 se relisent ensemble : la table de relation n'est pas une préférence générale, c'est la réponse à une contrainte nommée ci-dessus (point 3).
+
+**Règles amendées :** chapitre 11.2 — `prestation_type_intervention` (table ajoutée) ; chapitre 10, règle de proposition des prestations au rapport terrain (nouvelle).
+
+Portée : `prisma/migrations/20261111090000_prestations_par_type_intervention_9k29`,
+`prisma/schema.prisma` (`PrestationTypeIntervention`, `Prestation.types`),
+`scripts/lib/politiques-rls.ts` (`TABLES_FILIATION`, `FILIATION_ARBITREE`),
+`lib/prestations/saisie.ts`, `lib/prestations/depot.ts`, `lib/prestations/regle-type.ts`,
+`lib/imports/modeles.ts`, `lib/imports/application.ts`, `lib/imports/comparaison.ts`,
+`app/(back-office)/parametres/prestations/page.tsx`, `app/api/parametres/prestations/saisie-recue.ts`,
+`app/(mobile)/terrain/[id]/page.tsx`, `app/api/terrain/instantane/route.ts`, `components/terrain/consultation-hors-reseau.tsx`,
+`lib/i18n/fr.ts`,
+`tests/unit/db/inventaire.test.ts`, `tests/unit/db/perimetre-audit.test.ts`, `lib/db/migrations-attendues.ts`,
+`tests/unit/prestations/**`, `tests/isolation/prestations-par-type.test.ts`,
+`tests/e2e/9k29-prestations-par-type-intervention.spec.ts`.

@@ -2612,6 +2612,17 @@ export const TABLES_FILIATION = [
     parent: "intervention",
     cle: "intervention_id",
   },
+  // `prestation_type_intervention` REJOINT LA FILIATION au ticket 9K29-
+  // PRESTATIONS-PAR-TYPE-INTERVENTION, 11/11/2026. Même raisonnement
+  // qu'`intervention_prestation` (D103) : un rattachement (les types où une
+  // prestation est proposée) est visible si sa prestation l'est, et aucune
+  // clause de société n'y est ajoutée — la clé étrangère composite l'empêche
+  // déjà de dériver.
+  {
+    table: "prestation_type_intervention",
+    parent: "prestation",
+    cle: "prestation_id",
+  },
 ] as const;
 
 /** Les entrées que l'arbitrage autorise. Recopiées : c'est la doctrine. */
@@ -2641,6 +2652,9 @@ const FILIATION_ARBITREE = [
   "checklist_version",
   "checklist_point",
   "checklist_reponse",
+  // Ticket 9K29-PRESTATIONS-PAR-TYPE-INTERVENTION, 11/11/2026 — les types
+  // d'intervention où une prestation du catalogue est proposée.
+  "prestation_type_intervention",
 ];
 
 /** Écarts de la liste « filiation » — additions comme retraits. */

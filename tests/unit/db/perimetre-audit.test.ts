@@ -376,6 +376,12 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
       // quand, et depuis quelle valeur est ce qu'on cherchera le jour où une
       // estimation paraîtra fausse.
       "prestation",
+      // `prestation_type_intervention` s'y ajoute au ticket 9K29-PRESTATIONS-
+      // PAR-TYPE-INTERVENTION, et par le même chemin : première catégorie de
+      // I1, donc auditée à sa naissance. « Qui a limité cette prestation à
+      // tel type, et depuis quelle liste » est une question de litige au
+      // même titre qu'un changement de durée standard.
+      "prestation_type_intervention",
       // `segment_travail` s'y ajoute à R5-02, et par le même chemin : première
       // catégorie de I1, donc auditée à sa naissance. **Elle le mérite plus que
       // la plupart** — le compteur FAIT FOI pour le temps (D119), et la table

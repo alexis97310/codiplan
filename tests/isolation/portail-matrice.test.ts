@@ -212,6 +212,11 @@ const CLASSIFICATION_LECTURE: Record<string, ClassificationLecture> = {
   checklist_version: "fermee",
   checklist_point: "fermee",
   notification_lecture: "fermee",
+  // AJOUTÉE AU TICKET 9K29 — forme « filiation » sur `prestation`, qui est
+  // elle-même classée « societe » ci-dessous (un compte portail muni d'une
+  // société active la lit EN ENTIER, sans filtre client) : l'EXISTS de la
+  // filiation hérite donc de cette même largeur, jamais « client ».
+  prestation_type_intervention: "societe",
 
   // RÉFÉRENTIELS DE PLATEFORME (D4) — lecture ouverte à TOUTES les sociétés,
   // pas seulement la sienne : hors du périmètre de confidentialité CLIENT

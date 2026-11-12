@@ -221,6 +221,7 @@ model Societe {
   observations_vgp             VgpObservation[]
   campagnes_vgp                VgpCampagne[]
   interventionPrestations      InterventionPrestation[]
+  prestationTypesIntervention  PrestationTypeIntervention[]
   interventionSignatures       InterventionSignature[]
   interventionPauses           InterventionPause[]
   piecesRemplacees             InterventionPieceRemplacee[]
@@ -3126,12 +3127,66 @@ model Prestation {
   famille      FamilleMateriel?         @relation(fields: [societe_id, famille_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
   /// Les fois où cette prestation a été déclarée réalisée (BON-2).
   realisations InterventionPrestation[]
+  /// Les types d'intervention où elle est PROPOSÉE au technicien (9K29).
+  /// VIDE = tous les types — voir le docblock de `PrestationTypeIntervention`.
+  types        PrestationTypeIntervention[]
 
   @@unique([societe_id, code])
   /// Cible du chaînage composite que `intervention_prestation` pose (BON-2).
   @@unique([societe_id, id])
   @@index([societe_id, famille_id])
   @@map("prestation")
+}
+
+/// LES TYPES D'INTERVENTION OÙ UNE PRESTATION EST PROPOSÉE AU TECHNICIEN
+/// (9K29, décision d'Alexis du 11/11/2026 ~08:05) — « par type », placée
+/// « après les check-lists ». **VIDE = proposée pour TOUS les types** — aucune
+/// prestation existante ne disparaît du terrain le jour de cette migration ;
+/// dès qu'une ligne existe ici, la prestation n'est proposée QUE pour les
+/// types listés. Une prestation déjà déclarée réalisée sur une intervention
+/// (`InterventionPrestation`) reste affichée même si elle ne serait plus
+/// proposée — ce n'est pas cette table qui le garantit, c'est la règle pure de
+/// `lib/prestations/regle-type.ts`.
+///
+/// **TABLE DE RELATION, jamais un tableau `TypeIntervention[]`** — D235 a
+/// déjà tranché contre un tableau d'énumération typé, SANS PRÉCÉDENT dans ce
+/// dépôt (mesuré au ticket 9K08, `docs/arbitrages.md`). À la différence de
+/// `ChecklistModele` (un seul type, nullable, parce qu'un contrôle qui vise
+/// plusieurs types s'y pose comme PLUSIEURS modèles), une prestation du
+/// catalogue vise ZÉRO, UN ou PLUSIEURS types À LA FOIS SANS POUVOIR SE
+/// DÉDOUBLER : son `code` est unique par société, et `InterventionPrestation`
+/// la désigne par un identifiant unique. Une colonne nullable scalaire ne
+/// suffit donc pas ici — ce ticket amende D235 dans ce seul sens : la forme
+/// qu'elle a tranchée reste la règle, cette table en est l'exception nommée,
+/// pour la raison ci-dessus.
+///
+/// Forme de politique « filiation » (D103), comme `intervention_prestation` :
+/// une fille est visible si son parent (`prestation`) l'est, et aucune clause
+/// de société propre n'est ajoutée — la clé étrangère composite l'empêche
+/// déjà de dériver.
+model PrestationTypeIntervention {
+  id         String @id @db.Uuid
+  societe_id String @db.Uuid
+
+  prestation_id String @db.Uuid
+
+  type_intervention TypeIntervention
+
+  cree_le DateTime @default(now())
+
+  societe    Societe    @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  /// `Cascade` : une ligne « cette prestation vise ce type » n'a aucune vie
+  /// propre sans sa prestation (même raisonnement qu'`intervention_machine`
+  /// vers `intervention`, D103). Sans effet aujourd'hui — aucun chemin ne
+  /// supprime une prestation (D109, « aucune suppression ») —, et ce n'est
+  /// pas une raison de choisir `Restrict` par confort : le jour où un tel
+  /// chemin existe, `Cascade` reste le sens correct.
+  prestation Prestation @relation(fields: [societe_id, prestation_id], references: [societe_id, id], onDelete: Cascade, onUpdate: Restrict)
+
+  /// Le même type ne se coche pas deux fois sur la même prestation.
+  @@unique([prestation_id, type_intervention])
+  @@index([societe_id, prestation_id])
+  @@map("prestation_type_intervention")
 }
 
 model Forfait {
