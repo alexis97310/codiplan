@@ -57,7 +57,10 @@ async function nettoyer(client: PrismaClient): Promise<void> {
 test.beforeAll(async () => {
   const reperes = await reperesDeLaScene();
   technicienDucos = reperes.technicienDucos;
-  const jourVise = jourSuivant(reperes.lundi, 7 * SEMAINES_DE_DECALAGE + VENDREDI);
+  const jourVise = jourSuivant(
+    reperes.lundi,
+    7 * SEMAINES_DE_DECALAGE + VENDREDI,
+  );
   const date = new Date(
     Date.UTC(jourVise.annee, jourVise.mois - 1, jourVise.jour),
   );

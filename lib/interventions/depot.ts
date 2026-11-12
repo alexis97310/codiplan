@@ -1503,7 +1503,12 @@ async function verdictALaPose(
   }
 
   return {
-    verdict: await verdictChevauchementSous(tx, interventionId, demande, fuseau),
+    verdict: await verdictChevauchementSous(
+      tx,
+      interventionId,
+      demande,
+      fuseau,
+    ),
     demande,
     avertissements,
   };
