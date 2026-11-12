@@ -3,7 +3,10 @@ import { Prisma, PrismaClient, type StatutIntervention } from "@prisma/client";
 import { absenceCouvrant, type AbsenceDeclaree } from "../lib/absences/periode";
 import { avecDesignationAuth } from "../lib/auth/lecture-identite";
 import { Role } from "../lib/auth/roles";
-import { GABARITS_DE_DEPART } from "../lib/checklists/gabarits-de-depart";
+import {
+  GABARITS_DE_DEPART,
+  gabaritDeDepart,
+} from "../lib/checklists/gabarits-de-depart";
 import {
   instantAMinutes,
   jourSuivant,
@@ -12,6 +15,7 @@ import {
 } from "../lib/calendar/fuseau";
 import { avecSociete, avecSocieteEtRole } from "../lib/db/rls";
 import { uuidv7 } from "../lib/db/uuid";
+import type { TypeIntervention } from "../lib/interventions/saisie";
 import { engendrerJetonQr } from "../lib/machines/qr";
 import { ajouterMois } from "../lib/vgp/information";
 import {
@@ -985,6 +989,184 @@ async function seed(): Promise<void> {
               checklist_version_id: checklistVersionId,
               ...donneesPoint,
             },
+          });
+        }
+
+        // LES MODÈLES DE CHECKLIST SUPPLÉMENTAIRES (9K30A-CHECKLIST-GABARITS-
+        // VALIDES) — un couple entretien/installation pour chacun des CINQ
+        // AUTRES sous-types de démonstration (celui de 2COL-EM est posé
+        // ci-dessus, rang 1, inchangé). `modeleIndex` (2 à 11) ouvre, comme
+        // `rangSociete` plus haut, une plage PROPRE à chaque modèle pour ses
+        // points (`modeleIndex * 100 + ordre`) — sans elle, les ordres 1..N
+        // de deux gabarits DIFFÉRENTS poseraient le même identifiant de point.
+        // **JAMAIS joué en production**, même garantie que ci-dessus.
+        const MODELES_CHECKLIST_SUPPLEMENTAIRES = [
+          {
+            sousType: "2COL-EH",
+            gabaritEntretien:
+              "pont-2-colonnes-electro-hydraulique-entretien-preventif",
+            gabaritInstallation:
+              "pont-2-colonnes-electro-hydraulique-installation",
+            codePrefixe: "2COL-EH",
+          },
+          {
+            sousType: "4COL",
+            gabaritEntretien: "pont-4-colonnes-entretien-preventif",
+            gabaritInstallation: "pont-4-colonnes-installation",
+            codePrefixe: "4COL",
+          },
+          {
+            sousType: "CISEAUX",
+            gabaritEntretien: "pont-ciseaux-entretien-preventif",
+            gabaritInstallation: "pont-ciseaux-installation",
+            codePrefixe: "CISEAUX",
+          },
+          {
+            sousType: "PISTONS",
+            gabaritEntretien: "compresseur-pistons-entretien-preventif",
+            gabaritInstallation: "compresseur-pistons-installation",
+            codePrefixe: "PISTONS",
+          },
+          {
+            sousType: "VIS",
+            gabaritEntretien: "compresseur-vis-entretien-preventif",
+            gabaritInstallation: "compresseur-vis-installation",
+            codePrefixe: "VIS",
+          },
+        ] as const;
+
+        /** Un couple (modèle, version, points, types) né d'UN gabarit de départ. */
+        async function creerModeleDemoDepuisGabarit(params: {
+          readonly modeleIndex: number;
+          readonly gabaritId: string;
+          readonly sousTypeId: string;
+          readonly code: string;
+          readonly exigeMachine: boolean;
+          readonly typesIntervention: readonly TypeIntervention[];
+        }): Promise<void> {
+          const gabarit = gabaritDeDepart(params.gabaritId);
+          if (gabarit === undefined) {
+            throw new Error(
+              `Gabarit de départ « ${params.gabaritId} » introuvable : le ` +
+                "modèle de checklist de démonstration ne peut pas naître.",
+            );
+          }
+          const modeleId = identifiantParc(
+            "checklist_modele",
+            rangSociete,
+            params.modeleIndex,
+          );
+          await tx.checklistModele.upsert({
+            where: { id: modeleId },
+            update: {
+              libelle: gabarit.libelle,
+              sous_type_id: params.sousTypeId,
+            },
+            create: {
+              id: modeleId,
+              societe_id: id,
+              code: params.code,
+              libelle: gabarit.libelle,
+              sous_type_id: params.sousTypeId,
+              exige_machine: params.exigeMachine,
+            },
+          });
+          const versionId = identifiantParc(
+            "checklist_version",
+            rangSociete,
+            params.modeleIndex,
+          );
+          await tx.checklistVersion.upsert({
+            where: { id: versionId },
+            update: {},
+            create: {
+              id: versionId,
+              societe_id: id,
+              checklist_modele_id: modeleId,
+              numero: 1,
+            },
+          });
+          for (const point of gabarit.points) {
+            const pointId = identifiantParc(
+              "checklist_point",
+              rangSociete,
+              params.modeleIndex * 100 + point.ordre,
+            );
+            const donneesPoint = {
+              section: point.section,
+              ordre: point.ordre,
+              libelle: point.libelle,
+              consigne: point.consigne ?? null,
+              obligatoire: point.obligatoire ?? false,
+              type_reponse: point.typeReponse,
+              unite:
+                point.typeReponse === "valeur_mesuree"
+                  ? (point.unite ?? null)
+                  : null,
+              choix:
+                point.typeReponse === "choix_dans_une_liste"
+                  ? [...point.choix]
+                  : [],
+            };
+            await tx.checklistPoint.upsert({
+              where: { id: pointId },
+              update: donneesPoint,
+              create: {
+                id: pointId,
+                societe_id: id,
+                checklist_version_id: versionId,
+                ...donneesPoint,
+              },
+            });
+          }
+          for (const [typeIndex, type] of params.typesIntervention.entries()) {
+            const typeLigneId = identifiantParc(
+              "checklist_modele_type",
+              rangSociete,
+              params.modeleIndex * 10 + typeIndex,
+            );
+            await tx.checklistModeleTypeIntervention.upsert({
+              where: { id: typeLigneId },
+              update: {},
+              create: {
+                id: typeLigneId,
+                societe_id: id,
+                checklist_modele_id: modeleId,
+                type_intervention: type,
+              },
+            });
+          }
+        }
+
+        etape(
+          `${societe.code} — modèles de checklist supplémentaires : ` +
+            `${MODELES_CHECKLIST_SUPPLEMENTAIRES.length * 2}`,
+        );
+        let modeleIndex = 2;
+        for (const entree of MODELES_CHECKLIST_SUPPLEMENTAIRES) {
+          const sousTypeId = identifiantsSousTypes.get(entree.sousType);
+          if (sousTypeId === undefined) {
+            throw new Error(
+              `Sous-type « ${entree.sousType} » absent du jeu de ` +
+                "démonstration : les modèles de checklist supplémentaires ne " +
+                "peuvent pas s'y rattacher.",
+            );
+          }
+          await creerModeleDemoDepuisGabarit({
+            modeleIndex: modeleIndex++,
+            gabaritId: entree.gabaritEntretien,
+            sousTypeId,
+            code: `DEMO-${entree.codePrefixe}-ENTRETIEN`,
+            exigeMachine: true,
+            typesIntervention: ["preventif_contrat", "preventif_hors_contrat"],
+          });
+          await creerModeleDemoDepuisGabarit({
+            modeleIndex: modeleIndex++,
+            gabaritId: entree.gabaritInstallation,
+            sousTypeId,
+            code: `DEMO-${entree.codePrefixe}-INSTALLATION`,
+            exigeMachine: false,
+            typesIntervention: ["installation"],
           });
         }
 

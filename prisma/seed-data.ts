@@ -2519,6 +2519,9 @@ export const VERIFICATIONS_VGP_DEMONSTRATION: readonly VerificationVgpSeed[] = [
  * 9K17A-MATERIEL-SOUS-TYPE pour les sous-types (D238, 10/11/2026). `f000`,
  * `f100`, `f200` s'y ajoutent au ticket 9K20-CHECKLIST-DUPLIQUER-DEPART pour
  * le modèle de checklist de démonstration, sa version et ses points.
+ * `f300` s'y ajoute au ticket 9K30A-CHECKLIST-GABARITS-VALIDES pour les
+ * lignes de `checklist_modele_type_intervention` des modèles nés des
+ * gabarits de départ sur les sous-types de démonstration.
  */
 export function identifiantParc(
   famille:
@@ -2532,7 +2535,8 @@ export function identifiantParc(
     | "sous_type"
     | "checklist_modele"
     | "checklist_version"
-    | "checklist_point",
+    | "checklist_point"
+    | "checklist_modele_type",
   rangSociete: number,
   rang: number,
 ): string {
@@ -2548,6 +2552,7 @@ export function identifiantParc(
     checklist_modele: "f000",
     checklist_version: "f100",
     checklist_point: "f200",
+    checklist_modele_type: "f300",
   } as const;
   const suffixe = String((rangSociete - 1) * 100 + rang).padStart(12, "0");
   return `0192f0a0-${segments[famille]}-7000-8000-${suffixe}`;
