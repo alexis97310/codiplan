@@ -233,7 +233,7 @@ model Societe {
   checklistVersions            ChecklistVersion[]
   checklistPoints              ChecklistPoint[]
   checklistReponses            ChecklistReponse[]
-  checklistReponsePhotos       ChecklistReponsePhoto[]
+  checklistReponsePhotos       ChecklistReponsePhoto[] @ignore
 
   @@map("societe")
 }
@@ -2879,7 +2879,7 @@ model ChecklistReponse {
   societe      Societe                 @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
   intervention Intervention            @relation(fields: [societe_id, intervention_id], references: [societe_id, id], onDelete: Cascade, onUpdate: Restrict)
   point        ChecklistPoint          @relation(fields: [societe_id, checklist_point_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
-  photos       ChecklistReponsePhoto[]
+  photos       ChecklistReponsePhoto[] @ignore
 
   @@unique([societe_id, id])
   @@unique([societe_id, intervention_id, checklist_point_id])
@@ -2896,6 +2896,19 @@ model ChecklistReponse {
 /// lien ne fait qu'ÉTIQUETER laquelle répond à quel point, aucune seconde
 /// chaîne de dépôt. JAMAIS SUPPRIMÉ (I6, comme son parent) : UPDATE n'a pas de
 /// sens non plus sur un simple lien, les deux sont retirés du rôle applicatif.
+///
+/// Ses trois réciproques (`Societe.checklistReponsePhotos`,
+/// `ChecklistReponse.photos`, `Document.checklist_reponses`) portent
+/// `@ignore` : jamais naviguées par le code (ni `include`, ni accès direct —
+/// `photosParReponse`, `lib/checklists/depot.ts`, interroge toujours
+/// `checklistReponsePhoto` directement), mesuré nécessaire le 12/11/2026
+/// (9K28B-REPRISE-REPONSE-PHOTO-MEMOIRE) : SANS ce `@ignore`, les trois
+/// réciproques, ajoutées à des modèles déjà parmi les plus reliés du schéma,
+/// faisaient seules déborder la mémoire de `next build` (« Linting and
+/// checking validity of types », tsc + types Prisma) — reproduit avec TOUT
+/// le reste du code de ce ticket revenu à `origin/main`, donc imputable au
+/// seul schéma. Aucun effet en base : ni l'une ni l'autre ne correspond à une
+/// colonne, la contrainte réelle reste dans la migration, inchangée.
 model ChecklistReponsePhoto {
   id                   String @id @db.Uuid
   societe_id           String @db.Uuid
@@ -3894,7 +3907,7 @@ model Document {
   /// Les points de checklist qu'elle répond (9K28-CHECKLIST-REPONSE-PHOTO) —
   /// `intervention_id` ci-dessus reste sa seule cible ; ce lien n'est qu'une
   /// ÉTIQUETTE, jamais une seconde cible (`document_cible_unique` inchangée).
-  checklist_reponses ChecklistReponsePhoto[]
+  checklist_reponses ChecklistReponsePhoto[] @ignore
 
   /// Cible du chaînage composite que `document_recu` pose (L8-07).
   @@unique([societe_id, id])
