@@ -1,6 +1,7 @@
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { deflateSync } from "node:zlib";
 
 import { PrismaClient } from "@prisma/client";
 import { expect, test, type Page } from "@playwright/test";
@@ -154,15 +155,88 @@ test.afterAll(async () => {
   }
 });
 
-/** Un PNG minimal (1×1, transparent), écrit dans un fichier temporaire. */
+/**
+ * UN PNG RÉELLEMENT DÉCODABLE, GÉNÉRÉ ICI (I9), UNE COULEUR PLEINE PAR APPEL
+ * — même patron que `construirePngDeTest` (`9ez-logo-societe.spec.ts`).
+ *
+ * **UNE COULEUR DISTINCTE PAR PHOTO, ET C'EST OBLIGATOIRE** : `PhotosTerrain`
+ * réduit côté client avant l'envoi (`reduire`, `photos-terrain.tsx`), et le
+ * dépôt dédoublonne par empreinte SHA-256 du résultat, PAR INTERVENTION
+ * (`lib/documents/depot.ts`). Deux photos visuellement IDENTIQUES (un même
+ * pixel 1×1 transparent, la première version de cette fixture) produisent la
+ * MÊME empreinte après réduction — le dépôt les reconnaît alors comme le
+ * REJEU d'une même photo, jamais comme deux photos distinctes, et la seconde
+ * ne crée aucun second lien `checklist_reponse_photo` (mesuré : `liens`
+ * restait à 1 au lieu de 2 — pas un défaut de l'application, un défaut de
+ * cette fixture).
+ */
+function construirePngDeTest(couleur: readonly [number, number, number]): Buffer {
+  const crc32 = (() => {
+    const table = Array.from({ length: 256 }, (_unused, n) => {
+      let c = n;
+      for (let k = 0; k < 8; k++) {
+        c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+      }
+      return c >>> 0;
+    });
+    return (buf: Buffer): number => {
+      let crc = 0xffffffff;
+      for (const octet of buf) {
+        crc = (table[(crc ^ octet) & 0xff] ?? 0) ^ (crc >>> 8);
+      }
+      return (crc ^ 0xffffffff) >>> 0;
+    };
+  })();
+  const chunk = (type: string, data: Buffer): Buffer => {
+    const longueur = Buffer.alloc(4);
+    longueur.writeUInt32BE(data.length, 0);
+    const typeEtDonnees = Buffer.concat([Buffer.from(type, "ascii"), data]);
+    const crc = Buffer.alloc(4);
+    crc.writeUInt32BE(crc32(typeEtDonnees), 0);
+    return Buffer.concat([longueur, typeEtDonnees, crc]);
+  };
+  const signature = Buffer.from([
+    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+  ]);
+  const largeur = 8;
+  const hauteur = 8;
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(largeur, 0);
+  ihdr.writeUInt32BE(hauteur, 4);
+  ihdr[8] = 8; // 8 bits par canal
+  ihdr[9] = 2; // couleur vraie (RGB)
+  const [r, g, b] = couleur;
+  const brut = Buffer.alloc(hauteur * (1 + largeur * 3));
+  for (let y = 0; y < hauteur; y++) {
+    const debut = y * (1 + largeur * 3);
+    for (let x = 0; x < largeur; x++) {
+      brut[debut + 1 + x * 3] = r;
+      brut[debut + 1 + x * 3 + 1] = g;
+      brut[debut + 1 + x * 3 + 2] = b;
+    }
+  }
+  return Buffer.concat([
+    signature,
+    chunk("IHDR", ihdr),
+    chunk("IDAT", deflateSync(brut)),
+    chunk("IEND", Buffer.alloc(0)),
+  ]);
+}
+
+const COULEURS_DEPREUVE: Readonly<
+  Record<string, readonly [number, number, number]>
+> = {
+  "en-ligne": [0x0b, 0x5c, 0xad],
+  "hors-reseau": [0xad, 0x5c, 0x0b],
+};
+
 function fichierPhotoDEpreuve(suffixe: string): string {
   const dossier = mkdtempSync(join(tmpdir(), "codiplan-9k28a-"));
   const chemin = join(dossier, `photo-9k28a-${suffixe}.png`);
-  const png = Buffer.from(
-    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
-    "base64",
+  writeFileSync(
+    chemin,
+    construirePngDeTest(COULEURS_DEPREUVE[suffixe] ?? [0, 0, 0]),
   );
-  writeFileSync(chemin, png);
   return chemin;
 }
 
@@ -190,6 +264,23 @@ async function deplierLaChecklist(page: Page): Promise<void> {
     .click();
 }
 
+/**
+ * LE `<form>` DE LA `PhotosTerrain` EMBARQUÉE AU POINT — la fiche terrain
+ * porte DEUX formulaires `PhotosTerrain` (la section « Photos » générale, et
+ * celle-ci), MÊME COMPOSANT (`checklist-terrain.tsx`, `photos-terrain.tsx`),
+ * MÊME LIBELLÉ DE BOUTON (« Ajouter une photo », `checklist.terrain.
+ * ajouter_photo` ET `terrain.photos.ajouter`) : ni `input[type="file"]` ni
+ * `getByRole("button", …)` seuls n'y sont univoques. Son champ caché
+ * `checklist_point_id` (posé UNIQUEMENT par l'instance du point, voir
+ * `photos-terrain.tsx`) distingue son `<form>` sans ambiguïté — tout ce que
+ * cette épreuve cherche DANS ce formulaire part de là.
+ */
+function formulaireDuPointPhoto(page: Page) {
+  return page
+    .locator("form")
+    .filter({ has: page.locator('input[name="checklist_point_id"]') });
+}
+
 test("un point « photo » : une photo en ligne, une photo hors réseau, envoyée sans perte au retour du réseau", async ({
   page,
   context,
@@ -204,10 +295,11 @@ test("un point « photo » : une photo en ligne, une photo hors réseau, envoyé
   await capturer(page, "9k28a-terrain-point-photo-avant", 375);
 
   // ── 1. EN LIGNE — une photo au point. ──────────────────────────────────
-  await page
+  const formulairePoint = formulaireDuPointPhoto(page);
+  await formulairePoint
     .locator('input[type="file"]')
     .setInputFiles(fichierPhotoDEpreuve("en-ligne"));
-  await page
+  await formulairePoint
     .getByRole("button", { name: fr["checklist.terrain.ajouter_photo"] })
     .click();
   await expect(page.getByText(fr["terrain.photos.enregistree"])).toBeVisible();
@@ -238,10 +330,10 @@ test("un point « photo » : une photo en ligne, une photo hors réseau, envoyé
 
   // ── 2. HORS RÉSEAU, SUR LA PAGE DÉJÀ CHARGÉE — une seconde photo. ──────
   await context.setOffline(true);
-  await page
+  await formulairePoint
     .locator('input[type="file"]')
     .setInputFiles(fichierPhotoDEpreuve("hors-reseau"));
-  await page
+  await formulairePoint
     .getByRole("button", { name: fr["checklist.terrain.ajouter_photo"] })
     .click();
   await expect(page.getByText(fr["terrain.auto.hors_ligne"])).toBeVisible();
