@@ -1043,6 +1043,30 @@ model UtilisateurClient {
   societe_id     String  @db.Uuid
   actif          Boolean @default(true)
 
+  /// EN ATTENTE D'ACCEPTATION (9L04, D249, 10/11/2026 — revient sur D233) :
+  /// `NULL` tant que le titulaire n'a pas accepté explicitement ce
+  /// rattachement. Une ligne non acceptée n'ouvre aucun accès — ni la lecture
+  /// du parc (`rattachementsDuCompte`), ni le choix de cette société comme
+  /// active (`lireRole`). Posée à `now()` dès la création pour une IDENTITÉ
+  /// NOUVELLE : D96 veut que le premier accès (choisir son mot de passe)
+  /// vaille lui-même acceptation, et il n'y a alors aucune session ailleurs à
+  /// protéger. `NULL` à la création pour une identité déjà ouverte — c'est
+  /// elle qui peut déjà être connectée ailleurs, et c'est elle que ce lot
+  /// protège. `accepterRattachementClient` la pose ; `refuserRattachementClient`
+  /// laisse la ligne inactive sans la poser. Les lignes déjà en base avant
+  /// cette migration sont reprises comme acceptées (reprise explicite, voir
+  /// la migration — elles décrivaient déjà un accès accordé).
+  accepte_le DateTime? @db.Timestamptz
+
+  /// LE NOM DU CLIENT, EN CLICHÉ AU MOMENT DE L'INVITATION — seulement posé
+  /// pour un rattachement créé EN ATTENTE (9L04). `client` est de forme
+  /// « parc » (D10/D22) : désigner ce client pour en lire le nom ouvrirait
+  /// tout son parc avant l'acceptation — l'inverse de ce que ce lot exige.
+  /// Un cliché PEUT devenir faux si le client est renommé avant l'acceptation
+  /// — accepté à dessein : la fenêtre est courte, l'enjeu est un seul libellé
+  /// d'écran, et la ligne ne s'en sert plus une fois `accepte_le` posé.
+  nom_client_invitation String?
+
   /// Le périmètre de sites (RG-DRO-01) — une TABLE depuis L1-02b, plus un
   /// `String[]`. PostgreSQL 16 ne sait pas contraindre les ÉLÉMENTS d'un
   /// tableau : la colonne acceptait un site inexistant ou d'une autre société,

@@ -88,11 +88,16 @@ async function lireRole(
     // Compte portail (D10) : le rattachement vit dans `utilisateur_client`, et
     // le rôle y est implicite — un compte portail est un client, jamais autre
     // chose.
+    //
+    // `accepte_le` non nul depuis 9L04 (D249) : une ligne EN ATTENTE
+    // d'acceptation n'établit aucun rôle — sans quoi cette société
+    // deviendrait « active » pour un compte qui n'a encore rien accepté.
     const portail = await tx.utilisateurClient.findFirst({
       where: {
         utilisateur_id: utilisateurId,
         societe_id: societeId,
         actif: true,
+        accepte_le: { not: null },
       },
       select: { id: true },
     });
@@ -333,9 +338,17 @@ export async function habilitationsDuCompte(
         orderBy: { societe_id: "asc" },
       }),
     ),
+    // `accepte_le` non nul depuis 9L04 (D249) : une société où le compte n'a
+    // qu'un rattachement EN ATTENTE ne lui est pas encore ouverte — même
+    // critère que `lireRole`, pour ne pas lister une société qu'on ne peut
+    // pas sélectionner.
     avecIdentite(client, utilisateurId, (tx) =>
       tx.utilisateurClient.findMany({
-        where: { utilisateur_id: utilisateurId, actif: true },
+        where: {
+          utilisateur_id: utilisateurId,
+          actif: true,
+          accepte_le: { not: null },
+        },
         select: { societe_id: true },
         orderBy: { societe_id: "asc" },
       }),

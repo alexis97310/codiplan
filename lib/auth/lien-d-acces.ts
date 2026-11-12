@@ -3,17 +3,23 @@ import { Prisma, type PrismaClient } from "@prisma/client";
 import type { Envoi } from "@/lib/courriel/message";
 import { envoyerLienPremierAcces } from "@/lib/courriel/premier-acces";
 import { avecContexteApplicatif, prisma } from "@/lib/db/client";
-import { avecSociete, VARIABLE_SESSION_UTILISATEUR } from "@/lib/db/rls";
+import {
+  avecIdentite,
+  avecSociete,
+  avecSocieteEtRole,
+  VARIABLE_SESSION_UTILISATEUR,
+} from "@/lib/db/rls";
 import { uuidv7 } from "@/lib/db/uuid";
 
 import { creerAuth } from "./config";
 import { type ContexteSession, exigerSocieteActive } from "./contexte";
 import { peut } from "./habilitations";
+import { instantAcceptation } from "./instant-acceptation";
 import {
   avecDesignationAuth,
   type ContexteAdministratif,
 } from "./lecture-identite";
-import type { Role } from "./roles";
+import { Role } from "./roles";
 
 /**
  * LES ÉTAPES COMMUNES À TOUT ENVOI (OU RÉÉMISSION) D'UN LIEN DE PREMIER ACCÈS
@@ -542,18 +548,28 @@ export async function identiteInterneAilleurs(
  * MÊME garde que `preparerLienDAcces` ci-dessus, par construction : les deux
  * ouvrent une identité.
  *
- * ## `UtilisateurClient` est créé ACTIF, jamais en attente
+ * ## `UtilisateurClient` est créé ACTIF — mais EN ATTENTE pour une identité
+ * déjà ouverte (9L04, D249, 10/11/2026 — REVIENT SUR CE QUE DISAIT CETTE
+ * SECTION AVANT)
  *
- * Il n'existe aucun autre point d'ancrage : la consommation du jeton de
- * premier accès passe par l'écran GÉNÉRIQUE `/premier-acces` (D65), commun à
- * tous les comptes, qui ne sait rien d'un client ni d'un site et n'écrit
- * jamais `utilisateur_client`. Le périmètre est donc fixé ICI, à la
- * génération — jamais choisi par qui consomme le lien (D96) — exactement
- * comme l'amorçage (`ouvrirPremierCompte`) pose l'habilitation AVANT que la
- * personne n'ait choisi un mot de passe. Le compte naît SANS mot de passe
- * (voir plus bas, pourquoi jamais `signUpEmail`) et reste donc inutilisable
- * tant qu'elle n'en a pas choisi un : « actif » dit le PÉRIMÈTRE accordé,
- * pas la capacité de s'en servir.
+ * La consommation du jeton de premier accès passe par l'écran GÉNÉRIQUE
+ * `/premier-acces` (D65), commun à tous les comptes, qui ne sait rien d'un
+ * client ni d'un site et n'écrit jamais `utilisateur_client`. Pour une
+ * IDENTITÉ NOUVELLE (ouverte par CETTE invitation), le périmètre est donc
+ * fixé ICI, à la génération — jamais choisi par qui consomme le lien (D96) —
+ * et son premier accès (choisir un mot de passe) vaut lui-même acceptation :
+ * il n'existe alors aucune session ailleurs à protéger. `accepte_le` est
+ * posée à `now()` dès la création.
+ *
+ * Pour une identité DÉJÀ OUVERTE — qu'elle ait déjà un mot de passe (donc
+ * potentiellement déjà connectée ailleurs) ou non —, le rattachement est créé
+ * EN ATTENTE (`accepte_le: null`), **aucun jeton n'est émis**, et son
+ * titulaire doit l'accepter explicitement (`accepterRattachementClient`,
+ * montré à sa prochaine connexion) avant que ce rattachement n'ouvre quoi que
+ * ce soit — ni la lecture du parc (`rattachementsDuCompte`), ni le choix de
+ * cette société comme active (`lireRole`). C'est tout l'objet de D249 :
+ * avant, une identité déjà pourvue d'un mot de passe recevait le rattachement
+ * ACTIF sans que son titulaire n'ait rien demandé.
  *
  * ## Le périmètre de sites — DÉFAUT « tous les sites du client »
  *
@@ -565,63 +581,62 @@ export async function identiteInterneAilleurs(
  * ## Seconde identité, seconde invitation : RÉUTILISE, jamais ne duplique
  *
  * Si le courriel désigne une identité déjà ouverte (ailleurs dans CETTE
- * société), elle n'est pas rouverte. Le rattachement est un `upsert` sur la
- * clé unique `(utilisateur_id, client_id)` — un second appel pour le MÊME
- * client réactive la ligne plutôt que d'échouer sur la contrainte.
+ * société, ou pour un AUTRE client), elle n'est pas rouverte. Le rattachement
+ * est un `upsert` sur la clé unique `(utilisateur_id, client_id)` — un second
+ * appel pour le MÊME client RÉACTIVE la ligne plutôt que d'échouer sur la
+ * contrainte, SANS toucher `accepte_le` : un rattachement déjà accepté une
+ * fois ne redemande pas d'acceptation pour être réactivé.
  *
- * Si l'identité porte déjà un mot de passe (elle a déjà servi, pour un AUTRE
- * client), aucun jeton n'est émis : l'accès est immédiat, il n'y a rien à
- * transmettre (`url: null`, `dejaActif: true`).
- *
- * ## UNE IDENTITÉ CONNUE D'UNE AUTRE SOCIÉTÉ (C1, étude du 08/11, décision
- * d'Alexis du 08/11 ~09:00)
+ * ## UNE IDENTITÉ CONNUE D'UNE AUTRE SOCIÉTÉ — UN SEUL REFUS NEUTRE (D226,
+ * D233, amendées par D249 du 10/11/2026)
  *
  * Trouvée par son courriel, une identité peut appartenir à une tout AUTRE
  * société — `preparerLienDAcces` ci-dessus ne se pose jamais la question
  * (D96 garde déjà sa propre porte, `/premier-acces`, générique). Ici, un
- * administrateur de la société A ne doit JAMAIS obtenir le lien d'un compte
- * pas encore activé d'une société B, ni recevoir plus que ces deux faits :
+ * administrateur de la société A ne doit JAMAIS apprendre qu'une adresse est
+ * connue d'une société B, ni sous quelle forme :
  *
- * - le mot de passe est déjà posé (`compte.mot_de_passe`, lu sans filtre de
- *   société — voir `preparerLienDAcces`) : « quelle que soit la société où il
- *   est connu », c'est un compte client déjà ACTIF, et l'invitation pose
- *   simplement le rattachement (`dejaActif: true`), EXACTEMENT comme pour une
- *   seconde invitation dans la MÊME société ;
- * - sinon, et SEULEMENT si `identiteExclusiveALaSociete` (D226) répond faux —
- *   c'est-à-dire que l'identité porte au moins une ligne `utilisateur_societe`
- *   OU `utilisateur_client` pour une société autre que l'active — le geste
- *   refuse NOMMÉMENT (`compte_connu_autre_societe`) AVANT d'émettre quoi que
- *   ce soit : aucun jeton, aucun rattachement.
+ * - `identiteExclusiveALaSociete` (D226) répond faux — l'identité porte au
+ *   moins une ligne `utilisateur_societe` OU `utilisateur_client` pour une
+ *   société autre que l'active — ET elle n'a pas encore de mot de passe :
+ *   refus NOMMÉ `compte_connu_ailleurs`, avant d'émettre quoi que ce soit ;
+ * - même état d'exclusivité, mais un mot de passe est posé, ET
+ *   `identiteInterneAilleurs` (D233/9K04) répond vrai — c'est un rattachement
+ *   INTERNE pour une autre société, donc un employé, jamais un client : MÊME
+ *   refus NOMMÉ `compte_connu_ailleurs`.
  *
- * **Ce que `identiteExclusiveALaSociete` seule ne peut PAS distinguer** :
- * elle ne rend qu'un booléen (D226, `SET row_security = off` nommément borné
- * à ce résultat) — jamais LAQUELLE des deux tables a répondu. Un compte déjà
- * actif ailleurs (mot de passe posé) tombe donc dans la branche `!exclusive`
- * sans qu'on sache encore s'il s'agit d'un client ou d'un employé.
+ * **Avant D249, ces deux cas rendaient deux motifs distincts**
+ * (`compte_connu_autre_societe` et `compte_interne`) — ce qui laissait
+ * déduire, du seul motif reçu, si l'adresse était « pas encore activée » ou
+ * « employée ailleurs ». Un seul motif neutre les couvre désormais : un
+ * administrateur n'apprend plus RIEN de plus que « cette adresse ne peut pas
+ * recevoir ce rattachement ». Le motif `compte_interne`, lui, reste réservé
+ * au cas LOCAL — une adresse d'employé de LA SOCIÉTÉ ACTIVE — qui n'est pas
+ * un secret d'une autre société : l'administrateur le sait déjà, c'est SA
+ * société.
  *
- * **D233 (c), fermé par le complément du 09/11/2026 (9K04-PORTAIL-
- * INVITATION-EMPLOYE)** : `identiteInterneAilleurs` (D233, migration
- * `20261109050000_identite_interne_ailleurs_9k04`) tranche cette seconde
- * question — ce compte déjà actif ailleurs porte-t-il un rattachement
- * `utilisateur_societe` (interne) pour une AUTRE société ? Si oui, refus
- * NOMMÉ (`compte_interne`), avant tout rattachement ni tout jeton — un
- * employé d'ailleurs ne devient jamais un compte client, même déjà actif.
- * Sinon, (a) s'applique : accepté, `dejaActif: true`.
+ * Sinon (exclusive, ou non-interne ailleurs) : accepté, EN ATTENTE
+ * (`enAttente: true`) — voir la section précédente.
  */
 
 /** Ce qu'un refus NOMMÉ dit, et il n'en dit jamais plus (D50). */
 export type MotifRefusInvitationClient =
-  "client_introuvable" | "compte_interne" | "compte_connu_autre_societe";
+  "client_introuvable" | "compte_interne" | "compte_connu_ailleurs";
 
 export type ResultatInvitationClient =
   | {
       readonly accepte: true;
       /**
-       * `null` quand l'identité portait déjà un mot de passe : l'accès au
-       * nouveau client est immédiat, aucun lien n'est à transmettre.
+       * `null` sauf pour une identité NOUVELLE : une identité déjà ouverte ne
+       * reçoit jamais de lien (D249), le rattachement restant en attente de
+       * son acceptation.
        */
       readonly url: string | null;
-      readonly dejaActif: boolean;
+      /**
+       * Vrai quand le rattachement est créé EN ATTENTE (identité déjà
+       * ouverte, D249) — faux pour une identité nouvelle, acceptée d'emblée.
+       */
+      readonly enAttente: boolean;
     }
   | { readonly accepte: false; readonly motif: MotifRefusInvitationClient };
 
@@ -663,8 +678,16 @@ export async function inviterClientAuPortail(
   const role = exigerCapaciteInvitationClient(contexteAdmin);
 
   // ── LE CLIENT EXISTE-T-IL, DANS LA SOCIÉTÉ ACTIVE ? ──────────────────────
+  //
+  // `raison_sociale` est lue ICI, sous le contexte ADMINISTRATEUR qui y a
+  // plein accès — c'est le cliché de `nom_client_invitation` (9L04, D249),
+  // JAMAIS relu plus tard par le compte invité (voir l'en-tête de la
+  // fonction, plus haut).
   const fiche = await avecSociete(client, societeId, (tx) =>
-    tx.client.findUnique({ where: { id: clientId }, select: { id: true } }),
+    tx.client.findUnique({
+      where: { id: clientId },
+      select: { id: true, raison_sociale: true },
+    }),
   );
   if (fiche === null) {
     return { accepte: false, motif: "client_introuvable" };
@@ -717,24 +740,27 @@ export async function inviterClientAuPortail(
         },
       );
       if (compteAilleurs === null || compteAilleurs.mot_de_passe === null) {
-        return { accepte: false, motif: "compte_connu_autre_societe" };
+        // Pas encore activé, connu d'une autre société (D226) — MÊME refus
+        // neutre que l'employé d'ailleurs ci-dessous (D249) : l'un ou l'autre
+        // ne se distingue plus du seul motif reçu.
+        return { accepte: false, motif: "compte_connu_ailleurs" };
       }
 
       // ── CE COMPTE DÉJÀ ACTIF AILLEURS EST-IL UN EMPLOYÉ, PAS UN CLIENT ?
       // (D233 (c), fermé par D233 complément 9K04) ───────────────────────
       //
-      // Jusqu'ici, un compte déjà actif ailleurs (mot de passe posé) était
-      // accepté sans distinction — (a) et (c) suivaient la même branche. La
-      // décision d'Alexis du 08/11 ~09:00, point (c) : un employé (interne)
-      // d'une autre société est refusé, même déjà actif. Lu AVANT tout
-      // rattachement ni tout jeton : un refus ici n'écrit rien.
+      // La décision d'Alexis du 08/11 ~09:00, point (c) : un employé
+      // (interne) d'une autre société est refusé, même déjà actif. Lu AVANT
+      // tout rattachement ni tout jeton : un refus ici n'écrit rien.
       const interneAilleurs = await identiteInterneAilleurs(
         contexteAdmin,
         existante.id,
         client,
       );
       if (interneAilleurs) {
-        return { accepte: false, motif: "compte_interne" };
+        // MÊME motif neutre que ci-dessus (D249) — jamais `compte_interne`,
+        // réservé au cas LOCAL (voir l'en-tête de la fonction).
+        return { accepte: false, motif: "compte_connu_ailleurs" };
       }
     }
   } else {
@@ -769,6 +795,11 @@ export async function inviterClientAuPortail(
   }
 
   // ── LE RATTACHEMENT — CRÉÉ OU RÉACTIVÉ, JAMAIS DE LIGNE utilisateur_societe
+  //
+  // `accepte_le`/`nom_client_invitation` ne sont posées QU'À LA CRÉATION
+  // (9L04, D249) : une RÉACTIVATION (branche `update`) ne les touche pas — un
+  // rattachement déjà accepté une fois ne redemande pas d'acceptation, et un
+  // rattachement jamais accepté reste tel quel.
   await avecContexteApplicatif(
     contexteAdmin,
     (tx) =>
@@ -785,22 +816,25 @@ export async function inviterClientAuPortail(
           client_id: clientId,
           societe_id: societeId,
           actif: true,
+          accepte_le: identiteNouvelle ? instantAcceptation() : null,
+          nom_client_invitation: identiteNouvelle ? null : fiche.raison_sociale,
         },
         update: { actif: true },
       }),
     client,
   );
 
-  // ── LE JETON — SEULEMENT SI AUCUN MOT DE PASSE N'EXISTE ENCORE ──────────
-  const compteExistant = await avecDesignationAuth(client).compte.findFirst({
-    where: { utilisateur_id: utilisateurId },
-    select: { mot_de_passe: true },
-  });
-  const dejaActif =
-    compteExistant !== null && compteExistant.mot_de_passe !== null;
-
+  // ── LE JETON — SEULEMENT POUR UNE IDENTITÉ NOUVELLE (D249) ──────────────
+  //
+  // Avant D249, une identité déjà ouverte SANS mot de passe recevait une
+  // réémission de son lien de premier accès. Ce n'est plus le cas : D249 ne
+  // distingue plus cette situation de celle d'une identité déjà active —
+  // toute identité déjà ouverte entre EN ATTENTE, sans jeton, et c'est la
+  // raison qui l'a amenée à exister la première fois (une invitation
+  // antérieure, encore valable ou à réémettre par l'administrateur) qui lui
+  // donne de quoi se connecter.
   let url: string | null = null;
-  if (!dejaActif) {
+  if (identiteNouvelle) {
     const emetteur = creerAuth(
       client,
       { societeId, role: null },
@@ -846,7 +880,165 @@ export async function inviterClientAuPortail(
     });
   }
 
-  return { accepte: true, url, dejaActif };
+  return { accepte: true, url, enAttente: !identiteNouvelle };
+}
+
+/** Ce qu'un refus NOMMÉ dit — la ligne n'existait pas, ou n'est plus en attente (D50). */
+export type ResultatReponseInvitationClient =
+  | { readonly accepte: true }
+  | { readonly accepte: false; readonly motif: "introuvable" };
+
+/**
+ * ACCEPTER ou REFUSER un rattachement EN ATTENTE (9L04, D249) — partagée par
+ * `accepterRattachementClient` et `refuserRattachementClient`, seule la
+ * donnée écrite diffère.
+ *
+ * ## Pourquoi deux lectures, sous deux contextes différents
+ *
+ * `utilisateur_client` porte la forme « rattachement » (D92) en LECTURE —
+ * `FOR SELECT` seul, ancrée sur `app.utilisateur_id`, sans société active —
+ * mais sa forme « habilitation » en ÉCRITURE exige `app.societe_id`. On lit
+ * donc D'ABORD sous l'identité seule pour apprendre la société de CETTE
+ * ligne (et vérifier qu'elle appartient bien à l'appelant, et qu'elle est
+ * bien en attente), puis on écrit sous CETTE société.
+ *
+ * **`app.client_id` n'est JAMAIS posé ici** — le désigner ouvrirait, sous la
+ * forme « parc », tout le parc du client visé avant même l'acceptation,
+ * l'inverse de ce que D249 exige. Sans lui, la forme « habilitation » ne
+ * borne l'écriture qu'à la SOCIÉTÉ : c'est le filtre `utilisateur_id` posé
+ * EXPLICITEMENT ci-dessous, à la fois dans la lecture et dans l'écriture, qui
+ * borne à la ligne de l'appelant — la même discipline que D22 ou D61 exigent
+ * ailleurs (filtre côté serveur ET politique RLS, CLAUDE.md I1).
+ */
+async function repondreAuRattachementEnAttente(
+  utilisateurId: string,
+  utilisateurClientId: string,
+  donnees: { readonly accepte_le: Date } | { readonly actif: false },
+  client: PrismaClient,
+): Promise<ResultatReponseInvitationClient> {
+  const ligne = await avecIdentite(client, utilisateurId, (tx) =>
+    tx.utilisateurClient.findFirst({
+      where: {
+        id: utilisateurClientId,
+        utilisateur_id: utilisateurId,
+        accepte_le: null,
+      },
+      select: { societe_id: true },
+    }),
+  );
+  if (ligne === null) {
+    return { accepte: false, motif: "introuvable" };
+  }
+
+  const touchees = await avecSocieteEtRole(
+    client,
+    ligne.societe_id,
+    Role.client,
+    (tx) =>
+      tx.utilisateurClient.updateMany({
+        where: {
+          id: utilisateurClientId,
+          utilisateur_id: utilisateurId,
+          accepte_le: null,
+        },
+        data: donnees,
+      }),
+  );
+  return touchees.count === 0
+    ? { accepte: false, motif: "introuvable" }
+    : { accepte: true };
+}
+
+/**
+ * ACCEPTE un rattachement EN ATTENTE — le titulaire, à sa prochaine
+ * connexion (9L04, D249). Rend le rattachement ACTIF au sens plein :
+ * `rattachementsDuCompte` et `lireRole` le comptent désormais.
+ *
+ * @param utilisateurId le compte CONNECTÉ qui accepte — jamais un paramètre
+ *   reçu d'ailleurs que la session (il n'y a rien d'autre à désigner).
+ * @param utilisateurClientId la ligne `UtilisateurClient` visée.
+ */
+export function accepterRattachementClient(
+  utilisateurId: string,
+  utilisateurClientId: string,
+  client: PrismaClient = prisma,
+): Promise<ResultatReponseInvitationClient> {
+  return repondreAuRattachementEnAttente(
+    utilisateurId,
+    utilisateurClientId,
+    { accepte_le: instantAcceptation() },
+    client,
+  );
+}
+
+/**
+ * REFUSE un rattachement EN ATTENTE — le titulaire, à sa prochaine connexion
+ * (9L04, D249). Laisse la ligne INACTIVE, jamais supprimée (I6) — tracée par
+ * le déclencheur de I8, comme toute écriture sur cette table.
+ *
+ * @param utilisateurId voir `accepterRattachementClient`.
+ * @param utilisateurClientId la ligne `UtilisateurClient` visée.
+ */
+export function refuserRattachementClient(
+  utilisateurId: string,
+  utilisateurClientId: string,
+  client: PrismaClient = prisma,
+): Promise<ResultatReponseInvitationClient> {
+  return repondreAuRattachementEnAttente(
+    utilisateurId,
+    utilisateurClientId,
+    { actif: false },
+    client,
+  );
+}
+
+/** Un rattachement EN ATTENTE, tel que l'écran d'acceptation le montre. */
+export type RattachementEnAttente = {
+  readonly id: string;
+  readonly societeNom: string | null;
+  readonly clientNom: string | null;
+};
+
+/**
+ * LES RATTACHEMENTS EN ATTENTE du compte connecté (9L04, D249) — montrés à
+ * sa prochaine connexion, avant tout autre écran.
+ *
+ * Lue sous la forme « rattachement » (D92, identité seule) pour la ligne
+ * elle-même, et sous l'extension de la forme « adhésion » (D67/D92) pour le
+ * nom de la société — ni l'une ni l'autre n'exigent `accepte_le` : D92
+ * borne sa clause à `actif`, et une ligne en attente reste `actif: true`.
+ * Le nom du CLIENT, lui, vient du CLICHÉ posé à la création
+ * (`nom_client_invitation`) — jamais d'une lecture de `client`, qui ouvrirait
+ * tout son parc avant l'acceptation (voir l'en-tête d'`inviterClientAuPortail`).
+ */
+export async function rattachementsEnAttenteDuCompte(
+  utilisateurId: string,
+  client: PrismaClient = prisma,
+): Promise<readonly RattachementEnAttente[]> {
+  const lignes = await avecIdentite(client, utilisateurId, (tx) =>
+    tx.utilisateurClient.findMany({
+      where: { utilisateur_id: utilisateurId, actif: true, accepte_le: null },
+      select: { id: true, societe_id: true, nom_client_invitation: true },
+      orderBy: { id: "asc" },
+    }),
+  );
+  if (lignes.length === 0) {
+    return [];
+  }
+  const societes = await avecIdentite(client, utilisateurId, (tx) =>
+    tx.societe.findMany({
+      where: { id: { in: lignes.map((ligne) => ligne.societe_id) } },
+      select: { id: true, raison_sociale: true },
+    }),
+  );
+  const nomSociete = new Map(
+    societes.map((societe) => [societe.id, societe.raison_sociale]),
+  );
+  return lignes.map((ligne) => ({
+    id: ligne.id,
+    societeNom: nomSociete.get(ligne.societe_id) ?? null,
+    clientNom: ligne.nom_client_invitation,
+  }));
 }
 
 /**
@@ -1032,6 +1224,12 @@ export type CompteDuPortailClient = {
   readonly utilisateurId: string;
   readonly email: string;
   readonly actif: boolean;
+  /**
+   * EN ATTENTE D'ACCEPTATION (9L04, D249) — `actif` et pas encore accepté.
+   * « Copier un nouveau lien » (9K14) ne se montre jamais sur une ligne en
+   * attente : il n'y a aucun mot de passe à réinitialiser avant acceptation.
+   */
+  readonly enAttente: boolean;
 };
 
 /**
@@ -1054,6 +1252,7 @@ export async function comptesDuPortailDuClient(
       select: {
         id: true,
         actif: true,
+        accepte_le: true,
         utilisateur_id: true,
         utilisateur: { select: { email: true } },
       },
@@ -1065,5 +1264,6 @@ export async function comptesDuPortailDuClient(
     utilisateurId: ligne.utilisateur_id,
     email: ligne.utilisateur.email,
     actif: ligne.actif,
+    enAttente: ligne.actif && ligne.accepte_le === null,
   }));
 }

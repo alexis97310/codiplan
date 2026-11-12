@@ -8576,3 +8576,35 @@ Second constat, distinct du premier : `intervention.technicien_id` ne porte aucu
 > Le jour où une intervention pourra être posée sur DEUX techniciens (le modèle n'en porte qu'un aujourd'hui), la notion de chevauchement change de sujet et RG-PLA-03 se relit — c'est la même réserve que D99 avait déjà écrite. Le jour où `intervention.technicien_id` porte une clé étrangère, RG-PLA-09 se relit pour dire si l'application a encore besoin de sa propre vérification au-dessus de la base.
 
 Portée : `lib/interventions/depot.ts` (`verdictChevauchementSous`, `fuseauDeLAgenceSous`, `affecterTechnicien`, `verdictALaPose`), `lib/i18n/fr.ts`, `app/api/interventions/actions.ts` (`versLaFiche`), `app/api/interventions/[id]/affecter/route.ts`, `app/(back-office)/interventions/[id]/page.tsx`, `components/interventions/dialogue-changer-technicien.tsx`, `components/ui/dialogue.tsx`, `components/ui/menu-plus.tsx`, `tests/isolation/affectation-chevauchement.test.ts`, `tests/e2e/captures-9l02-affecter-chevauchement.spec.ts`, `tests/unit/dates/comparaison-civile.test.ts`, `docs/cahier-des-charges.md` (RG-PLA-03, RG-PLA-09).
+
+## D249 — LE RATTACHEMENT D'UN COMPTE DÉJÀ EXISTANT AU PARC D'UN CLIENT RESTE EN ATTENTE D'ACCEPTATION ; UN SEUL REFUS NEUTRE POUR TOUT CAS « CONNU AILLEURS » (décision d'Alexis du 10/11/2026 ; 9L04-PORTAIL-INVITATION-EN-ATTENTE — revient sur D233)
+
+### CE QUI A ÉTÉ MESURÉ
+
+`inviterClientAuPortail` (`lib/auth/lien-d-acces.ts`), branche « déjà actif » posée par D233 (08/11/2026) : trouver une identité qui porte déjà un mot de passe — quelle que soit la société où elle est connue — accordait aussitôt le rattachement ACTIF au client visé, sans que son titulaire n'en soit informé ni ne l'ait accepté. Une personne déjà pourvue d'un accès au portail d'une société pouvait ainsi se voir ouvrir, sans le demander, le parc d'un second client d'une AUTRE société, sur la seule initiative d'un administrateur connaissant son courriel.
+
+Séparément, deux refus distincts (`compte_connu_autre_societe` pour une identité pas encore activée connue d'ailleurs, `compte_interne` pour un employé déjà actif ailleurs) laissaient déduire, du seul motif reçu, LAQUELLE des deux situations s'appliquait — exactement le renseignement que D226 avait voulu taire pour la copie d'un lien.
+
+### LA DÉCISION
+
+**1. Le rattachement d'une identité DÉJÀ OUVERTE reste EN ATTENTE jusqu'à acceptation explicite.** `UtilisateurClient` gagne `accepte_le` (`timestamptz`, nullable) : `NULL` tant que le titulaire n'a pas accepté, posé par `accepterRattachementClient` quand il le fait. Une ligne non acceptée n'ouvre AUCUN accès — ni `rattachementsDuCompte` (lecture du parc), ni `lireRole`/`habilitationsDuCompte` (choix de cette société comme active, `lib/auth/societe-active.ts`).
+
+**2. Une identité NOUVELLE (ouverte par l'invitation même) n'est pas concernée.** Son premier accès — choisir un mot de passe par le lien reçu — vaut lui-même acceptation (D96) : il n'existe alors aucune session ailleurs à protéger. `accepte_le` est posé dès la création.
+
+**3. Un seul motif de refus, neutre, pour tout cas « adresse connue ailleurs ».** `compte_connu_ailleurs` remplace à la fois l'ancien `compte_connu_autre_societe` et l'usage de `compte_interne` pour un employé déjà actif d'une autre société : l'administrateur n'apprend plus laquelle des deux situations s'applique, seulement que l'adresse ne peut pas recevoir ce rattachement. `compte_interne` reste réservé au cas LOCAL — une adresse d'employé de la société ACTIVE, que l'administrateur connaît déjà, n'étant le secret d'aucune autre société.
+
+**4. À sa prochaine connexion, le titulaire voit chaque rattachement en attente et répond.** L'écran d'arrivée (`app/(apres-session)/arrivee/page.tsx`) le montre AVANT toute redirection vers le portail ou le planning, même pour une société unique : « <Société> vous donne accès au parc de <Client> », avec Accepter/Refuser. Accepter pose `accepte_le` ; refuser laisse la ligne `actif: false`, jamais supprimée (I6), tracée par le déclencheur de I8 comme toute écriture sur cette table.
+
+**5. Le nom du client est un CLICHÉ, posé à l'invitation, jamais relu depuis `client`.** `client` est de forme « parc » (D10/D22) : désigner ce client pour en lire le nom avant l'acceptation ouvrirait tout son parc, l'inverse de ce que ce lot exige. `nom_client_invitation` (texte, nullable) est donc posé par l'administrateur — qui a déjà plein accès à ce client — au moment de la création d'un rattachement EN ATTENTE, et seulement alors. Il peut devenir faux si le client est renommé avant l'acceptation ; accepté à dessein, la ligne ne s'en servant plus une fois `accepte_le` posé. Le nom de la SOCIÉTÉ, lui, reste lu en direct : la forme « adhésion » (D67, étendue par D92) ne borne déjà sa clause qu'à `actif`, qu'une ligne en attente porte toujours.
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+Elle ne retire aucune des gardes de D226/D233 (exclusivité à la société, employé interne ailleurs) : elle unifie seulement leur MESSAGE pour les cas « ailleurs », et ajoute l'étape d'acceptation pour les cas qui restaient acceptés. Elle ne construit aucune fonction `SECURITY DEFINER` ni aucune politique RLS nouvelle sur `client` : le cliché du nom (point 5) a été choisi précisément pour éviter d'étendre le cloisonnement de `client`, qui reste de forme « parc » seule.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où une identité EN ATTENTE doit pouvoir accepter depuis un autre écran que `/arrivee` (par exemple directement depuis un lien transmis par courriel), cette décision se relit : la lecture du nom du client devra alors franchir un chemin distinct de la connexion normale, et le cliché ne suffira peut-être plus.
+
+**Règles amendées :** aucune règle du chapitre 10 — D249 amende D233 (arbitrage de rang 2 relatif à ce même chapitre), sur le seul point nommé ci-dessus.
+
+Portée : `prisma/schema.prisma` (`UtilisateurClient.accepte_le`, `.nom_client_invitation`), `prisma/migrations/20261113073000_rattachement_client_en_attente_9l04/`, `lib/db/migrations-attendues.ts`, `lib/auth/lien-d-acces.ts` (`inviterClientAuPortail`, `MotifRefusInvitationClient`, `accepterRattachementClient`, `refuserRattachementClient`, `rattachementsEnAttenteDuCompte`, `CompteDuPortailClient.enAttente`), `lib/auth/instant-acceptation.ts` (créé), `lib/auth/societe-active.ts` (`lireRole`, `habilitationsDuCompte`), `lib/portail/depot.ts` (`rattachementsDuCompte`), `lib/i18n/fr.ts`, `app/api/clients/[id]/inviter/route.ts`, `components/clients/formulaire-invitation-portail.tsx`, `app/(back-office)/clients/[id]/page.tsx`, `app/(apres-session)/arrivee/page.tsx`, `app/api/session/rattachements/[id]/accepter/route.ts` (créé), `app/api/session/rattachements/[id]/refuser/route.ts` (créé), `tests/unit/auth/porte.test.ts`, `tests/unit/calendar/sans-date-courante-implicite.test.ts`, `tests/isolation/invitation-portail-client.test.ts`, `tests/isolation/setup/global.ts`, `tests/e2e/captures-9k01-portail-invitation-revocation.spec.ts`.

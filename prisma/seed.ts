@@ -1,6 +1,7 @@
 import { Prisma, PrismaClient, type StatutIntervention } from "@prisma/client";
 
 import { absenceCouvrant, type AbsenceDeclaree } from "../lib/absences/periode";
+import { instantAcceptation } from "../lib/auth/instant-acceptation";
 import { avecDesignationAuth } from "../lib/auth/lecture-identite";
 import { Role } from "../lib/auth/roles";
 import {
@@ -1589,6 +1590,11 @@ async function seed(): Promise<void> {
             utilisateur_id: utilisateur.id,
             client_id: compte.client_id,
             societe_id: societeId,
+            // ACCEPTÉ DÈS LE SEMIS (9L04, D249) : ce compte de démonstration
+            // décrit un accès déjà accordé, pas une invitation en cours —
+            // sans quoi la fiche client l'afficherait « en attente
+            // d'acceptation », et lui-même ne lirait jamais son parc.
+            accepte_le: instantAcceptation(),
           },
         }),
       DELAIS_SEED,

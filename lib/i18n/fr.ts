@@ -406,6 +406,22 @@ export const fr = {
   // et le compte ne comprendrait pas pourquoi il ne peut pas y aller.
   "arrivee.choix.sans_nom": "Société sans nom lisible",
 
+  // ── LES INVITATIONS EN ATTENTE (9L04, D249) — montrées AVANT tout le reste,
+  // et avant même le choix de société d'une société unique (D249 : rien ne
+  // s'ouvre avant la décision du titulaire). Composition par morceaux, jamais
+  // par interpolation de `t()` (§5, L0-11) — même discipline que
+  // `sousTitreDuPortail` (`app/(portail)/portail/presentation.ts`).
+  "arrivee.attente.titre": "Invitation en attente",
+  "arrivee.attente.aide":
+    "Une société souhaite vous donner accès au parc d'un de ses clients. Tant que vous n'avez pas répondu, rien n'est ouvert.",
+  "arrivee.attente.milieu": "vous donne accès au parc de",
+  "arrivee.attente.sans_nom": "une société",
+  "arrivee.attente.client_sans_nom": "un client",
+  "arrivee.attente.accepter": "Accepter",
+  "arrivee.attente.refuser": "Refuser",
+  "arrivee.attente.refus.introuvable":
+    "Cette invitation n'est plus valable — elle a peut-être déjà été traitée.",
+
   // ── LIBELLÉS DE RÔLE (99A-ARRIVEE, sur constat d'audit d'ergonomie) ──────
   //
   // `/arrivee` affichait le nom brut de l'énumération (« admin_societe ») là
@@ -7372,12 +7388,16 @@ export const fr = {
   "clients.acces.copier_lien": "Copier le lien d'accès",
   "clients.acces.lien_copie":
     "Lien valable une heure. Copiez-le et transmettez-le vous-même au contact, il choisira son mot de passe.",
-  "clients.acces.deja_actif":
-    "Ce compte a déjà un mot de passe — l'accès à ce client est immédiat, aucun lien à transmettre.",
+  // EN ATTENTE D'ACCEPTATION (9L04, D249) — remplace l'ancien message
+  // « deja_actif » : une identité déjà ouverte n'est plus rattachée d'emblée,
+  // elle doit accepter à sa prochaine connexion.
+  "clients.acces.en_attente_invitation":
+    "Ce compte existe déjà : il verra l'invitation à sa prochaine connexion et devra l'accepter avant d'accéder à ce client.",
   "clients.acces.copier_lien_erreur": "Le lien n'a pas pu être copié.",
   // « COPIER UN NOUVEAU LIEN » (mot de passe oublié, 9K14-PORTAIL-COPIER-
   // NOUVEAU-LIEN, backlog B7) — distinct du PREMIER lien ci-dessus : visible
-  // seulement sur un compte DÉJÀ ACTIF, jamais en attente.
+  // seulement sur un compte DÉJÀ ACTIF, jamais en attente (D249 : ni
+  // d'acceptation, ni de mot de passe oublié).
   "clients.acces.copier_nouveau_lien": "Copier un nouveau lien",
   "clients.acces.refus.revoque":
     "Cet accès a été révoqué : ré-invitez le contact plutôt que de lui transmettre un lien.",
@@ -7387,11 +7407,19 @@ export const fr = {
   "clients.acces.revoque": "Accès révoqué.",
   "clients.acces.etat.actif": "Accès actif",
   "clients.acces.etat.revoque": "Accès révoqué",
+  // EN ATTENTE, DISTINCT DE « RÉVOQUÉ » (9L04, D249) : un accès révoqué ne
+  // montrait déjà rien de plus qu'une ligne inactive ; celui-ci est actif,
+  // seulement pas encore accepté par son titulaire.
+  "clients.acces.etat.en_attente": "En attente d'acceptation",
   "clients.acces.refus.client_introuvable": "Ce client n'existe pas.",
   "clients.acces.refus.compte_interne":
     "Cette adresse est un compte interne : elle ne peut pas recevoir un accès portail.",
-  "clients.acces.refus.compte_connu_autre_societe":
-    "Ce compte n'est pas encore activé et dépend d'une autre société : il doit d'abord l'activer par le lien reçu de cette société.",
+  // UN SEUL MESSAGE NEUTRE (9L04, D249, revient sur D233) — couvre à la fois
+  // une identité pas encore activée connue d'une autre société, et un
+  // employé déjà actif d'une autre société : il ne révèle plus lequel des
+  // deux cas s'applique.
+  "clients.acces.refus.compte_connu_ailleurs":
+    "Cette adresse ne peut pas recevoir ce rattachement.",
   "clients.acces.refus.email_invalide": "Ce courriel n'est pas valide.",
   "clients.acces.refus.acces_refuse":
     "Réservé à l'administrateur de la société ou à la direction.",

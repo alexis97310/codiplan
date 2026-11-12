@@ -54,6 +54,12 @@ export type Rattachement = {
  *
  * Ce qu'elle rend : les rattachements de CE compte, et rien d'autre. Ni leur
  * nom — `client` reste de forme « parc » —, ni ceux d'autrui.
+ *
+ * **`accepte_le` non nul, depuis 9L04 (D249)** : une ligne EN ATTENTE
+ * d'acceptation n'ouvre aucun accès — ni ici, ni au choix de société
+ * (`lireRole`, `lib/auth/societe-active.ts`). Voir
+ * `rattachementsEnAttenteDuCompte` (`lib/auth/lien-d-acces.ts`) pour celles
+ * qui restent à accepter.
  */
 export async function rattachementsDuCompte(
   utilisateurId: string,
@@ -61,7 +67,11 @@ export async function rattachementsDuCompte(
 ): Promise<Rattachement[]> {
   const lignes = await avecIdentite(client, utilisateurId, (tx) =>
     tx.utilisateurClient.findMany({
-      where: { utilisateur_id: utilisateurId, actif: true },
+      where: {
+        utilisateur_id: utilisateurId,
+        actif: true,
+        accepte_le: { not: null },
+      },
       select: { societe_id: true, client_id: true },
       orderBy: [{ societe_id: "asc" }, { client_id: "asc" }],
     }),
