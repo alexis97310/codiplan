@@ -1967,6 +1967,11 @@ export const fr = {
     "L'absence n'est signalée ici que pour une date dans les 90 prochains jours.",
   "intervention.refus.habilitation":
     "Ce technicien ne détient pas les habilitations exigées ici. L'affectation est refusée.",
+  // DÉCISION D'ALEXIS DU 10/11/2026 — « technicien_id » ne porte aucune clé
+  // étrangère : un identifiant hors société, ou celui d'une personne qui
+  // n'est pas (ou plus) technicien, se refuse ici plutôt que de s'écrire.
+  "intervention.refus.technicien_introuvable":
+    "Cette personne n'est pas un technicien actif de votre société. L'affectation est refusée.",
   // Extension de la revue Codex de la PR #267 (20/09/2026) : le refus d'un
   // rôle sans `qualifier_affecter`, sur la fiche — jamais un champ vide, un
   // refus qui prend la place de toute l'action, comme pour un refus de statut.

@@ -7,6 +7,7 @@ import {
 } from "@/lib/auth/contexte";
 import { annuaireDesPersonnes, type Annuaire } from "@/lib/auth/annuaire";
 import { peut } from "@/lib/auth/habilitations";
+import { Role } from "@/lib/auth/roles";
 import {
   chargerCalendrierAgence,
   fuseauDeLAgence,
@@ -320,6 +321,34 @@ function refus<T>(verdict: Verdict, confirmable?: boolean): Resultat<T> | null {
 }
 
 /**
+ * LE FUSEAU DE L'AGENCE, SOUS LE CONTEXTE CLOISONNÉ — lu ici une seule fois,
+ * partagé par `instantDeLAgence` et par `verdictChevauchementSous` appelé
+ * depuis `affecterTechnicien` (décision d'Alexis du 10/11/2026) : *deux
+ * lectures d'un même critère divergent en silence* (§9, 01/09).
+ */
+async function fuseauDeLAgenceSous(
+  tx: Prisma.TransactionClient,
+  agenceId: string,
+): Promise<Fuseau> {
+  const agence = await tx.agence.findFirst({
+    where: { id: agenceId },
+    select: {
+      fuseau_horaire: true,
+      societe: { select: { fuseau_horaire: true } },
+    },
+  });
+  if (agence === null) {
+    // La politique a refusé l'agence : impossible en pratique, la clé étrangère
+    // la garantit dans la même société. On ne fabrique pas de fuseau pour autant.
+    throw new Error(
+      `Agence ${agenceId} illisible sous le contexte courant : le fuseau ne ` +
+        "peut pas être lu.",
+    );
+  }
+  return fuseauDeLAgence(agence);
+}
+
+/**
  * L'INSTANT COURANT, LU DANS LE FUSEAU DE L'AGENCE — jamais celui de la machine
  * qui exécute (L0-08).
  *
@@ -333,22 +362,7 @@ export async function instantDeLAgence(
   tx: Prisma.TransactionClient,
   agenceId: string,
 ): Promise<Date> {
-  const agence = await tx.agence.findFirst({
-    where: { id: agenceId },
-    select: {
-      fuseau_horaire: true,
-      societe: { select: { fuseau_horaire: true } },
-    },
-  });
-  if (agence === null) {
-    // La politique a refusé l'agence : impossible en pratique, la clé étrangère
-    // la garantit dans la même société. On ne fabrique pas d'heure pour autant.
-    throw new Error(
-      `Agence ${agenceId} illisible sous le contexte courant : l'instant ne ` +
-        "peut pas être daté sans son fuseau.",
-    );
-  }
-  return maintenant(fuseauDeLAgence(agence)).instant;
+  return maintenant(await fuseauDeLAgenceSous(tx, agenceId)).instant;
 }
 
 /**
@@ -804,6 +818,45 @@ function clesDAvertissement(
 }
 
 /**
+ * LE CHEVAUCHEMENT, SOUS LE CONTEXTE CLOISONNÉ — la même lecture qu'à la pose
+ * et au déplacement, pour que CHANGER DE TECHNICIEN juge par le MÊME verdict
+ * (décision d'Alexis du 10/11/2026) : *une règle tenue par un chemin sur deux
+ * n'est pas tenue* (§9, 01/09). Les voisines sont lues SOUS les politiques,
+ * comme `verdictHabilitationSous` : aucune comparaison de société n'est
+ * écrite au-dessus.
+ */
+async function verdictChevauchementSous(
+  tx: Prisma.TransactionClient,
+  interventionId: string,
+  demande: PoseDemandee,
+  fuseau: Fuseau,
+): Promise<Verdict> {
+  if (demande.creneauDebut === null || demande.technicienId === null) {
+    // Sans heure, il n'y a pas de recouvrement à calculer.
+    return { refuse: false };
+  }
+  const jour = jourDe(versLocal(demande.creneauDebut, fuseau));
+  const bornes = {
+    du: new Date(Date.UTC(jour.annee, jour.mois - 1, jour.jour)),
+    au: new Date(Date.UTC(jour.annee, jour.mois - 1, jour.jour + 1)),
+  };
+  const voisines = await tx.intervention.findMany({
+    where: {
+      technicien_id: demande.technicienId,
+      date_planifiee: { gte: bornes.du, lt: bornes.au },
+    },
+    select: {
+      id: true,
+      technicien_id: true,
+      creneau_debut: true,
+      creneau_fin: true,
+      statut: true,
+    },
+  });
+  return verdictChevauchement(voisines, interventionId, demande);
+}
+
+/**
  * AFFECTER un technicien, sous RG-PLA-04 : l'affectation est **bloquée**, pas
  * signalée.
  *
@@ -817,6 +870,7 @@ export async function affecterTechnicien(
   technicienId: string,
   client?: PrismaClient,
 ): Promise<Resultat<LigneIntervention>> {
+  const societeId = exigerSocieteActive(contexte);
   return avecContexteApplicatif(
     contexte,
     async (tx) => {
@@ -829,6 +883,7 @@ export async function affecterTechnicien(
           agence_id: true,
           date_planifiee: true,
           creneau_debut: true,
+          creneau_fin: true,
           duree_estimee_min: true,
           technicien_id: true,
         },
@@ -841,6 +896,28 @@ export async function affecterTechnicien(
       );
       if (barriere !== null) {
         return barriere;
+      }
+
+      // ── LA PERSONNE VISÉE EST-ELLE UN TECHNICIEN ACTIF DE CETTE SOCIÉTÉ ?
+      // (décision d'Alexis du 10/11/2026) — `technicien_id` ne porte aucune
+      // clé étrangère : rien, avant ce contrôle, n'empêchait de poser ici un
+      // identifiant hors société, ou celui d'un compte désactivé. Le filtre
+      // société est explicite en plus de la politique RLS (§5.6), comme
+      // `majorationDeLIntervention` le fait déjà pour `utilisateur_societe`.
+      const technicien = await tx.utilisateurSociete.findFirst({
+        where: {
+          societe_id: societeId,
+          utilisateur_id: technicienId,
+          role: Role.technicien,
+          utilisateur: { actif: true },
+        },
+        select: { id: true },
+      });
+      if (technicien === null) {
+        return {
+          accepte: false,
+          cle: "intervention.refus.technicien_introuvable",
+        };
       }
       // ── PLANIFIER SE FAIT EN UNE FOIS, PAS EN MORCEAUX (PARCOURS-1) ──────
       //
@@ -899,6 +976,34 @@ export async function affecterTechnicien(
             );
       if (blocage !== null) {
         return { accepte: false, cle: "intervention.refus.absence" };
+      }
+
+      // ── LE CHEVAUCHEMENT, PAR LE MÊME VERDICT QU'À LA POSE ET AU
+      // DÉPLACEMENT (décision d'Alexis du 10/11/2026) ─────────────────────
+      //
+      // *Une règle tenue par un chemin sur deux n'est pas tenue* — `verdictALaPose`
+      // le juge déjà pour la pose et le déplacement ; cette troisième voie,
+      // qui écrit elle aussi `technicien_id` sur une ligne datée, laissait
+      // passer deux interventions au même moment pour la même personne.
+      // `verdictChevauchementSous` est la MÊME fonction que `verdictALaPose`
+      // appelle, jamais une recopie (§9, 01/09).
+      const chevauchement =
+        ligne.creneau_debut === null
+          ? ({ refuse: false } satisfies Verdict)
+          : await verdictChevauchementSous(
+              tx,
+              interventionId,
+              {
+                datePlanifiee: null,
+                creneauDebut: ligne.creneau_debut,
+                creneauFin: ligne.creneau_fin,
+                technicienId,
+              },
+              await fuseauDeLAgenceSous(tx, ligne.agence_id),
+            );
+      const barriereChevauchement = refus<LigneIntervention>(chevauchement);
+      if (barriereChevauchement !== null) {
+        return barriereChevauchement;
       }
 
       // LA GARDE QUI PRÉCÈDE LE 23514 DE PRODUCTION (bug 4 de l'audit
@@ -1397,30 +1502,8 @@ async function verdictALaPose(
     }
   }
 
-  if (demande.creneauDebut === null || demande.technicienId === null) {
-    // Rien à chevaucher : sans heure, il n'y a pas de recouvrement.
-    return { verdict: { refuse: false }, demande, avertissements };
-  }
-  const jour = jourDe(versLocal(demande.creneauDebut, fuseau));
-  const bornes = {
-    du: new Date(Date.UTC(jour.annee, jour.mois - 1, jour.jour)),
-    au: new Date(Date.UTC(jour.annee, jour.mois - 1, jour.jour + 1)),
-  };
-  const voisines = await tx.intervention.findMany({
-    where: {
-      technicien_id: demande.technicienId,
-      date_planifiee: { gte: bornes.du, lt: bornes.au },
-    },
-    select: {
-      id: true,
-      technicien_id: true,
-      creneau_debut: true,
-      creneau_fin: true,
-      statut: true,
-    },
-  });
   return {
-    verdict: verdictChevauchement(voisines, interventionId, demande),
+    verdict: await verdictChevauchementSous(tx, interventionId, demande, fuseau),
     demande,
     avertissements,
   };
