@@ -89,3 +89,31 @@ neutre n'est affiché.
   SANS ce contrôle, comme avant ce ticket et comme l'en-tête de `lib/auth/acces-technicien.ts` le
   nommait déjà — l'URL y est adressée à la personne, jamais à l'administrateur, qui ne la voit jamais
   (voir D247).
+
+## Reprise 9L01A
+
+Son premier passage de `verify:full` était rouge sur trois scènes e2e ANCIENNES. Deux portaient la
+même cause, la troisième une cause indépendante.
+
+- `tests/e2e/9i8d1-copie-nouveau-lien-autre-societe.spec.ts` et
+  `tests/e2e/captures-9i8d1-reprise-9i8d.spec.ts` (9I8D1) posaient le rattachement à l'AUTRE société
+  AVANT l'activation accélérée du compte (`copier-lien` puis mot de passe direct, hors sujet de ces
+  fichiers). D247 étend désormais `identiteExclusiveALaSociete` au PREMIER lien de bureau
+  (`copierLienDAccesBureau`) : rattachée avant activation, l'identité n'était déjà plus exclusive,
+  le premier lien refusait (`autre_societe`), aucun compte n'était écrit, et la ligne restait à
+  l'état « aucun accès » — sans menu « … », faisant échouer le clic qui le cherche (timeout, pas un
+  refus silencieux). **Corrigé par une réponse à l'ordre des opérations, pas à une règle assouplie** :
+  les deux scènes activent maintenant le compte TANT QU'IL EST ENCORE EXCLUSIF, puis rattachent à
+  l'autre société après coup — même recette que `activer()` dans
+  `tests/isolation/acces-bureau.test.ts` (D226 étendue), déjà écrite pour prouver la même chose au
+  niveau fonction. Un rattachement après activation reste un cas RÉEL à couvrir (identité activée
+  avant D247, ou rattachée par un autre chemin) : noté en commentaire dans chaque scène.
+- `tests/e2e/9du-recherche-rail.spec.ts` (Ctrl K) — mesuré séparément : ce fichier pose sa PROPRE
+  scène (un client et un site `9DU-…`), sans aucune identité partagée entre sociétés. Rejoué seul,
+  `CI=1 --workers=1`, quatre fois d'affilée sans aucun échec. Cause INDÉPENDANTE de D247 — une
+  instabilité déjà présente avant ce ticket, non reproduite ici, laissée telle quelle.
+
+Rejoué au premier plan, `CI=1 --workers=1` : les trois fichiers ci-dessus, `copier-nouveau-lien`,
+les e2e propres à 9L01 (`captures-9l01-copie-lien-exclusivite.spec.ts`),
+`tests/e2e/tous-les-ecrans-rendent.spec.ts`, puis `pnpm test:isolation` et `CI=1 pnpm verify` —
+tous verts.
