@@ -10,7 +10,7 @@ type EtatInvitation =
   | { readonly etape: "repos" }
   | { readonly etape: "en_cours" }
   | { readonly etape: "lien"; readonly url: string }
-  | { readonly etape: "deja_actif" }
+  | { readonly etape: "en_attente_invitation" }
   | { readonly etape: "refus"; readonly motif: string }
   | { readonly etape: "erreur" };
 
@@ -59,7 +59,7 @@ export function FormulaireInvitationPortail({
     }
     const corps: Readonly<{
       readonly url?: unknown;
-      readonly dejaActif?: unknown;
+      readonly enAttente?: unknown;
       readonly erreur?: unknown;
     }> = await reponse.json();
     if (typeof corps.erreur === "string") {
@@ -68,8 +68,8 @@ export function FormulaireInvitationPortail({
     }
     setEmail("");
     router.refresh();
-    if (corps.dejaActif === true) {
-      setEtat({ etape: "deja_actif" });
+    if (corps.enAttente === true) {
+      setEtat({ etape: "en_attente_invitation" });
       return;
     }
     if (typeof corps.url !== "string" || corps.url === "") {
@@ -149,9 +149,9 @@ export function FormulaireInvitationPortail({
           </div>
         </div>
       ) : null}
-      {etat.etape === "deja_actif" ? (
+      {etat.etape === "en_attente_invitation" ? (
         <p role="status" className="text-app-encre-faible text-12 font-bold">
-          {t("clients.acces.deja_actif")}
+          {t("clients.acces.en_attente_invitation")}
         </p>
       ) : null}
       {etat.etape === "erreur" ? (

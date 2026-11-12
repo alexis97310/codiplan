@@ -5,13 +5,19 @@ import { Carte } from "@/components/ui/carte";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 
+import { BandeauMotif } from "@/components/ui/bandeau-motif";
+import { Button } from "@/components/ui/button";
 import { Page } from "@/components/mise-en-page/page";
 import { etatArrivee, type Arrivee } from "@/lib/auth/arrivee";
 import { estContexteActif, societeEtRoleEtablis } from "@/lib/auth/contexte";
+import {
+  rattachementsEnAttenteDuCompte,
+  type RattachementEnAttente,
+} from "@/lib/auth/lien-d-acces";
 import { type Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import { societesDuCompte } from "@/lib/auth/societe-active";
-import { t } from "@/lib/i18n/fr";
+import { estCleTraduction, t } from "@/lib/i18n/fr";
 import {
   perimetreDuPlanning,
   type PerimetrePlanning,
@@ -103,6 +109,16 @@ export default async function PageArrivee({
   const societeActive =
     etat.issue === "arrivee" ? (session?.contexte.societeId ?? null) : null;
 
+  // LES INVITATIONS EN ATTENTE (9L04, D249) — montrées AVANT tout le reste,
+  // et c'est pour cela qu'elles sont lues ICI, avant la redirection
+  // « société unique » ci-dessous : rien ne s'ouvre avant que le titulaire
+  // n'ait répondu (accepter ou refuser), même quand une seule société
+  // mènerait normalement tout droit au portail ou au planning.
+  const enAttente: readonly RattachementEnAttente[] =
+    session === null
+      ? []
+      : await rattachementsEnAttenteDuCompte(session.contexte.utilisateurId);
+
   // UNE SEULE SOCIÉTÉ, ET RIEN DE PLUS À CHOISIR (audit d'ergonomie du
   // 25/09/2026, constat 2) : l'écran ne DIT plus « vous êtes connecté », il
   // MÈNE — la même décision que `Entree` rend plus bas, lue depuis la même
@@ -111,7 +127,8 @@ export default async function PageArrivee({
   if (
     etat.issue === "arrivee" &&
     session !== null &&
-    societeEtRoleEtablis(session.contexte)
+    societeEtRoleEtablis(session.contexte) &&
+    enAttente.length === 0
   ) {
     const destination = destinationSiSocieteUnique(
       societes.length,
@@ -132,12 +149,38 @@ export default async function PageArrivee({
     }
   }
 
+  const motif = (await searchParams).motif;
+
   return (
     <Page
       chemin="/arrivee"
       titre={t("arrivee.titre")}
       sousTitre={t("arrivee.accroche")}
     >
+      {/* LES INVITATIONS EN ATTENTE (9L04, D249) — AVANT le reste de l'écran :
+          rien n'est ouvert avant que le titulaire n'ait répondu. */}
+      {enAttente.length > 0 ? (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-[15px] font-extrabold tracking-tight">
+            {t("arrivee.attente.titre")}
+          </h2>
+          <p className="text-app-encre-faible text-13 font-bold">
+            {t("arrivee.attente.aide")}
+          </p>
+          {typeof motif === "string" && estCleTraduction(motif) ? (
+            <BandeauMotif motif={motif}>{t(motif)}</BandeauMotif>
+          ) : null}
+          <ul className="flex flex-col gap-2">
+            {enAttente.map((rattachement) => (
+              <RattachementEnAttenteLigne
+                key={rattachement.id}
+                rattachement={rattachement}
+              />
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       <div className="grid items-start gap-4 lg:grid-cols-[1fr_1fr_1fr]">
         <Carte>
           <dl className="flex flex-col gap-3 px-4 py-3.5 text-[13px] font-bold">
@@ -148,7 +191,9 @@ export default async function PageArrivee({
 
         {etat.issue === "arrivee" ? <Societe arrivee={etat.arrivee} /> : null}
 
-        {etat.issue === "sans_societe" && societes.length === 0 ? (
+        {etat.issue === "sans_societe" &&
+        societes.length === 0 &&
+        enAttente.length === 0 ? (
           <Carte>
             <p className="text-app-encre-faible px-4 py-3.5 text-[13px] font-bold">
               {t("arrivee.sans_societe")}
@@ -275,5 +320,54 @@ function Societe({ arrivee }: { arrivee: Arrivee }) {
         libelleClasse="text-societe-primaire-encre"
       />
     </dl>
+  );
+}
+
+/**
+ * UNE INVITATION EN ATTENTE (9L04, D249) — « <Société> vous donne accès au
+ * parc de <Client> », composée par morceaux (jamais par interpolation de
+ * `t()`, §5/L0-11) : la phrase fixe vient du dictionnaire, les deux noms sont
+ * des données lues sous la politique de l'appelant (voir
+ * `rattachementsEnAttenteDuCompte`).
+ *
+ * `method="post"` SANS JavaScript, même discipline que le reste de ce
+ * segment (`reponses.ts`, en-tête du fichier) : la réponse redirige vers
+ * `/arrivee`, qui relit l'état et ne montre plus la ligne traitée.
+ */
+function RattachementEnAttenteLigne({
+  rattachement,
+}: {
+  readonly rattachement: RattachementEnAttente;
+}) {
+  return (
+    <li className="bg-app-surface border-app-bord flex flex-wrap items-center justify-between gap-3 rounded-lg border px-4 py-3">
+      <p className="text-13 font-bold">
+        <span className="font-extrabold">
+          {rattachement.societeNom ?? t("arrivee.attente.sans_nom")}
+        </span>{" "}
+        {t("arrivee.attente.milieu")}{" "}
+        <span className="font-extrabold">
+          {rattachement.clientNom ?? t("arrivee.attente.client_sans_nom")}
+        </span>
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <form
+          method="post"
+          action={`/api/session/rattachements/${rattachement.id}/accepter`}
+        >
+          <Button type="submit" variant="outline" size="sm">
+            {t("arrivee.attente.accepter")}
+          </Button>
+        </form>
+        <form
+          method="post"
+          action={`/api/session/rattachements/${rattachement.id}/refuser`}
+        >
+          <Button type="submit" variant="outline" size="sm">
+            {t("arrivee.attente.refuser")}
+          </Button>
+        </form>
+      </div>
+    </li>
   );
 }

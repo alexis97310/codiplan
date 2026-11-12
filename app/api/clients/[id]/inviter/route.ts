@@ -28,7 +28,7 @@ const Saisie = z.object({ email: z.string().trim().toLowerCase().email() });
 function reponseInvitation(
   corps: Readonly<{
     readonly url?: string | null;
-    readonly dejaActif?: boolean;
+    readonly enAttente?: boolean;
     readonly erreur?: string;
   }>,
   init?: ResponseInit,
@@ -76,6 +76,6 @@ async function traiter(
   }
   return reponseInvitation({
     url: resultat.url,
-    dejaActif: resultat.dejaActif,
+    enAttente: resultat.enAttente,
   });
 }

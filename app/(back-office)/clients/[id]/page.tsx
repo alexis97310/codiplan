@@ -1244,9 +1244,11 @@ export default async function PageClient({
                     <div className="flex flex-col">
                       <span className="text-13 font-bold">{compte.email}</span>
                       <span className="text-app-encre-faible text-12 font-bold">
-                        {compte.actif
-                          ? t("clients.acces.etat.actif")
-                          : t("clients.acces.etat.revoque")}
+                        {compte.enAttente
+                          ? t("clients.acces.etat.en_attente")
+                          : compte.actif
+                            ? t("clients.acces.etat.actif")
+                            : t("clients.acces.etat.revoque")}
                       </span>
                     </div>
                     {compte.actif ? (
@@ -1254,12 +1256,17 @@ export default async function PageClient({
                         {/* « COPIER UN NOUVEAU LIEN » (9K14-PORTAIL-COPIER-
                             NOUVEAU-LIEN, backlog B7) — Alexis ne reçoit pas
                             les courriels : même geste que pour un compte de
-                            bureau, D223/D226 appliquées côté serveur. */}
-                        <BoutonCopierLien
-                          action={`/api/clients/${client.id}/comptes/${compte.utilisateurId}/copier-nouveau-lien`}
-                          prefixeMotifRefus="clients.acces.refus."
-                          libelle="clients.acces.copier_nouveau_lien"
-                        />
+                            bureau, D223/D226 appliquées côté serveur.
+                            JAMAIS sur une ligne EN ATTENTE (9L04, D249) :
+                            aucun mot de passe n'existe encore à
+                            réinitialiser avant acceptation. */}
+                        {compte.enAttente ? null : (
+                          <BoutonCopierLien
+                            action={`/api/clients/${client.id}/comptes/${compte.utilisateurId}/copier-nouveau-lien`}
+                            prefixeMotifRefus="clients.acces.refus."
+                            libelle="clients.acces.copier_nouveau_lien"
+                          />
+                        )}
                         <form
                           method="post"
                           action={`/api/clients/${compte.id}/revoquer-acces`}
