@@ -170,7 +170,9 @@ test.afterAll(async () => {
  * restait à 1 au lieu de 2 — pas un défaut de l'application, un défaut de
  * cette fixture).
  */
-function construirePngDeTest(couleur: readonly [number, number, number]): Buffer {
+function construirePngDeTest(
+  couleur: readonly [number, number, number],
+): Buffer {
   const crc32 = (() => {
     const table = Array.from({ length: 256 }, (_unused, n) => {
       let c = n;
