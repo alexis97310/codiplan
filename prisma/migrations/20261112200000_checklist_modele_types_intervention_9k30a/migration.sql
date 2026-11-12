@@ -41,14 +41,15 @@
 --
 -- ## FORME DE POLITIQUE
 --
--- « Filiation » (D103), chaînée sur `checklist_modele`, EXACTEMENT comme
--- `checklist_version` (9K08) — jamais le triple verrou de portail posé par
--- 9K29 sur `prestation_type_intervention` : `checklist_modele` est de forme
--- « INTERNE » (D94), fermée à tout compte portail PAR SA PROPRE politique
--- (`cloisonnement_interne` exige l'absence de `app.client_id`) ; la
--- sous-requête `EXISTS` de la filiation est donc DÉJÀ fermée sous un rôle
--- client, exactement comme pour `checklist_version`/`checklist_point` — un
--- verrou supplémentaire ici fermerait une porte déjà fermée par le parent.
+-- « Filiation » (D103), chaînée sur `checklist_modele` — EXACTEMENT comme
+-- `checklist_version`/`checklist_point` (9K08), jusqu'au verrou d'écriture
+-- du portail (I3, D237, 9K16) : le gardien `tests/isolation/politiques-
+-- rls.test.ts` l'exige sur TOUTE table de la première catégorie de I1 qui
+-- n'est pas rangée dans `TABLES_VERROU_PORTAIL_TOTAL` ni `TABLES_SANS_
+-- VERROU_PORTAIL` — y compris une table « filiation » chaînée sur un parent
+-- « interne » : le chaînage ferme la LECTURE sous un rôle client, jamais à
+-- lui seul la preuve que l'ÉCRITURE l'est aussi. Même triple politique que
+-- `prestation_type_intervention` (9K29), recopiée verbatim plus bas.
 --
 -- ## CE QUE CETTE MIGRATION NE FAIT PAS
 --
@@ -97,9 +98,7 @@ ALTER TABLE "checklist_modele_type_intervention" FORCE ROW LEVEL SECURITY;
 -- FORME « FILIATION » (D103) : une fille est visible si son parent l'est —
 -- ici `checklist_modele`, qui porte lui-même la forme « interne ». Même
 -- politique, verbatim, que celle de `checklist_version` (9K08) : aucune
--- clause de société propre, aucun verrou de portail supplémentaire — le
--- chaînage se ferme déjà tout seul sous un contexte portail, par la
--- politique du parent.
+-- clause de société propre n'est ajoutée.
 CREATE POLICY "cloisonnement_filiation" ON "checklist_modele_type_intervention"
   USING (
     EXISTS (
@@ -119,8 +118,34 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON "checklist_modele_type_intervention" TO 
 CREATE TRIGGER "journal_audit" AFTER INSERT OR UPDATE OR DELETE ON "checklist_modele_type_intervention"
   FOR EACH ROW EXECUTE FUNCTION "journal_audit_tracer"();
 
+-- LE VERROU D'ÉCRITURE DU PORTAIL (I3, D237, 9K16) — recopié verbatim des
+-- trois politiques posées par `20261110120000_portail_securite_base_9k16`
+-- pour `checklist_version`/`checklist_point` (le même patron de filiation
+-- chaînée sur `checklist_modele`), et son fondement y est écrit en entier.
+-- `checklist_modele_type_intervention` n'existait pas ce jour-là, d'où ces
+-- trois `CREATE POLICY` ici plutôt qu'une entrée de plus dans la liste de
+-- 9K16 — une migration déjà appliquée ne se modifie jamais (CLAUDE.md §7).
+-- Le gardien (`tests/isolation/politiques-rls.test.ts`) exige ce verrou sur
+-- TOUTE table de la première catégorie de I1 qui n'est ni dans `TABLES_
+-- VERROU_PORTAIL_TOTAL` ni dans `TABLES_SANS_VERROU_PORTAIL` — y COMPRIS une
+-- table de forme « filiation » chaînée sur un parent « interne » : le
+-- chaînage ferme la LECTURE sous un rôle client, jamais à lui seul la
+-- preuve que l'ÉCRITURE l'est aussi, et ce verrou la ferme nommément.
+CREATE POLICY "verrou_ecriture_portail_insertion" ON "checklist_modele_type_intervention"
+  AS RESTRICTIVE FOR INSERT
+  WITH CHECK (NULLIF(current_setting('app.client_id', true), '') IS NULL);
+
+CREATE POLICY "verrou_ecriture_portail_modification" ON "checklist_modele_type_intervention"
+  AS RESTRICTIVE FOR UPDATE
+  USING (NULLIF(current_setting('app.client_id', true), '') IS NULL)
+  WITH CHECK (NULLIF(current_setting('app.client_id', true), '') IS NULL);
+
+CREATE POLICY "verrou_ecriture_portail_suppression" ON "checklist_modele_type_intervention"
+  AS RESTRICTIVE FOR DELETE
+  USING (NULLIF(current_setting('app.client_id', true), '') IS NULL);
+
 COMMENT ON TABLE "checklist_modele_type_intervention" IS
-  'Les types d''intervention où un modèle de checklist est PROPOSÉ (9K30A, décision d''Alexis du 12/11/2026 ~17h10). VIDE = proposé pour TOUS les types. Table métier de la première catégorie de I1, forme « filiation » (D103) chaînée sur checklist_modele (forme « interne », D94) — même patron que checklist_version, aucun verrou de portail propre : le chaînage se ferme déjà sous un rôle client. Amende D235 (déjà amendée une première fois par D243 pour prestation_type_intervention) : une table de relation remplace, pour ce rattachement, la colonne nullable scalaire — un modèle vise zéro, un ou plusieurs types à la fois sans pouvoir se dédoubler par code.';
+  'Les types d''intervention où un modèle de checklist est PROPOSÉ (9K30A, décision d''Alexis du 12/11/2026 ~17h10). VIDE = proposé pour TOUS les types. Table métier de la première catégorie de I1, forme « filiation » (D103) chaînée sur checklist_modele (forme « interne », D94) — même patron que checklist_version, verrou d''écriture portail inclus (I3, D237). Amende D235 (déjà amendée une première fois par D243 pour prestation_type_intervention) : une table de relation remplace, pour ce rattachement, la colonne nullable scalaire — un modèle vise zéro, un ou plusieurs types à la fois sans pouvoir se dédoubler par code.';
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- REPRISE DES DONNÉES — puis suppression de l'ancienne colonne

@@ -28,7 +28,7 @@ describe("schemaModeleChecklist", () => {
     expect(resultat.data).toEqual({
       code: "VGP-PONT",
       libelle: "Vérification pont élévateur",
-      typeIntervention: null,
+      typesIntervention: [],
       sousTypeId: null,
       familleId: null,
       modeleId: null,
@@ -49,12 +49,35 @@ describe("schemaModeleChecklist", () => {
     ).toBe(false);
   });
 
+  it("accepte une liste de types — VIDE par défaut, sans doublon (9K30A)", () => {
+    const resultat = schemaModeleChecklist.safeParse({
+      code: "COD",
+      libelle: "L",
+      typesIntervention: ["curatif", "garantie"],
+    });
+    expect(resultat.success).toBe(true);
+    expect(resultat.success && resultat.data.typesIntervention).toEqual([
+      "curatif",
+      "garantie",
+    ]);
+  });
+
   it("refuse une nature d'intervention qui n'est pas l'une des neuf du chapitre 11", () => {
     expect(
       schemaModeleChecklist.safeParse({
         code: "COD",
         libelle: "L",
-        typeIntervention: "pas_une_nature",
+        typesIntervention: ["pas_une_nature"],
+      }).success,
+    ).toBe(false);
+  });
+
+  it("refuse un type coché deux fois dans la saisie", () => {
+    expect(
+      schemaModeleChecklist.safeParse({
+        code: "COD",
+        libelle: "L",
+        typesIntervention: ["curatif", "curatif"],
       }).success,
     ).toBe(false);
   });

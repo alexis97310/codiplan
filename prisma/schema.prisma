@@ -2785,11 +2785,12 @@ model ChecklistModele {
 /// Forme de politique « filiation » (D103), chaînée sur `checklist_modele`
 /// (forme « interne », D94) — exactement comme `checklist_version` : une
 /// fille est visible si son parent l'est, et aucune clause de société propre
-/// n'est ajoutée. Le chaînage se ferme tout seul sous un contexte portail :
-/// la politique du parent exige déjà l'absence de `app.client_id`, donc
-/// aucune politique de verrou supplémentaire n'est nécessaire ici (à la
-/// différence de `PrestationTypeIntervention`, dont le parent `prestation`
-/// reste lisible au portail).
+/// n'est ajoutée. Porte aussi le verrou d'écriture du portail (I3, D237,
+/// 9K16, même triple politique que `PrestationTypeIntervention`) : le
+/// chaînage ferme la LECTURE sous un rôle client, mais le gardien
+/// `tests/isolation/politiques-rls.test.ts` exige ce verrou sur TOUTE table
+/// de la première catégorie de I1, y compris une table « filiation »
+/// chaînée sur un parent « interne ».
 model ChecklistModeleTypeIntervention {
   id                  String @id @db.Uuid
   societe_id          String @db.Uuid

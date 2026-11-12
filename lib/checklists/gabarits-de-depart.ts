@@ -7,12 +7,15 @@ import type { SaisiePointChecklist } from "@/lib/checklists/depot";
  * jamais posée par une migration : un point de départ pour un nouveau
  * modèle, pas une donnée de société.
  *
- * **VINGT-QUATRE GABARITS VALIDÉS PAR ALEXIS** (atelier des 10/11 et
- * 11/11/2026) — treize d'entretien préventif (G00 à G13, G01 déjà repris tel
- * quel depuis 9K20) et douze d'installation / fin de travaux (I00 à I11),
- * recopiés TEL QUEL depuis `gabarits-valides-11-11.md` (libellés, sections,
- * ordre, étoiles, types, unités, choix) — aucune valeur inventée, aucune
- * tolérance : les 23 mesures restent en « relevé seul » (décision du 11/11).
+ * **VINGT-SIX GABARITS VALIDÉS PAR ALEXIS** (atelier des 10/11 et 11/11/2026)
+ * — QUATORZE d'entretien préventif (G00 à G13) et DOUZE d'installation / fin
+ * de travaux (I00 à I11), recopiés TEL QUEL depuis `gabarits-valides-11-
+ * 11.md` (libellés, sections, ordre, étoiles, types, unités, choix) — aucune
+ * valeur inventée, aucune tolérance : les mesures restent en « relevé seul »
+ * (décision du 11/11). *Le ticket 9K30A parlait de « 24 gabarits nouveaux » ;
+ * la source en porte VINGT-CINQ nouveaux (vingt-six codes, moins `G01` déjà
+ * repris) — un écart dans la PROSE du ticket, que ce fichier suit la SOURCE
+ * plutôt que de forcer un compte, et que la passation signale.*
  * `G01` — « Entretien préventif — pont 2 colonnes électromécanique jusqu'à
  * 3 t », ses quinze points recopiés tels quels de l'étude du 08/11/2026
  * §4.1 A, validés par Alexis le 29/10/2026 (« ok tel quel ») — N'EST PAS
