@@ -6996,6 +6996,17 @@ export const fr = {
   "terrain9de.e2e.signataire_nom": "9DE Jean Testeur",
   "terrain9de.e2e.motif_absent": "9DE Client injoignable au numéro connu",
 
+  // `9K29-` — 9K29-PRESTATIONS-PAR-TYPE-INTERVENTION, créée et supprimée par
+  // l'épreuve. Même discipline que `terrain9de.e2e.*` : un libellé ASSERTÉ à
+  // l'écran passe par le dictionnaire (L0-11), même pour une scène jetable.
+  "terrain9k29.e2e.client": "9K29-E2E Client",
+  "terrain9k29.e2e.lieu": "9K29-E2E Lieu",
+  "terrain9k29.e2e.prestation_curatif_libelle": "9K29-E2E Écrou porteur",
+  "terrain9k29.e2e.prestation_curatif_code": "9K29-ECROU",
+  "terrain9k29.e2e.prestation_universelle_libelle": "9K29-E2E Déplacement",
+  "terrain9k29.e2e.prestation_universelle_code": "9K29-DEPLACEMENT",
+  "terrain9k29.e2e.prestation_reglage_libelle": "9K29-E2E Réglage",
+
   // ── DONNER L'ACCÈS À UN TECHNICIEN DEPUIS ÉQUIPE (D162, 9DJ-TP-ACC1) ────────
   //
   // QT-1 (28/09/2026) : l'administrateur de la société ENVOIE un lien d'accès,
