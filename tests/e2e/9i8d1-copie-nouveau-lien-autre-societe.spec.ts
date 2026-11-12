@@ -96,23 +96,12 @@ test("la copie d'un NOUVEAU lien refuse pour une identité partagée entre deux 
     await client.$disconnect();
   }
 
-  // ── LE RATTACHEMENT À L'AUTRE SOCIÉTÉ, QUI REND L'IDENTITÉ NON EXCLUSIVE ─
-  const clientRattachement = admin();
-  try {
-    await clientRattachement.utilisateurSociete.create({
-      data: {
-        id: crypto.randomUUID(),
-        utilisateur_id: idPartage,
-        societe_id: autreSocieteId,
-        role: Role.adv,
-      },
-    });
-  } finally {
-    await clientRattachement.$disconnect();
-  }
-
-  // ── ACTIVATION DIRECTE DU COMPTE (scène accélérée, hors sujet de ce
-  //    fichier) — nécessaire pour que l'écran affiche le menu « … ». ───────
+  // ── ACTIVATION DIRECTE DU COMPTE, TANT QU'IL EST ENCORE EXCLUSIF (scène
+  //    accélérée, hors sujet de ce fichier) — nécessaire pour que l'écran
+  //    affiche le menu « … ». Depuis 9L01-COPIE-LIEN-EXCLUSIVITE, le PREMIER
+  //    lien lui-même refuse une identité déjà partagée (D226 étendue) :
+  //    l'activation doit donc précéder le rattachement ci-dessous, sans quoi
+  //    aucun jeton n'est jamais émis. ─────────────────────────────────────
   const premierLien = await page.request.post(
     `/api/equipe/bureau/${idPartage}/copier-lien`,
   );
@@ -125,6 +114,23 @@ test("la copie d'un NOUVEAU lien refuse pour une identité partagée entre deux 
     );
   } finally {
     await clientActivation.$disconnect();
+  }
+
+  // ── LE RATTACHEMENT À L'AUTRE SOCIÉTÉ, APRÈS COUP — un cas RÉEL : une
+  //    identité activée avant D247, ou rattachée par un autre chemin, peut
+  //    devenir partagée alors qu'elle était déjà exclusive. ────────────────
+  const clientRattachement = admin();
+  try {
+    await clientRattachement.utilisateurSociete.create({
+      data: {
+        id: crypto.randomUUID(),
+        utilisateur_id: idPartage,
+        societe_id: autreSocieteId,
+        role: Role.adv,
+      },
+    });
+  } finally {
+    await clientRattachement.$disconnect();
   }
 
   // ── 1. LA COPIE D'UN NOUVEAU LIEN REFUSE, NOMMÉMENT (REQUÊTE FORGÉE) ─────

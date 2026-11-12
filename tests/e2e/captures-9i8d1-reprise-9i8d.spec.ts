@@ -150,26 +150,13 @@ test("prépare les deux comptes de bureau (partagé entre deux sociétés, exclu
     await client.$disconnect();
   }
 
-  // LE RATTACHEMENT À L'AUTRE SOCIÉTÉ — ce qui rend le compte NON exclusif.
-  // `idCourse` n'EN REÇOIT PAS ICI : la course du test 3 l'ajoute APRÈS que
-  // l'écran a déjà rendu le bouton, exactement comme 9I7D l'a fait pour
-  // « deja_un_mot_de_passe ».
-  const clientRattachement = admin();
-  try {
-    await clientRattachement.utilisateurSociete.create({
-      data: {
-        id: crypto.randomUUID(),
-        utilisateur_id: idPartage,
-        societe_id: autreSocieteId,
-        role: Role.adv,
-      },
-    });
-  } finally {
-    await clientRattachement.$disconnect();
-  }
-
   // ACTIVATION DIRECTE DES TROIS COMPTES (hors sujet de ce fichier) — pour
-  // que l'écran affiche le menu « … » plutôt que le bouton « Envoyer ».
+  // que l'écran affiche le menu « … » plutôt que le bouton « Envoyer ». Les
+  // TROIS sont encore exclusifs à cet instant : depuis
+  // 9L01-COPIE-LIEN-EXCLUSIVITE, le PREMIER lien lui-même refuse une identité
+  // déjà partagée (D226 étendue), donc le rattachement d'`idPartage` ci-
+  // dessous doit venir APRÈS cette activation, sans quoi aucun jeton n'est
+  // jamais émis pour lui.
   await page.request.post(`/api/equipe/bureau/${idPartage}/copier-lien`);
   await page.request.post(`/api/equipe/bureau/${idExclusif}/copier-lien`);
   await page.request.post(`/api/equipe/bureau/${idCourse}/copier-lien`);
@@ -189,6 +176,25 @@ test("prépare les deux comptes de bureau (partagé entre deux sociétés, exclu
     );
   } finally {
     await clientActivation.$disconnect();
+  }
+
+  // LE RATTACHEMENT D'`idPartage` À L'AUTRE SOCIÉTÉ, APRÈS COUP — ce qui le
+  // rend NON exclusif ; un cas RÉEL (identité activée avant D247, ou
+  // rattachée par un autre chemin). `idCourse` n'EN REÇOIT PAS ICI : la
+  // course du test 3 l'ajoute APRÈS que l'écran a déjà rendu le bouton,
+  // exactement comme 9I7D l'a fait pour « deja_un_mot_de_passe ».
+  const clientRattachement = admin();
+  try {
+    await clientRattachement.utilisateurSociete.create({
+      data: {
+        id: crypto.randomUUID(),
+        utilisateur_id: idPartage,
+        societe_id: autreSocieteId,
+        role: Role.adv,
+      },
+    });
+  } finally {
+    await clientRattachement.$disconnect();
   }
 });
 
