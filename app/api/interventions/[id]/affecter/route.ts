@@ -62,6 +62,13 @@ async function traiter(
       avertissements !== undefined && avertissements.length > 0
         ? avertissements
         : undefined,
+      // LE REFUS SE MONTRE DANS LE DIALOGUE, SANS PERDRE LA SAISIE (point 3,
+      // décision d'Alexis du 10/11/2026) — `dialogue` dit à la fiche que ce
+      // motif est LE SIEN (jamais celui d'un autre formulaire qui partage la
+      // même clé), `technicien_vise` reporte le choix qui vient d'être refusé.
+      resultat.accepte
+        ? undefined
+        : { dialogue: "changer_technicien", technicien_vise: technicien },
     );
   });
 }

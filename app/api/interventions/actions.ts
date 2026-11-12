@@ -28,6 +28,15 @@ export function versLaFiche(
   id: string,
   cle?: string,
   avertissements?: readonly string[],
+  /**
+   * CE QUE « CHANGER DE TECHNICIEN » AJOUTE SEULE (décision d'Alexis du
+   * 10/11/2026) — `dialogue` marque le refus comme venant de CE dialogue
+   * précis (jamais déduit de `motif`, que `déplacer` partage : « absence »,
+   * « habilitation », « chevauchement »), et `technicien_vise` reporte la
+   * saisie pour qu'un refus ne la fasse pas disparaître. Les deux sont des
+   * CLÉS/UUID, jamais du texte — même filtre que `motif` (L1-02f).
+   */
+  parametresSupplementaires?: Readonly<Record<string, string>>,
 ): Response {
   const parametres = new URLSearchParams();
   if (cle !== undefined) {
@@ -35,6 +44,9 @@ export function versLaFiche(
   }
   for (const avertissement of avertissements ?? []) {
     parametres.append("avertissement", avertissement);
+  }
+  for (const [nom, valeur] of Object.entries(parametresSupplementaires ?? {})) {
+    parametres.set(nom, valeur);
   }
   const suffixe = parametres.size === 0 ? "" : `?${parametres.toString()}`;
   return new Response(null, {

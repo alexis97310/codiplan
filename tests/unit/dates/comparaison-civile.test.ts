@@ -104,7 +104,7 @@ const EXEMPTIONS: readonly {
 }[] = [
   {
     fichier: "lib/interventions/depot.ts",
-    motif: "maintenant(fuseauDeLAgence(agence)).instant",
+    motif: "maintenant(await fuseauDeLAgenceSous(tx, agenceId)).instant",
   },
   {
     fichier: "app/(back-office)/tableau-de-bord/page.tsx",

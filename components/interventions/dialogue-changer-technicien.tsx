@@ -33,6 +33,8 @@ export function DialogueChangerTechnicien({
   libelleOptionVide,
   valeurParDefaut,
   verdict,
+  erreur,
+  ouvrirAutomatiquement,
 }: Readonly<{
   readonly reference: string;
   readonly action: string;
@@ -44,6 +46,22 @@ export function DialogueChangerTechnicien({
   readonly libelleOptionVide: string;
   readonly valeurParDefaut?: string;
   readonly verdict: { readonly refuse: boolean; readonly raison: string };
+  /**
+   * LE REFUS DU DÉPÔT, DÉJÀ TRADUIT (9L02-AFFECTER-CHEVAUCHEMENT, décision
+   * d'Alexis du 10/11/2026) — chevauchement, technicien introuvable,
+   * habilitation, absence : un refus que seul `/affecter` peut rendre,
+   * jamais `verdict` ci-dessus, qui ne juge que la capacité et le statut
+   * AVANT tout envoi. Affiché AU-DESSUS du formulaire, jamais à sa place :
+   * la saisie refusée reste modifiable et soumise à nouveau.
+   */
+  readonly erreur?: string;
+  /**
+   * Voir `ouvertInitialement`, `components/ui/dialogue.tsx` : rouvre ce
+   * dialogue (et le menu qui l'entoure, voir le `MenuPlus` de la fiche) dès
+   * le rendu qui suit un refus, pour que `erreur` ci-dessus se voie
+   * immédiatement, sans un second clic.
+   */
+  readonly ouvrirAutomatiquement?: boolean;
 }>) {
   const idFormulaire = useId();
   const fermerMenu = useFermerMenuPlus();
@@ -51,6 +69,7 @@ export function DialogueChangerTechnicien({
   return (
     <Dialogue
       auFermer={fermerMenu}
+      ouvertInitialement={ouvrirAutomatiquement}
       declencheur={(ouvrir) => (
         <button
           type="button"
@@ -80,6 +99,14 @@ export function DialogueChangerTechnicien({
             method="post"
             className="flex flex-col gap-3"
           >
+            {erreur === undefined ? null : (
+              <p
+                role="status"
+                className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13 font-bold"
+              >
+                {erreur}
+              </p>
+            )}
             <label className="flex flex-col gap-1.5 text-sm font-medium">
               {t("intervention.technicien")}
               <select

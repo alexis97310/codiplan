@@ -280,6 +280,19 @@ export default async function PageIntervention({
   const { id } = await params;
   const parametres = await searchParams;
   const motif = parametres.motif;
+  // « CHANGER DE TECHNICIEN » ROUVRE SON PROPRE DIALOGUE SUR SON PROPRE REFUS
+  // (9L02-AFFECTER-CHEVAUCHEMENT, décision d'Alexis du 10/11/2026) — `motif`
+  // seul ne dit PAS d'où vient un refus : « absence » et « habilitation »
+  // sont rendus aussi par `/deplacer`. `dialogue` le dit, posé par
+  // `/affecter` uniquement (`versLaFiche`). `technicien_vise` reporte la
+  // saisie refusée, validée plus bas contre `optionsAffectation` (même
+  // discipline que `technicienDeLaCase`, LIENS-1) : un paramètre forgé est
+  // ignoré en silence, jamais recopié à l'écran.
+  const dialogueAffecterOuvert = parametres.dialogue === "changer_technicien";
+  const technicienViseBrut =
+    typeof parametres.technicien_vise === "string"
+      ? parametres.technicien_vise
+      : undefined;
   // LE COMPTE-RENDU DES COURRIELS DE PLANIFICATION (AVERTISSEMENTS-1) — des
   // CLÉS, filtrées comme `motif` : une réponse forgée ne doit pas pouvoir
   // faire écrire n'importe quoi à la page (L1-02f). Même mécanisme que la
@@ -548,6 +561,14 @@ export default async function PageIntervention({
     blocagesALaDate,
     ligne.date_planifiee,
   );
+  // LA SAISIE REFUSÉE, VALIDÉE CONTRE LES OPTIONS PROPOSÉES (9L02-AFFECTER-
+  // CHEVAUCHEMENT) — voir l'entête de `technicienViseBrut` : un identifiant
+  // qui ne figure pas ici (forgé, ou option retirée depuis) est ignoré.
+  const technicienViseValide = optionsAffectation.some(
+    (option) => option.valeur === technicienViseBrut,
+  )
+    ? technicienViseBrut
+    : undefined;
   const optionsTechniciens = optionsDAffectation(
     techniciensActifs,
     annuaire,
@@ -1213,8 +1234,10 @@ export default async function PageIntervention({
             if (!avecBon && !avecChangerTechnicien && !avecAnnuler) {
               return null;
             }
+            const rouvrirChangerTechnicien =
+              avecChangerTechnicien && dialogueAffecterOuvert;
             return (
-              <MenuPlus>
+              <MenuPlus ouvertInitialement={rouvrirChangerTechnicien}>
                 {!avecBon ? null : (
                   <Link
                     href={`/interventions/${ligne.id}/bon`}
@@ -1230,8 +1253,18 @@ export default async function PageIntervention({
                     action={`/api/interventions/${ligne.id}/affecter`}
                     options={optionsAffectation}
                     libelleOptionVide={t("intervention.aucun_technicien")}
-                    valeurParDefaut={ligne.technicien_id ?? undefined}
+                    valeurParDefaut={
+                      technicienViseValide ?? ligne.technicien_id ?? undefined
+                    }
                     verdict={verdictAffecterAffiche}
+                    erreur={
+                      rouvrirChangerTechnicien &&
+                      typeof motif === "string" &&
+                      estCleTraduction(motif)
+                        ? t(motif)
+                        : undefined
+                    }
+                    ouvrirAutomatiquement={rouvrirChangerTechnicien}
                   />
                 )}
                 {!avecAnnuler ? null : (
@@ -1252,7 +1285,15 @@ export default async function PageIntervention({
         </span>
       }
     >
-      {typeof motif === "string" && estCleTraduction(motif) ? (
+      {/*
+        « CHANGER DE TECHNICIEN » MONTRE SON PROPRE REFUS DANS SON DIALOGUE
+        (9L02-AFFECTER-CHEVAUCHEMENT) — `dialogueAffecterOuvert` écarte ce
+        bandeau générique pour ce seul cas, sous peine de dire la même chose
+        deux fois.
+      */}
+      {typeof motif === "string" &&
+      estCleTraduction(motif) &&
+      !dialogueAffecterOuvert ? (
         <p
           role="status"
           className="border-app-rouge-bord bg-app-rouge-fond text-app-rouge-encre rounded-md border px-3.5 py-2.5 text-13 font-bold"

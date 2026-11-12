@@ -112,6 +112,7 @@ export function Dialogue({
   pied,
   classeDialogue,
   auFermer,
+  ouvertInitialement,
 }: Readonly<{
   readonly declencheur: (ouvrir: () => void) => ReactNode;
   readonly titre: ReactNode;
@@ -119,12 +120,19 @@ export function Dialogue({
   readonly pied: (fermer: () => void) => ReactNode;
   readonly classeDialogue?: string;
   readonly auFermer?: () => void;
+  /**
+   * RÉOUVRE DÈS LE MONTAGE (9L02-AFFECTER-CHEVAUCHEMENT, décision d'Alexis
+   * du 10/11/2026) — pour qu'un refus survenu après l'envoi d'un formulaire,
+   * porté par la fiche rechargée, se montre À L'INTÉRIEUR du dialogue qui l'a
+   * produit, jamais dans une bannière qui l'aurait déjà fermé.
+   */
+  readonly ouvertInitialement?: boolean;
 }>) {
   const dialogueRef = useRef<HTMLDialogElement>(null);
   const valeursInitialesRef = useRef<Map<ChampDeFormulaire, string> | null>(
     null,
   );
-  const [ouvert, setOuvert] = useState(false);
+  const [ouvert, setOuvert] = useState(ouvertInitialement ?? false);
   const idTitre = useId();
 
   useEffect(() => {

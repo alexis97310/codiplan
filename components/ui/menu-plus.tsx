@@ -78,10 +78,19 @@ export function useFermerMenuPlus(): () => void {
 
 export function MenuPlus({
   children,
+  ouvertInitialement,
 }: Readonly<{
   readonly children: ReactNode;
+  /**
+   * RÉOUVRE DÈS LE MONTAGE (9L02-AFFECTER-CHEVAUCHEMENT, décision d'Alexis
+   * du 10/11/2026) — un dialogue de ce menu (`DialogueChangerTechnicien`)
+   * ne se monte QUE si ce menu est ouvert : un refus porté par la fiche
+   * rechargée doit donc rouvrir LES DEUX ENSEMBLE, dans le même rendu,
+   * jamais l'un sans l'autre.
+   */
+  readonly ouvertInitialement?: boolean;
 }>) {
-  const [ouvert, setOuvert] = useState(false);
+  const [ouvert, setOuvert] = useState(ouvertInitialement ?? false);
   const conteneurRef = useRef<HTMLDivElement | null>(null);
   const boutonRef = useRef<HTMLButtonElement | null>(null);
 
