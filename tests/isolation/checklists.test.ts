@@ -595,7 +595,7 @@ describe("9K18-CHECKLIST-DOMAINE — les cinq types de réponse, les contraintes
     });
   });
 
-  describe("`checklist_reponse` — l'exclusivité étendue aux cinq colonnes (checklist_reponse_valeur_unique)", () => {
+  describe("`checklist_reponse` — l'exclusivité étendue aux six colonnes (checklist_reponse_valeur_unique)", () => {
     it("DEUX valeurs à la fois (conforme ET texte) sont refusées, EN BASE", async () => {
       const { modeleId, versionId } = await poserModeleEtVersion(
         SOCIETE_A,
@@ -689,11 +689,19 @@ describe("9K18-CHECKLIST-DOMAINE — les cinq types de réponse, les contraintes
         expect(reponse).not.toBeNull();
       } finally {
         await supprimerModeleEtVersion(modeleId);
+        // REPOSÉE SUR LES SIX COLONNES (9K28-CHECKLIST-REPONSE-PHOTO) — la
+        // forme restaurée ici DOIT suivre la contrainte réelle de la
+        // migration en vigueur, jamais une forme figée au jour où ce test a
+        // été écrit : une restauration à cinq colonnes laisse la base
+        // partagée dans un état PLUS FAIBLE que les migrations pour le reste
+        // de la suite, cause d'un échec intermittent sur
+        // `checklist_reponse_valeur_unique` ailleurs dans le harnais (9K28A).
         await clientOwner().$executeRawUnsafe(
           `ALTER TABLE "checklist_reponse"
              ADD CONSTRAINT "checklist_reponse_valeur_unique" CHECK (
                num_nonnulls(
-                 "valeur_conforme", "valeur_mesuree", "valeur_fait", "valeur_choix", "valeur_texte"
+                 "valeur_conforme", "valeur_mesuree", "valeur_fait", "valeur_choix",
+                 "valeur_texte", "valeur_photo"
                ) = 1
              )`,
         );
