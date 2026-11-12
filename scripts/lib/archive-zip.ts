@@ -18,14 +18,17 @@ import { inflateRawSync } from "node:zlib";
  * autre* (§9, 02/09) — et l'endroit qui compte est l'Excel d'un client, que
  * D90 a précisément mis au centre.
  *
- * ## CE QUI REND CE LECTEUR CRÉDIBLE N'EST PAS SA SÉVÉRITÉ, C'EST SON TÉMOIN
+ * ## CE QUI REND CE LECTEUR CRÉDIBLE N'ÉTAIT PAS SA SÉVÉRITÉ, C'ÉTAIT SON TÉMOIN
  *
  * Un lecteur strict écrit par celui qui écrit l'archive pourrait partager son
  * erreur — *deux erreurs identiques ne se contredisent jamais* (§9, 10/09). Il
- * est donc éprouvé sur `tests/fixtures/dates-excel.xlsx`, **un vrai fichier
- * produit par Excel**, que ce dépôt ne contrôle pas : s'il se trompait de
- * disposition, il refuserait l'authentique. *C'est l'indépendance par une
- * source qu'on ne contrôle pas, jamais par une recopie* (§9, 01/09).
+ * était donc éprouvé sur `tests/fixtures/dates-excel.xlsx`, un vrai fichier
+ * produit par Excel que ce dépôt ne contrôlait pas. **Décision d'Alexis du
+ * 10/11/2026 (D244, 9L00)** : cette fixture porte désormais une fixture
+ * CALCULÉE — I9 l'exige pour un dépôt public — et perd donc ce rôle de témoin
+ * indépendant. *C'est la contradiction que ce ticket assume, écrite plutôt que
+ * cachée* : aucun fichier de ce dépôt n'atteste plus, aujourd'hui, que ce
+ * lecteur ouvre un vrai classeur Excel sans en partager les erreurs.
  *
  * ## IL LIT PAR LE RÉPERTOIRE CENTRAL, comme un vrai lecteur
  *

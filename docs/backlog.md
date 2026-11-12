@@ -543,10 +543,10 @@ Annulation **partielle et sûre** : refus motivé sur les lignes modifiées ou r
 *Relu contre les sources citées le 14/09/2026 — empreinte `880c9a92`.*
 **L1-10** Import de l'historique des ventes matériel — fiches créées avec `complet = false`, remontées en file de complétion.
 *File :* BLOQUÉ — les colonnes du fichier réel ne sont pas dans le dépôt, et la fixture en a été vidée (I9). Mesuré le 11/09/2026.
-**LA MESURE, plutôt qu'une supposition.** `tests/fixtures/dates-excel.xlsx` a été *« tirée PAR RETRAIT »* du fichier de l'exploitation (D90) : elle porte la **structure** — cinq feuilles, dont « 3-Parc machines » à **293 lignes sur 22 colonnes** — et **aucune cellule**. *Lu par `lireClasseur` : **0 ligne portant au moins une cellule sur 293**.* Les en-têtes sont partis avec les données, ce qui est exactement ce que I9 demande.
+**LA MESURE, plutôt qu'une supposition.** `tests/fixtures/dates-excel.xlsx` a été *« tirée PAR RETRAIT »* du fichier de l'exploitation (D90) — mais mesuré le 10/11/2026, elle en portait encore environ 4 390 dates réelles et les volumes du classeur réel (« 3-Parc machines » à 293 lignes sur 22 colonnes), ce que la phrase qui précédait ici disait faussement nul. **Décision d'Alexis du 10/11/2026 (D244, 9L00)** : la fixture est désormais CALCULÉE par `scripts/fabriquer-fixture-dates-excel.mts` — cinq feuilles, dont deux totalement vides et trois portant quelques dates **inventées** ; aucune cellule, aucune ligne et aucune colonne n'y vient plus du fichier réel.
 **CE QUI SÉPARE CE TICKET DE L1-09**, et la distinction est celle de L1-09a : un **gabarit** que CODIPLAN publie tient ses colonnes de NOS schémas — on peut l'écrire. Un fichier de **reprise** tient les siennes du fichier du client, *et les inventer ferait un lecteur qui ne lit rien.*
 **CE QU'IL FAUDRAIT POUR LE DÉBLOQUER**, et c'est peu : **la ligne d'en-têtes** des feuilles « 3-Parc machines » et « 1-Demandes SAV » — 22 et 16 noms de colonnes. *Ce ne sont pas des données client ; elles peuvent entrer au dépôt sans enfreindre I9.* Le reste est construit : la grammaire, le classeur, le rapprochement, le rapport, l'application et l'annulation.
-*Relu contre les sources citées le 11/09/2026 — empreinte `844fc8ec`.*
+*Relu contre les sources citées le 12/11/2026 — empreinte `089b5afb`.*
 
 **L1-11 — L'ÉCRAN D'IMPORT. LA CHAÎNE EST ENTIÈRE ET PERSONNE N'EN TIENT LE BOUT. [I6] [RG-IMP-01] [RG-IMP-03] [RG-IMP-04] [D31] [D90] [D100] [14/09/2026]**
 *File :* LIVRÉ

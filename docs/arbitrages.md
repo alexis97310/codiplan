@@ -8415,3 +8415,31 @@ Portée : `prisma/migrations/20261111090000_prestations_par_type_intervention_9k
 `tests/unit/db/inventaire.test.ts`, `tests/unit/db/perimetre-audit.test.ts`, `lib/db/migrations-attendues.ts`, `tests/isolation/portail-matrice.test.ts`,
 `tests/unit/prestations/par-type-intervention.test.ts`, `tests/unit/imports/comparaison.test.ts`, `tests/unit/terrain/rapport-automatique.test.tsx`, `tests/isolation/prestations.test.ts`,
 `tests/e2e/9k29-prestations-par-type-intervention.spec.ts`, `tests/e2e/captures-9k29-prestations-par-type-intervention.spec.ts`.
+
+## D244 — LA FIXTURE DE DATES EST CALCULÉE, JAMAIS TIRÉE D'UN FICHIER RÉEL ; LE TÉMOIN INDÉPENDANT DU LECTEUR D'ARCHIVE EST PERDU, ET C'EST ASSUMÉ (décision d'Alexis du 10/11/2026 ; 9L00-FIXTURE-EXCEL-SANS-VALEURS-REELLES)
+
+**Décision amendée :** D90, dans le seul sens nommé ci-dessous.
+
+### CE QUI A ÉTÉ MESURÉ
+
+`tests/fixtures/dates-excel.xlsx` avait été *« tirée PAR RETRAIT »* du classeur réel de l'exploitation (D90) : le script de retrait gardait toute cellule NUMÉRIQUE portant un format de date, et retirait le reste (textes, montants, en-têtes). Mesuré le 10/11/2026 : le fichier qui en résultait portait encore environ 4 390 dates réelles et les volumes du classeur réel (l'onglet du parc à 293 lignes sur 22 colonnes) — ce que `docs/backlog.md` décrivait pourtant comme portant « aucune cellule ». I9 ne distingue pas la donnée métier de la donnée de structure, et le dépôt est PUBLIC depuis le 12/09/2026 : un dépôt rendu public publie aussi son passé.
+
+### LA DÉCISION
+
+**1. La fixture est désormais entièrement CALCULÉE**, par `scripts/fabriquer-fixture-dates-excel.mts`, sur le modèle exact de `scripts/fabriquer-classeur-epreuve.mts` (I9, L1-11). Les dates qu'elle porte — six au total, sur trois de ses cinq feuilles, les deux autres totalement vides — sont inventées pour couvrir les mêmes cas que l'ancienne mesure (une date ancienne, un serial porté par deux feuilles à la fois, une date récente, une cellule à zéro) sans en reprendre une seule valeur. `scripts/lib/fixture-dates.ts` porte ces valeurs une seule fois, lues par le script et par les épreuves.
+
+**2. CE QUE CETTE DÉCISION NE GARDE PAS, et c'est la contradiction qu'elle assume.** L'ancienne fixture avait une seconde vertu, documentée dans `scripts/lib/archive-zip.ts` : être un fichier qu'Excel avait réellement produit, témoin indépendant du lecteur d'archive strict (`lireArchiveStricte`) — sans lui, un défaut partagé entre ce lecteur et son propre fabricant ne se verrait jamais (*deux erreurs identiques ne se contredisent jamais*, §9, 10/09). Une fixture calculée n'a aucune provenance : elle ne peut plus tenir ce rôle. `tests/unit/imports/classeur-fabrique.test.ts` ne le lui demande plus — le test qui l'exigeait est retiré, pas assoupli. **Aucun fichier de ce dépôt n'atteste plus, aujourd'hui, que ce lecteur ouvre un vrai classeur Excel sans en partager les erreurs.** C'est écrit ici plutôt que caché, pour que la question reste posée.
+
+**3. D90 est amendée dans le seul sens de la provenance de cette fixture** : elle disait une fixture *tirée par retrait* d'un fichier réel ; elle dit désormais une fixture calculée. Le reste de D90 — le choix de `read-excel-file`, la mesure des trois fuseaux, le calendrier 1900 — ne change pas.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+`tests/fixtures/clients-fabrique.xlsx` ne change pas : il était déjà calculé (L1-11). Aucune migration. Le plafond de taille d'un téléversement (`MAXIMUM_OCTETS`, `lib/imports/televersement.ts`) ne change pas de valeur ; sa mesure de référence (59 642 octets) reste celle du dernier fichier réel jamais lu par ce projet, conservée dans le commentaire bien que la fixture qui la portait ait changé de nature.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où l'exploitation fournit un second fichier, nouvellement créé par Excel et sans aucune donnée réelle, pour servir de témoin au lecteur d'archive strict, cette décision se rouvre pour le substituer à la fixture calculée dans `tests/unit/imports/classeur-fabrique.test.ts` — elle ne l'anticipe pas.
+
+**Règles amendées :** aucune au chapitre 10. D90 est amendée sur le seul point nommé ci-dessus.
+
+Portée : `scripts/fabriquer-fixture-dates-excel.mts` (créé), `scripts/lib/fixture-dates.ts` (créé), `scripts/lib/archive-zip.ts` (commentaire), `lib/imports/televersement.ts` (commentaire), `docs/constitution/organisation-du-code.md`, `docs/backlog.md` (L1-10), `tests/unit/excel/fixture-dates.test.ts`, `tests/unit/excel/classeur.test.ts`, `tests/unit/imports/classeur-fabrique.test.ts`.

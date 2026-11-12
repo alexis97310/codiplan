@@ -891,9 +891,9 @@ lib/
               précisément ce qu'un fichier hostile rencontre en premier
               la TAILLE est lue avant les octets : mesurer après avoir lu ferait
               entrer en mémoire exactement ce qu'on voulait refuser
-              le plafond est MESURÉ contre le classeur réel (59 642 octets) et
-              dit de combien il le dépasse — une borne posée sans mesure serait
-              un chiffre inventé (§8)
+              le plafond est MESURÉ contre le seul classeur réel jamais lu
+              (59 642 octets, conservés depuis D90 malgré D244/9L00) — une
+              borne posée sans mesure serait un chiffre inventé (§8)
               `Stream` n'est PAS admis : un flux se consomme une fois, et un
               classeur vide se lit comme un classeur sans données
               depot.ts : le LOT NAÎT AU CONTRÔLE, et le chapitre 11 le disait

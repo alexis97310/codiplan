@@ -46,21 +46,22 @@ import {
  * que les seules raisons sociales du classeur soient celles, inventées, que le
  * script écrit — *aucun gardien ne peut décider si un nom est réel, mais il
  * peut exiger qu'il soit l'un des trois qu'on a choisis.*
+ *
+ * ## CE BLOC N'A PLUS DE TÉMOIN INDÉPENDANT, et c'est écrit plutôt que caché
+ *
+ * `tests/fixtures/dates-excel.xlsx` servait ici de fichier AUTHENTIQUE — un
+ * vrai classeur produit par Excel, que ce dépôt ne contrôle pas — pour garder
+ * `lireArchiveStricte` d'un défaut qu'il partagerait avec son propre fabricant
+ * (*deux erreurs identiques ne se contredisent jamais*, §9, 10/09). **Décision
+ * d'Alexis du 10/11/2026 (D244, 9L00)** : cette fixture est désormais
+ * calculée, comme celle-ci — elle n'a plus de provenance, et ne peut plus
+ * tenir ce rôle. C'est la contradiction que ce ticket assume : I9 l'exige pour
+ * un dépôt public, au prix de ce témoin.
  */
 
 const RACINE = process.cwd();
 const FIXTURE = join(RACINE, CHEMIN_EPREUVE);
 const SCRIPT = "scripts/fabriquer-classeur-epreuve.mts";
-
-/**
- * LE FICHIER AUTHENTIQUE, et il est ici pour SERVIR DE TÉMOIN.
- *
- * Il a été tiré PAR RETRAIT du classeur réel de l'exploitation (D90) : il porte
- * la structure d'un vrai fichier d'Excel et aucune cellule. *C'est la seule
- * chose de ce dépôt qu'Excel a écrite*, et c'est ce qui rend le lecteur strict
- * crédible.
- */
-const AUTHENTIQUE = join(RACINE, "tests/fixtures/dates-excel.xlsx");
 
 /**
  * Les seules raisons sociales admises — LUES dans le module que le script lit
@@ -101,27 +102,6 @@ describe("le classeur d'épreuve se refabrique à l'identique", () => {
 });
 
 describe("L'ARCHIVE EST BIEN FORMÉE, et le lecteur STRICT le prononce", () => {
-  /**
-   * LE TÉMOIN, ET IL EST LE CŒUR DE CE BLOC.
-   *
-   * **Un lecteur strict écrit par celui qui écrit l'archive pourrait partager
-   * son erreur** — *deux erreurs identiques ne se contredisent jamais* (§9,
-   * 10/09). `dates-excel.xlsx` est un VRAI fichier produit par Excel, que ce
-   * dépôt ne contrôle pas : s'il se trompait de disposition, le lecteur
-   * refuserait l'authentique et cette ligne rougirait.
-   *
-   * *Sans elle, les assertions qui suivent mesureraient l'accord de deux
-   * fautes.*
-   */
-  it("TÉMOIN — le lecteur ouvre le VRAI fichier d'Excel", () => {
-    const authentique = lireArchiveStricte(readFileSync(AUTHENTIQUE));
-    expect(authentique.length).toBeGreaterThan(10);
-    for (const entree of authentique) {
-      expect(entree.methodeCentrale).toBe(METHODE_DEFLATE);
-      expect(entree.drapeauxCentraux).toBe(0);
-    }
-  });
-
   it("le classeur FABRIQUÉ passe le même lecteur", () => {
     const entrees = lireArchiveStricte(readFileSync(FIXTURE));
     // Cinq documents : les types, les deux fichiers de liens, le classeur, la

@@ -19,16 +19,21 @@
 /**
  * LE PLAFOND DE TAILLE, et il est écrit avec sa mesure.
  *
- * **Le classeur réel de CODIMA pèse 59 642 octets** — `tests/fixtures/dates-excel.xlsx`,
- * qui en porte la STRUCTURE entière (cinq feuilles, 293 lignes sur 22 colonnes
- * pour le parc) et aucune cellule. Un classeur garni de ses données reste du
- * même ordre : un `.xlsx` est une archive compressée de texte.
+ * **Le classeur réel de CODIMA pesait 59 642 octets.** C'était la mesure de
+ * `tests/fixtures/dates-excel.xlsx` tant que cette fixture était tirée par
+ * retrait du fichier de l'exploitation (D90). **Décision d'Alexis du
+ * 10/11/2026 (D244, 9L00)** : cette fixture est désormais entièrement
+ * inventée, pour ne plus porter aucune date réelle (I9) — elle ne mesure donc
+ * plus la taille d'un classeur de reprise, et la borne ci-dessous n'est plus
+ * rapportée à elle. Un classeur garni de données réelles reste malgré tout du
+ * même ordre que 59 642 octets : un `.xlsx` est une archive compressée de
+ * texte, et c'est cet ordre de grandeur, mesuré une fois, que la borne garde.
  *
- * **Vingt mébioctets, soit plus de trois cents fois ce fichier.** Ce n'est pas
- * une estimation de ce qu'un client enverra : c'est la borne au-delà de
- * laquelle on sait qu'il ne s'agit plus d'un classeur de reprise. *Une borne
- * posée sans mesure serait un chiffre inventé (§8) ; celle-ci s'adosse au seul
- * fichier réel que le projet ait lu, et elle dit de combien elle le dépasse.*
+ * **Vingt mébioctets.** Ce n'est pas une estimation de ce qu'un client
+ * enverra : c'est la borne au-delà de laquelle on sait qu'il ne s'agit plus
+ * d'un classeur de reprise. *Une borne posée sans mesure serait un chiffre
+ * inventé (§8)* ; celle-ci s'adosse à la seule mesure qu'un fichier réel ait
+ * jamais rendue à ce projet, conservée ici plutôt que perdue avec le fichier.
  *
  * **Condition de réouverture, vérifiable** : le premier refus d'un fichier que
  * l'exploitation reconnaît pour un classeur légitime.

@@ -11,14 +11,14 @@ import {
 import { EPOQUE_MS, lireDate } from "@/lib/excel/format";
 
 /**
- * LA LIAISON AU CLASSEUR, ÉPROUVÉE SUR LE VRAI FICHIER D'EXCEL (L1-08c, D90).
+ * LA LIAISON AU CLASSEUR, ÉPROUVÉE SUR LA FIXTURE DE DATES (L1-08c, D90 ; D244).
  *
  * **Ce fichier ne mesure pas ce que `tests/unit/excel/fixture-dates.test.ts`
  * mesure**, et la distinction est le tout de son existence. Celui-là éprouve la
- * BIBLIOTHÈQUE — que les dates d'un fichier produit par Excel sortent
- * identiques sous trois fuseaux. Celui-ci éprouve la COUTURE : que la valeur
- * rendue par la bibliothèque, transposée en `Cellule`, soit exactement ce que
- * la grammaire de L1-08a attendait depuis qu'elle a été écrite.
+ * BIBLIOTHÈQUE — que les dates sortent identiques sous trois fuseaux. Celui-ci
+ * éprouve la COUTURE : que la valeur rendue par la bibliothèque, transposée en
+ * `Cellule`, soit exactement ce que la grammaire de L1-08a attendait depuis
+ * qu'elle a été écrite.
  *
  * *Une suite qui éprouve tous les maillons n'éprouve pas la chaîne* (§9, 08/09).
  * La chaîne est ici `read-excel-file` → `celluleDepuisValeur` → `lireDate`, et
@@ -29,16 +29,16 @@ const FIXTURE = join(process.cwd(), "tests/fixtures/dates-excel.xlsx");
 
 describe("la transposition d'une valeur en cellule", () => {
   it("une DATE devient une série, par le chemin inverse de `lireDate`", () => {
-    // Le 21 février 2022, série 44613 — l'un des quatre relevés faits sur le
-    // fichier SOURCE avant qu'une ligne ne soit écrite (D90).
+    // Le 10 mars 2019, série 43534 — une des dates inventées de la fixture
+    // calculée (9L00, D244 ; `scripts/lib/fixture-dates.ts`).
     const cellule = celluleDepuisValeur(
-      new Date(EPOQUE_MS + 44_613 * 86_400_000),
+      new Date(EPOQUE_MS + 43_534 * 86_400_000),
     );
-    expect(cellule).toEqual({ serie: 44613 });
+    expect(cellule).toEqual({ serie: 43534 });
 
     // ET LE CHEMIN COMPLET : la grammaire rend bien le jour attendu.
     const lue = lireDate(cellule);
-    expect(lue.ok && lue.valeur.toISOString()).toBe("2022-02-21T00:00:00.000Z");
+    expect(lue.ok && lue.valeur.toISOString()).toBe("2019-03-10T00:00:00.000Z");
   });
 
   it("LE ZÉRO ne s'écarte PAS ici — il descend à la grammaire", () => {
@@ -96,18 +96,18 @@ describe("la lecture du classeur RÉEL", () => {
     expect(feuilles.map((f) => f.nom)).toContain("3-Parc machines");
   });
 
-  it("les quatre dates relevées sur le fichier SOURCE ressortent au bon jour", async () => {
-    // Les mêmes cellules que la mesure de D90, lues cette fois **à travers la
-    // couture** plutôt qu'avec un appel direct à la bibliothèque. C'est le
-    // maillon que personne ne traversait.
+  it("une date inventée de la fixture ressort au bon jour", async () => {
+    // La même cellule que `tests/unit/excel/fixture-dates.test.ts`, lue cette
+    // fois **à travers la couture** plutôt qu'avec un appel direct à la
+    // bibliothèque. C'est le maillon que personne ne traversait.
     const feuilles = await lireClasseur(FIXTURE);
     const parc = feuilleNommee(feuilles, "3-Parc machines");
     expect(parc).not.toBeNull();
 
-    // R254 → ligne 254, colonne R (18ᵉ, indice 17).
-    const cellule = parc?.lignes[253]?.[17];
+    // C3 → ligne 3, colonne C (3ᵉ, indice 2).
+    const cellule = parc?.lignes[2]?.[2];
     const lue = lireDate(cellule);
-    expect(lue.ok && lue.valeur.toISOString()).toBe("2022-02-21T00:00:00.000Z");
+    expect(lue.ok && lue.valeur.toISOString()).toBe("2019-03-10T00:00:00.000Z");
   });
 
   it("lit des OCTETS aussi bien qu'un CHEMIN, et rend la même chose", async () => {
