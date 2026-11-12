@@ -8544,3 +8544,27 @@ L'ENVOI d'un lien par courriel (`envoyerLienDAcces`/`envoyerLienDAccesBureau`, p
 **Règles amendées :** aucune — D226 s'applique telle quelle à deux chemins de plus ; aucun schéma, aucune migration.
 
 Portée : `lib/auth/acces-technicien.ts` (`copierLienDAcces`, `MotifRefusCopieLienAcces`), `lib/auth/acces-bureau.ts` (`copierLienDAccesBureau`, `MotifRefusCopieLienBureau`, `creerCompteDeBureau`, `MotifRefusCompteDeBureau`), `lib/techniciens/depot.ts` (`creerTechnicien`, `MotifRefusTechnicien`), `lib/i18n/fr.ts`, `tests/unit/techniciens/depot.test.ts`, `tests/unit/equipe/bureau-creer-envoi-acces-non-parti.test.ts`, `tests/unit/techniciens/creer-envoi-acces-non-parti.test.ts`, `tests/unit/equipe/copier-lien-cache-control.test.ts`, `tests/isolation/acces-bureau.test.ts`, `tests/isolation/acces-technicien.test.ts`, `tests/e2e/captures-9l01-copie-lien-exclusivite.spec.ts`.
+
+## D248 — « CHANGER DE TECHNICIEN » REFUSE LE CHEVAUCHEMENT ET EXIGE UN TECHNICIEN ACTIF DE LA SOCIÉTÉ (décision d'Alexis du 10/11/2026 ; 9L02-AFFECTER-CHEVAUCHEMENT)
+
+**Règles amendées :** RG-PLA-03, RG-PLA-09
+
+### CE QUI A ÉTÉ MESURÉ
+
+RG-PLA-03 — *« deux interventions au même moment sur la même personne ne sont pas une situation à surveiller »* — était jugée à la pose et au déplacement (`verdictALaPose`, `lib/interventions/depot.ts`), mais pas à l'affectation (`affecterTechnicien`) : une troisième voie qui écrit elle aussi `technicien_id` sur une ligne datée, sans consulter `verdictChevauchement`. *Une règle tenue par un chemin sur deux n'est pas tenue* — exactement la même famille de défaut que RG-PLA-04 (habilitation) et RG-PLA-06 (absence) avaient déjà révélée sur ce même chemin, aux lots PLANNING-1 et R3-14.
+
+Second constat, distinct du premier : `intervention.technicien_id` ne porte aucune clé étrangère. Rien, avant cette décision, ne vérifiait que l'identifiant reçu par `affecterTechnicien` désigne réellement un technicien de la société active, ni que son compte soit actif.
+
+### LA DÉCISION
+
+**1. L'affectation juge le chevauchement par le MÊME verdict que la pose et le déplacement.** `verdictChevauchementSous` (`lib/interventions/depot.ts`) est extraite de `verdictALaPose` et partagée par les trois chemins qui écrivent `technicien_id` sur une ligne datée — jamais une copie du critère. RG-PLA-03 est amendée pour nommer l'affectation, à côté de la pose et du déplacement.
+
+**2. L'affectation exige un technicien actif de la société active, AVANT toute écriture — RG-PLA-09, nouvelle.** L'identifiant visé doit être habilité comme technicien sur la société active, par un compte qui n'est pas désactivé ; à défaut, le geste est refusé (`intervention.refus.technicien_introuvable`), sans écrire la ligne. Le filtre société est posé explicitement, en plus de la politique RLS, comme le fait déjà `majorationDeLIntervention` pour la même table.
+
+**3. Le refus se montre DANS le dialogue « Changer de technicien », et la saisie refusée n'est pas perdue.** Jusqu'ici, un refus de ce formulaire ne s'affichait que dans le bandeau générique de la fiche, le dialogue refermé et le choix oublié — même régime que les autres dialogues de l'en-tête. Ce dialogue-ci rouvre désormais sur son propre refus, le motif traduit au-dessus du formulaire, le technicien refusé toujours sélectionné. `Dialogue` et `MenuPlus` (`components/ui/`) gagnent chacun un `ouvertInitialement` additif pour cela, sans toucher leur comportement par défaut ailleurs.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où une intervention pourra être posée sur DEUX techniciens (le modèle n'en porte qu'un aujourd'hui), la notion de chevauchement change de sujet et RG-PLA-03 se relit — c'est la même réserve que D99 avait déjà écrite. Le jour où `intervention.technicien_id` porte une clé étrangère, RG-PLA-09 se relit pour dire si l'application a encore besoin de sa propre vérification au-dessus de la base.
+
+Portée : `lib/interventions/depot.ts` (`verdictChevauchementSous`, `fuseauDeLAgenceSous`, `affecterTechnicien`, `verdictALaPose`), `lib/i18n/fr.ts`, `app/api/interventions/actions.ts` (`versLaFiche`), `app/api/interventions/[id]/affecter/route.ts`, `app/(back-office)/interventions/[id]/page.tsx`, `components/interventions/dialogue-changer-technicien.tsx`, `components/ui/dialogue.tsx`, `components/ui/menu-plus.tsx`, `tests/isolation/affectation-chevauchement.test.ts`, `tests/e2e/captures-9l02-affecter-chevauchement.spec.ts`, `tests/unit/dates/comparaison-civile.test.ts`, `docs/cahier-des-charges.md` (RG-PLA-03, RG-PLA-09).

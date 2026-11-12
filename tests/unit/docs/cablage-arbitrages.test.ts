@@ -104,6 +104,12 @@ const CABLAGE_ATTENDU: ReadonlyArray<readonly [string, string]> = [
   // D129 (19/09/2026, lot AV-13) : le client inactif sort du planning et du
   // registre par défaut — règle absente du chapitre 10 jusqu'ici.
   ["D129", "RG-PLA-08"],
+  // D248 (10/11/2026, 9L02-AFFECTER-CHEVAUCHEMENT) : RG-PLA-03 nomme
+  // désormais l'affectation, à côté de la pose et du déplacement ; RG-PLA-09
+  // est créée par la même décision — « technicien actif de la société »
+  // n'était écrit nulle part au chapitre 10.
+  ["D248", "RG-PLA-03"],
+  ["D248", "RG-PLA-09"],
   // D240 (11/11/2026, 9K23-CHECKLIST-BLOCAGE-TERMINER) : « complétée »
   // précisée à « chaque point obligatoire porte une réponse », amendement
   // écrit de la réponse « A » d'Alexis du 29/10/2026 (D235 le rappelait déjà).
