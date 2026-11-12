@@ -234,7 +234,13 @@ model Societe {
   checklistPoints              ChecklistPoint[]
   checklistReponses            ChecklistReponse[]
   checklistReponsePhotos       ChecklistReponsePhoto[] @ignore
-  checklistModeleTypes         ChecklistModeleTypeIntervention[]
+  // `@ignore` : JAMAIS navigué (ni `include`, ni accès direct — le dépôt lit
+  // toujours `checklistModeleTypeIntervention` ou `ChecklistModele.types`
+  // directement). Mesuré nécessaire le 12/11/2026 (9K28B-REPRISE-REPONSE-
+  // PHOTO-MEMOIRE, sur `ChecklistReponsePhoto`) : une réciproque ajoutée à
+  // `Societe`, l'un des modèles déjà les plus reliés du schéma, peut seule
+  // faire déborder la mémoire de `next build`. Aucun effet en base.
+  checklistModeleTypes         ChecklistModeleTypeIntervention[] @ignore
 
   @@map("societe")
 }
