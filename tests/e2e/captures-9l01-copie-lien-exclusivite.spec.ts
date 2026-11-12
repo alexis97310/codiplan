@@ -169,14 +169,13 @@ test("création d'un compte de bureau avec un courriel connu d'une autre sociét
     '[data-motif="equipe.bureau.refus.courriel_connu_ailleurs"]',
   );
   await expect(bandeau).toBeVisible();
+  // L'ÉGALITÉ EXACTE, PAS UNE SIMPLE PRÉSENCE (décision d'Alexis du
+  // 10/11/2026) — le texte NEUTRE du dictionnaire est tout ce que la page
+  // affiche : ni la société, ni le rôle, ni l'activation ailleurs n'y
+  // figurent, puisque rien d'autre que cette seule clé n'est rendu ici.
   await expect(bandeau).toHaveText(
     fr["equipe.bureau.refus.courriel_connu_ailleurs"],
   );
-  // LE MESSAGE NE RÉVÈLE NI LA SOCIÉTÉ, NI LE RÔLE, NI L'ACTIVATION
-  // (décision d'Alexis du 10/11/2026) — ce que le texte NE CONTIENT PAS
-  // compte autant que ce qu'il affiche.
-  await expect(bandeau).not.toContainText("ADV");
-  await expect(bandeau).not.toContainText("activ");
 
   // RIEN N'A ÉTÉ ÉCRIT POUR LA SOCIÉTÉ ACTIVE — une seconde habilitation
   // aurait fait grossir la liste.
