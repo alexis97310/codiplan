@@ -525,7 +525,8 @@ export async function deposerPhotoIntervention(
 ): Promise<{ readonly id: string } | null> {
   const societeId = exigerSocieteActive(contexte);
   const empreinte = createHash("sha256").update(saisie.octets).digest("hex");
-  const classe = saisie.checklistPointId === undefined ? saisie.classe : "client";
+  const classe =
+    saisie.checklistPointId === undefined ? saisie.classe : "client";
   try {
     return await avecContexteApplicatif(
       contexte,

@@ -146,7 +146,14 @@ describe("schemaPointChecklist — le type du point fait foi, jamais un champ en
     ).toBe(true);
   });
 
-  it("refuse un type de réponse hors des cinq du chapitre 11", () => {
+  it("photo (9K28-CHECKLIST-REPONSE-PHOTO) — forme minimale acceptée, ni unité ni choix", () => {
+    expect(
+      schemaPointChecklist.safeParse({ ...commun, typeReponse: "photo" })
+        .success,
+    ).toBe(true);
+  });
+
+  it("refuse un type de réponse hors des six du chapitre 11", () => {
     expect(
       schemaPointChecklist.safeParse({ ...commun, typeReponse: "autre_chose" })
         .success,

@@ -6,9 +6,10 @@ import {
 } from "@/lib/checklists/validation-reponse";
 
 /**
- * LA VALIDATION DES CINQ TYPES DE RÉPONSE (9K18-CHECKLIST-DOMAINE, décision
- * d'Alexis du 10/11/2026 ~13h10). FONCTION PURE — le TYPE DU POINT est la
- * source de vérité, jamais un type auto-déclaré par la valeur brute.
+ * LA VALIDATION DES SIX TYPES DE RÉPONSE (9K18-CHECKLIST-DOMAINE, décision
+ * d'Alexis du 10/11/2026 ~13h10 ; `photo` ajoutée à 9K28-CHECKLIST-REPONSE-
+ * PHOTO). FONCTION PURE — le TYPE DU POINT est la source de vérité, jamais
+ * un type auto-déclaré par la valeur brute.
  */
 
 function point(partiel: Partial<PointPourValidation>): PointPourValidation {
@@ -120,5 +121,31 @@ describe("texte_libre", () => {
     expect(validerReponsePoint(POINT, "   ").valide).toBe(false);
     expect(validerReponsePoint(POINT, "x".repeat(2001)).valide).toBe(false);
     expect(validerReponsePoint(POINT, "x".repeat(2000)).valide).toBe(true);
+  });
+});
+
+describe("photo (9K28-CHECKLIST-REPONSE-PHOTO)", () => {
+  const POINT = point({ typeReponse: "photo" });
+
+  it("refuse TOUJOURS, quelle que soit la valeur brute — même sans photo", () => {
+    expect(validerReponsePoint(POINT, undefined)).toEqual({
+      valide: false,
+      cle: "checklist.refus.photo_hors_formulaire",
+    });
+    expect(validerReponsePoint(POINT, null)).toEqual({
+      valide: false,
+      cle: "checklist.refus.photo_hors_formulaire",
+    });
+  });
+
+  it("refuse même une valeur qui aurait l'air plausible pour un autre type", () => {
+    expect(validerReponsePoint(POINT, "conforme")).toEqual({
+      valide: false,
+      cle: "checklist.refus.photo_hors_formulaire",
+    });
+    expect(validerReponsePoint(POINT, 42)).toEqual({
+      valide: false,
+      cle: "checklist.refus.photo_hors_formulaire",
+    });
   });
 });

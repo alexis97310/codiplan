@@ -8443,3 +8443,35 @@ Portée : `prisma/migrations/20261111090000_prestations_par_type_intervention_9k
 **Règles amendées :** aucune au chapitre 10. D90 est amendée sur le seul point nommé ci-dessus.
 
 Portée : `scripts/fabriquer-fixture-dates-excel.mts` (créé), `scripts/lib/fixture-dates.ts` (créé), `scripts/lib/archive-zip.ts` (commentaire), `lib/imports/televersement.ts` (commentaire), `docs/constitution/organisation-du-code.md`, `docs/backlog.md` (L1-10), `tests/unit/excel/fixture-dates.test.ts`, `tests/unit/excel/classeur.test.ts`, `tests/unit/imports/classeur-fabrique.test.ts`.
+
+## D245 — UN SIXIÈME TYPE DE RÉPONSE DE CHECKLIST, « photo » (décision verbatim d'Alexis du 11/11/2026 ~08h05, atelier des check-lists : « Oui, dès maintenant » ; 9K28-CHECKLIST-REPONSE-PHOTO)
+
+**Décision amendée :** le commentaire de `TypeReponseChecklist` posé par 9K18-CHECKLIST-DOMAINE (D237 n'est pas touchée ; c'est le SCHÉMA, pas un arbitrage numéroté, qui portait le report : « la `photo` reste DIFFÉRÉE »).
+
+### CE QUI ÉTAIT DÉCIDÉ, ET CE QUI CHANGE
+
+Le 10/11/2026, 9K18-CHECKLIST-DOMAINE avait posé cinq types de réponse et DIFFÉRÉ le sixième, `photo`, au motif qu'« elle passe par l'outil Photos existant de l'intervention, jamais par la checklist » — un report, pas un refus. À l'atelier des check-lists du 11/11/2026 (~08h05), à la question posée à nouveau, réponse d'Alexis, verbatim : **« Oui, dès maintenant »**. Ce ticket lève le report.
+
+### LA DÉCISION
+
+**1. `TypeReponseChecklist` gagne `photo` — SIXIÈME valeur.** Une réponse `photo` n'a ni valeur, ni choix, ni texte : `checklist_reponse.valeur_photo` est un simple MARQUEUR DE PRÉSENCE (jamais une colonne de valeur au sens des cinq autres), posé `true` UNIQUEMENT quand au moins une photo est déjà liée — dans la MÊME transaction que cette liaison (`enregistrerReponsePhoto`), jamais l'une sans l'autre. L'exclusivité `checklist_reponse_valeur_unique` (`num_nonnulls`) est reposée sur SIX colonnes, migration `20261112180000_checklist_reponse_photo_9k28`.
+
+**2. AUCUNE SECONDE CHAÎNE DE DÉPÔT — la photo passe PAR L'OUTIL PHOTOS EXISTANT.** Le report de 9K18 nommait déjà le chemin ; cette décision le CONSTRUIT : `POST /api/terrain/[id]/photos` (et `components/interventions/photos-terrain.tsx`, réutilisé à l'identique dans la tuile checklist) gagnent un champ facultatif `checklist_point_id`. `deposerPhotoIntervention` (`lib/documents/depot.ts`) dépose le document COMME TOUJOURS (`intervention_id` posé, jamais une seconde cible — `document_cible_unique` inchangée), puis, si ce champ est fourni, appelle `enregistrerReponsePhoto` (`lib/checklists/depot.ts`) DANS LA MÊME TRANSACTION pour lier le document à la réponse. **Un refus de la liaison refuse LE DÉPÔT ENTIER (I6)** : la photo n'est jamais gardée orpheline d'un point qui la refuse.
+
+**3. `checklist_reponse_photo` — table NEUVE, le lien.** Une réponse peut porter PLUSIEURS photos. Forme « filiation » CHAÎNÉE sur `checklist_reponse` elle-même (jamais directement sur `intervention`), même patron que `vgp_observation` sur `vgp_verification` — l'adossement se chaîne, aucune clause de société propre n'y est écrite. Immuable comme `checklist_point` (I6) : ni `UPDATE` ni `DELETE` pour le rôle applicatif.
+
+**4. LE CLIENT VOIT LA PHOTO COMME TOUT LE RESTE DE SA CHECKLIST REMPLIE (D235), et la classe est FORCÉE.** Quand `checklist_point_id` est fourni, `classe` est IMPOSÉE à `"client"` — jamais lue sur une saisie de l'appelant — parce que D235 veut que le client voie TOUS les points de sa checklist remplie, et une photo `interne` resterait invisible sous la politique « héritage » de `document`.
+
+**5. UN POINT `photo` OBLIGATOIRE SANS PHOTO COMPTE DANS « CE QUI MANQUE »,** sans aucun changement à `etatDeCompletude` (`lib/checklists/completude.ts`) : elle ne regarde déjà que l'EXISTENCE d'une réponse pour le point, jamais quelle colonne il porte — une réponse `photo` n'existe qu'accompagnée d'au moins une photo (point 2), donc le critère existant suffit sans modification.
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucun gabarit n'est semé par ce ticket — les points qui utiliseront ce type seront désignés à la saisie des gabarits (CK10, un lot ultérieur). Le bouton « Envoyer la photo » et « Supprimer » des photos d'intervention (B10) ne changent pas. Les cinq autres types de réponse ne changent pas.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où une checklist a besoin qu'une photo porte sa PROPRE légende éditable après coup (distincte de celle de l'outil Photos), ou qu'un point exige un NOMBRE MINIMUM de photos supérieur à un, cette décision se rouvre pour le nommer — elle ne l'anticipe pas.
+
+**Règles amendées :** aucune — le sixième type est un fait de schéma (D238/D235 l'avaient déjà annoncé différé) ; chapitre 11.2 (modèle de données) complété pour `checklist_reponse` (colonne `valeur_photo`) et `checklist_reponse_photo` (table neuve).
+
+Portée : `prisma/schema.prisma`, `prisma/migrations/20261112180000_checklist_reponse_photo_9k28/`, `lib/checklists/depot.ts` (`enregistrerReponsePhoto`, `ReponseDeChecklist.nombrePhotos`, `RenduReponseChecklistBon` « photo »), `lib/checklists/saisie.ts`, `lib/checklists/validation-reponse.ts`, `lib/checklists/presentation.ts`, `lib/documents/depot.ts` (`deposerPhotoIntervention`), `app/api/terrain/[id]/photos/route.ts`, `lib/terrain/file-saisies.ts` (`GestePhoto.checklistPointId`), `lib/terrain/envoi-file.ts`, `components/interventions/photos-terrain.tsx`, `components/terrain/checklist-terrain.tsx`, `components/terrain/consultation-hors-reseau.tsx`, `components/interventions/bon-tuiles.tsx`, `app/(back-office)/interventions/[id]/page.tsx`, `app/(back-office)/parametres/checklists/[id]/version/editeur-version.tsx` (lu, générique), `lib/i18n/fr.ts`, `docs/cahier-des-charges.md` (chapitre 11.2), `scripts/lib/politiques-rls.ts`, `lib/db/migrations-attendues.ts`, `tests/unit/checklists/validation-reponse.test.ts`, `tests/unit/checklists/saisie.test.ts`, `tests/unit/db/inventaire.test.ts`, `tests/unit/db/perimetre-audit.test.ts`, `tests/isolation/portail-matrice.test.ts`, `tests/isolation/9k28-checklist-reponse-photo.test.ts`, `tests/isolation/fixtures/base-agee/20261112180000_checklist_reponse_photo_9k28.sql`.

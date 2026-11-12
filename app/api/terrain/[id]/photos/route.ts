@@ -85,7 +85,9 @@ function classeSaisie(valeur: FormDataEntryValue | null): ClasseDocument {
  * point d'une photo ordinaire. Absent ou mal formé, traité comme absent —
  * même famille que `operationIdDuFormulaire` ci-dessous.
  */
-function checklistPointIdDuFormulaire(formulaire: FormData): string | undefined {
+function checklistPointIdDuFormulaire(
+  formulaire: FormData,
+): string | undefined {
   const valeur = formulaire.get("checklist_point_id");
   if (typeof valeur !== "string") {
     return undefined;

@@ -1226,8 +1226,7 @@ export async function enregistrerReponses(
 }
 
 export type EcritureReponsePhoto =
-  | { readonly id: string }
-  | { readonly refuse: true; readonly cle: string };
+  { readonly id: string } | { readonly refuse: true; readonly cle: string };
 
 /**
  * LIE UNE PHOTO DÉJÀ DÉPOSÉE À UN POINT `photo` (9K28-CHECKLIST-REPONSE-
@@ -1289,6 +1288,23 @@ export async function enregistrerReponsePhoto(
     },
   });
   if (point === null || point.type_reponse !== "photo") {
+    return { refuse: true, cle: "checklist.refus.point_hors_version" };
+  }
+
+  // LA PHOTO EST DE CETTE INTERVENTION, JAMAIS D'UNE AUTRE — vérifié ICI,
+  // en plus de la clé étrangère composite qui ferme déjà l'autre SOCIÉTÉ
+  // (`checklist_reponse_photo_societe_id_document_id_fkey`) : rien dans le
+  // schéma n'empêche par ailleurs un document de la MÊME société mais d'une
+  // AUTRE intervention. `deposerPhotoIntervention` ne passe toujours que le
+  // document qu'il vient lui-même de résoudre POUR cette intervention, mais
+  // cette fonction est appelable directement (même patron que
+  // `checklistDuBon`) : le refus se tient ici, pas seulement chez son seul
+  // appelant actuel.
+  const document = await tx.document.findFirst({
+    where: { id: params.documentId },
+    select: { intervention_id: true },
+  });
+  if (document === null || document.intervention_id !== params.interventionId) {
     return { refuse: true, cle: "checklist.refus.point_hors_version" };
   }
 
