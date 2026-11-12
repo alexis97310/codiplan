@@ -2,11 +2,12 @@
 
 Décision verbatim d'Alexis du 11/11/2026 ~08h05, atelier des check-lists : « Oui, dès
 maintenant » — revient sur le report du 29/10 inscrit au commentaire de `TypeReponseChecklist`
-par 9K18-CHECKLIST-DOMAINE. Écrite en entier : `docs/arbitrages.md` D244.
+par 9K18-CHECKLIST-DOMAINE. Écrite en entier : `docs/arbitrages.md` D245 (renumérotée depuis D244
+lors de la reprise 9K28B — voir plus bas, « Reprise 9K28B »).
 
 ## MIGRATION À JOUER par Alexis : staging puis DB migrate & seed, puis Vercel
 
-**`20261111090000_checklist_reponse_photo_9k28`** — une seule migration neuve. Elle AJOUTE : la
+**`20261112180000_checklist_reponse_photo_9k28`** — une seule migration neuve. Elle AJOUTE : la
 valeur `photo` à l'énumération `TypeReponseChecklist`, la colonne `checklist_reponse.valeur_photo`
 (booléen, exclusivité reposée sur SIX colonnes), la table `checklist_reponse_photo` (RLS, verrou
 portail écriture, déclencheur d'audit). Elle ne modifie aucune migration déjà appliquée.
@@ -121,7 +122,7 @@ définition du §5.
 
 ## Portée (fichiers touchés)
 
-Voir `docs/arbitrages.md` D244, section « Portée ».
+Voir `docs/arbitrages.md` D245, section « Portée ».
 
 ## Reprise 9K28A (12/11/2026) — ce qui a été fait, et ce qui reste dû
 
@@ -192,5 +193,5 @@ interdits ici), corriger ce que l'épreuve révélera, prendre les captures, pui
 terminé au sens du §5.
 
 **MIGRATION À JOUER par Alexis : staging puis DB migrate & seed, puis Vercel** —
-**`20261111090000_checklist_reponse_photo_9k28`**, inchangée depuis 9K28 (voir l'encadré en tête
+**`20261112180000_checklist_reponse_photo_9k28`**, inchangée depuis 9K28 (voir l'encadré en tête
 de ce document) ; pas encore jouée en production.
