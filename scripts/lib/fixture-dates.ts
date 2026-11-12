@@ -59,7 +59,12 @@ export const FEUILLES_VIDES: readonly string[] = ["1-Demandes SAV", "2-Divers"];
  * la plus ancienne ; un dernier n'est porté qu'une fois, sur la plus récente.
  */
 export const RELEVE_FIXTURE_DATES = [
-  { serie: 42005, feuille: "5-Observations VGP", ref: "B2", jour: "2015-01-01" },
+  {
+    serie: 42053,
+    feuille: "5-Observations VGP",
+    ref: "B2",
+    jour: "2015-02-18",
+  },
   { serie: 43534, feuille: "3-Parc machines", ref: "C3", jour: "2019-03-10" },
   { serie: 43534, feuille: "6-Historique", ref: "D3", jour: "2019-03-10" },
   { serie: 44399, feuille: "3-Parc machines", ref: "C4", jour: "2021-07-22" },

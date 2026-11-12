@@ -6,7 +6,10 @@ import { describe, expect, it } from "vitest";
 
 import { lireDate } from "@/lib/excel/format";
 import { lireArchiveStricte } from "../../../scripts/lib/archive-zip";
-import { REF_ZERO, RELEVE_FIXTURE_DATES } from "../../../scripts/lib/fixture-dates";
+import {
+  REF_ZERO,
+  RELEVE_FIXTURE_DATES,
+} from "../../../scripts/lib/fixture-dates";
 
 /**
  * LA FIXTURE DE DATES — CALCULÉE, et entièrement inventée (9L00, D244).

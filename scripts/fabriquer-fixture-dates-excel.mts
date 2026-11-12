@@ -108,8 +108,7 @@ const CLASSEUR =
   ' xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
   "<sheets>" +
   NOMS_FEUILLES.map(
-    (nom, i) =>
-      `<sheet name="${nom}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`,
+    (nom, i) => `<sheet name="${nom}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`,
   ).join("") +
   "</sheets></workbook>";
 
@@ -155,8 +154,7 @@ const DOCUMENTS: ReadonlyArray<readonly [string, string]> = [
   ["xl/styles.xml", STYLES],
   ["xl/sharedStrings.xml", SHARED_STRINGS],
   ...NOMS_FEUILLES.map(
-    (nom, i) =>
-      [`xl/worksheets/sheet${i + 1}.xml`, feuilleXml(nom)] as const,
+    (nom, i) => [`xl/worksheets/sheet${i + 1}.xml`, feuilleXml(nom)] as const,
   ),
 ];
 
