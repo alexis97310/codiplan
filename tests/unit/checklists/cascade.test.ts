@@ -18,7 +18,7 @@ function candidat(
 ): CandidatGabarit {
   return {
     checklistModeleId: `modele-${partiel.code}`,
-    typeIntervention: null,
+    typesIntervention: [],
     modeleId: null,
     sousTypeId: null,
     familleId: null,
@@ -86,7 +86,7 @@ describe("les cinq niveaux, du plus au moins précis", () => {
   it("sans aucun rattachement matériel, la nature seule gagne sur le générique", () => {
     const candidats = [
       candidat({ code: "GENERIQUE" }),
-      candidat({ code: "NATURE", typeIntervention: "curatif" }),
+      candidat({ code: "NATURE", typesIntervention: ["curatif"] }),
     ];
     const resolu = resoudreGabarit(CONTEXTE_AVEC_MACHINE, candidats);
     expect(resolu).toEqual({
@@ -115,7 +115,7 @@ describe("le filtre par NATURE vient d'abord, indépendamment du niveau matérie
       candidat({
         code: "MAUVAISE-NATURE",
         modeleId: "modele-machine-1",
-        typeIntervention: "preventif_contrat",
+        typesIntervention: ["preventif_contrat"],
       }),
       candidat({ code: "GENERIQUE" }),
     ];
@@ -131,7 +131,7 @@ describe("le filtre par NATURE vient d'abord, indépendamment du niveau matérie
       candidat({
         code: "UNIVERSEL",
         familleId: "famille-1",
-        typeIntervention: null,
+        typesIntervention: [],
       }),
     ];
     expect(

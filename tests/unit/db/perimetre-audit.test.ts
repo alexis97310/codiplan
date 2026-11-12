@@ -298,6 +298,12 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
       // `checklist_version`, de forme « interne », qu'aucun compte portail ne
       // lit mais qui restent des tables métier cloisonnées au sens de I1.
       "checklist_modele",
+      // `checklist_modele_type_intervention` s'y ajoute au ticket 9K30A-
+      // CHECKLIST-GABARITS-VALIDES, par le même chemin : première catégorie
+      // de I1, donc auditée à sa naissance. « Qui a rattaché ce type à ce
+      // modèle, et quand » est exactement la question qu'un litige sur une
+      // checklist pose.
+      "checklist_modele_type_intervention",
       "checklist_point",
       "checklist_reponse",
       // `checklist_reponse_photo` s'y ajoute au ticket 9K28-CHECKLIST-

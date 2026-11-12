@@ -4989,8 +4989,13 @@ export const fr = {
     "Le contenu des contrôles, rattaché à une nature d'intervention et, au plus, à un sous-type, une famille ou un modèle de machine.",
   "checklist.parametrage.code": "Code",
   "checklist.parametrage.libelle": "Libellé",
-  "checklist.parametrage.type_intervention": "Nature d'intervention",
+  // Case à cocher (9K30A — AMENDE D235 : une liste de types, jamais un seul)
+  // — même idiome que « prestations.types »/« prestations.types_tous_indice ».
+  "checklist.parametrage.types_intervention": "Types d'intervention",
+  "checklist.parametrage.types_intervention_indice":
+    "Aucun type coché = proposé pour tous les types",
   "checklist.parametrage.type_intervention_toutes": "Toutes",
+  "checklist.parametrage.colonne_types": "Types",
   "checklist.parametrage.sous_type": "Sous-type",
   "checklist.parametrage.sous_type_aucun": "Aucun",
   "checklist.parametrage.sous_type_non_lisible": "Sous-type non lisible",
@@ -5050,6 +5055,10 @@ export const fr = {
   "checklist.parametrage.partir_gabarit": "Partir d'un gabarit de départ",
   "checklist.parametrage.partir_gabarit_action": "Créer",
   "checklist.parametrage.gabarit": "Gabarit de départ",
+  // Suggestion affichée (9K30A) — un TEXTE, jamais un identifiant : la
+  // société choisit SON sous-type ou SA famille après coup.
+  "checklist.parametrage.rattachement_suggere_prefixe": "Rattachement suggéré",
+  "checklist.parametrage.rattachement_suggere_aucun": "Aucun (générique)",
   "checklist.parametrage.refus.gabarit_inconnu":
     "Ce gabarit de départ n'existe pas.",
 

@@ -12,12 +12,14 @@ import type { TypeIntervention } from "@/lib/interventions/saisie";
  *
  * ## LE FILTRE PAR NATURE VIENT D'ABORD, ET IL EST À PART DES QUATRE NIVEAUX
  *
- * `type_intervention` est une colonne INDÉPENDANTE du triplet modèle / sous-
- * type / famille (au plus un des trois, par la contrainte de base posée en
- * 9K17A) : un candidat dont la nature est renseignée et NE correspond PAS à
- * celle de l'intervention est exclu d'emblée, quel que soit son niveau de
- * rattachement matériel. Un candidat dont la nature est `null` est UNIVERSEL
- * — il passe le filtre pour toute nature.
+ * `typesIntervention` (9K30A — une LISTE, jamais un seul type, D235 amendée
+ * une seconde fois par le même raisonnement que D243 pour `prestation.
+ * types`) est INDÉPENDANTE du triplet modèle / sous-type / famille (au plus
+ * un des trois, par la contrainte de base posée en 9K17A) : un candidat dont
+ * la liste est NON VIDE et ne contient PAS la nature de l'intervention est
+ * exclu d'emblée, quel que soit son niveau de rattachement matériel. Un
+ * candidat dont la liste est VIDE est UNIVERSEL — il passe le filtre pour
+ * toute nature.
  *
  * ## CINQ NIVEAUX, DU PLUS AU MOINS PRÉCIS
  *
@@ -53,7 +55,8 @@ export type ProvenanceGabarit =
 export type CandidatGabarit = {
   readonly checklistModeleId: string;
   readonly code: string;
-  readonly typeIntervention: TypeIntervention | null;
+  /** VIDE = vaut pour TOUS les types (9K30A, D235 amendée). */
+  readonly typesIntervention: readonly TypeIntervention[];
   readonly modeleId: string | null;
   readonly sousTypeId: string | null;
   readonly familleId: string | null;
@@ -98,7 +101,7 @@ function niveauDuCandidat(
   }
   // Aucun rattachement matériel : la nature seule porte le niveau — déjà
   // confrontée au filtre `passeLeFiltreDeNature` avant d'arriver ici.
-  return candidat.typeIntervention !== null ? "type_seul" : "generique";
+  return candidat.typesIntervention.length > 0 ? "type_seul" : "generique";
 }
 
 function passeLeFiltreDeNature(
@@ -106,8 +109,8 @@ function passeLeFiltreDeNature(
   contexte: ContexteResolutionGabarit,
 ): boolean {
   return (
-    candidat.typeIntervention === null ||
-    candidat.typeIntervention === contexte.typeIntervention
+    candidat.typesIntervention.length === 0 ||
+    candidat.typesIntervention.includes(contexte.typeIntervention)
   );
 }
 

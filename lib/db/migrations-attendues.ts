@@ -159,4 +159,5 @@ export const MIGRATIONS_ATTENDUES: readonly string[] = [
   "20261110140000_checklist_cinq_types_reponse_9k18",
   "20261111090000_prestations_par_type_intervention_9k29",
   "20261112180000_checklist_reponse_photo_9k28",
+  "20261112200000_checklist_modele_types_intervention_9k30a",
 ];

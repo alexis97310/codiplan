@@ -25,6 +25,7 @@ import {
 } from "@/lib/checklists/depot";
 import { GABARITS_DE_DEPART } from "@/lib/checklists/gabarits-de-depart";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
+import { VoletPartirGabarit } from "./volet-partir-gabarit";
 import {
   listerLesFamilles,
   listerLesModeles,
@@ -163,6 +164,9 @@ export default async function PageChecklists({
                       )}
                     </Cellule>
                     <Cellule>
+                      {libellesDesTypesChecklist(modele.typesIntervention)}
+                    </Cellule>
+                    <Cellule>
                       {modele.exigeMachine
                         ? t("checklist.parametrage.oui")
                         : t("checklist.parametrage.non")}
@@ -221,7 +225,9 @@ export default async function PageChecklists({
           })()
         : null}
 
-      {volet === "gabarit" ? <VoletPartirGabarit /> : null}
+      {volet === "gabarit" ? (
+        <VoletPartirGabarit gabarits={GABARITS_DE_DEPART} />
+      ) : null}
     </Page>
   );
 }
@@ -234,6 +240,11 @@ function colonnes() {
       cle: "rattachement",
       libelle: t("checklist.parametrage.rattachement"),
       largeur: "200px",
+    },
+    {
+      cle: "types",
+      libelle: t("checklist.parametrage.colonne_types"),
+      largeur: "160px",
     },
     {
       cle: "exige_machine",
@@ -280,6 +291,18 @@ function rattachementLisible(
     );
   }
   return t("checklist.parametrage.rattachement_aucun");
+}
+
+/**
+ * « Toutes » quand VIDE (9K30A, D235 amendée) — jamais une liste vide qui
+ * aurait l'air d'un oubli. Même idiome que `libellesDesTypes`, `app/
+ * (back-office)/parametres/prestations/page.tsx` (9K29, D243).
+ */
+function libellesDesTypesChecklist(types: readonly TypeIntervention[]): string {
+  if (types.length === 0) {
+    return t("checklist.parametrage.type_intervention_toutes");
+  }
+  return types.map((type) => libelleTypeIntervention(type)).join(", ");
 }
 
 /** « Version n°2 » — composé hors du JSX (L0-11), ou l'absence. */
@@ -349,6 +372,11 @@ function CarteModeleChecklist({
           {t("checklist.parametrage.rattachement")}
           {t("ponctuation.deux_points")}
           {rattachement}
+        </div>
+        <div className="text-app-encre-faible text-12 font-bold">
+          {t("checklist.parametrage.colonne_types")}
+          {t("ponctuation.deux_points")}
+          {libellesDesTypesChecklist(modele.typesIntervention)}
         </div>
         <div className="text-12 font-bold">{versionAffichee(modele)}</div>
         <ActionsLigne modele={modele} />
@@ -451,7 +479,7 @@ function VoletDupliquerModele({
           sousTypes={sousTypes}
           familles={familles}
           machinesModeles={machinesModeles}
-          typeIntervention={source.typeIntervention ?? undefined}
+          typesIntervention={source.typesIntervention}
           sousTypeId={
             source.rattachement.niveau === "sous_type"
               ? source.rattachement.id
@@ -485,73 +513,12 @@ function VoletDupliquerModele({
   );
 }
 
-/**
- * PARTIR D'UN GABARIT DE DÉPART (9K20-CHECKLIST-DUPLIQUER-DEPART) — un seul
- * champ propre à cet écran, le choix du gabarit (`lib/checklists/gabarits-
- * de-depart.ts`, liste close) ; code et libellé comme pour toute création.
- * Ni nature ni rattachement : voir le commentaire du module de gabarits.
- */
-function VoletPartirGabarit() {
-  return (
-    <Volet
-      surtitre={t("checklist.parametrage.titre")}
-      titre={t("checklist.parametrage.partir_gabarit")}
-      hrefFermer="/parametres/checklists"
-    >
-      <form
-        action="/api/parametres/checklists/gabarit"
-        method="post"
-        className="flex flex-col gap-3"
-      >
-        <div className="flex flex-col gap-1">
-          <label
-            htmlFor="gabarit_id"
-            className="text-app-encre-faible text-12 font-bold"
-          >
-            {t("checklist.parametrage.gabarit")}
-          </label>
-          <select
-            id="gabarit_id"
-            name="gabarit_id"
-            defaultValue={GABARITS_DE_DEPART[0]?.id}
-            className="border-app-bord bg-app-surface min-w-44 rounded-md border px-2 py-1 text-13 font-bold"
-          >
-            {GABARITS_DE_DEPART.map((gabarit) => (
-              <option key={gabarit.id} value={gabarit.id}>
-                {gabarit.libelle}
-              </option>
-            ))}
-          </select>
-        </div>
-        <Champ id="code" nom="code" libelle={t("checklist.parametrage.code")} />
-        <Champ
-          id="libelle"
-          nom="libelle"
-          libelle={t("checklist.parametrage.libelle")}
-          large
-        />
-        <div className="flex justify-end gap-2">
-          <Link
-            href="/parametres/checklists"
-            className="border-app-bord rounded-md border px-3 py-1.5 text-13 font-bold"
-          >
-            {t("checklist.parametrage.annuler")}
-          </Link>
-          <ActionPrimaire>
-            {t("checklist.parametrage.partir_gabarit_action")}
-          </ActionPrimaire>
-        </div>
-      </form>
-    </Volet>
-  );
-}
-
 /** Les champs de nature et de rattachement, partagés par création et duplication. */
 function ChampsRattachementEtNature({
   sousTypes,
   familles,
   machinesModeles,
-  typeIntervention,
+  typesIntervention,
   sousTypeId,
   familleId,
   modeleId,
@@ -560,7 +527,7 @@ function ChampsRattachementEtNature({
   readonly sousTypes: readonly LigneSousType[];
   readonly familles: readonly LigneFamille[];
   readonly machinesModeles: readonly LigneModele[];
-  readonly typeIntervention?: TypeIntervention;
+  readonly typesIntervention?: readonly TypeIntervention[];
   readonly sousTypeId?: string;
   readonly familleId?: string;
   readonly modeleId?: string;
@@ -568,29 +535,26 @@ function ChampsRattachementEtNature({
 }) {
   return (
     <>
-      <div className="flex flex-col gap-1">
-        <label
-          htmlFor="type_intervention"
-          className="text-app-encre-faible text-12 font-bold"
-        >
-          {t("checklist.parametrage.type_intervention")}
-        </label>
-        <select
-          id="type_intervention"
-          name="type_intervention"
-          defaultValue={typeIntervention ?? ""}
-          className="border-app-bord bg-app-surface min-w-44 rounded-md border px-2 py-1 text-13 font-bold"
-        >
-          <option value="">
-            {t("checklist.parametrage.type_intervention_toutes")}
-          </option>
+      <fieldset className="flex basis-full flex-col gap-1">
+        <legend className="text-app-encre-faible text-12 font-bold">
+          {t("checklist.parametrage.types_intervention")}
+        </legend>
+        <div className="flex flex-wrap gap-2">
           {TYPES_INTERVENTION.map((type) => (
-            <option key={type} value={type}>
-              {libelleTypeIntervention(type)}
-            </option>
+            <CaseACocher
+              key={type}
+              name="types_intervention"
+              value={type}
+              defaultChecked={typesIntervention?.includes(type) ?? false}
+              libelle={libelleTypeIntervention(type)}
+              className="flex items-center gap-1.5 text-13 font-bold"
+            />
           ))}
-        </select>
-      </div>
+        </div>
+        <p className="text-app-encre-faible text-12 font-bold">
+          {t("checklist.parametrage.types_intervention_indice")}
+        </p>
+      </fieldset>
       <SelectRattachement
         id="sous_type_id"
         libelle={t("checklist.parametrage.sous_type")}

@@ -4,7 +4,6 @@ import {
   Prisma,
   type PrismaClient,
   type ReponseConformite,
-  type TypeIntervention,
   type TypeReponseChecklist,
 } from "@prisma/client";
 
@@ -95,7 +94,8 @@ export type SaisiePointChecklist = {
 export type SaisieModeleChecklist = {
   readonly code: string;
   readonly libelle: string;
-  readonly typeIntervention?: TypeIntervention;
+  /** VIDE = proposé pour TOUS les types (9K30A, D235 amendée). */
+  readonly typesIntervention?: readonly TypeInterventionSaisie[];
   readonly sousTypeId?: string;
   readonly familleId?: string;
   readonly modeleId?: string;
@@ -191,11 +191,17 @@ export async function creerModele(
           societe_id: societeId,
           code: saisie.code,
           libelle: saisie.libelle,
-          type_intervention: saisie.typeIntervention ?? null,
           sous_type_id: saisie.sousTypeId ?? null,
           famille_id: saisie.familleId ?? null,
           modele_id: saisie.modeleId ?? null,
           exige_machine: saisie.exigeMachine ?? false,
+          types: {
+            create: (saisie.typesIntervention ?? []).map((type) => ({
+              id: uuidv7(),
+              societe_id: societeId,
+              type_intervention: type,
+            })),
+          },
         },
       }),
     client,
@@ -394,7 +400,8 @@ export type LigneModeleChecklist = {
   readonly id: string;
   readonly code: string;
   readonly libelle: string;
-  readonly typeIntervention: TypeIntervention | null;
+  /** VIDE = proposé pour TOUS les types (9K30A, D235 amendée). */
+  readonly typesIntervention: readonly TypeInterventionSaisie[];
   readonly rattachement: RattachementChecklist;
   readonly exigeMachine: boolean;
   readonly actif: boolean;
@@ -434,7 +441,7 @@ export async function listerLesModelesChecklist(
           id: true,
           code: true,
           libelle: true,
-          type_intervention: true,
+          types: { select: { type_intervention: true } },
           sous_type_id: true,
           famille_id: true,
           modele_id: true,
@@ -458,7 +465,9 @@ export async function listerLesModelesChecklist(
     id: modele.id,
     code: modele.code,
     libelle: modele.libelle,
-    typeIntervention: modele.type_intervention as TypeIntervention | null,
+    typesIntervention: modele.types.map(
+      (type) => type.type_intervention as TypeInterventionSaisie,
+    ),
     rattachement: rattachementDe(modele),
     exigeMachine: modele.exige_machine,
     actif: modele.actif,
@@ -616,7 +625,11 @@ export type ResultatCreationDepuisGabarit =
 export async function creerModeleDepuisGabarit(
   contexte: ContexteSession,
   gabaritId: string,
-  saisie: { readonly code: string; readonly libelle: string },
+  saisie: {
+    readonly code: string;
+    readonly libelle: string;
+    readonly typesIntervention?: readonly TypeInterventionSaisie[];
+  },
   client?: PrismaClient,
 ): Promise<ResultatCreationDepuisGabarit> {
   const gabarit = gabaritDeDepart(gabaritId);
@@ -652,7 +665,7 @@ async function candidatsActifs(
     select: {
       id: true,
       code: true,
-      type_intervention: true,
+      types: { select: { type_intervention: true } },
       modele_id: true,
       sous_type_id: true,
       famille_id: true,
@@ -662,7 +675,9 @@ async function candidatsActifs(
   return modeles.map((modele) => ({
     checklistModeleId: modele.id,
     code: modele.code,
-    typeIntervention: modele.type_intervention as TypeInterventionSaisie | null,
+    typesIntervention: modele.types.map(
+      (type) => type.type_intervention as TypeInterventionSaisie,
+    ),
     modeleId: modele.modele_id,
     sousTypeId: modele.sous_type_id,
     familleId: modele.famille_id,

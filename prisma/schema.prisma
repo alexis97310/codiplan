@@ -234,6 +234,7 @@ model Societe {
   checklistPoints              ChecklistPoint[]
   checklistReponses            ChecklistReponse[]
   checklistReponsePhotos       ChecklistReponsePhoto[] @ignore
+  checklistModeleTypes         ChecklistModeleTypeIntervention[]
 
   @@map("societe")
 }
@@ -2704,21 +2705,18 @@ enum ReponseConformite {
 /// DE TRAVAILLER de la société (même motif que `Prestation.duree_standard_min`
 /// juste au-dessus).
 ///
-/// Rattachement à un SEUL type d'intervention, nullable — jamais un tableau :
-/// aucune colonne de ce dépôt ne porte un tableau d'énumération (mesuré au
-/// ticket 9K08 ; seul `contact.canaux` porte un `String[]`, et il n'est pas
-/// typé). Un contrôle qui s'appliquerait à plusieurs types se pose donc comme
-/// PLUSIEURS modèles, un code chacun, plutôt qu'un modèle à rattachements
-/// multiples — la cascade de résolution (modèle précis > famille > type seul
-/// > aucun, CK2, hors territoire ici) n'en a pas besoin pour fonctionner.
+/// Rattachement à zéro, un ou plusieurs types d'intervention, par une TABLE
+/// DE RELATION (9K30A, décision d'Alexis du 12/11/2026 ~17h10) — AMENDE D235
+/// (qui posait une colonne scalaire nullable, un seul type) dans ce seul
+/// sens. VIDE = vaut pour TOUS les types, même sens que l'ancien `null`. Voir
+/// le docblock de `ChecklistModeleTypeIntervention`, qui reprend le
+/// raisonnement complet par rapport à `PrestationTypeIntervention` (D243).
 model ChecklistModele {
   id         String @id @db.Uuid
   societe_id String @db.Uuid
 
   code    String
   libelle String
-
-  type_intervention TypeIntervention?
 
   /// La famille visée, FACULTATIVE — même régime que `Prestation.famille_id`.
   famille_id   String? @db.Uuid
@@ -2751,6 +2749,9 @@ model ChecklistModele {
   sous_type SousTypeMateriel?  @relation(fields: [societe_id, sous_type_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
   modele    ModeleMateriel?    @relation(fields: [societe_id, modele_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
   versions  ChecklistVersion[]
+  /// Les types d'intervention où ce modèle est proposé (9K30A). VIDE = tous
+  /// les types — voir le docblock de `ChecklistModeleTypeIntervention`.
+  types     ChecklistModeleTypeIntervention[]
 
   /// AU PLUS UN niveau de rattachement parmi modèle / sous-type / famille
   /// (9K17A, décision d'Alexis du 10/11/2026) — contrainte CHECK posée en
@@ -2762,6 +2763,53 @@ model ChecklistModele {
   @@index([societe_id, sous_type_id])
   @@index([societe_id, modele_id])
   @@map("checklist_modele")
+}
+
+/// LES TYPES D'INTERVENTION OÙ UN MODÈLE DE CHECKLIST EST PROPOSÉ (9K30A,
+/// décision d'Alexis du 12/11/2026 ~17h10 — « table de liaison »). VIDE =
+/// proposé pour TOUS les types — même sens que l'ancien `type_intervention`
+/// nullable qu'elle remplace (D235, D243). Reprise des données de la
+/// migration : une valeur non nulle devient une ligne, `null` ne devient
+/// aucune ligne.
+///
+/// **TABLE DE RELATION, sur le modèle EXACT de `PrestationTypeIntervention`
+/// (D243)** — à la différence du triplet modèle / sous-type / famille
+/// (AU PLUS UN, parce qu'un contrôle qui viserait plusieurs niveaux
+/// matériels se poserait comme PLUSIEURS modèles), un modèle de checklist
+/// peut viser ZÉRO, UN ou PLUSIEURS types À LA FOIS SANS POUVOIR SE
+/// DÉDOUBLER par son `code`, unique par société — exactement le raisonnement
+/// qui a fait naître `PrestationTypeIntervention`. Cette table AMENDE D235
+/// dans ce seul sens : la colonne scalaire nullable qu'elle avait tranchée
+/// est remplacée, pour ce rattachement précis, par une table de relation.
+///
+/// Forme de politique « filiation » (D103), chaînée sur `checklist_modele`
+/// (forme « interne », D94) — exactement comme `checklist_version` : une
+/// fille est visible si son parent l'est, et aucune clause de société propre
+/// n'est ajoutée. Le chaînage se ferme tout seul sous un contexte portail :
+/// la politique du parent exige déjà l'absence de `app.client_id`, donc
+/// aucune politique de verrou supplémentaire n'est nécessaire ici (à la
+/// différence de `PrestationTypeIntervention`, dont le parent `prestation`
+/// reste lisible au portail).
+model ChecklistModeleTypeIntervention {
+  id                  String @id @db.Uuid
+  societe_id          String @db.Uuid
+  checklist_modele_id String @db.Uuid
+
+  type_intervention TypeIntervention
+
+  cree_le DateTime @default(now()) @db.Timestamptz(3)
+
+  societe Societe         @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  /// `Cascade` : une ligne « ce modèle vise ce type » n'a aucune vie propre
+  /// sans son modèle (même raisonnement que `PrestationTypeIntervention`
+  /// vers `prestation`). Sans effet aujourd'hui — un modèle de checklist
+  /// n'est jamais supprimé, seulement désactivé (D235) —, et ce n'est pas une
+  /// raison de choisir `Restrict` par confort.
+  modele  ChecklistModele @relation(fields: [societe_id, checklist_modele_id], references: [societe_id, id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@unique([checklist_modele_id, type_intervention])
+  @@index([societe_id, checklist_modele_id])
+  @@map("checklist_modele_type_intervention")
 }
 
 /// UNE VERSION, JAMAIS MODIFIÉE UNE FOIS PUBLIÉE (D235) — « modifier » publie

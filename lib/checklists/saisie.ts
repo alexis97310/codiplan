@@ -23,10 +23,29 @@ import { TYPES_INTERVENTION } from "@/lib/interventions/saisie";
 /** Un texte obligatoire, une fois les espaces de bordure retirés. */
 const texteNonVide = z.string().trim().min(1);
 
+/**
+ * LES TYPES D'INTERVENTION OÙ UN MODÈLE EST PROPOSÉ (9K30A, D235 amendée une
+ * seconde fois, même raisonnement que D243 pour `prestation.types`) — VIDE =
+ * TOUS. Sans doublon : la base le garantit déjà (`@@unique
+ * ([checklist_modele_id, type_intervention])`), mais une saisie qui en
+ * porterait un ferait écrire UN modèle deux fois le MÊME type, pour rien.
+ *
+ * Exportée séparément : `saisieGabaritRecue` (« Partir d'un gabarit de
+ * départ ») valide les MÊMES cases à cocher que la création d'un modèle,
+ * jamais une seconde règle qui diverge en silence (§9, 01/09).
+ */
+export const schemaTypesIntervention = z
+  .array(z.enum(TYPES_INTERVENTION))
+  .refine(
+    (types) => new Set(types).size === types.length,
+    "un type d'intervention ne se coche pas deux fois",
+  )
+  .default([]);
+
 export const schemaModeleChecklist = z.object({
   code: texteNonVide,
   libelle: texteNonVide,
-  typeIntervention: z.enum(TYPES_INTERVENTION).nullable().default(null),
+  typesIntervention: schemaTypesIntervention,
   sousTypeId: z.uuid().nullable().default(null),
   familleId: z.uuid().nullable().default(null),
   modeleId: z.uuid().nullable().default(null),

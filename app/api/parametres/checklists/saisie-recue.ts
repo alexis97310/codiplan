@@ -1,9 +1,11 @@
 import {
   schemaModeleChecklist,
+  schemaTypesIntervention,
   schemaVersionChecklist,
   type SaisieModeleChecklist,
   type SaisiePointChecklist,
 } from "@/lib/checklists/saisie";
+import type { TypeIntervention } from "@/lib/interventions/saisie";
 
 import { champ } from "../../interventions/actions";
 
@@ -21,7 +23,11 @@ export function saisieModeleChecklistRecue(
   const analyse = schemaModeleChecklist.safeParse({
     code: champ(formulaire, "code") ?? "",
     libelle: champ(formulaire, "libelle") ?? "",
-    typeIntervention: champ(formulaire, "type_intervention"),
+    // AUCUNE CASE COCHÉE = PROPOSÉ POUR TOUS LES TYPES (9K30A) — même idiome
+    // que `exige_machine` : une case absente du corps vaut « décochée ».
+    typesIntervention: formulaire
+      .getAll("types_intervention")
+      .filter((valeur): valeur is string => typeof valeur === "string"),
     sousTypeId: champ(formulaire, "sous_type_id"),
     familleId: champ(formulaire, "famille_id"),
     modeleId: champ(formulaire, "modele_id"),
@@ -65,6 +71,7 @@ export function saisieGabaritRecue(formulaire: FormData): {
   readonly gabaritId: string;
   readonly code: string;
   readonly libelle: string;
+  readonly typesIntervention: readonly TypeIntervention[];
 } | null {
   const gabaritId = champ(formulaire, "gabarit_id");
   const code = champ(formulaire, "code");
@@ -72,7 +79,18 @@ export function saisieGabaritRecue(formulaire: FormData): {
   if (gabaritId === null || code === null || libelle === null) {
     return null;
   }
-  return { gabaritId, code, libelle };
+  // AUCUNE CASE COCHÉE = PROPOSÉ POUR TOUS LES TYPES (9K30A) — même idiome
+  // et même schéma que `saisieModeleChecklistRecue` : jamais une seconde
+  // règle de validation qui diverge en silence (§9, 01/09).
+  const analyseTypes = schemaTypesIntervention.safeParse(
+    formulaire
+      .getAll("types_intervention")
+      .filter((valeur): valeur is string => typeof valeur === "string"),
+  );
+  if (!analyseTypes.success) {
+    return null;
+  }
+  return { gabaritId, code, libelle, typesIntervention: analyseTypes.data };
 }
 
 /** Le retour vers l'écran, avec son motif s'il y en a un. */

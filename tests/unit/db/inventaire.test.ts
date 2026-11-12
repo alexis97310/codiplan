@@ -92,6 +92,7 @@ function ligne(surcharge: Partial<LigneInventaire> = {}): LigneInventaire {
       checklist_reponse: 0,
       checklist_reponse_photo: 0,
       prestation_type_intervention: 0,
+      checklist_modele_type_intervention: 0,
     },
     ...surcharge,
   };
@@ -156,6 +157,7 @@ function inventaire(surcharge: Partial<Inventaire> = {}): Inventaire {
         checklist_reponse: 0,
         checklist_reponse_photo: 0,
         prestation_type_intervention: 0,
+        checklist_modele_type_intervention: 0,
       },
     }),
   ];
@@ -252,6 +254,7 @@ describe("inventaire à plat", () => {
       // 9K29-PRESTATIONS-PAR-TYPE-INTERVENTION — même chemin : la table est
       // entrée le jour où elle est née.
       prestation_type_intervention: 0,
+      checklist_modele_type_intervention: 0,
     });
   });
 

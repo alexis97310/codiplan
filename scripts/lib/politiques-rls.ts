@@ -2635,6 +2635,17 @@ export const TABLES_FILIATION = [
     parent: "prestation",
     cle: "prestation_id",
   },
+  // `checklist_modele_type_intervention` REJOINT LA FILIATION au ticket
+  // 9K30A-CHECKLIST-GABARITS-VALIDES, 12/11/2026. Même raisonnement
+  // qu'`checklist_version` (D103) — chaînée sur `checklist_modele`, qui
+  // porte lui-même la forme « interne » : un rattachement (les types où un
+  // modèle est proposé) est visible si son modèle l'est, et aucune clause de
+  // société propre n'y est ajoutée.
+  {
+    table: "checklist_modele_type_intervention",
+    parent: "checklist_modele",
+    cle: "checklist_modele_id",
+  },
 ] as const;
 
 /** Les entrées que l'arbitrage autorise. Recopiées : c'est la doctrine. */
@@ -2670,6 +2681,9 @@ const FILIATION_ARBITREE = [
   // Ticket 9K29-PRESTATIONS-PAR-TYPE-INTERVENTION, 11/11/2026 — les types
   // d'intervention où une prestation du catalogue est proposée.
   "prestation_type_intervention",
+  // Ticket 9K30A-CHECKLIST-GABARITS-VALIDES, 12/11/2026 — les types
+  // d'intervention où un modèle de checklist est proposé.
+  "checklist_modele_type_intervention",
 ];
 
 /** Écarts de la liste « filiation » — additions comme retraits. */

@@ -215,6 +215,9 @@ const CLASSIFICATION_LECTURE: Record<string, ClassificationLecture> = {
   // « interne », donc l'EXISTS qui les ouvrirait rend toujours zéro.
   checklist_version: "fermee",
   checklist_point: "fermee",
+  // AJOUTÉE AU TICKET 9K30A — même chaînage fermé que ses deux voisines
+  // ci-dessus : parent `checklist_modele`, « interne ».
+  checklist_modele_type_intervention: "fermee",
   notification_lecture: "fermee",
   // AJOUTÉE AU TICKET 9K29 — forme « filiation » sur `prestation`, qui est
   // elle-même classée « societe » ci-dessous (un compte portail muni d'une

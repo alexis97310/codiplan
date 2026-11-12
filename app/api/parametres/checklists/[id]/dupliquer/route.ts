@@ -37,7 +37,7 @@ async function traiter(
   const resultat = await dupliquerModele(contexte, id, {
     code: saisie.code,
     libelle: saisie.libelle,
-    typeIntervention: saisie.typeIntervention ?? undefined,
+    typesIntervention: saisie.typesIntervention,
     sousTypeId: saisie.sousTypeId ?? undefined,
     familleId: saisie.familleId ?? undefined,
     modeleId: saisie.modeleId ?? undefined,

@@ -25,6 +25,7 @@ async function traiter(requete: Request): Promise<Response> {
   const resultat = await creerModeleDepuisGabarit(contexte, saisie.gabaritId, {
     code: saisie.code,
     libelle: saisie.libelle,
+    typesIntervention: saisie.typesIntervention,
   });
   return versLeReferentiel(
     resultat.accepte
