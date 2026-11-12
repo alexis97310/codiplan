@@ -289,6 +289,88 @@ describe("publierVersion — numéro qui incrémente, choix roundtrip, cloisonne
   });
 });
 
+describe("les types d'intervention d'un modèle (9K30A) — table de liaison", () => {
+  it("VIDE par défaut à la création — proposé pour tous les types", async () => {
+    const id = await creer(INTERNE_A, { code: "9K30A-TYPES-VIDE" });
+    try {
+      const liste = await listerLesModelesChecklist(INTERNE_A, clientApp());
+      const ligne = liste.find((m) => m.id === id);
+      expect(ligne?.typesIntervention).toEqual([]);
+
+      const lignes =
+        await clientOwner().checklistModeleTypeIntervention.findMany({
+          where: { checklist_modele_id: id },
+        });
+      expect(lignes).toHaveLength(0);
+    } finally {
+      await supprimerModele(id);
+    }
+  });
+
+  it("une liste de types est écrite à la création, et relue dans l'ordre demandé", async () => {
+    const id = await creer(INTERNE_A, {
+      code: "9K30A-TYPES-LISTE",
+      typesIntervention: ["preventif_contrat", "preventif_hors_contrat"],
+    });
+    try {
+      const liste = await listerLesModelesChecklist(INTERNE_A, clientApp());
+      const ligne = liste.find((m) => m.id === id);
+      expect(ligne?.typesIntervention.slice().sort()).toEqual([
+        "preventif_contrat",
+        "preventif_hors_contrat",
+      ]);
+    } finally {
+      await supprimerModele(id);
+    }
+  });
+
+  it("le même type coché deux fois sur le même modèle est refusé PAR LA BASE", async () => {
+    const owner = clientOwner();
+    const id = await creer(INTERNE_A, { code: "9K30A-TYPES-DOUBLON" });
+    try {
+      await owner.checklistModeleTypeIntervention.create({
+        data: {
+          id: "cccccccc-0000-7000-8000-000000009301",
+          societe_id: SOCIETE_A,
+          checklist_modele_id: id,
+          type_intervention: "curatif",
+        },
+      });
+      await expect(
+        owner.checklistModeleTypeIntervention.create({
+          data: {
+            id: "cccccccc-0000-7000-8000-000000009302",
+            societe_id: SOCIETE_A,
+            checklist_modele_id: id,
+            type_intervention: "curatif",
+          },
+        }),
+      ).rejects.toThrow();
+    } finally {
+      await supprimerModele(id);
+    }
+  });
+
+  it("société B ne LIT aucune ligne de type d'un modèle de A — forme filiation", async () => {
+    const owner = clientOwner();
+    const id = await creer(INTERNE_A, {
+      code: "9K30A-TYPES-CLOISONNEMENT",
+      typesIntervention: ["curatif"],
+    });
+    try {
+      const lignesOwner = await owner.checklistModeleTypeIntervention.findMany({
+        where: { checklist_modele_id: id },
+      });
+      expect(lignesOwner).toHaveLength(1);
+
+      const listeB = await listerLesModelesChecklist(INTERNE_B, clientApp());
+      expect(listeB.map((m) => m.id)).not.toContain(id);
+    } finally {
+      await supprimerModele(id);
+    }
+  });
+});
+
 describe("listerLesModelesChecklist et obtenirModeleChecklist — cloisonnement de lecture", () => {
   it("société B ne LIT aucun modèle de A, ni par la liste ni par l'en-tête", async () => {
     const id = await creer(INTERNE_A, { code: "9K19-LECTURE" });

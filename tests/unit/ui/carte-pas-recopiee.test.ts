@@ -199,7 +199,12 @@ const EXCEPTIONS: readonly Exception[] = [
     chemin: "app/(back-office)/parametres/checklists/page.tsx",
     categories: ["champ"],
     raison:
-      "les <select> de nature d'intervention et de rattachement (sous-type, famille, modèle)",
+      "les <select> de rattachement (sous-type, famille, modèle) — la nature d'intervention est passée en cases à cocher au 9K30A",
+  },
+  {
+    chemin: "app/(back-office)/parametres/checklists/volet-partir-gabarit.tsx",
+    categories: ["champ"],
+    raison: "le <select> du gabarit de départ (9K30A)",
   },
   {
     chemin:

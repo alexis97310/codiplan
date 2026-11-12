@@ -108,6 +108,19 @@ async function poserPoint(
   return pointId;
 }
 
+/** Une ligne de `checklist_modele_type_intervention` (9K30A) — CASCADE avec son modèle. */
+async function poserType(
+  societeId: string,
+  modeleId: string,
+  type: string,
+): Promise<void> {
+  await clientOwner().$executeRawUnsafe(
+    `INSERT INTO "checklist_modele_type_intervention"
+       ("id", "societe_id", "checklist_modele_id", "type_intervention")
+     VALUES ('${uuidv7()}', '${societeId}', '${modeleId}', '${type}')`,
+  );
+}
+
 async function supprimerModele(modeleId: string): Promise<void> {
   await clientOwner().$executeRawUnsafe(
     `DELETE FROM "checklist_reponse" WHERE "checklist_point_id" IN (
@@ -132,6 +145,8 @@ type InterventionJetable = {
   readonly technicienId: string | null;
   readonly statut?: string;
   readonly machineId?: string;
+  /** Défaut `curatif` — seul le scénario 9K30A a besoin d'une autre nature. */
+  readonly type?: string;
 };
 
 /** Une intervention JETABLE — jamais une du harnais partagé (voir l'en-tête). */
@@ -143,7 +158,7 @@ async function surUneInterventionJetable(
   await clientOwner().$executeRawUnsafe(
     `INSERT INTO "intervention"
        ("id", "societe_id", "client_id", "site_id", "agence_id", "type", "statut", "technicien_id", "duree_estimee_min", "modifie_le")
-     VALUES ('${id}', '${params.societeId}', '${params.clientId}', '${params.siteId}', '${params.agenceId}', 'curatif', '${params.statut ?? "planifiee"}', ${
+     VALUES ('${id}', '${params.societeId}', '${params.clientId}', '${params.siteId}', '${params.agenceId}', '${params.type ?? "curatif"}', '${params.statut ?? "planifiee"}', ${
        params.technicienId === null ? "NULL" : `'${params.technicienId}'`
      }, 60, now())`,
   );
@@ -495,6 +510,104 @@ describe("la cascade, de bout en bout, via le dépôt — niveau FAMILLE", () =>
           });
           if (checklist?.disponible === true) {
             expect(checklist.points.map((p) => p.id)).toEqual([pointFamille]);
+          }
+        },
+      );
+    } finally {
+      await supprimerModele(famille);
+      await supprimerModele(generique);
+    }
+  });
+});
+
+describe("la cascade, de bout en bout, via le dépôt — PLUSIEURS types à la fois (9K30A)", () => {
+  it("un modèle qui vise DEUX types résout pour chacun des deux — ici le second de la liste", async () => {
+    const { modeleId: generique } = await poserModeleEtVersion(
+      SOCIETE_A,
+      "ISO-9K30A-GENERIQUE",
+    );
+    const { modeleId: famille, versionId: versionFamille } =
+      await poserModeleEtVersion(SOCIETE_A, "ISO-9K30A-DEUX-TYPES", {
+        famille_id: FAMILLE_A,
+      });
+    await poserType(SOCIETE_A, famille, "preventif_contrat");
+    await poserType(SOCIETE_A, famille, "preventif_hors_contrat");
+    const pointFamille = await poserPoint(
+      SOCIETE_A,
+      versionFamille,
+      "case_faite",
+      false,
+    );
+    try {
+      await surUneInterventionJetable(
+        {
+          societeId: SOCIETE_A,
+          clientId: CLIENT_A1,
+          siteId: SITE_A1_S1,
+          agenceId: AGENCE_A,
+          technicienId: TECHNICIEN_A,
+          machineId: MACHINE_A1,
+          type: "preventif_hors_contrat",
+        },
+        async (interventionId) => {
+          const checklist = await checklistDeLIntervention(
+            TERRAIN_A,
+            interventionId,
+            clientApp(),
+          );
+          expect(checklist).toMatchObject({
+            disponible: true,
+            checklistVersionId: versionFamille,
+          });
+          if (checklist?.disponible === true) {
+            expect(checklist.points.map((p) => p.id)).toEqual([pointFamille]);
+          }
+        },
+      );
+    } finally {
+      await supprimerModele(famille);
+      await supprimerModele(generique);
+    }
+  });
+
+  it("un modèle qui vise UN SEUL type n'est PAS résolu pour une AUTRE nature — le générique universel prend le relais", async () => {
+    const { modeleId: generique, versionId: versionGenerique } =
+      await poserModeleEtVersion(SOCIETE_A, "ISO-9K30A-GENERIQUE-2");
+    const pointGenerique = await poserPoint(
+      SOCIETE_A,
+      versionGenerique,
+      "case_faite",
+      false,
+    );
+    const { modeleId: famille } = await poserModeleEtVersion(
+      SOCIETE_A,
+      "ISO-9K30A-UN-TYPE",
+      { famille_id: FAMILLE_A },
+    );
+    await poserType(SOCIETE_A, famille, "curatif");
+    try {
+      await surUneInterventionJetable(
+        {
+          societeId: SOCIETE_A,
+          clientId: CLIENT_A1,
+          siteId: SITE_A1_S1,
+          agenceId: AGENCE_A,
+          technicienId: TECHNICIEN_A,
+          machineId: MACHINE_A1,
+          type: "preventif_contrat",
+        },
+        async (interventionId) => {
+          const checklist = await checklistDeLIntervention(
+            TERRAIN_A,
+            interventionId,
+            clientApp(),
+          );
+          expect(checklist).toMatchObject({
+            disponible: true,
+            checklistVersionId: versionGenerique,
+          });
+          if (checklist?.disponible === true) {
+            expect(checklist.points.map((p) => p.id)).toEqual([pointGenerique]);
           }
         },
       );

@@ -184,8 +184,8 @@ export async function creerModele(
 
   await avecContexteApplicatif(
     contexte,
-    (tx) =>
-      tx.checklistModele.create({
+    async (tx) => {
+      await tx.checklistModele.create({
         data: {
           id,
           societe_id: societeId,
@@ -195,15 +195,20 @@ export async function creerModele(
           famille_id: saisie.familleId ?? null,
           modele_id: saisie.modeleId ?? null,
           exige_machine: saisie.exigeMachine ?? false,
-          types: {
-            create: (saisie.typesIntervention ?? []).map((type) => ({
-              id: uuidv7(),
-              societe_id: societeId,
-              type_intervention: type,
-            })),
-          },
         },
-      }),
+      });
+      const typesAEcrire = saisie.typesIntervention ?? [];
+      if (typesAEcrire.length > 0) {
+        await tx.checklistModeleTypeIntervention.createMany({
+          data: typesAEcrire.map((type) => ({
+            id: uuidv7(),
+            societe_id: societeId,
+            checklist_modele_id: id,
+            type_intervention: type,
+          })),
+        });
+      }
+    },
     client,
   );
 
