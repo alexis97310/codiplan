@@ -4,6 +4,10 @@ import { join } from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
+import {
+  gabaritDeDepart,
+  type GabaritDeDepart,
+} from "@/lib/checklists/gabarits-de-depart";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
@@ -79,11 +83,37 @@ async function connexionAdmin(page: Page): Promise<void> {
   await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
 }
 
+function gabaritExige(id: string): GabaritDeDepart {
+  const gabarit = gabaritDeDepart(id);
+  if (gabarit === undefined) {
+    throw new Error(
+      `Gabarit « ${id} » introuvable : l'épreuve ne peut pas s'écrire.`,
+    );
+  }
+  return gabarit;
+}
+
+const GABARIT_I01 = gabaritExige(
+  "pont-2-colonnes-electromecanique-installation",
+);
+
 /** Sélectionne le gabarit « Installation — pont 2 colonnes électromécanique » (I01). */
 async function choisirGabaritInstallation(volet: Locator): Promise<void> {
   await volet
     .getByLabel(fr["checklist.parametrage.gabarit"])
-    .selectOption({ label: "Installation — pont 2 colonnes électromécanique" });
+    .selectOption({ label: GABARIT_I01.libelle });
+}
+
+/**
+ * LE TEXTE D'UN LOCATOR, CAPTURÉ EN CHAÎNE — jamais `toContainText` sur un
+ * `Locator` directement avec un littéral : le gardien L0-11 (`sans-chaine-
+ * visible-en-dur.test.ts`) refuse une chaîne visible écrite en dur comme
+ * ARGUMENT d'une requête d'écran. `.includes()` sur une chaîne déjà lue
+ * n'est plus une requête d'écran — même idiome que `texteDuBloc`
+ * (`9ewe-tarifs-page-unique.spec.ts`).
+ */
+async function texteDuBloc(locator: Locator): Promise<string> {
+  return (await locator.innerText()).replace(/\s+/g, " ").trim();
 }
 
 test("« Partir d'un gabarit de départ » — un gabarit D'INSTALLATION précoche « Installation » et affiche son rattachement suggéré", async ({
@@ -96,7 +126,11 @@ test("« Partir d'un gabarit de départ » — un gabarit D'INSTALLATION précoc
   await choisirGabaritInstallation(volet);
 
   // LE RATTACHEMENT SUGGÉRÉ, en texte — jamais un identifiant choisi à la place de la société.
-  await expect(volet).toContainText("pont 2 colonnes électromécanique");
+  const texteDuVolet = await texteDuBloc(volet);
+  expect(GABARIT_I01.rattachementSuggere).not.toBeNull();
+  expect(texteDuVolet.includes(GABARIT_I01.rattachementSuggere ?? "")).toBe(
+    true,
+  );
 
   // SEUL « Installation » est précoché — les huit autres types ne le sont pas.
   await expect(
