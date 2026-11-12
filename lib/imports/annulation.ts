@@ -1,6 +1,6 @@
 import { type Prisma, type PrismaClient } from "@prisma/client";
 
-import { type ContexteSession } from "@/lib/auth/contexte";
+import { type ContexteSession, exigerSocieteActive } from "@/lib/auth/contexte";
 import { lireFuseau, maintenant } from "@/lib/calendar/fuseau";
 import { modifierClientDans } from "@/lib/clients/depot";
 import { schemaModificationClient } from "@/lib/clients/saisie";
@@ -503,13 +503,16 @@ export async function annulerLeLotDeModeles(
 }
 
 /**
- * CE QUI RETIENT UNE PRESTATION — **rien, aujourd'hui**, et c'est mesuré plutôt
- * que supposé : `grep "prestation" prisma/schema.prisma` ne rend aucune clé
- * étrangère entrante, le catalogue n'ayant encore aucun lecteur en base.
+ * CE QUI RETIENT UNE PRESTATION — rien qui REFUSE sa suppression, et c'est
+ * mesuré plutôt que supposé. `prestation_type_intervention` (9K29) référence
+ * désormais `prestation`, mais en `ON DELETE CASCADE` : annuler une CRÉATION
+ * efface la prestation ET ses types avec elle, sans qu'aucun code de ce
+ * fichier n'ait à l'orchestrer — la base le fait seule.
  *
- * *Une fonction qui compte zéro table est vacuité pure* (§9, 30/08), et c'est
- * pourquoi elle n'existe pas : la ligne ci-dessous dit qu'il n'y a rien à
- * compter, plutôt qu'un `Promise.all([])` qui aurait l'air de mesurer.
+ * *Une fonction qui compte zéro table à bloquer est vacuité pure* (§9,
+ * 30/08), et c'est pourquoi elle n'existe pas : la ligne ci-dessous dit qu'il
+ * n'y a rien à compter, plutôt qu'un `Promise.all([])` qui aurait l'air de
+ * mesurer.
  *
  * **Ce que le jour venu coûtera est borné et écrit** : quand `intervention`
  * désignera sa prestation, `ON DELETE RESTRICT` fera échouer le `DELETE`, donc
@@ -550,6 +553,7 @@ export async function annulerLeLotDePrestations(
 
     await modifierPrestationDans(
       tx,
+      exigerSocieteActive(contexte),
       ligne.entiteId,
       schemaPrestation.parse(ligne.valeursAvant ?? {}),
     );

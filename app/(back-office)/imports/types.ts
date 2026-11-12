@@ -290,6 +290,10 @@ export function cleDuMotif(motif: string, type?: string): CleTraduction | null {
       return "imports.motif.observation_deja_reprise";
     case "origine_inconnue":
       return "imports.motif.origine_inconnue";
+    // 9K29, D243 — un libellé de « Types d'intervention » que le
+    // dictionnaire ne connaît pas.
+    case "type_intervention_inconnu":
+      return "imports.motif.type_intervention_inconnu";
     default:
       return null;
   }

@@ -1,5 +1,10 @@
 import { schemaCreationClient } from "@/lib/clients/saisie";
 import { schemaCreationContact } from "@/lib/contacts/saisie";
+import { t } from "@/lib/i18n/fr";
+import {
+  TYPES_INTERVENTION,
+  type TypeIntervention,
+} from "@/lib/interventions/saisie";
 import { schemaMachine } from "@/lib/machines/saisie";
 import {
   schemaFamilleMateriel,
@@ -788,6 +793,9 @@ export const COLONNES_PRESTATIONS = {
   famille: "Famille (code)",
   dureeStandard: "Durée standard (minutes)",
   checklist: "Checklist type",
+  // 9K29, D243 — libellés du dictionnaire (`type_intervention.*`), séparés
+  // par « ; », vide = TOUS les types.
+  types: "Types d'intervention",
 } as const;
 
 export const CHAMPS_PRESTATIONS: Readonly<Record<string, string>> = {
@@ -805,6 +813,10 @@ export const CHAMPS_PRESTATIONS_ECARTES: Readonly<Record<string, string>> = {
   duree_standard_min:
     "exposée par « Durée standard (minutes) », lue comme un nombre",
   actif: "un import ne désactive pas : ce geste se fait fiche par fiche",
+  // 9K29, D243 — résolue depuis « Types d'intervention », libellés du
+  // dictionnaire séparés par « ; », jamais un code technique en dur.
+  types:
+    "résolue depuis la colonne « Types d'intervention », libellés séparés par « ; », vide = tous",
 };
 
 /**
@@ -840,6 +852,7 @@ export function modelePrestations(familles: ParcFamilles): ModeleDImport {
       { nom: COLONNES_PRESTATIONS.famille, obligatoire: false },
       { nom: COLONNES_PRESTATIONS.dureeStandard, obligatoire: false },
       { nom: COLONNES_PRESTATIONS.checklist, obligatoire: false },
+      { nom: COLONNES_PRESTATIONS.types, obligatoire: false },
     ],
     // LE CODE SEUL IDENTIFIE, et la base le tient : `@@unique([societe_id,
     // code])`. *Ce qui rend une clé utilisable n'est pas sa forme, c'est ce que
@@ -884,6 +897,41 @@ export type PrestationALecrire =
   | { readonly prete: true; readonly saisie: Record<string, unknown> }
   | { readonly prete: false; readonly motif: string };
 
+/** Le libellé d'un type d'intervention ne désigne rien du dictionnaire. */
+export const MOTIF_TYPE_INTERVENTION_INCONNU = "type_intervention_inconnu";
+
+/**
+ * « Préventif sous contrat ; Curatif » → `["preventif_contrat", "curatif"]`,
+ * ou `null` si un des libellés ne désigne rien — un libellé inconnu est
+ * REFUSÉ, jamais ignoré (I6) : une faute de frappe ne doit pas se résoudre
+ * en silence vers « tous les types ».
+ *
+ * Résolue depuis le DICTIONNAIRE (`type_intervention.*`, `lib/i18n/fr.ts`),
+ * jamais depuis un code technique en dur : le fichier qu'Alexis prépare lui-
+ * même (audit UX P6) porte des libellés, pas des codes internes.
+ */
+const LIBELLE_VERS_TYPE = new Map<string, TypeIntervention>(
+  TYPES_INTERVENTION.map(
+    (type) => [t(`type_intervention.${type}`), type] as const,
+  ),
+);
+
+export function typesDepuisLaCellule(
+  brut: string | undefined,
+): readonly TypeIntervention[] | null {
+  const texte = brut?.trim();
+  if (texte === undefined || texte === "") return [];
+  const types: TypeIntervention[] = [];
+  for (const morceau of texte.split(";")) {
+    const libelle = morceau.trim();
+    if (libelle === "") continue;
+    const type = LIBELLE_VERS_TYPE.get(libelle);
+    if (type === undefined) return null;
+    if (!types.includes(type)) types.push(type);
+  }
+  return types;
+}
+
 export function preparerUnePrestation(
   familles: ParcFamilles,
   valeurs: Readonly<Record<string, string | undefined>>,
@@ -894,12 +942,17 @@ export function preparerUnePrestation(
   if (nommee && famille === undefined) {
     return { prete: false, motif: MOTIF_PARENT_INTROUVABLE };
   }
+  const types = typesDepuisLaCellule(valeurs[COLONNES_PRESTATIONS.types]);
+  if (types === null) {
+    return { prete: false, motif: MOTIF_TYPE_INTERVENTION_INCONNU };
+  }
   const saisie = {
     ...saisieDepuisLaLigne(valeurs, CHAMPS_PRESTATIONS),
     famille_id: famille ?? null,
     duree_standard_min: lireUnEntier(
       valeurs[COLONNES_PRESTATIONS.dureeStandard],
     ),
+    types,
   };
   return schemaPrestation.safeParse(saisie).success
     ? { prete: true, saisie }

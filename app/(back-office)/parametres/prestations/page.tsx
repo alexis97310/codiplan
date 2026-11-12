@@ -14,6 +14,7 @@ import { peutPleinement } from "@/lib/auth/habilitations";
 import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import { enDuree } from "@/lib/calendar/duree";
+import { TYPES_INTERVENTION, type TypeIntervention } from "@/lib/interventions/saisie";
 import {
   famillesVisables,
   listerLesPrestations,
@@ -152,7 +153,7 @@ export default async function PagePrestations({
       <Carte className="max-[900px]:hidden">
         <Tableau colonnes={colonnes()} minimum="900px">
           {prestations.length === 0 ? (
-            <LignePleine colonnes={5}>{t("prestations.aucune")}</LignePleine>
+            <LignePleine colonnes={6}>{t("prestations.aucune")}</LignePleine>
           ) : null}
           {prestations.map((prestation) => (
             <tr key={prestation.id}>
@@ -165,6 +166,7 @@ export default async function PagePrestations({
                     t("prestations.famille_inconnue"))}
               </Cellule>
               <Cellule>{dureeAffichee(prestation)}</Cellule>
+              <Cellule>{libellesDesTypes(prestation.types)}</Cellule>
               <Cellule>
                 <div className="flex flex-wrap items-center gap-2">
                   <span>
@@ -257,8 +259,21 @@ function colonnes() {
     { cle: "libelle", libelle: t("prestations.libelle") },
     { cle: "famille", libelle: t("prestations.famille") },
     { cle: "duree", libelle: t("prestations.duree") },
+    { cle: "types", libelle: t("prestations.types") },
     { cle: "actif", libelle: t("prestations.activite"), largeur: "220px" },
   ];
+}
+
+const SEPARATEUR_TYPES = ", ";
+
+/**
+ * « Tous les types » quand VIDE (9K29, D243) — jamais une liste vide qui
+ * laisserait croire qu'aucun type ne convient, l'inverse exact de la règle.
+ * Composée hors du JSX (L0-11).
+ */
+function libellesDesTypes(types: readonly TypeIntervention[]): string {
+  if (types.length === 0) return t("prestations.types_tous");
+  return types.map((type) => t(`type_intervention.${type}`)).join(SEPARATEUR_TYPES);
 }
 
 /** La carte d'une prestation, sous 900 px — même contenu que sa ligne de tableau. */
@@ -281,6 +296,9 @@ function CartePrestation({
         <span className="text-12 font-bold">{nomFamille}</span>
         <span className="text-app-encre-faible text-12 font-bold">
           {dureeAffichee(prestation)}
+        </span>
+        <span className="text-12 font-bold">
+          {libellesDesTypes(prestation.types)}
         </span>
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-12 font-bold">
@@ -390,6 +408,26 @@ function FormulairePrestation({
         }
         nombre
       />
+      <fieldset className="flex basis-full flex-col gap-1">
+        <legend className="text-app-encre-faible text-12 font-bold">
+          {t("prestations.types")}
+        </legend>
+        <div className="flex flex-wrap gap-2">
+          {TYPES_INTERVENTION.map((type) => (
+            <CaseACocher
+              key={type}
+              name="types"
+              value={type}
+              defaultChecked={valeurs?.types.includes(type) ?? false}
+              libelle={t(`type_intervention.${type}`)}
+              className="flex items-center gap-1.5 text-13 font-bold"
+            />
+          ))}
+        </div>
+        <p className="text-app-encre-faible text-12 font-bold">
+          {t("prestations.types_tous_indice")}
+        </p>
+      </fieldset>
       <CaseACocher
         name="actif"
         defaultChecked={valeurs?.actif ?? true}

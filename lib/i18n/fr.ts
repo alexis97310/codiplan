@@ -1255,6 +1255,11 @@ export const fr = {
     "Aucun sous-type de cette famille ne porte ce code. La correction est dans le référentiel des sous-types, ou dans la cellule qui le nomme.",
   "imports.motif.sous_type_inactif":
     "Ce sous-type existe mais a été désactivé : un import ne peut pas y rattacher un modèle. Réactivez-le dans son référentiel, ou laissez la cellule vide.",
+  // 9K29, D243 — un libellé qui ne désigne aucun type d'intervention du
+  // dictionnaire. Refusé ligne par ligne (I6), jamais résolu par
+  // approximation vers « tous les types ».
+  "imports.motif.type_intervention_inconnu":
+    "Un des libellés de « Types d'intervention » ne désigne aucun type connu. Les libellés acceptés, séparés par « ; », sont ceux du dictionnaire (par exemple « Curatif », « Préventif sous contrat ») ; une cellule vide veut dire « tous les types ».",
   // AJOUTÉ le 16/09/2026 (point 4b) : deux lignes du MÊME fichier désignent la
   // même fiche — jamais le parc, qui ne les connaît encore ni l'une ni
   // l'autre. La correction n'est donc pas au même endroit que « cle_ambigue ».
@@ -4715,6 +4720,12 @@ export const fr = {
   "prestations.sans_montant":
     "Une prestation ne porte pas de tarif. Le prix se lit au taux horaire en vigueur à la date de l'intervention, ou au forfait qui s'applique — deux endroits qui porteraient un prix, ce serait une préséance à inventer et une facture qu'on ne saurait plus expliquer.",
   "prestations.sans_checklist": "La checklist type arrivera plus tard.",
+  // LES TYPES D'INTERVENTION OÙ ELLE EST PROPOSÉE (9K29, D243) — VIDE = TOUS,
+  // et c'est ce que la case « Tous les types » affiche quand aucun type n'est
+  // coché : jamais une case à décocher, seulement un ÉTAT à lire.
+  "prestations.types": "Types d'intervention",
+  "prestations.types_tous": "Tous les types",
+  "prestations.types_tous_indice": "Aucun type coché = proposée pour tous les types",
   "prestations.refus.saisie":
     "Une prestation se saisit avec un code et un libellé. La durée est facultative ; si elle est donnée, elle est en minutes entières et supérieure à zéro.",
   "prestations.refus.code_pris":

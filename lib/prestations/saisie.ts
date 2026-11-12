@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { TYPES_INTERVENTION } from "@/lib/interventions/saisie";
+
 /**
  * SAISIE DU CATALOGUE DES PRESTATIONS (L1-12 ; D109, D113).
  *
@@ -85,6 +87,21 @@ export const schemaPrestation = z.object({
    */
   checklist_type: z.string().trim().nullable().default(null),
   actif: z.boolean().default(true),
+  /**
+   * LES TYPES D'INTERVENTION OÙ ELLE EST PROPOSÉE (9K29, D243) — VIDE = TOUS.
+   *
+   * **Sans doublon** : la base le garantit déjà par `@@unique([prestation_id,
+   * type_intervention])`, mais une saisie qui en porterait un ferait écrire
+   * UNE prestation deux fois le MÊME type, pour rien — le refuser ici évite
+   * un aller-retour qu'une case cochée deux fois ne devrait jamais produire.
+   */
+  types: z
+    .array(z.enum(TYPES_INTERVENTION))
+    .refine(
+      (types) => new Set(types).size === types.length,
+      "un type d'intervention ne se coche pas deux fois",
+    )
+    .default([]),
 });
 
 export type SaisiePrestation = z.infer<typeof schemaPrestation>;

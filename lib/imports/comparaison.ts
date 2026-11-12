@@ -17,12 +17,18 @@ export type FicheComparable = Readonly<Record<string, unknown>>;
 /**
  * La fiche porte-t-elle CES valeurs, sur CES champs ?
  *
- * ## QUATRE FORMES SONT COMPARABLES, ET TOUT LE RESTE REFUSE (R6-03)
+ * ## CINQ FORMES SONT COMPARABLES, ET TOUT LE RESTE REFUSE (R6-03, 9K29)
  *
  * *« Un verdict “inchangé” rendu sur une colonne qu'on ne sait pas comparer
  * autoriserait une écriture — ou une suppression — qu'on n'a pas vérifiée. »*
  * **C'est le sens de défaillance de L1-08j, et il reste le défaut** pour tout
- * ce qui n'est pas nommé ci-dessous : TEXTE, ENTIER, BOOLÉEN, et `NULL`.
+ * ce qui n'est pas nommé ci-dessous : TEXTE, ENTIER, BOOLÉEN, `NULL`, et —
+ * depuis 9K29, `prestation.types` — un TABLEAU DE TEXTES, comparé comme un
+ * ENSEMBLE (ni l'ordre ni les doublons n'y portent de sens, `@@unique`
+ * l'interdisant déjà en base). Sans cette cinquième forme, chaque réimport
+ * d'un catalogue aux types inchangés aurait réécrit la table de relation à
+ * l'identique — exactement le défaut mesuré en production que ce module
+ * existe pour éviter (voir plus bas).
  *
  * `null` VOULU se compare à `null` PRÉSENT, et c'est une écriture au même
  * titre qu'une valeur : *le confondre avec « rien n'a été dit » (`undefined`)
@@ -53,6 +59,16 @@ export function porteEncore(
     }
     if (typeof voulu === "boolean") {
       return typeof present === "boolean" && present === voulu;
+    }
+    if (Array.isArray(voulu)) {
+      if (!Array.isArray(present)) return false;
+      const voulus = new Set(voulu);
+      const presents = new Set(present);
+      if (voulus.size !== presents.size) return false;
+      for (const valeur of voulus) {
+        if (!presents.has(valeur)) return false;
+      }
+      return true;
     }
     return false;
   });

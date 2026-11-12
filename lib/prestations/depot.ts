@@ -3,6 +3,7 @@ import { Prisma, type PrismaClient } from "@prisma/client";
 import { type ContexteSession, exigerSocieteActive } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
+import type { TypeIntervention } from "@/lib/interventions/saisie";
 
 import type { SaisiePrestation } from "./saisie";
 
@@ -101,31 +102,62 @@ export type LignePrestation = {
   readonly famille_id: string | null;
   readonly duree_standard_min: number | null;
   readonly actif: boolean;
+  /** VIDE = proposée pour TOUS les types (9K29, D243). */
+  readonly types: readonly TypeIntervention[];
 };
 
-const CHAMPS: { readonly [K in keyof LignePrestation]: true } = {
+const CHAMPS = {
   id: true,
   code: true,
   libelle: true,
   famille_id: true,
   duree_standard_min: true,
   actif: true,
+  types: { select: { type_intervention: true } },
+} as const;
+
+/** La forme brute que Prisma rend pour `CHAMPS`/`CHAMPS_CATALOGUE_TERRAIN`. */
+type PrestationAvecTypes = {
+  readonly id: string;
+  readonly code: string;
+  readonly libelle: string;
+  readonly famille_id?: string | null;
+  readonly duree_standard_min?: number | null;
+  readonly actif?: boolean;
+  readonly types: readonly { readonly type_intervention: string }[];
 };
+
+/**
+ * APLATIT LA RELATION `types` EN TABLEAU DE CODES — une seule fois, appelée
+ * par chaque lecture qui la porte. Jamais une seconde lecture du même critère
+ * (§9, 01/09).
+ */
+function avecTypesAplatis<T extends PrestationAvecTypes>(
+  prestation: T,
+): Omit<T, "types"> & { readonly types: readonly TypeIntervention[] } {
+  const { types, ...reste } = prestation;
+  return {
+    ...reste,
+    types: types.map((t) => t.type_intervention as TypeIntervention),
+  };
+}
 
 /** Une prestation telle que le TERRAIN la coche — ni prix, ni durée (9F4H6, point 3). */
 export type PrestationCatalogueTerrain = {
   readonly id: string;
   readonly code: string;
   readonly libelle: string;
+  /** VIDE = proposée pour TOUS les types (9K29, D243) — emportée hors réseau
+   * pour que la règle de proposition s'applique aussi SANS RÉSEAU. */
+  readonly types: readonly TypeIntervention[];
 };
 
-const CHAMPS_CATALOGUE_TERRAIN: {
-  readonly [K in keyof PrestationCatalogueTerrain]: true;
-} = {
+const CHAMPS_CATALOGUE_TERRAIN = {
   id: true,
   code: true,
   libelle: true,
-};
+  types: { select: { type_intervention: true } },
+} as const;
 
 /**
  * LE CATALOGUE EMPORTÉ HORS RÉSEAU (9F4H6, point 3, promesse D216 tenue) —
@@ -142,7 +174,7 @@ export async function catalogueActifPourTerrain(
   contexte: ContexteSession,
   client?: PrismaClient,
 ): Promise<readonly PrestationCatalogueTerrain[]> {
-  return avecContexteApplicatif(
+  const prestations = await avecContexteApplicatif(
     contexte,
     (tx) =>
       tx.prestation.findMany({
@@ -152,6 +184,7 @@ export async function catalogueActifPourTerrain(
       }),
     client,
   );
+  return prestations.map(avecTypesAplatis);
 }
 
 /**
@@ -166,7 +199,7 @@ export async function listerLesPrestations(
   contexte: ContexteSession,
   client?: PrismaClient,
 ): Promise<readonly LignePrestation[]> {
-  return avecContexteApplicatif(
+  const prestations = await avecContexteApplicatif(
     contexte,
     (tx) =>
       tx.prestation.findMany({
@@ -178,6 +211,7 @@ export async function listerLesPrestations(
       }),
     client,
   );
+  return prestations.map(avecTypesAplatis);
 }
 
 /** Une prestation par son identifiant, ou `null` si elle est hors périmètre. */
@@ -186,11 +220,12 @@ export async function lirePrestation(
   id: string,
   client?: PrismaClient,
 ): Promise<LignePrestation | null> {
-  return avecContexteApplicatif(
+  const prestation = await avecContexteApplicatif(
     contexte,
     (tx) => tx.prestation.findFirst({ where: { id }, select: CHAMPS }),
     client,
   );
+  return prestation === null ? null : avecTypesAplatis(prestation);
 }
 
 /**
@@ -256,7 +291,8 @@ export async function modifierPrestation(
   try {
     const touchees = await avecContexteApplicatif(
       contexte,
-      (tx) => modifierPrestationDans(tx, id, saisie),
+      (tx) =>
+        modifierPrestationDans(tx, exigerSocieteActive(contexte), id, saisie),
       client,
     );
     return touchees === 0
@@ -302,6 +338,7 @@ export async function creerPrestationDans(
     },
     select: { id: true },
   });
+  await ecrireLesTypes(tx, societeId, id, saisie.types);
 }
 
 /**
@@ -325,6 +362,17 @@ export async function creerPrestationsEnLot(
       actif: saisie.actif,
     })),
   });
+  const typesAEcrire = lignes.flatMap(({ id, saisie }) =>
+    saisie.types.map((type) => ({
+      id: uuidv7(),
+      societe_id: societeId,
+      prestation_id: id,
+      type_intervention: type,
+    })),
+  );
+  if (typesAEcrire.length > 0) {
+    await tx.prestationTypeIntervention.createMany({ data: typesAEcrire });
+  }
 }
 
 /**
@@ -333,10 +381,12 @@ export async function creerPrestationsEnLot(
  *
  * `updateMany` plutôt que `update`, et le décompte est RENDU : *zéro ligne
  * touchée n'est pas une erreur technique, c'est la politique qui a refusé*, et
- * elle refuse en silence.
+ * elle refuse en silence — les types ne sont alors pas touchés non plus,
+ * même raisonnement.
  */
 export async function modifierPrestationDans(
   tx: Prisma.TransactionClient,
+  societeId: string,
   id: string,
   saisie: SaisiePrestation,
 ): Promise<number> {
@@ -350,7 +400,36 @@ export async function modifierPrestationDans(
       actif: saisie.actif,
     },
   });
+  if (touchees.count > 0) {
+    await ecrireLesTypes(tx, societeId, id, saisie.types);
+  }
   return touchees.count;
+}
+
+/**
+ * REMPLACE L'ENSEMBLE DES TYPES D'UNE PRESTATION (9K29, D243) — même
+ * discipline qu'`intervention_piece_remplacee` : l'écriture remplace
+ * l'ensemble à chaque enregistrement, dans la même transaction que
+ * l'appelant tient déjà.
+ */
+async function ecrireLesTypes(
+  tx: Prisma.TransactionClient,
+  societeId: string,
+  prestationId: string,
+  types: readonly TypeIntervention[],
+): Promise<void> {
+  await tx.prestationTypeIntervention.deleteMany({
+    where: { prestation_id: prestationId },
+  });
+  if (types.length === 0) return;
+  await tx.prestationTypeIntervention.createMany({
+    data: types.map((type) => ({
+      id: uuidv7(),
+      societe_id: societeId,
+      prestation_id: prestationId,
+      type_intervention: type,
+    })),
+  });
 }
 
 /**

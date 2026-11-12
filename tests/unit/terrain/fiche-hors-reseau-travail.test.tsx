@@ -94,6 +94,7 @@ const INSTANTANE: InstantaneJSON = {
       id: PRESTATION_ID,
       code: "VID",
       libelle: fr["terrain.e2e.prestation_libelle"],
+      types: [],
     },
   ],
   checklistModeles: {},

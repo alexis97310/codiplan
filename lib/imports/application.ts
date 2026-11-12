@@ -859,6 +859,11 @@ const CHAMPS_PRESTATIONS_ECRITES = [
   "famille_id",
   "duree_standard_min",
   "actif",
+  // 9K29 — comparée comme un ENSEMBLE, cinquième forme de `porteEncore`
+  // (`lib/imports/comparaison.ts`) : sans elle, chaque réimport d'un
+  // catalogue aux types inchangés aurait réécrit la table de relation à
+  // l'identique.
+  "types",
 ] as const;
 
 export async function appliquerLeLotDePrestations(
@@ -866,6 +871,7 @@ export async function appliquerLeLotDePrestations(
   lotId: string,
   client?: PrismaClient,
 ): Promise<ResultatApplication> {
+  const societeId = exigerSocieteActive(contexte);
   const familles = await indexerLesFamilles(contexte, client);
   const prestations = await indexerLeParcPrestations(contexte, client);
 
@@ -910,11 +916,18 @@ export async function appliquerLeLotDePrestations(
             famille_id: true,
             duree_standard_min: true,
             actif: true,
+            types: { select: { type_intervention: true } },
           },
         });
-        return new Map(fiches.map(({ id, ...reste }) => [id, reste]));
+        return new Map(
+          fiches.map(({ id, types, ...reste }) => [
+            id,
+            { ...reste, types: types.map((t) => t.type_intervention) },
+          ]),
+        );
       },
-      modifierUn: modifierPrestationDans,
+      modifierUn: (tx, cible, ecrit) =>
+        modifierPrestationDans(tx, societeId, cible, ecrit),
     },
   );
 }

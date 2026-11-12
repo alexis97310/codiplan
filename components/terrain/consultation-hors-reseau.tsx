@@ -21,6 +21,7 @@ import {
   type StatutIntervention,
   type TypeIntervention,
 } from "@/lib/interventions/saisie";
+import { prestationsProposees } from "@/lib/prestations/regle-type";
 import { lireCopie } from "@/lib/terrain/copie-locale";
 import {
   catalogueDeLaCopie,
@@ -544,7 +545,14 @@ function Fiche({
         prestations={
           catalogueIndisponibleHorsReseau
             ? []
-            : catalogue.map((p) => ({ id: p.id, libelle: p.libelle }))
+            : // PAR TYPE D'INTERVENTION (9K29, D243), même règle pure
+              // qu'en ligne (`app/(mobile)/terrain/[id]/page.tsx`) : la
+              // coquille hors réseau l'applique sur le catalogue emporté.
+              prestationsProposees(
+                catalogue,
+                fiche.type as TypeIntervention,
+                new Set(prestationsInitiales),
+              ).map((p) => ({ id: p.id, libelle: p.libelle }))
         }
         prestationsInitiales={prestationsInitiales}
         afficherPieces={aSectionPiecesRemplacees(

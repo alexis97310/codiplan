@@ -76,6 +76,7 @@ import {
   libelleMaterielComplet,
 } from "@/lib/machines/presentation";
 import { listerLesPrestations } from "@/lib/prestations/depot";
+import { prestationsProposees } from "@/lib/prestations/regle-type";
 import { lireSite } from "@/lib/sites/depot";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { CLASSES_STATUT, type StatutAffiche } from "@/lib/theme/statuts";
@@ -285,6 +286,14 @@ export default async function PageInterventionTerrain({
   const prestationsActives = prestationsCatalogue.filter((p) => p.actif);
   const idsRealises = new Set(
     (prestationsFaites ?? []).map((p) => p.prestation_id),
+  );
+  // PAR TYPE D'INTERVENTION (9K29, D243) — une prestation « curatif seulement »
+  // ne se propose pas sur un préventif, sauf si elle a déjà été déclarée
+  // réalisée (`idsRealises`) : une réalisation ne disparaît jamais.
+  const prestationsAProposer = prestationsProposees(
+    prestationsActives,
+    ligne.type as TypeIntervention,
+    idsRealises,
   );
   const adresseSite = formatAdresseSite(
     site?.adresse ?? null,
@@ -689,7 +698,7 @@ export default async function PageInterventionTerrain({
           commentaire_technicien: rapportTexte?.commentaire_technicien ?? null,
           suite_a_donner: rapportTexte?.suite_a_donner ?? null,
         }}
-        prestations={prestationsActives.map((prestation) => ({
+        prestations={prestationsAProposer.map((prestation) => ({
           id: prestation.id,
           libelle: prestation.libelle,
         }))}

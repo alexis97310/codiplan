@@ -96,6 +96,7 @@ const saisiePrestation = (code: string) => ({
   duree_standard_min: null,
   checklist_type: null,
   actif: true,
+  types: [],
 });
 
 describe("`creerSiteDans` écrit SOUS les politiques, pas à côté", () => {
@@ -267,12 +268,12 @@ describe("`creerPrestationDans` écrit SOUS les politiques, pas à côté", () =
     // décompte vaut zéro. *C'est ce décompte que l'application lit pour laisser
     // la ligne en l'état plutôt que de croire l'avoir écrite.*
     const depuisB = await sousSociete(SOCIETE_B, (tx) =>
-      modifierPrestationDans(tx, id, saisiePrestation(suffixe())),
+      modifierPrestationDans(tx, SOCIETE_B, id, saisiePrestation(suffixe())),
     );
     expect(depuisB).toBe(0);
     // LE TÉMOIN : sous A, la même écriture touche bien une ligne.
     const depuisA = await sousSociete(SOCIETE_A, (tx) =>
-      modifierPrestationDans(tx, id, saisiePrestation(suffixe())),
+      modifierPrestationDans(tx, SOCIETE_A, id, saisiePrestation(suffixe())),
     );
     expect(depuisA).toBe(1);
   });

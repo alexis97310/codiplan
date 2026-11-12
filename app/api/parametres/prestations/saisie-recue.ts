@@ -48,6 +48,11 @@ export function saisiePrestationRecue(
     famille_id: famille === null || famille === "" ? null : famille,
     duree_standard_min: duree === null ? null : Number(duree),
     actif: formulaire.get("actif") !== null,
+    // AUCUNE CASE COCHÉE = PROPOSÉE POUR TOUS LES TYPES (9K29, D243) — même
+    // idiome que `actif` : une case absente du corps vaut « décochée ».
+    types: formulaire
+      .getAll("types")
+      .filter((valeur): valeur is string => typeof valeur === "string"),
   });
 
   return analyse.success ? analyse.data : null;
