@@ -46,6 +46,13 @@ faisant échouer silencieusement les témoins de rattachement déjà écrits. Co
 comptant la transaction supplémentaire qu'`avecSociete` ouvre (2 → 3 pour le scénario « rattache »).
 Un test neuf (`identiteExclusive: false`) éprouve le refus lui-même sous ce même harnais.
 
+**Second correctif, découvert par `pnpm verify` lui-même** — l'épreuve de bout en bout vérifiait
+d'abord que le bandeau ne contenait NI « ADV » NI « activ », en plus de l'égalité exacte avec le
+texte du dictionnaire. `tests/unit/i18n/sans-chaine-visible-en-dur.test.ts` (L0-11) a refusé ces deux
+assertions : toute chaîne en dur passée à une requête d'écran est interdite, même en négatif. Retiré
+— l'égalité exacte déjà posée juste au-dessus prouve la même chose : rien d'autre que ce seul texte
+neutre n'est affiché.
+
 ## Épreuves
 
 - **Unitaires** — `tests/unit/techniciens/depot.test.ts` (refus `courriel_connu_ailleurs`, avant
