@@ -134,6 +134,58 @@ afterEach(async () => {
 
 afterAll(fermerClients);
 
+/**
+ * D226, AU RATTACHEMENT D'UN TECHNICIEN (décision d'Alexis du 10/11/2026,
+ * 9L01-COPIE-LIEN-EXCLUSIVITE) — avant ce lot, un courriel déjà connu d'une
+ * AUTRE société était rattaché à la société active SANS AUCUN contrôle (voir
+ * l'en-tête de `lib/techniciens/depot.ts`). Même motif, UNIQUE et NEUTRE, que
+ * `creerCompteDeBureau` (`lib/auth/acces-bureau.ts`).
+ */
+describe("creerTechnicien — D226, courriel connu d'une autre société (9L01-COPIE-LIEN-EXCLUSIVITE)", () => {
+  it("la société B crée un technicien non activé ; la société A tente de le créer avec le même courriel : refus NEUTRE, rien n'est écrit", async () => {
+    const ADMIN_B = { ...ADMIN_A, societeId: SOCIETE_B };
+    const courrielPartage = courriel();
+    const creeParB = await creerTechnicien(
+      ADMIN_B,
+      {
+        nom: "9DJACC-9L01 Technicien B",
+        email: courrielPartage,
+        agence_id: AGENCE_B,
+        actif: true,
+        statut_ressource: "salarie",
+      },
+      clientApp(),
+    );
+    expect(creeParB.accepte).toBe(true);
+    if (!creeParB.accepte) return;
+
+    const tentativeParA = await creerTechnicien(
+      ADMIN_A,
+      {
+        nom: "9DJACC-9L01 Tentative A",
+        email: courrielPartage,
+        agence_id: AGENCE_A,
+        actif: true,
+        statut_ressource: "salarie",
+      },
+      clientApp(),
+    );
+    expect(tentativeParA).toEqual({
+      accepte: false,
+      motif: "courriel_connu_ailleurs",
+    });
+
+    // RIEN N'EST ÉCRIT POUR LA SOCIÉTÉ A — seul le rattachement de B existe.
+    const rattachements = await clientOwner().$queryRawUnsafe<
+      { societe_id: string }[]
+    >(
+      `SELECT societe_id::text FROM "technicien" WHERE utilisateur_id = $1::uuid`,
+      creeParB.utilisateurId,
+    );
+    expect(rattachements).toEqual([{ societe_id: SOCIETE_B }]);
+  });
+});
+
 describe("envoyerLienDAcces — le premier envoi", () => {
   it("pose le compte au repos, émet un envoi et trace ouverture_identite, auteur l'administrateur", async () => {
     const { utilisateurId, email } = await creerTechnicienDeTest();
@@ -694,6 +746,92 @@ describe("copierLienDAcces — le premier envoi, copié plutôt qu'envoyé", () 
       utilisateurId,
     );
     expect(compte).toBeUndefined();
+  });
+});
+
+/**
+ * D226 ÉTENDUE AU PREMIER LIEN (décision d'Alexis du 10/11/2026,
+ * 9L01-COPIE-LIEN-EXCLUSIVITE) — jusqu'ici, seule la copie d'un NOUVEAU lien
+ * (`copierNouveauLienDAcces`, voir plus bas) posait `identiteExclusiveALaSociete`.
+ * Le PREMIER lien, lui, ne vérifiait que l'appartenance — voir l'en-tête du
+ * module, qui nommait ce trou. Même garde, même motif, jamais de « cible
+ * protégée » (D223 ne s'applique qu'au nouveau lien).
+ */
+describe("copierLienDAcces — D226, exclusivité (9L01-COPIE-LIEN-EXCLUSIVITE)", () => {
+  it("un technicien EXCLUSIF à la société active reste copiable", async () => {
+    const { utilisateurId } = await creerTechnicienDeTest();
+
+    const resultat = await copierLienDAcces(
+      ADMIN_A,
+      utilisateurId,
+      clientApp(),
+    );
+    expect(resultat.accepte).toBe(true);
+  });
+
+  it("refuse « autre_societe » pour un technicien aussi rattaché à une AUTRE société, chez A ET chez B — aucun jeton, aucune trace", async () => {
+    const { utilisateurId } = await creerTechnicienDeTest();
+
+    // LE RATTACHEMENT À LA SOCIÉTÉ B — simule une identité partagée par un
+    // autre chemin que celui, désormais fermé, de `creerTechnicien` (D226).
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "utilisateur_societe" (id, utilisateur_id, societe_id, role)
+       VALUES ($1::uuid, $2::uuid, $3::uuid, $4::"Role")`,
+      uuidv7(),
+      utilisateurId,
+      SOCIETE_B,
+      Role.technicien,
+    );
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "technicien" (id, societe_id, utilisateur_id, agence_id, actif, modifie_le)
+       VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, true, now())`,
+      uuidv7(),
+      SOCIETE_B,
+      utilisateurId,
+      AGENCE_B,
+    );
+
+    const chezA = await copierLienDAcces(ADMIN_A, utilisateurId, clientApp());
+    expect(chezA).toEqual({ accepte: false, motif: "autre_societe" });
+
+    const ADMIN_B = { ...ADMIN_A, societeId: SOCIETE_B };
+    const chezB = await copierLienDAcces(ADMIN_B, utilisateurId, clientApp());
+    expect(chezB).toEqual({ accepte: false, motif: "autre_societe" });
+
+    // AUCUN JETON — le compte au repos n'a même pas été écrit : le refus
+    // tient AVANT `preparerLienDAcces`.
+    const [compte] = await clientOwner().$queryRawUnsafe<unknown[]>(
+      `SELECT 1 FROM "compte" WHERE utilisateur_id = $1::uuid`,
+      utilisateurId,
+    );
+    expect(compte).toBeUndefined();
+    // AUCUNE TRACE — comme les autres refus de ce geste (introuvable,
+    // membre_inactif, deja_un_mot_de_passe), celui-ci n'écrit rien non plus.
+    const traces = await clientOwner().$queryRawUnsafe<unknown[]>(
+      `SELECT 1 FROM "journal_acces" WHERE detail LIKE '%cible:' || $1`,
+      utilisateurId,
+    );
+    expect(traces).toHaveLength(0);
+  });
+
+  it("FAIL-CLOSED (9I8D2) : rend « autre_societe », jamais une exception, quand l'exclusivité ne peut pas être vérifiée", async () => {
+    const { utilisateurId } = await creerTechnicienDeTest();
+
+    await clientOwner().$executeRawUnsafe(
+      `REVOKE EXECUTE ON FUNCTION "app_identite_exclusive_a_la_societe"(uuid) FROM "codiplan_app"`,
+    );
+    try {
+      const resultat = await copierLienDAcces(
+        ADMIN_A,
+        utilisateurId,
+        clientApp(),
+      );
+      expect(resultat).toEqual({ accepte: false, motif: "autre_societe" });
+    } finally {
+      await clientOwner().$executeRawUnsafe(
+        `GRANT EXECUTE ON FUNCTION "app_identite_exclusive_a_la_societe"(uuid) TO "codiplan_app"`,
+      );
+    }
   });
 });
 

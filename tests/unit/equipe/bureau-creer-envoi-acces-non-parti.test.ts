@@ -103,4 +103,22 @@ describe("POST /api/equipe/bureau/creer — l'interrupteur « envoyer le lien en
     const url = urlDeRetour(reponse);
     expect(url.searchParams.get("motif")).toBe("equipe.info.rattache");
   });
+
+  // D226 (10/11/2026, 9L01-COPIE-LIEN-EXCLUSIVITE) — `creerCompteDeBureau`
+  // refuse désormais un courriel déjà connu d'une AUTRE société ; la route le
+  // redirige comme tout autre refus nommé, sans jamais appeler l'envoi.
+  it("un courriel connu d'une autre société redirige vers son motif NEUTRE, sans jamais tenter l'envoi", async () => {
+    creerCompteDeBureau.mockResolvedValue({
+      accepte: false,
+      motif: "courriel_connu_ailleurs",
+    });
+
+    const reponse = await POST(requete(true));
+    const url = urlDeRetour(reponse);
+    expect(url.searchParams.get("onglet")).toBe("bureau");
+    expect(url.searchParams.get("motif")).toBe(
+      "equipe.bureau.refus.courriel_connu_ailleurs",
+    );
+    expect(envoyerLienDAccesBureau).not.toHaveBeenCalled();
+  });
 });

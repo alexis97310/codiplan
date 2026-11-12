@@ -103,3 +103,36 @@ describe.each([
     expect(reponse.headers.get("cache-control")).toBe("no-store");
   });
 });
+
+/**
+ * D226, ÉTENDUE AU PREMIER LIEN (9L01-COPIE-LIEN-EXCLUSIVITE) — `autre_societe`
+ * n'était rendu, avant ce lot, que par `copierNouveauLien*`. La route
+ * elle-même ne distingue jamais les motifs (pur passe-plat) ; ces deux
+ * épreuves le vérifient explicitement pour les routes PREMIER LIEN, et
+ * confirment `no-store`.
+ */
+describe.each([
+  {
+    nom: "copier-lien (technicien)",
+    POST: COPIER_LIEN_TECHNICIEN,
+    geste: copierLienDAcces,
+  },
+  {
+    nom: "copier-lien (bureau)",
+    POST: COPIER_LIEN_BUREAU,
+    geste: copierLienDAccesBureau,
+  },
+])("$nom — motif « autre_societe » (D226)", ({ POST, geste }) => {
+  it("rend le motif en JSON, sous no-store", async () => {
+    exigerCapacite.mockResolvedValue({
+      societeId: "s",
+      role: Role.admin_societe,
+    });
+    geste.mockResolvedValue({ accepte: false, motif: "autre_societe" });
+
+    const reponse = await POST(requete(), { params: params() });
+    expect(reponse.headers.get("cache-control")).toBe("no-store");
+    const corps: { readonly erreur?: unknown } = await reponse.json();
+    expect(corps.erreur).toBe("autre_societe");
+  });
+});

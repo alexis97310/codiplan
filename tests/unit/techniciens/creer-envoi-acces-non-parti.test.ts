@@ -139,4 +139,21 @@ describe("POST /api/techniciens/creer — l'interrupteur « envoyer le lien en l
     const url = urlDeRetour(reponse);
     expect(url.searchParams.get("motif")).toBe("equipe.refus.envoi_echoue");
   });
+
+  // D226 (10/11/2026, 9L01-COPIE-LIEN-EXCLUSIVITE) — `creerTechnicien` refuse
+  // désormais un courriel déjà connu d'une AUTRE société ; la route le
+  // redirige comme tout autre refus nommé, sans jamais appeler l'envoi.
+  it("un courriel connu d'une autre société redirige vers son motif NEUTRE, sans jamais tenter l'envoi", async () => {
+    creerTechnicien.mockResolvedValue({
+      accepte: false,
+      motif: "courriel_connu_ailleurs",
+    });
+
+    const reponse = await POST(requete(true));
+    const url = urlDeRetour(reponse);
+    expect(url.searchParams.get("motif")).toBe(
+      "equipe.refus.courriel_connu_ailleurs",
+    );
+    expect(envoyerLienDAcces).not.toHaveBeenCalled();
+  });
 });

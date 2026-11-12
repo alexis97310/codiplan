@@ -93,6 +93,14 @@ function fabriquerClientFactice(options: {
     readonly agence_id: string;
     readonly statut_ressource?: "salarie" | "patente" | null;
   } | null;
+  /**
+   * Ce que `identiteExclusiveALaSociete` (D226, `lib/auth/lien-d-acces.ts`)
+   * répond pour l'identité EXISTANTE — `true` par défaut, comme AVANT ce
+   * contrôle (9L01-COPIE-LIEN-EXCLUSIVITE) : seul un rattachement avec une
+   * identité existante ($queryRaw) lit cette valeur, jamais une identité
+   * NEUVE, qui n'a encore aucune société.
+   */
+  readonly identiteExclusive?: boolean;
 }): { readonly client: PrismaClient; readonly appels: Appels } {
   const appels: Appels = {
     utilisateurCree: [],
@@ -116,6 +124,13 @@ function fabriquerClientFactice(options: {
   // pas l'inverse).
   const tx = {
     $executeRawUnsafe: async () => undefined,
+    // `identiteExclusiveALaSociete` (D226, 9L01-COPIE-LIEN-EXCLUSIVITE) —
+    // `avecSociete` route ici son `$queryRaw` tagué. Fonctionne comme balise
+    // de gabarit : les arguments (chaînes, valeurs interpolées) ne comptent
+    // pas pour ce gardien, seule la réponse importe.
+    $queryRaw: async () => [
+      { exclusif: options.identiteExclusive ?? true },
+    ],
     utilisateur: {
       findUnique: async () => options.utilisateurExistant ?? null,
       create: async ({ data }: { data: { id: string } }) => {
@@ -298,10 +313,11 @@ describe("un courriel déjà pris rattache, il ne duplique jamais (gardien)", ()
       (appels.utilisateurSocieteCree[0] as { utilisateur_id: string })
         .utilisateur_id,
     ).toBe("0192f0a0-0000-7000-8000-0000000000ex");
-    // DEUX ouvertures seulement : la lecture par désignation (pas de
-    // création, l'identité existe déjà), puis l'habilitation + le
-    // rattachement ensemble.
-    expect(appels.transactionsOuvertes).toBe(2);
+    // TROIS ouvertures : la lecture par désignation (pas de création,
+    // l'identité existe déjà) ; `identiteExclusiveALaSociete` (D226,
+    // 9L01-COPIE-LIEN-EXCLUSIVITE), SA PROPRE transaction (`avecSociete`) ;
+    // puis l'habilitation + le rattachement ensemble.
+    expect(appels.transactionsOuvertes).toBe(3);
   });
 
   it("une identité NOUVELLE dit `rattache: false`", async () => {
@@ -315,6 +331,30 @@ describe("un courriel déjà pris rattache, il ne duplique jamais (gardien)", ()
 
     expect(resultat.accepte).toBe(true);
     expect(resultat.accepte && resultat.rattache).toBe(false);
+  });
+
+  // D226 (décision d'Alexis du 10/11/2026, 9L01-COPIE-LIEN-EXCLUSIVITE) —
+  // voir l'en-tête du module : une identité déjà connue d'une AUTRE société
+  // n'est plus rattachée sans contrôle.
+  it("une identité connue d'une AUTRE société refuse « courriel_connu_ailleurs », avant toute écriture", async () => {
+    const { client, appels } = fabriquerClientFactice({
+      utilisateurExistant: { id: "0192f0a0-0000-7000-8000-0000000000ex" },
+      identiteExclusive: false,
+    });
+
+    const resultat = await creerTechnicien(
+      CONTEXTE_ADMIN,
+      SAISIE_VALIDE,
+      client,
+    );
+
+    expect(resultat).toEqual({
+      accepte: false,
+      motif: "courriel_connu_ailleurs",
+    });
+    expect(appels.utilisateurCree).toHaveLength(0);
+    expect(appels.utilisateurSocieteCree).toHaveLength(0);
+    expect(appels.technicienCree).toHaveLength(0);
   });
 
   it("une personne déjà membre de la société active est refusée, jamais dupliquée", async () => {

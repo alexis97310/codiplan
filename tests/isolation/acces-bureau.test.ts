@@ -144,6 +144,48 @@ describe("creerCompteDeBureau", () => {
     expect(existe).toHaveLength(0);
   });
 
+  // D226 (décision d'Alexis du 10/11/2026, 9L01-COPIE-LIEN-EXCLUSIVITE) —
+  // avant ce lot, un courriel déjà connu d'une AUTRE société était rattaché à
+  // la société active SANS AUCUN contrôle (voir l'en-tête de la fonction).
+  it("la société B crée un compte non activé ; la société A tente de le créer avec le même courriel : refus NEUTRE, rien n'est écrit", async () => {
+    const ADMIN_B = { ...ADMIN_A, societeId: SOCIETE_B };
+    const courrielPartage = courriel();
+    const creeParB = await creerCompteDeBureau(
+      ADMIN_B,
+      { nom: "9L01 Compte B", courriel: courrielPartage, role: Role.adv },
+      clientApp(),
+    );
+    expect(creeParB.accepte).toBe(true);
+    if (!creeParB.accepte) return;
+    // LE COMPTE N'EST PAS ACTIVÉ — aucun mot de passe posé (voir
+    // `creerCompteDeBureau` : l'habilitation seule, jamais le compte).
+
+    const tentativeParA = await creerCompteDeBureau(
+      ADMIN_A,
+      { nom: "9L01 Tentative A", courriel: courrielPartage, role: Role.adv },
+      clientApp(),
+    );
+    expect(tentativeParA).toEqual({
+      accepte: false,
+      motif: "courriel_connu_ailleurs",
+    });
+
+    // RIEN N'EST ÉCRIT POUR LA SOCIÉTÉ A — seule l'habilitation de B existe.
+    const habilitations = await clientOwner().$queryRawUnsafe<
+      { societe_id: string }[]
+    >(
+      `SELECT societe_id::text FROM "utilisateur_societe" WHERE utilisateur_id = $1::uuid`,
+      creeParB.utilisateurId,
+    );
+    expect(habilitations).toEqual([{ societe_id: SOCIETE_B }]);
+  });
+
+  // Un courriel connu de la MÊME société garde son comportement actuel —
+  // `identiteExclusiveALaSociete` répond VRAI quand la société active EST la
+  // seule société connue : voir « rattache une identité déjà connue de la
+  // plateforme » ci-dessus (rattachement accepté) et « refuse un doublon »
+  // ci-dessous (`deja_membre`, inchangé) — aucun des deux n'atteint jamais
+  // `courriel_connu_ailleurs`.
   it("refuse un doublon — cette personne est déjà membre de la société active", async () => {
     const courrielDoublon = courriel();
     const premier = await creerCompteDeBureau(
@@ -789,6 +831,117 @@ describe("copierLienDAccesBureau", () => {
       clientApp(),
     );
     expect(resultat).toEqual({ accepte: false, motif: "introuvable" });
+  });
+});
+
+/**
+ * D226 ÉTENDUE AU PREMIER LIEN (décision d'Alexis du 10/11/2026,
+ * 9L01-COPIE-LIEN-EXCLUSIVITE) — jusqu'ici, seule la copie d'un NOUVEAU lien
+ * (`copierNouveauLienDAccesBureau`, voir plus bas) posait
+ * `identiteExclusiveALaSociete`. Le PREMIER lien, lui, ne vérifiait que
+ * l'appartenance. Même garde, même motif, jamais de « cible protégée » (D223
+ * ne s'applique qu'au nouveau lien).
+ */
+describe("copierLienDAccesBureau — D226, exclusivité (9L01-COPIE-LIEN-EXCLUSIVITE)", () => {
+  it("un compte EXCLUSIF à la société active reste copiable", async () => {
+    const cree = await creerCompteDeBureau(
+      ADMIN_A,
+      { nom: "9L01 Exclusif", courriel: courriel(), role: Role.adv },
+      clientApp(),
+    );
+    expect(cree.accepte).toBe(true);
+    if (!cree.accepte) return;
+
+    const resultat = await copierLienDAccesBureau(
+      ADMIN_A,
+      cree.utilisateurId,
+      clientApp(),
+    );
+    expect(resultat.accepte).toBe(true);
+  });
+
+  it("refuse « autre_societe » pour une identité aussi rattachée à une AUTRE société, chez A ET chez B — aucun jeton, aucune trace", async () => {
+    const cree = await creerCompteDeBureau(
+      ADMIN_A,
+      { nom: "9L01 Partagé", courriel: courriel(), role: Role.adv },
+      clientApp(),
+    );
+    expect(cree.accepte).toBe(true);
+    if (!cree.accepte) return;
+
+    // LE RATTACHEMENT À LA SOCIÉTÉ B — simule une identité partagée par un
+    // autre chemin que celui, désormais fermé, de `creerCompteDeBureau` (D226).
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "utilisateur_societe" (id, utilisateur_id, societe_id, role)
+       VALUES ($1::uuid, $2::uuid, $3::uuid, $4::"Role")`,
+      uuidv7(),
+      cree.utilisateurId,
+      SOCIETE_B,
+      Role.adv,
+    );
+    try {
+      const chezA = await copierLienDAccesBureau(
+        ADMIN_A,
+        cree.utilisateurId,
+        clientApp(),
+      );
+      expect(chezA).toEqual({ accepte: false, motif: "autre_societe" });
+
+      const ADMIN_B = { ...ADMIN_A, societeId: SOCIETE_B };
+      const chezB = await copierLienDAccesBureau(
+        ADMIN_B,
+        cree.utilisateurId,
+        clientApp(),
+      );
+      expect(chezB).toEqual({ accepte: false, motif: "autre_societe" });
+
+      // AUCUN JETON — le compte au repos n'a même pas été écrit : le refus
+      // tient AVANT `preparerLienDAcces`.
+      const [compte] = await clientOwner().$queryRawUnsafe<unknown[]>(
+        `SELECT 1 FROM "compte" WHERE utilisateur_id = $1::uuid`,
+        cree.utilisateurId,
+      );
+      expect(compte).toBeUndefined();
+      // AUCUNE TRACE — comme les autres refus de ce geste (introuvable,
+      // deja_un_mot_de_passe), celui-ci n'écrit rien non plus.
+      const traces = await clientOwner().$queryRawUnsafe<unknown[]>(
+        `SELECT 1 FROM "journal_acces" WHERE detail LIKE '%cible:' || $1`,
+        cree.utilisateurId,
+      );
+      expect(traces).toHaveLength(0);
+    } finally {
+      await clientOwner().$executeRawUnsafe(
+        `DELETE FROM "utilisateur_societe" WHERE "utilisateur_id" = $1::uuid AND "societe_id" = $2::uuid`,
+        cree.utilisateurId,
+        SOCIETE_B,
+      );
+    }
+  });
+
+  it("FAIL-CLOSED (9I8D2) : rend « autre_societe », jamais une exception, quand l'exclusivité ne peut pas être vérifiée", async () => {
+    const cree = await creerCompteDeBureau(
+      ADMIN_A,
+      { nom: "9L01 Fonction en échec", courriel: courriel(), role: Role.adv },
+      clientApp(),
+    );
+    expect(cree.accepte).toBe(true);
+    if (!cree.accepte) return;
+
+    await clientOwner().$executeRawUnsafe(
+      `REVOKE EXECUTE ON FUNCTION "app_identite_exclusive_a_la_societe"(uuid) FROM "codiplan_app"`,
+    );
+    try {
+      const resultat = await copierLienDAccesBureau(
+        ADMIN_A,
+        cree.utilisateurId,
+        clientApp(),
+      );
+      expect(resultat).toEqual({ accepte: false, motif: "autre_societe" });
+    } finally {
+      await clientOwner().$executeRawUnsafe(
+        `GRANT EXECUTE ON FUNCTION "app_identite_exclusive_a_la_societe"(uuid) TO "codiplan_app"`,
+      );
+    }
   });
 });
 
