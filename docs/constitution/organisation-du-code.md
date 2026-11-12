@@ -46,26 +46,26 @@ _Les numéros de ligne du sommaire sont RECALCULÉS, jamais saisis à la main : 
 - `lib/imports/` — ligne 883
 - `lib/notifications/` — ligne 1035
 - `lib/prestations/` — ligne 1050
-- `lib/portail/` — ligne 1069
-- `lib/pdf/` — ligne 1085
-- `lib/reporting/` — ligne 1086
-- `lib/vgp/` — ligne 1087
-- `lib/techniciens/` — ligne 1140
-- `lib/terrain/` — ligne 1145
-- `lib/theme/` — ligne 1154
-- `lib/i18n/` — ligne 1189
-- `lib/tri/` — ligne 1192
-- `lib/societes/` — ligne 1197
-- `lib/audit/` — ligne 1201
-- `lib/tableau-de-bord/` — ligne 1205
-- `lib/feuille-de-route/` — ligne 1209
-- `lib/pwa/` — ligne 1215
-- `lib/suite-a-donner/` — ligne 1219
-- `lib/checklists/` — ligne 1248
-- `components/` — ligne 1259
-- `prisma/` — ligne 1260
-- `tests/` — ligne 1261
-- `docs/` — ligne 1280
+- `lib/portail/` — ligne 1076
+- `lib/pdf/` — ligne 1092
+- `lib/reporting/` — ligne 1093
+- `lib/vgp/` — ligne 1094
+- `lib/techniciens/` — ligne 1147
+- `lib/terrain/` — ligne 1152
+- `lib/theme/` — ligne 1161
+- `lib/i18n/` — ligne 1196
+- `lib/tri/` — ligne 1199
+- `lib/societes/` — ligne 1204
+- `lib/audit/` — ligne 1208
+- `lib/tableau-de-bord/` — ligne 1212
+- `lib/feuille-de-route/` — ligne 1216
+- `lib/pwa/` — ligne 1222
+- `lib/suite-a-donner/` — ligne 1226
+- `lib/checklists/` — ligne 1255
+- `components/` — ligne 1266
+- `prisma/` — ligne 1267
+- `tests/` — ligne 1268
+- `docs/` — ligne 1287
 
 ---
 
@@ -1066,6 +1066,13 @@ lib/
               zéro, qui dirait « instantané »
               aucune énumération de prestations : c'est le métier lui-même, et
               il bouge à chaque société — le raisonnement de materiel/
+              PROPOSÉE PAR TYPE D'INTERVENTION depuis 9K29 (D243) :
+              `prestation_type_intervention`, table de relation plutôt que le
+              tableau d'énumération typé envisagé — amendement nommé de D235,
+              SANS précédent ailleurs dans ce dépôt. `regle-type.ts`, PUR et
+              SANS PRISMA (même motif que `TYPES_AVEC_PIECES_REMPLACEES` de
+              `lib/interventions/saisie.ts`) : VIDE = tous les types, une
+              réalisation déjà déclarée reste affichée quelle que soit la règle
   portail/    le PORTAIL CLIENT, en CONSULTATION SEULE (L2-12, D92)
               rattachementsDuCompte lit la DIXIÈME forme de politique —
               « rattachement » : un compte lit SES rattachements SANS société

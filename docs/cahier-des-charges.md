@@ -711,6 +711,7 @@ mention est un écart, jamais une sortie du périmètre.*
 | RG-INT-09 | Une intervention de type garantie ne génère aucun montant client mais est valorisée au coût pour le suivi de rentabilité. |
 | RG-INT-10 | Une intervention de type `curatif` sur une machine ayant déjà fait l'objet d'une intervention `curatif` **clôturée** dans les 30 jours calendaires précédents est marquée `retour = true` et remonte au suivi qualité. *(amendée par D25)* |
 | RG-INT-11 | Une intervention de type recensement ne génère ni montant ni engagement de délai, mais produit une fiche de restitution client. |
+| RG-INT-12 | Une prestation du catalogue n'est proposée au technicien, sur le rapport terrain, que pour les types d'intervention qu'elle porte *(D243, 11/11/2026)*. **VIDE = proposée pour TOUS les types** — aucune prestation existante n'a disparu du terrain à la migration qui a introduit cette règle. **Une prestation déjà déclarée réalisée sur une intervention reste affichée même si elle ne serait plus proposée pour son type** : une réalisation ne disparaît jamais de l'écran après coup. *(introduite par D243)* |
 
 ### RG — Planning
 

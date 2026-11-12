@@ -8402,16 +8402,16 @@ Aucune checklist (CK*, 9K08/9K17A/9K18, hors territoire). Aucun montant, taux ni
 
 > Le jour où une seconde table du dépôt aurait besoin d'un tableau d'énumération typé pour une raison qui NE TIENT PAS à un code unique par société, cette décision et D235 se relisent ensemble : la table de relation n'est pas une préférence générale, c'est la réponse à une contrainte nommée ci-dessus (point 3).
 
-**Règles amendées :** chapitre 11.2 — `prestation_type_intervention` (table ajoutée) ; chapitre 10, règle de proposition des prestations au rapport terrain (nouvelle).
+**Règles amendées :** chapitre 11.2 — `prestation_type_intervention` (table ajoutée) ; chapitre 10, RG-INT-12 (nouvelle).
 
 Portée : `prisma/migrations/20261111090000_prestations_par_type_intervention_9k29`,
 `prisma/schema.prisma` (`PrestationTypeIntervention`, `Prestation.types`),
 `scripts/lib/politiques-rls.ts` (`TABLES_FILIATION`, `FILIATION_ARBITREE`),
 `lib/prestations/saisie.ts`, `lib/prestations/depot.ts`, `lib/prestations/regle-type.ts`,
-`lib/imports/modeles.ts`, `lib/imports/application.ts`, `lib/imports/comparaison.ts`,
-`app/(back-office)/parametres/prestations/page.tsx`, `app/api/parametres/prestations/saisie-recue.ts`,
-`app/(mobile)/terrain/[id]/page.tsx`, `app/api/terrain/instantane/route.ts`, `components/terrain/consultation-hors-reseau.tsx`,
+`lib/imports/modeles.ts`, `lib/imports/application.ts`, `lib/imports/comparaison.ts` (cinquième forme de `porteEncore`), `lib/imports/annulation.ts`,
+`app/(back-office)/parametres/prestations/page.tsx`, `app/api/parametres/prestations/saisie-recue.ts`, `app/(back-office)/imports/types.ts`,
+`app/(mobile)/terrain/[id]/page.tsx`, `components/terrain/consultation-hors-reseau.tsx`, `components/terrain/rapport-automatique.tsx` (troisième état vide, « rien pour ce type »),
 `lib/i18n/fr.ts`,
-`tests/unit/db/inventaire.test.ts`, `tests/unit/db/perimetre-audit.test.ts`, `lib/db/migrations-attendues.ts`,
-`tests/unit/prestations/**`, `tests/isolation/prestations-par-type.test.ts`,
-`tests/e2e/9k29-prestations-par-type-intervention.spec.ts`.
+`tests/unit/db/inventaire.test.ts`, `tests/unit/db/perimetre-audit.test.ts`, `lib/db/migrations-attendues.ts`, `tests/isolation/portail-matrice.test.ts`,
+`tests/unit/prestations/par-type-intervention.test.ts`, `tests/unit/imports/comparaison.test.ts`, `tests/unit/terrain/rapport-automatique.test.tsx`, `tests/isolation/prestations.test.ts`,
+`tests/e2e/9k29-prestations-par-type-intervention.spec.ts`, `tests/e2e/captures-9k29-prestations-par-type-intervention.spec.ts`.
