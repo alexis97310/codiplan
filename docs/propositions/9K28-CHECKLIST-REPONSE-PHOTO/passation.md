@@ -192,6 +192,67 @@ interdits ici), corriger ce que l'épreuve révélera, prendre les captures, pui
 `tous-les-ecrans-rendent.spec.ts` et `CI=1 pnpm verify` au complet avant de considérer ce lot
 terminé au sens du §5.
 
+## Reprise 9K28B (12/11/2026) — la mémoire, la collision de migration, l'épreuve jouée
+
+**1. LA COLLISION DE MIGRATION.** `20261111090000_checklist_reponse_photo_9k28` partageait son
+horodatage avec `20261111090000_prestations_par_type_intervention_9k29` — publiée entre-temps sur
+`origin/main`, et triée AVANT elle. Renommée **`20261112180000_checklist_reponse_photo_9k28`**
+(contenu inchangé), strictement postérieure à toutes les migrations d'`origin/main` ; sa fixture
+`tests/isolation/fixtures/base-agee/`, `lib/db/migrations-attendues.ts` et les deux mentions dans
+ce document suivent. La fusion de `docs/arbitrages.md` collisionnait pareillement : D244 avait été
+pris sur `origin/main` par 9L00 pendant que cette branche portait encore son propre D244 (déjà
+renuméroté depuis D243 par la reprise 9K28A ci-dessus, pour une collision similaire avec 9K29).
+Renumérotée **D245**.
+
+**2. LA CAUSE DE L'OOM, TROUVÉE PAR BISSECTION — LE SCHÉMA, PAS LE CODE APPLICATIF.** `pnpm build`
+de 9K28A mourait systématiquement à « Linting and checking validity of types », ~6,46-6,48 Go RSS
+(`main`, 8ccdaff3c, passe au même endroit, ~6,40-6,48 Go — `tsc --noEmit` seul passe sur les deux,
+6,23 Go `main` contre 6,34 Go cette branche, +108 Mo). Isolé en revenant TOUT le code applicatif de
+9K28/9K28A (y compris les deux grosses épreuves neuves) à `origin/main`, un fichier à la fois puis
+d'un bloc : avec SEUL `prisma/schema.prisma` gardant sa version neuve, le build échoue encore à
+l'identique ; schéma ÉGALEMENT revenu, il passe (6,44 Go). La cause est donc le schéma, jamais le
+code applicatif ni les épreuves.
+
+**DANS le schéma**, le modèle neuf `ChecklistReponsePhoto` lui-même n'était pas en cause : ses
+trois réciproques (`Societe.checklistReponsePhotos`, `ChecklistReponse.photos`,
+`Document.checklist_reponses`) — posées sur trois des modèles déjà les plus reliés du schéma —
+alourdissaient le type Prisma généré pour CHACUN d'eux, répété à travers tout le dépôt. Mesuré par
+`grep` sur tout le dépôt : aucune des trois n'est jamais lue, ni par un `include`, ni par un accès
+direct — `photosParReponse` (`lib/checklists/depot.ts`) interroge toujours `checklistReponsePhoto`
+directement. `@ignore` (Prisma) les retire du client généré sans toucher au schéma RÉEL : aucune
+des trois n'a de colonne propre, le lien réel reste `ChecklistReponsePhoto.{societe,reponse,
+document}_id`, posé dans la migration — inchangée. **Après** : `pnpm build` passe, trois fois de
+suite (6,47 / 6,46 / 6,45 Go RSS, comparable à `main`) ; `tsc --noEmit` seul : 6,24 Go, à 12 Mo de
+`main` (contre +108 Mo avant correctif). Aucune limite de mémoire relevée, aucun contrôle
+désactivé — voir le commentaire posé sur `ChecklistReponsePhoto` dans le schéma, qui porte cette
+même mesure pour qui la retrouverait sans cette passation.
+
+**3. L'ÉPREUVE DE BOUT EN BOUT, JOUÉE POUR LA PREMIÈRE FOIS — deux défauts, tous deux dans
+L'ÉPREUVE, aucun dans l'application.** Une fois le build débloqué, `9k28a-point-photo-hors-
+reseau.spec.ts` a révélé :
+   - `input[type="file"]` et `getByRole("button", { name: "Ajouter une photo" })` SEULS y sont
+     ambigus : la fiche terrain porte DEUX formulaires `PhotosTerrain` (la section « Photos »
+     générale, et celle embarquée au point `photo`), même composant, même libellé de bouton.
+     Corrigé par `formulaireDuPointPhoto`, qui scope les deux sur le champ caché
+     `checklist_point_id` posé UNIQUEMENT par l'instance du point.
+   - Les deux photos de la fixture étaient VISUELLEMENT identiques (même PNG 1×1 transparent) :
+     `PhotosTerrain` les réduit côté client avant l'envoi, et le dépôt dédoublonne par empreinte
+     SHA-256 du résultat, PAR INTERVENTION (`lib/documents/depot.ts`) — deux photos identiques
+     après réduction produisent la MÊME empreinte, et la seconde ne crée donc aucun second lien
+     (`liens` mesuré à 1 au lieu de 2 attendu, le temps de ce diagnostic). Remplacée par
+     `construirePngDeTest` (même patron que `9ez-logo-societe.spec.ts`), une couleur distincte par
+     photo.
+
+   Les deux scénarios passent. Captures prises (375 terrain avant/après, 1280 bon client/interne,
+   `docs/propositions/9K28-CHECKLIST-REPONSE-PHOTO/captures/`).
+
+**4. CE QUI A ÉTÉ REJOUÉ, VERT** : `pnpm test:isolation` complet, deux fois de suite, puis une
+troisième fois DANS `pnpm verify` — aucune trace du flake de la reprise 9K28A.
+`tests/e2e/tous-les-ecrans-rendent.spec.ts` (61 passés, 4 ignorés — pré-existant, hors ce lot).
+`CI=1 pnpm verify` au complet (format:check, typecheck, lint, test, test:isolation, build) :
+**vert**.
+
 **MIGRATION À JOUER par Alexis : staging puis DB migrate & seed, puis Vercel** —
-**`20261112180000_checklist_reponse_photo_9k28`**, inchangée depuis 9K28 (voir l'encadré en tête
-de ce document) ; pas encore jouée en production.
+**`20261112180000_checklist_reponse_photo_9k28`** (nom final, renommée au point 1 ci-dessus),
+inchangée depuis 9K28 sur le fond (voir l'encadré en tête de ce document) ; pas encore jouée en
+production.
