@@ -683,6 +683,10 @@ export default async function setup(): Promise<void> {
     // `client (societe_id, id)`. Écrire l'habilitation avant son client échoue
     // maintenant — c'est très exactement ce que la clé existe pour interdire,
     // et la ligne orpheline de la base de démonstration en était la preuve.
+    // ACCEPTÉS DÈS LE SEMIS (9L04, D249) — ces cinq rattachements du harnais
+    // global décrivent des accès déjà établis, pas des invitations en cours ;
+    // une ligne non acceptée n'ouvrirait ni le parc ni la société (D249), ce
+    // que la quasi-totalité des scénarios de ce dépôt suppose déjà acquis.
     await prisma.utilisateurClient.createMany({
       data: [
         {
@@ -690,6 +694,7 @@ export default async function setup(): Promise<void> {
           utilisateur_id: PORTAIL_A_CLIENT,
           client_id: CLIENT_A1,
           societe_id: SOCIETE_A,
+          accepte_le: new Date(),
         },
         {
           // Le VOISIN : un autre client de la MÊME société (L1-02b). C'est lui
@@ -699,12 +704,14 @@ export default async function setup(): Promise<void> {
           utilisateur_id: PORTAIL_A2_CLIENT,
           client_id: CLIENT_A2,
           societe_id: SOCIETE_A,
+          accepte_le: new Date(),
         },
         {
           id: "bbbbbbbb-0000-7000-8000-0000000000f8",
           utilisateur_id: PORTAIL_B_CLIENT,
           client_id: CLIENT_B1,
           societe_id: SOCIETE_B,
+          accepte_le: new Date(),
         },
         // DEUX rattachements pour UNE identité, dans DEUX sociétés. Le mur que
         // D92 abat se mesure ici : sans la forme « rattachement », ce compte ne
@@ -714,12 +721,14 @@ export default async function setup(): Promise<void> {
           utilisateur_id: PORTAIL_DEUX_SOCIETES,
           client_id: CLIENT_A1,
           societe_id: SOCIETE_A,
+          accepte_le: new Date(),
         },
         {
           id: "bbbbbbbb-0000-7000-8000-0000000000fb",
           utilisateur_id: PORTAIL_DEUX_SOCIETES,
           client_id: CLIENT_B1,
           societe_id: SOCIETE_B,
+          accepte_le: new Date(),
         },
       ],
     });
@@ -776,6 +785,9 @@ export default async function setup(): Promise<void> {
         utilisateur_id: UTILISATEUR_PAR_ROLE[Role.client],
         client_id: CLIENT_A1,
         societe_id: SOCIETE_A,
+        // ACCEPTÉ DÈS LE SEMIS (9L04, D249) : ce rattachement du harnais
+        // global décrit un accès déjà établi, pas une invitation en cours.
+        accepte_le: new Date(),
       },
     });
   } finally {

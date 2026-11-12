@@ -74,6 +74,13 @@ const REPERTOIRES = ["app", "components", "lib", "prisma", "scripts"];
  * d'interprété localement. C'est le point de passage unique pour
  * `components/terrain/compteur-vivant.tsx`, qui n'a donc besoin d'aucune
  * exemption à lui.
+ *
+ * `lib/auth/instant-acceptation.ts` (9L04, D249) — MÊME raisonnement que
+ * `lib/db/uuid.ts` : `accepte_le` est un INSTANT d'audit (quand un
+ * rattachement portail a été accepté), jamais une date calendaire — aucun
+ * fuseau ne le borne, aucun écran ne l'affiche, aucune règle ne compare son
+ * jour local à celui d'une agence. C'est le point de passage unique pour
+ * `lib/auth/lien-d-acces.ts`, qui n'a donc besoin d'aucune exemption à lui.
  */
 const EXEMPTS_FICHIERS = [
   "lib/calendar/fuseau.ts",
@@ -81,6 +88,7 @@ const EXEMPTS_FICHIERS = [
   "lib/terrain/uuid-appareil.ts",
   "lib/terrain/file-saisies.ts",
   "lib/terrain/compteur-vivant.ts",
+  "lib/auth/instant-acceptation.ts",
 ];
 
 const MARQUEURS: readonly RegExp[] = [

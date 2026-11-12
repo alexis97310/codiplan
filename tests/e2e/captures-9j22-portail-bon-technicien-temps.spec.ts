@@ -166,7 +166,7 @@ async function preparerLaScene(): Promise<void> {
           `L'invitation du compte de l'épreuve a été refusée : ${invitation.motif}.`,
         );
       }
-      if (!invitation.dejaActif) {
+      if (!invitation.enAttente) {
         if (invitation.url === null) {
           throw new Error(
             "L'invitation n'a rendu aucun jeton : la scène ne peut pas ouvrir " +

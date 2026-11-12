@@ -16,25 +16,24 @@ import { ouvrirLaSessionSensible } from "./setup/session";
  * « ACCÈS PORTAIL », TROIS ISSUES D'UNE IDENTITÉ CONNUE D'UNE AUTRE SOCIÉTÉ
  * (C1, étude du 08/11, décision d'Alexis du 08/11 ~09:00).
  *
- * **APRÈS seulement** (mémoire « captures-avant-apres-e2e ») : les trois
- * scénarios n'existaient PAS avant ce ticket — `inviterClientAuPortail` ne
- * consultait alors que la société ACTIVE, jamais une autre (C1). Il n'y a
- * donc rien à capturer « avant » : les deux premières scènes (b)/(c) auraient
- * été ACCEPTÉES par l'ancien code, pas refusées — une capture AVANT
- * montrerait l'écran de succès, pas celui qu'on documente ici.
+ * **APRÈS seulement** (mémoire « captures-avant-apres-e2e »). Mis à jour par
+ * 9L04-PORTAIL-INVITATION-EN-ATTENTE (D249, 10/11/2026) : (a) ne montre plus
+ * un accès immédiat — D249 revient sur ce point précis de D233 — et (b)/(c)
+ * partagent désormais un troisième motif, neutre, qui ne distingue plus
+ * « pas encore activé » d'« employé ailleurs ».
  *
  * Trois scènes, sur la société CODIMA-EU (« B ») pour ne jamais confondre
  * avec la société active de l'épreuve, CODIMA-NC (« A ») :
  *
  *   (a) EMAIL_CLIENT_ACTIF — un compte CLIENT de B, mot de passe déjà posé —
- *       invité depuis A : ACCEPTÉ, « accès immédiat » (`clients.acces.deja_actif`).
+ *       invité depuis A : ACCEPTÉ, mais EN ATTENTE de son acceptation
+ *       (`clients.acces.en_attente_invitation`, D249).
  *   (b) EMAIL_CLIENT_EN_ATTENTE — un compte CLIENT de B, PAS encore activé —
- *       invité depuis A : REFUSÉ (`clients.acces.refus.compte_connu_autre_societe`).
+ *       invité depuis A : REFUSÉ (`clients.acces.refus.compte_connu_ailleurs`).
  *   (c) EMAIL_EMPLOYE — un compte EMPLOYÉ (interne) de B — invité depuis A :
- *       REFUSÉ, avec le MÊME message que (b) — `identiteExclusiveALaSociete`
- *       (D226) ne rend qu'un booléen, jamais LAQUELLE des deux tables a
- *       répondu (voir l'en-tête de `inviterClientAuPortail`,
- *       `lib/auth/lien-d-acces.ts`, et la passation de ce lot). Les deux
+ *       REFUSÉ, avec le MÊME message que (b), NEUTRE depuis D249 : un seul
+ *       motif couvre les deux cas « adresse connue ailleurs » (voir l'en-tête
+ *       de `inviterClientAuPortail`, `lib/auth/lien-d-acces.ts`). Les deux
  *       captures existent néanmoins séparément : le champ courriel, lui,
  *       reste visible et distingue les deux tentatives à l'écran.
  */
@@ -219,7 +218,7 @@ for (const largeur of [1280, 375] as const) {
       await expect(
         page.getByText(
           (fr as Record<string, string>)[
-            "clients.acces.refus.compte_connu_autre_societe"
+            "clients.acces.refus.compte_connu_ailleurs"
           ],
         ),
       ).toBeVisible();
@@ -245,15 +244,15 @@ for (const largeur of [1280, 375] as const) {
       await expect(
         page.getByText(
           (fr as Record<string, string>)[
-            "clients.acces.refus.compte_connu_autre_societe"
+            "clients.acces.refus.compte_connu_ailleurs"
           ],
         ),
       ).toBeVisible();
       await capturer(page, "apres-refus-connu-autre-societe-employe", largeur);
     });
 
-    // ── (a) ACCEPTÉ — compte client de B, déjà actif ─────────────────────
-    test(`capture — invitation acceptée : compte client déjà actif d'une autre société, à ${largeur}px`, async ({
+    // ── (a) EN ATTENTE — compte client de B, déjà actif (D249) ───────────
+    test(`capture — invitation en attente : compte client déjà actif d'une autre société, à ${largeur}px`, async ({
       page,
     }) => {
       await ouvrirLaSessionSensible(page, COMPTE_ADMIN_SOCIETE_EPREUVE);
@@ -265,9 +264,13 @@ for (const largeur of [1280, 375] as const) {
         .getByRole("button", { name: fr["clients.acces.inviter"] })
         .click();
       await expect(
-        page.getByText(fr["clients.acces.deja_actif"]),
+        page.getByText(fr["clients.acces.en_attente_invitation"]),
       ).toBeVisible();
-      await capturer(page, "apres-accepte-client-actif-autre-societe", largeur);
+      await capturer(
+        page,
+        "apres-en-attente-client-actif-autre-societe",
+        largeur,
+      );
     });
   });
 }

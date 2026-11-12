@@ -1,11 +1,15 @@
 import { afterAll, afterEach, describe, expect, it } from "vitest";
 
 import {
+  accepterRattachementClient,
   comptesDuPortailDuClient,
   inviterClientAuPortail,
+  rattachementsEnAttenteDuCompte,
   RefusInvitationClient,
+  refuserRattachementClient,
   revoquerAccesPortailClient,
 } from "@/lib/auth/lien-d-acces";
+import { habilitationsDuCompte } from "@/lib/auth/societe-active";
 import { Role } from "@/lib/auth/roles";
 import { rattachementsDuCompte } from "@/lib/portail/depot";
 import { uuidv7 } from "@/lib/db/uuid";
@@ -97,7 +101,7 @@ describe("inviterClientAuPortail — l'invitation", () => {
     );
     expect(resultat.accepte).toBe(true);
     if (!resultat.accepte) return;
-    expect(resultat.dejaActif).toBe(false);
+    expect(resultat.enAttente).toBe(false);
     expect(resultat.url).not.toBeNull();
     expect(resultat.url?.length).toBeGreaterThan(0);
 
@@ -115,9 +119,9 @@ describe("inviterClientAuPortail — l'invitation", () => {
     );
 
     const [rattachement] = await clientOwner().$queryRawUnsafe<
-      { actif: boolean; societe_id: string }[]
+      { actif: boolean; societe_id: string; accepte_le: Date | null }[]
     >(
-      `SELECT uc.actif, uc.societe_id::text FROM "utilisateur_client" uc
+      `SELECT uc.actif, uc.societe_id::text, uc.accepte_le FROM "utilisateur_client" uc
          JOIN "utilisateur" u ON u.id = uc.utilisateur_id
         WHERE u.email = $1 AND uc.client_id = $2::uuid`,
       email,
@@ -126,6 +130,9 @@ describe("inviterClientAuPortail — l'invitation", () => {
     expect(rattachement).toBeDefined();
     expect(rattachement?.actif).toBe(true);
     expect(rattachement?.societe_id).toBe(SOCIETE_A);
+    // UNE IDENTITÉ NOUVELLE EST ACCEPTÉE D'EMBLÉE (9L04, D249) : son premier
+    // accès — choisir un mot de passe par ce lien — vaut lui-même acceptation.
+    expect(rattachement?.accepte_le).not.toBeNull();
 
     // JAMAIS DE LIGNE `utilisateur_societe` (D10, D96).
     const [habilitation] = await clientOwner().$queryRawUnsafe<unknown[]>(
@@ -255,7 +262,7 @@ describe("inviterClientAuPortail — l'invitation", () => {
    * nettoie par motif de courriel, quelle que soit la société où la fixture
    * a été posée.
    */
-  it("C1(a) — une identité CLIENTE déjà ACTIVE (mot de passe posé) d'une AUTRE société est acceptée, sans lien", async () => {
+  it("C1(a) — une identité CLIENTE déjà ACTIVE (mot de passe posé) d'une AUTRE société est acceptée, mais EN ATTENTE (9L04, D249 — revient sur D233)", async () => {
     const email = courriel();
     const utilisateurId = uuidv7();
     await clientOwner().utilisateur.create({
@@ -278,6 +285,7 @@ describe("inviterClientAuPortail — l'invitation", () => {
         client_id: CLIENT_B1,
         societe_id: SOCIETE_B,
         actif: true,
+        accepte_le: new Date(),
       },
     });
 
@@ -287,26 +295,49 @@ describe("inviterClientAuPortail — l'invitation", () => {
       email,
       clientApp(),
     );
-    expect(resultat).toEqual({ accepte: true, url: null, dejaActif: true });
+    expect(resultat).toEqual({ accepte: true, url: null, enAttente: true });
 
     const rattachements = await clientOwner().$queryRawUnsafe<
-      { societe_id: string; client_id: string }[]
+      {
+        societe_id: string;
+        client_id: string;
+        accepte_le: Date | null;
+        nom_client_invitation: string | null;
+      }[]
     >(
-      `SELECT societe_id::text, client_id::text FROM "utilisateur_client"
+      `SELECT societe_id::text, client_id::text, accepte_le, nom_client_invitation
+         FROM "utilisateur_client"
         WHERE utilisateur_id = $1::uuid ORDER BY societe_id`,
       utilisateurId,
     );
     expect(rattachements).toHaveLength(2);
-    expect(
-      rattachements.some(
-        (r) => r.societe_id === SOCIETE_A && r.client_id === CLIENT_A1,
-      ),
-    ).toBe(true);
+    const nouveau = rattachements.find(
+      (r) => r.societe_id === SOCIETE_A && r.client_id === CLIENT_A1,
+    );
+    expect(nouveau).toBeDefined();
+    // EN ATTENTE : ni acceptée, ni lisible par le compte tant qu'elle ne l'a
+    // pas acceptée — le cliché du nom du client est posé (9L04).
+    expect(nouveau?.accepte_le).toBeNull();
+    expect(nouveau?.nom_client_invitation).not.toBeNull();
     expect(
       rattachements.some(
         (r) => r.societe_id === SOCIETE_B && r.client_id === CLIENT_B1,
       ),
     ).toBe(true);
+
+    // UNE LIGNE NON ACCEPTÉE N'OUVRE AUCUN ACCÈS (9L04) : le compte ne lit
+    // pas encore son rattachement à A1, et la société A ne lui est pas encore
+    // ouverte.
+    const rattachementsLus = await rattachementsDuCompte(
+      utilisateurId,
+      clientApp(),
+    );
+    expect(rattachementsLus.some((r) => r.clientId === CLIENT_A1)).toBe(false);
+    const habilitations = await habilitationsDuCompte(
+      utilisateurId,
+      clientApp(),
+    );
+    expect(habilitations.some((h) => h.societeId === SOCIETE_A)).toBe(false);
   });
 
   it("C1(b) — une identité connue d'une autre société mais PAS ENCORE ACTIVÉE est refusée, sans jeton ni rattachement", async () => {
@@ -343,7 +374,7 @@ describe("inviterClientAuPortail — l'invitation", () => {
     );
     expect(resultat).toEqual({
       accepte: false,
-      motif: "compte_connu_autre_societe",
+      motif: "compte_connu_ailleurs",
     });
 
     const rattachementA = await clientOwner().$queryRawUnsafe<unknown[]>(
@@ -386,7 +417,7 @@ describe("inviterClientAuPortail — l'invitation", () => {
     );
     expect(resultat).toEqual({
       accepte: false,
-      motif: "compte_connu_autre_societe",
+      motif: "compte_connu_ailleurs",
     });
 
     const rattachement = await clientOwner().$queryRawUnsafe<unknown[]>(
@@ -398,14 +429,16 @@ describe("inviterClientAuPortail — l'invitation", () => {
 
   /**
    * D233 (c), fermé par le complément du 09/11/2026 (9K04-PORTAIL-
-   * INVITATION-EMPLOYE, décision verbatim d'Alexis du 08/11 ~09:00) — un
-   * EMPLOYÉ (interne) d'une autre société, même déjà actif (mot de passe
-   * posé), est refusé : la MÊME identité qui suivrait la branche (a) si elle
-   * était cliente ailleurs suit désormais (c) parce qu'elle est INTERNE
-   * ailleurs. Avant ce lot, ce cas suivait (a) sans distinction (résidu nommé
-   * par D233) — c'est exactement la régression que cette épreuve ferme.
+   * INVITATION-EMPLOYE, décision verbatim d'Alexis du 08/11 ~09:00), MOTIF
+   * UNIFIÉ PAR 9L04/D249 : un EMPLOYÉ (interne) d'une autre société, même
+   * déjà actif (mot de passe posé), est refusé — avec le MÊME motif neutre
+   * que C1(b) et C1(c) ci-dessus, jamais `compte_interne` (réservé au cas
+   * LOCAL, voir l'en-tête d'`inviterClientAuPortail`). Avant D249, ce cas
+   * rendait `compte_interne`, distinct des deux autres : D249 l'unifie pour
+   * ne plus révéler qu'une adresse est connue d'une autre société, ni sous
+   * quelle forme.
    */
-  it("C1(c), compte déjà actif — un EMPLOYÉ déjà actif (mot de passe posé) d'une AUTRE société est REFUSÉ", async () => {
+  it("C1(c), compte déjà actif — un EMPLOYÉ déjà actif (mot de passe posé) d'une AUTRE société est REFUSÉ, avec le MÊME motif neutre (D249)", async () => {
     const email = courriel();
     const utilisateurId = uuidv7();
     await clientOwner().utilisateur.create({
@@ -436,7 +469,10 @@ describe("inviterClientAuPortail — l'invitation", () => {
       email,
       clientApp(),
     );
-    expect(resultat).toEqual({ accepte: false, motif: "compte_interne" });
+    expect(resultat).toEqual({
+      accepte: false,
+      motif: "compte_connu_ailleurs",
+    });
 
     // AUCUN RATTACHEMENT CLIENT N'A ÉTÉ POSÉ, dans AUCUNE société.
     const rattachement = await clientOwner().$queryRawUnsafe<unknown[]>(
@@ -446,7 +482,15 @@ describe("inviterClientAuPortail — l'invitation", () => {
     expect(rattachement).toHaveLength(0);
   });
 
-  it("non-régression — une identité SANS mot de passe mais connue SEULEMENT de la société active reste acceptée AVEC lien", async () => {
+  /**
+   * COMPORTEMENT CHANGÉ PAR 9L04/D249 — ce test s'appelait « non-régression »
+   * avant ce lot : une identité déjà ouverte (même sans mot de passe nulle
+   * part) qui reçoit une SECONDE invitation, pour un AUTRE client, n'obtient
+   * plus de lien — elle entre EN ATTENTE, exactement comme une identité déjà
+   * active (D249 ne distingue plus les deux cas pour une identité déjà
+   * ouverte). Seule une identité NOUVELLE obtient un lien.
+   */
+  it("une identité déjà ouverte, invitée à un SECOND client, entre EN ATTENTE elle aussi — même sans mot de passe nulle part (9L04, D249)", async () => {
     const email = courriel();
     await inviterClientAuPortail(ADMIN_A, CLIENT_A1, email, clientApp());
 
@@ -456,13 +500,10 @@ describe("inviterClientAuPortail — l'invitation", () => {
       email,
       clientApp(),
     );
-    expect(second.accepte).toBe(true);
-    if (!second.accepte) return;
-    expect(second.dejaActif).toBe(false);
-    expect(second.url).not.toBeNull();
+    expect(second).toEqual({ accepte: true, url: null, enAttente: true });
   });
 
-  it("une seconde invitation POUR LE MÊME client RÉACTIVE la ligne, jamais ne la duplique", async () => {
+  it("une seconde invitation POUR LE MÊME client RÉACTIVE la ligne, jamais ne la duplique — sans redemander d'acceptation (9L04)", async () => {
     const email = courriel();
     await inviterClientAuPortail(ADMIN_A, CLIENT_A1, email, clientApp());
     const revocation = await clientOwner().$executeRawUnsafe(
@@ -481,8 +522,10 @@ describe("inviterClientAuPortail — l'invitation", () => {
     );
     expect(second.accepte).toBe(true);
 
-    const lignes = await clientOwner().$queryRawUnsafe<{ actif: boolean }[]>(
-      `SELECT uc.actif FROM "utilisateur_client" uc
+    const lignes = await clientOwner().$queryRawUnsafe<
+      { actif: boolean; accepte_le: Date | null }[]
+    >(
+      `SELECT uc.actif, uc.accepte_le FROM "utilisateur_client" uc
          JOIN "utilisateur" u ON u.id = uc.utilisateur_id
         WHERE u.email = $1 AND uc.client_id = $2::uuid`,
       email,
@@ -490,9 +533,12 @@ describe("inviterClientAuPortail — l'invitation", () => {
     );
     expect(lignes).toHaveLength(1);
     expect(lignes[0]?.actif).toBe(true);
+    // RÉACTIVATION, PAS UNE NOUVELLE OFFRE (9L04) : la ligne était acceptée
+    // (identité nouvelle à sa création) — la réactiver ne redemande rien.
+    expect(lignes[0]?.accepte_le).not.toBeNull();
   });
 
-  it("une IDENTITÉ DÉJÀ SERVIE, invitée à un SECOND client, n'a aucun jeton à transmettre (dejaActif)", async () => {
+  it("une IDENTITÉ DÉJÀ OUVERTE, invitée à un SECOND client, entre EN ATTENTE sans jeton, même avec un mot de passe déjà posé (9L04, D249)", async () => {
     const email = courriel();
     await inviterClientAuPortail(ADMIN_A, CLIENT_A1, email, clientApp());
     await clientOwner().$executeRawUnsafe(
@@ -508,7 +554,7 @@ describe("inviterClientAuPortail — l'invitation", () => {
       email,
       clientApp(),
     );
-    expect(second).toEqual({ accepte: true, url: null, dejaActif: true });
+    expect(second).toEqual({ accepte: true, url: null, enAttente: true });
 
     // AUCUNE SECONDE IDENTITÉ N'A ÉTÉ OUVERTE — une seule ligne `utilisateur`.
     const identites = await clientOwner().$queryRawUnsafe<unknown[]>(
@@ -518,9 +564,9 @@ describe("inviterClientAuPortail — l'invitation", () => {
     expect(identites).toHaveLength(1);
 
     const rattachements = await clientOwner().$queryRawUnsafe<
-      { client_id: string }[]
+      { client_id: string; accepte_le: Date | null }[]
     >(
-      `SELECT uc.client_id::text FROM "utilisateur_client" uc
+      `SELECT uc.client_id::text, uc.accepte_le FROM "utilisateur_client" uc
          JOIN "utilisateur" u ON u.id = uc.utilisateur_id
         WHERE u.email = $1 ORDER BY uc.client_id`,
       email,
@@ -528,11 +574,87 @@ describe("inviterClientAuPortail — l'invitation", () => {
     expect(rattachements.map((r) => r.client_id).sort()).toEqual(
       [CLIENT_A1, CLIENT_A2].sort(),
     );
+    const versA2 = rattachements.find((r) => r.client_id === CLIENT_A2);
+    expect(versA2?.accepte_le).toBeNull();
+  });
+
+  /**
+   * LE MESSAGE DE REFUS EST IDENTIQUE, OCTET POUR OCTET, POUR TOUT CAS
+   * « ADRESSE CONNUE AILLEURS » (9L04, D249) — qu'il s'agisse d'une identité
+   * pas encore activée (C1(b)) ou d'un employé déjà actif ailleurs (C1(c),
+   * complément) : c'est la garantie que ce lot ajoute, vérifiée ici
+   * directement sur les DEUX motifs plutôt que sur un seul.
+   */
+  it("D249 — les refus « connu ailleurs » rendent le MÊME motif, qu'il s'agisse d'un compte pas encore activé ou d'un employé déjà actif", async () => {
+    const emailPasEncoreActive = courriel();
+    const utilisateurPasEncoreActive = uuidv7();
+    await clientOwner().utilisateur.create({
+      data: {
+        id: utilisateurPasEncoreActive,
+        nom: "Pas encore activé",
+        email: emailPasEncoreActive,
+      },
+    });
+    await clientOwner().utilisateurSociete.create({
+      data: {
+        id: uuidv7(),
+        utilisateur_id: utilisateurPasEncoreActive,
+        societe_id: SOCIETE_B,
+        role: Role.adv,
+      },
+    });
+
+    const emailEmployeActif = courriel();
+    const utilisateurEmployeActif = uuidv7();
+    await clientOwner().utilisateur.create({
+      data: {
+        id: utilisateurEmployeActif,
+        nom: "Employé déjà actif",
+        email: emailEmployeActif,
+      },
+    });
+    await clientOwner().compte.create({
+      data: {
+        id: uuidv7(),
+        utilisateur_id: utilisateurEmployeActif,
+        emetteur: "local:credential",
+        compte_externe_id: utilisateurEmployeActif,
+        fournisseur_id: "credential",
+        mot_de_passe: "empreinte-de-test",
+      },
+    });
+    await clientOwner().utilisateurSociete.create({
+      data: {
+        id: uuidv7(),
+        utilisateur_id: utilisateurEmployeActif,
+        societe_id: SOCIETE_B,
+        role: Role.adv,
+      },
+    });
+
+    const resultatPasEncoreActive = await inviterClientAuPortail(
+      ADMIN_A,
+      CLIENT_A1,
+      emailPasEncoreActive,
+      clientApp(),
+    );
+    const resultatEmployeActif = await inviterClientAuPortail(
+      ADMIN_A,
+      CLIENT_A1,
+      emailEmployeActif,
+      clientApp(),
+    );
+    expect(resultatPasEncoreActive.accepte).toBe(false);
+    expect(resultatEmployeActif.accepte).toBe(false);
+    if (resultatPasEncoreActive.accepte || resultatEmployeActif.accepte) {
+      return;
+    }
+    expect(resultatEmployeActif.motif).toBe(resultatPasEncoreActive.motif);
   });
 });
 
 describe("comptesDuPortailDuClient — la lecture pour la fiche client", () => {
-  it("rend le compte invité, avec son courriel et son état", async () => {
+  it("rend le compte invité, avec son courriel et son état — identité nouvelle, jamais en attente", async () => {
     const email = courriel();
     await inviterClientAuPortail(ADMIN_A, CLIENT_A1, email, clientApp());
 
@@ -544,6 +666,270 @@ describe("comptesDuPortailDuClient — la lecture pour la fiche client", () => {
     const compte = comptes.find((c) => c.email === email);
     expect(compte).toBeDefined();
     expect(compte?.actif).toBe(true);
+    expect(compte?.enAttente).toBe(false);
+  });
+
+  it("D249 — rend `enAttente: true` pour une identité déjà ouverte, pas encore acceptée", async () => {
+    const email = courriel();
+    const utilisateurId = uuidv7();
+    await clientOwner().utilisateur.create({
+      data: { id: utilisateurId, nom: "Client de B, déjà actif", email },
+    });
+    await clientOwner().compte.create({
+      data: {
+        id: uuidv7(),
+        utilisateur_id: utilisateurId,
+        emetteur: "local:credential",
+        compte_externe_id: utilisateurId,
+        fournisseur_id: "credential",
+        mot_de_passe: "empreinte-de-test",
+      },
+    });
+    await clientOwner().utilisateurClient.create({
+      data: {
+        id: uuidv7(),
+        utilisateur_id: utilisateurId,
+        client_id: CLIENT_B1,
+        societe_id: SOCIETE_B,
+        actif: true,
+        accepte_le: new Date(),
+      },
+    });
+    await inviterClientAuPortail(ADMIN_A, CLIENT_A1, email, clientApp());
+
+    const comptes = await comptesDuPortailDuClient(
+      ADMIN_A,
+      CLIENT_A1,
+      clientApp(),
+    );
+    const compte = comptes.find((c) => c.email === email);
+    expect(compte).toBeDefined();
+    expect(compte?.actif).toBe(true);
+    expect(compte?.enAttente).toBe(true);
+  });
+});
+
+describe("rattachementsEnAttenteDuCompte, accepterRattachementClient, refuserRattachementClient (9L04, D249)", () => {
+  it("liste l'invitation en attente avec le nom de la société et le cliché du nom du client", async () => {
+    const email = courriel();
+    const utilisateurId = uuidv7();
+    await clientOwner().utilisateur.create({
+      data: { id: utilisateurId, nom: "Déjà actif ailleurs", email },
+    });
+    await clientOwner().compte.create({
+      data: {
+        id: uuidv7(),
+        utilisateur_id: utilisateurId,
+        emetteur: "local:credential",
+        compte_externe_id: utilisateurId,
+        fournisseur_id: "credential",
+        mot_de_passe: "empreinte-de-test",
+      },
+    });
+    await clientOwner().utilisateurClient.create({
+      data: {
+        id: uuidv7(),
+        utilisateur_id: utilisateurId,
+        client_id: CLIENT_B1,
+        societe_id: SOCIETE_B,
+        actif: true,
+        accepte_le: new Date(),
+      },
+    });
+    await inviterClientAuPortail(ADMIN_A, CLIENT_A1, email, clientApp());
+
+    const enAttente = await rattachementsEnAttenteDuCompte(
+      utilisateurId,
+      clientApp(),
+    );
+    expect(enAttente).toHaveLength(1);
+    expect(enAttente[0]?.societeNom).not.toBeNull();
+    expect(enAttente[0]?.clientNom).not.toBeNull();
+
+    // AUCUNE AUTRE IDENTITÉ N'APPREND CETTE LISTE (D92) — même compte, mais
+    // sous une AUTRE identité, ne voit rien.
+    const vuDAilleurs = await rattachementsEnAttenteDuCompte(
+      UTILISATEUR_PAR_ROLE[Role.admin_societe],
+      clientApp(),
+    );
+    expect(vuDAilleurs).toHaveLength(0);
+  });
+
+  it("accepterRattachementClient pose accepte_le et ouvre la lecture du parc et de la société", async () => {
+    const email = courriel();
+    const utilisateurId = uuidv7();
+    await clientOwner().utilisateur.create({
+      data: { id: utilisateurId, nom: "Déjà actif ailleurs", email },
+    });
+    await clientOwner().compte.create({
+      data: {
+        id: uuidv7(),
+        utilisateur_id: utilisateurId,
+        emetteur: "local:credential",
+        compte_externe_id: utilisateurId,
+        fournisseur_id: "credential",
+        mot_de_passe: "empreinte-de-test",
+      },
+    });
+    await clientOwner().utilisateurClient.create({
+      data: {
+        id: uuidv7(),
+        utilisateur_id: utilisateurId,
+        client_id: CLIENT_B1,
+        societe_id: SOCIETE_B,
+        actif: true,
+        accepte_le: new Date(),
+      },
+    });
+    await inviterClientAuPortail(ADMIN_A, CLIENT_A1, email, clientApp());
+    const [enAttente] = await rattachementsEnAttenteDuCompte(
+      utilisateurId,
+      clientApp(),
+    );
+    if (enAttente === undefined) throw new Error("fixture non créée");
+
+    const resultat = await accepterRattachementClient(
+      utilisateurId,
+      enAttente.id,
+      clientApp(),
+    );
+    expect(resultat).toEqual({ accepte: true });
+
+    const rattachements = await rattachementsDuCompte(
+      utilisateurId,
+      clientApp(),
+    );
+    expect(
+      rattachements.some(
+        (r) => r.societeId === SOCIETE_A && r.clientId === CLIENT_A1,
+      ),
+    ).toBe(true);
+    const habilitations = await habilitationsDuCompte(
+      utilisateurId,
+      clientApp(),
+    );
+    expect(habilitations.some((h) => h.societeId === SOCIETE_A)).toBe(true);
+
+    // PLUS RIEN EN ATTENTE.
+    const resteEnAttente = await rattachementsEnAttenteDuCompte(
+      utilisateurId,
+      clientApp(),
+    );
+    expect(resteEnAttente).toHaveLength(0);
+
+    // ACCEPTER DEUX FOIS LA MÊME LIGNE ÉCHOUE NOMMÉMENT (déjà acceptée).
+    const second = await accepterRattachementClient(
+      utilisateurId,
+      enAttente.id,
+      clientApp(),
+    );
+    expect(second).toEqual({ accepte: false, motif: "introuvable" });
+  });
+
+  it("refuserRattachementClient laisse la ligne INACTIVE, jamais acceptée, jamais supprimée (I6)", async () => {
+    const email = courriel();
+    const utilisateurId = uuidv7();
+    await clientOwner().utilisateur.create({
+      data: { id: utilisateurId, nom: "Déjà actif ailleurs", email },
+    });
+    await clientOwner().compte.create({
+      data: {
+        id: uuidv7(),
+        utilisateur_id: utilisateurId,
+        emetteur: "local:credential",
+        compte_externe_id: utilisateurId,
+        fournisseur_id: "credential",
+        mot_de_passe: "empreinte-de-test",
+      },
+    });
+    await clientOwner().utilisateurClient.create({
+      data: {
+        id: uuidv7(),
+        utilisateur_id: utilisateurId,
+        client_id: CLIENT_B1,
+        societe_id: SOCIETE_B,
+        actif: true,
+        accepte_le: new Date(),
+      },
+    });
+    await inviterClientAuPortail(ADMIN_A, CLIENT_A1, email, clientApp());
+    const [enAttente] = await rattachementsEnAttenteDuCompte(
+      utilisateurId,
+      clientApp(),
+    );
+    if (enAttente === undefined) throw new Error("fixture non créée");
+
+    const resultat = await refuserRattachementClient(
+      utilisateurId,
+      enAttente.id,
+      clientApp(),
+    );
+    expect(resultat).toEqual({ accepte: true });
+
+    const [ligne] = await clientOwner().$queryRawUnsafe<
+      { actif: boolean; accepte_le: Date | null }[]
+    >(
+      `SELECT actif, accepte_le FROM "utilisateur_client" WHERE id = $1::uuid`,
+      enAttente.id,
+    );
+    expect(ligne).toBeDefined();
+    expect(ligne?.actif).toBe(false);
+    expect(ligne?.accepte_le).toBeNull();
+
+    const resteEnAttente = await rattachementsEnAttenteDuCompte(
+      utilisateurId,
+      clientApp(),
+    );
+    expect(resteEnAttente).toHaveLength(0);
+  });
+
+  it("accepter ou refuser la ligne d'AUTRUI échoue nommément — aucune ligne ne bouge", async () => {
+    const email = courriel();
+    const utilisateurId = uuidv7();
+    await clientOwner().utilisateur.create({
+      data: { id: utilisateurId, nom: "Déjà actif ailleurs", email },
+    });
+    await clientOwner().compte.create({
+      data: {
+        id: uuidv7(),
+        utilisateur_id: utilisateurId,
+        emetteur: "local:credential",
+        compte_externe_id: utilisateurId,
+        fournisseur_id: "credential",
+        mot_de_passe: "empreinte-de-test",
+      },
+    });
+    await clientOwner().utilisateurClient.create({
+      data: {
+        id: uuidv7(),
+        utilisateur_id: utilisateurId,
+        client_id: CLIENT_B1,
+        societe_id: SOCIETE_B,
+        actif: true,
+        accepte_le: new Date(),
+      },
+    });
+    await inviterClientAuPortail(ADMIN_A, CLIENT_A1, email, clientApp());
+    const [enAttente] = await rattachementsEnAttenteDuCompte(
+      utilisateurId,
+      clientApp(),
+    );
+    if (enAttente === undefined) throw new Error("fixture non créée");
+
+    const resultat = await accepterRattachementClient(
+      UTILISATEUR_PAR_ROLE[Role.admin_societe],
+      enAttente.id,
+      clientApp(),
+    );
+    expect(resultat).toEqual({ accepte: false, motif: "introuvable" });
+
+    const [ligne] = await clientOwner().$queryRawUnsafe<
+      { accepte_le: Date | null }[]
+    >(
+      `SELECT accepte_le FROM "utilisateur_client" WHERE id = $1::uuid`,
+      enAttente.id,
+    );
+    expect(ligne?.accepte_le).toBeNull();
   });
 });
 

@@ -500,6 +500,26 @@ const EXEMPTIONS: readonly Exemption[] = [
     motif:
       "change le mot de passe du compte connecté, identité prise de la session — même posture que /api/societe/logo ci-dessus : aucune capacité à juger, seulement une société et un rôle actifs.",
   },
+  // 9L04-PORTAIL-INVITATION-EN-ATTENTE (D249) — ACCEPTER/REFUSER SON PROPRE
+  // rattachement EN ATTENTE, identité prise de la session (jamais d'un
+  // paramètre) : MOINS qu'une société active, puisque la réponse précède
+  // précisément le choix de société que D249 lui refuse tant qu'elle reste en
+  // attente (`lireRole`, `lib/auth/societe-active.ts`). Aucune capacité de la
+  // matrice n'a de sens ici — ce n'est pas un acte d'administration, c'est la
+  // personne qui répond pour ELLE-MÊME. `accepterRattachementClient` et
+  // `refuserRattachementClient` (`lib/auth/lien-d-acces.ts`) filtrent par
+  // `utilisateur_id` ET `accepte_le: null` : un identifiant forgé pour la
+  // ligne d'autrui, ou déjà traitée, rend le même refus `introuvable` (D50).
+  {
+    chemin: "app/api/session/rattachements/[id]/accepter/route.ts",
+    motif:
+      "accepte SON PROPRE rattachement en attente, identité prise de la session — aucune capacité, pas même une société active (D249) : filtré par utilisateur_id dans accepterRattachementClient.",
+  },
+  {
+    chemin: "app/api/session/rattachements/[id]/refuser/route.ts",
+    motif:
+      "refuse SON PROPRE rattachement en attente, même posture que accepter/route.ts ci-dessus — filtré par utilisateur_id dans refuserRattachementClient.",
+  },
   // 9IA (téléphone perdu, décision d'Alexis du 28/10/2026, réponse « A et B »)
   // — aucune capacité de la matrice ne porte cette portée : la décision ne
   // nomme QUE admin_societe (jamais lui-même) et admin_plateforme (sans
