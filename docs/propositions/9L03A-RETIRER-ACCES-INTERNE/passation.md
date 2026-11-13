@@ -71,3 +71,49 @@ sur le modèle des filets de colonnes déjà posés par 9IA) allant au-delà de 
 par Alexis le 13/11 (~07:45), qui ne portait que sur l'ajout d'une valeur à `EvenementAcces`.
 
 En attente de la décision d'Alexis avant d'écrire une ligne de code.
+
+## Reprise 9L03C — « Désactiver » (décision d'Alexis du 13/11/2026 ~13:05)
+
+Livré. `retirerAccesInterne` (`lib/auth/retrait-acces.ts`), route
+`POST /api/equipe/<id>/retirer-acces` (partagée par les deux onglets d'Équipe,
+`onglet` voyage dans le formulaire), bouton de confirmation sur chaque compte,
+badge « Accès retiré » une fois le geste joué. Voir D251 (`docs/arbitrages.md`)
+pour la décision et sa condition de réouverture, et le message du commit de
+chaque point pour le détail.
+
+**Mesuré, et documenté ici plutôt que changé** — « ré-accorder l'accès passe
+par le chemin de création/modification du compte » (le brief le proposait) :
+`creerCompteDeBureau` (`lib/auth/acces-bureau.ts`) et `habiliterEtRattacherDans`
+(`lib/techniciens/depot.ts`) posent tous deux `utilisateurSociete.create`, qui
+heurte la contrainte d'unicité `(utilisateur_id, societe_id)` dès qu'une ligne
+— actif ou non — existe déjà, et rendent alors `deja_membre` **sans distinguer
+une ligne inactive d'une ligne active**. Recréer un compte dont l'accès a été
+retiré échoue donc aujourd'hui, au lieu de réactiver la ligne. Ce n'est pas
+corrigé par ce lot : la correction toucherait deux chemins déjà éprouvés par
+ailleurs (et, pour le technicien, devrait aussi décider si la fiche
+`technicien` — jamais supprimée, elle, puisque `retirerAccesInterne` n'y
+touche pas — doit être revue ou laissée telle quelle), et le brief ne l'exigeait
+qu'à titre de mesure. Pour rouvrir un accès retiré aujourd'hui : poser
+`actif = true` à la main sur la ligne `utilisateur_societe` (aucun écran ne
+l'offre encore).
+
+**Autres lecteurs de `utilisateur_societe` mesurés, laissés inchangés** —
+listés ici pour que personne ne les redécouvre à neuf :
+`lib/habilitations/depot.ts` (recherche d'un technicien pour une habilitation),
+`lib/avertissements/signature-terrain.ts` (destinataires de repli bureau),
+`lib/tableau-de-bord/lectures.ts` (comptage d'équipe de la tuile), `lib/
+interventions/depot.ts` (désignation d'un technicien), `lib/auth/acces-
+bureau.ts`/`acces-technicien.ts` (`administrateurs`, historique de qui a
+envoyé le dernier lien — pas un calcul d'accès), `lib/auth/lien-d-acces.ts`
+(`roleDansLaSocieteActive`, `identiteInterneAilleurs`), `lib/auth/amorcage.ts`
+(société vierge, réémission du premier accès). Aucun n'ouvre un accès à une
+ligne inactive ; certains (l'historique « qui a envoyé le dernier lien »)
+continueraient de citer un administrateur depuis retiré, ce qui est
+l'historique, pas un accès.
+
+`pnpm verify` rejoué au complet et vert (format, typecheck, lint, test,
+test:isolation — 2208 scénarios —, build) avant de rendre la main ;
+`test:e2e` n'a pas été rejoué en entier (budget de temps), seul le spec neuf
+(`tests/e2e/captures-9l03c-retirer-acces.spec.ts`, 4/4 verts) et
+`tests/unit/gardiens/chemins-de-depot.test.ts` ont été ciblés en plus de la
+suite unitaire complète.
