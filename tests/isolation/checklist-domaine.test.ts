@@ -395,6 +395,72 @@ describe("une réponse modifiée remet à zéro la validation du rapport (RG-INT
   });
 });
 
+describe("un RETRAIT (`valeur: null`) — MESURÉ, pas encore possible (9L04D-TERRAIN-CHECKLIST-EPUREE)", () => {
+  it("refuse nommément, et la réponse déjà écrite reste intacte", async () => {
+    // LE TÉMOIN DU POINT 3 DE 9L04D : « un second appui sur la pastille
+    // choisie RETIRE la réponse — mesure que la suppression d'une réponse
+    // existe côté serveur [...] sinon dis-le ». Mesuré : NON. La migration
+    // `20261109080000_checklists_socle_9k08` n'accorde que SELECT, INSERT,
+    // UPDATE sur `checklist_reponse` au rôle applicatif — AUCUN DELETE. Une
+    // ligne déjà écrite ne peut donc être effacée que par une migration qui
+    // accorderait ce privilège (et, sous RLS, une politique pour lui), ce
+    // qu'aucun ticket de ce lot n'ouvre (passation : « AUCUNE migration »).
+    // `enregistrerReponses` refuse donc `valeur: null` comme toute valeur
+    // hors du type du point — `checklist.refus.valeur_invalide` — plutôt que
+    // d'écrire une colonne vide : la contrainte `checklist_reponse_valeur_
+    // unique` (`num_nonnulls` = 1) l'aurait refusée de toute façon.
+    const { modeleId, versionId } = await poserModeleEtVersion(
+      SOCIETE_A,
+      "ISO-RETRAIT",
+    );
+    const pointId = await poserPoint(
+      SOCIETE_A,
+      versionId,
+      "conforme_non_conforme_sans_objet",
+      false,
+    );
+    try {
+      await surUneInterventionJetable(
+        {
+          societeId: SOCIETE_A,
+          clientId: CLIENT_A1,
+          siteId: SITE_A1_S1,
+          agenceId: AGENCE_A,
+          technicienId: TECHNICIEN_A,
+        },
+        async (interventionId) => {
+          const ecrite = await enregistrerReponses(
+            TERRAIN_A,
+            interventionId,
+            [{ checklistPointId: pointId, valeur: "non_conforme" }],
+            clientApp(),
+          );
+          expect(ecrite).toEqual({ id: interventionId });
+
+          const retrait = await enregistrerReponses(
+            TERRAIN_A,
+            interventionId,
+            [{ checklistPointId: pointId, valeur: null }],
+            clientApp(),
+          );
+          expect(retrait).toEqual({
+            refuse: true,
+            cle: "checklist.refus.valeur_invalide",
+          });
+
+          const apres = await clientOwner().checklistReponse.findMany({
+            where: { intervention_id: interventionId },
+          });
+          expect(apres).toHaveLength(1);
+          expect(apres[0]?.valeur_conforme).toBe("non_conforme");
+        },
+      );
+    } finally {
+      await supprimerModele(modeleId);
+    }
+  });
+});
+
 describe("un technicien NON AFFECTÉ est refusé — même refus que l'intervention invisible (D35, D50)", () => {
   it("rend `null`, sans distinguer « non affecté » de « introuvable »", async () => {
     const { modeleId, versionId } = await poserModeleEtVersion(
