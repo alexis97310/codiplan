@@ -106,7 +106,22 @@ async function preparerLaScene(): Promise<void> {
     const { clientId, societeId, adminId } = await cibleDeLEpreuve(admin);
 
     // IDEMPOTENT — un relancement retrouve les mêmes identités plutôt que de
-    // buter sur l'unicité du courriel.
+    // buter sur l'unicité du courriel. DANS L'ORDRE DES CLÉS ÉTRANGÈRES : la
+    // scène D (`seConnecterCommeLeCompteClient`) fait basculer la société
+    // active du compte client EN SE CONNECTANT (`basculerSociete`,
+    // `lib/auth/societe-active.ts`), qui journalise EN SON PROPRE NOM —
+    // `journal_acces.utilisateur_id` porte alors l'identité de la scène, pas
+    // celle de l'administrateur. Un passage précédent laisse donc cette ligne
+    // derrière lui, et `utilisateur.deleteMany` ci-dessous violerait
+    // `journal_acces_utilisateur_id_fkey` si le journal n'était pas purgé
+    // D'ABORD (9L03B, reprise de 9L04).
+    await admin.journalAcces.deleteMany({
+      where: {
+        utilisateur: {
+          email: { in: [EMAIL_LIEN, EMAIL_INTERNE, EMAIL_CLIENT] },
+        },
+      },
+    });
     await admin.utilisateurClient.deleteMany({
       where: {
         utilisateur: {
