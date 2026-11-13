@@ -197,6 +197,11 @@ const AMENDEMENTS_ATTENDUS: ReadonlyArray<readonly [string, string]> = [
   // plein écran, avec des manques nommés et un temps qui défile).
   ["D212", "D242"],
   ["D219", "D242"],
+  // D250 (13/11/2026, 9L03B-REPRISE-PORTAIL-INVITATION) amende D249 : une
+  // identité jamais activée (aucun mot de passe choisi) reste une identité
+  // neuve, même rattachée à un second client — D249 reste entière pour une
+  // identité déjà activée.
+  ["D249", "D250"],
 ];
 
 describe("câblage bidirectionnel entre décisions", () => {

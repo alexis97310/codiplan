@@ -8579,6 +8579,8 @@ Portée : `lib/interventions/depot.ts` (`verdictChevauchementSous`, `fuseauDeLAg
 
 ## D249 — LE RATTACHEMENT D'UN COMPTE DÉJÀ EXISTANT AU PARC D'UN CLIENT RESTE EN ATTENTE D'ACCEPTATION ; UN SEUL REFUS NEUTRE POUR TOUT CAS « CONNU AILLEURS » (décision d'Alexis du 10/11/2026 ; 9L04-PORTAIL-INVITATION-EN-ATTENTE — revient sur D233)
 
+**Amendé par D250.**
+
 ### CE QUI A ÉTÉ MESURÉ
 
 `inviterClientAuPortail` (`lib/auth/lien-d-acces.ts`), branche « déjà actif » posée par D233 (08/11/2026) : trouver une identité qui porte déjà un mot de passe — quelle que soit la société où elle est connue — accordait aussitôt le rattachement ACTIF au client visé, sans que son titulaire n'en soit informé ni ne l'ait accepté. Une personne déjà pourvue d'un accès au portail d'une société pouvait ainsi se voir ouvrir, sans le demander, le parc d'un second client d'une AUTRE société, sur la seule initiative d'un administrateur connaissant son courriel.
@@ -8608,3 +8610,29 @@ Elle ne retire aucune des gardes de D226/D233 (exclusivité à la société, emp
 **Règles amendées :** aucune règle du chapitre 10 — D249 amende D233 (arbitrage de rang 2 relatif à ce même chapitre), sur le seul point nommé ci-dessus.
 
 Portée : `prisma/schema.prisma` (`UtilisateurClient.accepte_le`, `.nom_client_invitation`), `prisma/migrations/20261113073000_rattachement_client_en_attente_9l04/`, `lib/db/migrations-attendues.ts`, `lib/auth/lien-d-acces.ts` (`inviterClientAuPortail`, `MotifRefusInvitationClient`, `accepterRattachementClient`, `refuserRattachementClient`, `rattachementsEnAttenteDuCompte`, `CompteDuPortailClient.enAttente`), `lib/auth/instant-acceptation.ts` (créé), `lib/auth/societe-active.ts` (`lireRole`, `habilitationsDuCompte`), `lib/portail/depot.ts` (`rattachementsDuCompte`), `lib/i18n/fr.ts`, `app/api/clients/[id]/inviter/route.ts`, `components/clients/formulaire-invitation-portail.tsx`, `app/(back-office)/clients/[id]/page.tsx`, `app/(apres-session)/arrivee/page.tsx`, `app/api/session/rattachements/[id]/accepter/route.ts` (créé), `app/api/session/rattachements/[id]/refuser/route.ts` (créé), `tests/unit/auth/porte.test.ts`, `tests/unit/calendar/sans-date-courante-implicite.test.ts`, `tests/isolation/invitation-portail-client.test.ts`, `tests/isolation/setup/global.ts`, `tests/e2e/captures-9k01-portail-invitation-revocation.spec.ts`.
+
+## D250 — UNE IDENTITÉ EXISTANTE JAMAIS ACTIVÉE (AUCUN MOT DE PASSE CHOISI) RESTE UNE IDENTITÉ NEUVE, MÊME RATTACHÉE À UN SECOND CLIENT (décision d'Alexis du 13/11/2026 ; 9L03B-REPRISE-PORTAIL-INVITATION — amende D249)
+
+**Décisions amendées :** D249
+
+### CE QUI A ÉTÉ MESURÉ
+
+9L04 (D249) avait recalé deux scènes à sa livraison (`tickets/recales/9L04-PORTAIL-INVITATION-EN-ATTENTE.md`) : « Copier un nouveau lien » (9K14) disparaissait de la ligne d'un compte invité jamais activé, et le texte confirmant un lien copié (9J21) n'apparaissait plus après l'invitation. La cause commune : D249 ne distinguait plus, pour une identité DÉJÀ OUVERTE, celle qui n'a encore RIEN choisi (aucun mot de passe, nulle part) de celle qui est déjà activée ailleurs — les deux entraient `EN ATTENTE`, sans jeton. Pour la première, cela retirait un lien qu'elle n'avait encore jamais reçu utilement : aucune session ailleurs n'existe à protéger, exactement la raison pour laquelle D249 (point 2) exempte déjà une identité NOUVELLE.
+
+### LA DÉCISION
+
+**Une identité existante JAMAIS ACTIVÉE, et EXCLUSIVE à la société active (D226), est traitée comme une identité NEUVE** — qu'elle soit invitée pour la première fois ou pour un second client de la MÊME société : elle garde (ou regagne) son lien de premier accès, `accepte_le` est posée dès la création du rattachement, et « Copier un nouveau lien » (9K14) reste proposé sur sa ligne. Le critère est mesuré sur l'état réel du compte (`compte.mot_de_passe IS NULL`), jamais sur `accepte_le` seul : une ligne posée directement en base, sans `accepte_le`, n'est « en attente » que si un mot de passe existe déjà (`comptesDuPortailDuClient`).
+
+**Une identité DÉJÀ ACTIVÉE (un mot de passe existe, quelle que soit la société où il a été choisi) reste EN ATTENTE sans jeton — D249 inchangée sur ce point.** Le refus neutre `compte_connu_ailleurs`, pour une identité jamais activée connue d'une AUTRE société (non exclusive), est également inchangé : D226/9K04 continuent de s'appliquer avant tout examen de cette décision.
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+Elle ne revient pas sur D249 pour une identité déjà activée : D249 reste la règle pleine dès qu'un mot de passe existe. Elle ne touche aucune garde d'exclusivité ou d'appartenance (D226, D233, 9K04) : une identité jamais activée connue d'une autre société continue d'être refusée nommément, sans jeton ni rattachement.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où une identité jamais activée doit pouvoir être EMPÊCHÉE de redevenir « neuve » à chaque nouvelle invitation (par exemple pour limiter le nombre de liens réémis), cette décision se relit : elle suppose aujourd'hui qu'aucune limite de ce genre n'existe.
+
+**Règles amendées :** aucune règle du chapitre 10 — D250 amende D249 (arbitrage de rang 2 relatif au même chapitre), sur le seul point nommé ci-dessus.
+
+Portée : `lib/auth/lien-d-acces.ts` (`inviterClientAuPortail`, `CompteDuPortailClient.enAttente`, `comptesDuPortailDuClient`), `tests/isolation/invitation-portail-client.test.ts`, `tests/e2e/captures-9j21-finitions-invitation.spec.ts` (nettoyage, sans lien avec le critère lui-même).
