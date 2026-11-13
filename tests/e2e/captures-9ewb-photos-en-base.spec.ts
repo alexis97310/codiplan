@@ -137,16 +137,14 @@ for (const largeur of [375, 1280] as const) {
     await ouvrirLaSessionDuTerrain(page);
     await page.goto(`/terrain/${INTERVENTION_ID}`);
 
-    await page.locator('input[type="file"]').setInputFiles({
+    // ENVOI AUTOMATIQUE À LA SÉLECTION (9L04E-TERRAIN-PHOTOS-EPUREES).
+    await page.locator('input[type="file"][capture]').setInputFiles({
       name: "capture-9ewb.png",
       mimeType: "image/png",
       buffer: PNG_1X1,
     });
-    await page
-      .getByRole("button", { name: fr["terrain.photos.ajouter"] })
-      .click();
     await expect(
-      page.getByText(fr["terrain.photos.enregistree"]),
+      page.getByText(fr["terrain.photos.etat_envoyee"]),
     ).toBeVisible();
     await capturer(page, "bloc-envoyee", largeur);
   });
@@ -161,16 +159,13 @@ for (const largeur of [375, 1280] as const) {
     // Un fichier qui PRÉTEND être une image mais qu'aucun décodeur ne lit —
     // `createImageBitmap` échoue, l'état « Échec » s'affiche SANS jamais
     // joindre la route (aucune capacité serveur n'est requise ici).
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][capture]').setInputFiles({
       name: "corrompu.png",
       mimeType: "image/png",
       buffer: Buffer.from("ceci n'est pas un PNG"),
     });
-    await page
-      .getByRole("button", { name: fr["terrain.photos.ajouter"] })
-      .click();
     await expect(
-      page.getByText(fr["terrain.photos.reduction_impossible"]),
+      page.getByText(fr["terrain.photos.etat_echec"]),
     ).toBeVisible();
     await capturer(page, "bloc-echec", largeur);
   });

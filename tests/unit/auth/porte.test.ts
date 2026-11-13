@@ -275,6 +275,10 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   "app/api/terrain/[id]/rapport/route.ts": "saisir_rapport",
   "app/api/terrain/[id]/prestations/route.ts": "saisir_rapport",
   "app/api/terrain/[id]/photos/route.ts": "saisir_rapport",
+  // Suppression et légende d'une photo (9L04E-TERRAIN-PHOTOS-EPUREES) —
+  // même capacité, même porte que le dépôt lui-même.
+  "app/api/terrain/[id]/photos/supprimer/route.ts": "saisir_rapport",
+  "app/api/terrain/[id]/photos/legende/route.ts": "saisir_rapport",
   "app/api/terrain/[id]/signature/route.ts": "saisir_rapport",
   // Terminer (9DE-TP-CY1) — même capacité, même porte.
   "app/api/terrain/[id]/terminer/route.ts": "saisir_rapport",
@@ -732,7 +736,9 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
     // route.ts`.
     // 115 depuis 9L04K-REACTIVER-ACCES-INTERNE — son symétrique,
     // `.../equipe/[id]/retablir-acces/route.ts`.
-    expect(Object.keys(ROUTE_CAPACITE).length).toBe(115);
+    // 117 depuis 9L04E-TERRAIN-PHOTOS-EPUREES — `.../photos/supprimer/
+    // route.ts` et `.../photos/legende/route.ts`.
+    expect(Object.keys(ROUTE_CAPACITE).length).toBe(117);
   });
 
   it("aucune exemption ne survit à son objet — adossement dans les deux sens", () => {

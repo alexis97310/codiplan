@@ -270,11 +270,6 @@ const EXCEPTIONS: readonly Exception[] = [
       "le <input>/<select> partagé du formulaire (le composant lui-même ne porte plus sa carte, 9G9D)",
   },
   {
-    chemin: "components/interventions/photos-terrain.tsx",
-    categories: ["champ"],
-    raison: "le <input> de libellé d'une photo",
-  },
-  {
     chemin: "components/interventions/site-et-machines.tsx",
     categories: ["hors-territoire"],
     raison:

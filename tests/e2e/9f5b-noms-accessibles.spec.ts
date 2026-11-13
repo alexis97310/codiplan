@@ -15,6 +15,18 @@ import { ouvrirLaSessionSensible } from "./setup/session";
  * d'un forfait de déplacement, et les deux champs du formulaire d'ajout
  * d'une photo terrain (fichier, légende).
  *
+ * **REPRIS POUR LA FICHE ÉPURÉE (9L04E-TERRAIN-PHOTOS-EPUREES)** — le champ
+ * fichier UNIQUE d'alors est devenu deux champs fichier CACHÉS
+ * (`sr-only`), chacun nommé par le `<label>` VISIBLE qui le déclenche
+ * (« Prendre une photo », « Choisir dans la bibliothèque ») — même principe
+ * que l'ancien correctif, inversé : ce n'est plus le `<label>` qui se cache
+ * derrière un champ visible, c'est le champ qui se cache derrière un
+ * `<label>` devenu le bouton lui-même. Le champ légende n'est plus sur cet
+ * écran : il vit dans la feuille ouverte au toucher d'une photo déjà
+ * envoyée (même association `<label htmlFor>`, éprouvée par les épreuves de
+ * suppression/légende du même lot — aucune nécessité de dupliquer ici un
+ * dépôt de photo complet pour l'atteindre).
+ *
  * **SA PROPRE FICHE, jamais `SCENE.rapportVierge`** — ce fixture-là est
  * ÉCRITE en SQL brut par `rapport-terrain.spec.ts` (son statut y passe à
  * `terminee`) ; la lire ici romprait exactement la garde que
@@ -53,7 +65,7 @@ test("le sélecteur de zone de la fiche d'un forfait de déplacement a un nom ac
   await expect(selecteurDeZone).toHaveAccessibleName(fr["forfaits.zone"]);
 });
 
-test("les champs du formulaire « ajouter une photo » ont chacun un nom accessible", async ({
+test("les deux champs fichier de « Prendre une photo » ont chacun un nom accessible", async ({
   page,
 }) => {
   const client = admin();
@@ -92,8 +104,10 @@ test("les champs du formulaire « ajouter une photo » ont chacun un nom accessi
     await ouvrirLaSessionSensible(page, COMPTE_TECHNICIEN_EPREUVE);
     await page.goto(`/terrain/${id}`);
 
-    await expect(page.getByLabel(fr["terrain.photos.fichier"])).toBeVisible();
-    await expect(page.getByLabel(fr["terrain.photos.libelle"])).toBeVisible();
+    await expect(page.getByLabel(fr["terrain.photos.prendre"])).toBeAttached();
+    await expect(
+      page.getByLabel(fr["terrain.photos.bibliotheque"]),
+    ).toBeAttached();
   } finally {
     if (id !== "") {
       await client.intervention.deleteMany({ where: { id } });

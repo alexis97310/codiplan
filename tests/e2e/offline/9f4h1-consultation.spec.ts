@@ -168,16 +168,18 @@ test("journée et fiche se consultent sans réseau depuis la copie, le bandeau r
   // intervention, choisie dynamiquement (`premiereFiche`) — un verdict
   // refusé s'affiche en message, sans bouton, mesuré VRAI pour les deux
   // selon le jour où l'épreuve tourne. Ce qui ne varie jamais : la photo
-  // (et son sélecteur de fichier natif, sans libellé applicatif, L0-11) et
-  // les trois issues de signature. La réconciliation ci-dessous est donc
-  // EXACTE sans être figée sur un état précis : chaque bouton présent est
-  // l'un des gestes nommément attendus, ou le sélecteur de fichier — jamais
-  // un bouton de plus (et donc jamais « Envoyer », déjà vérifié ci-dessus).
+  // (et ses DEUX sélecteurs de fichier cachés — `role="button"` natif,
+  // nommés chacun par leur `<label>` visible depuis 9L04E-TERRAIN-PHOTOS-
+  // EPUREES, jamais comptés dans `nomsBoutonsAttendus` puisque leurs
+  // `<label>` déclencheurs ne portent pas `role="button"`) et les trois
+  // issues de signature. La réconciliation ci-dessous est donc EXACTE sans
+  // être figée sur un état précis : chaque bouton présent est l'un des
+  // gestes nommément attendus, ou l'un des sélecteurs de fichier — jamais un
+  // bouton de plus (et donc jamais « Envoyer », déjà vérifié ci-dessus).
   const nomsBoutonsAttendus = [
     fr["terrain.compteur.demarrer"],
     fr["terrain.compteur.pause"],
     fr["terrain.compteur.reprendre"],
-    fr["terrain.photos.ajouter"],
     fr["terrain.signature.option_signee"],
     fr["terrain.signature.option_absent"],
     fr["terrain.signature.option_refus"],
@@ -199,8 +201,12 @@ test("journée et fiche se consultent sans réseau depuis la copie, le bandeau r
     comptesNommes + comptesFichier,
   );
   // Les trois gestes qui ne dépendent jamais de l'état de l'intervention.
+  // « Prendre une photo »/« Choisir dans la bibliothèque » sont des
+  // `<label>` (9L04E-TERRAIN-PHOTOS-EPUREES) — jamais `role="button"` —, le
+  // texte visible suffit à prouver leur présence.
+  await expect(page.getByText(fr["terrain.photos.prendre"])).toBeVisible();
   await expect(
-    page.getByRole("button", { name: fr["terrain.photos.ajouter"] }),
+    page.getByText(fr["terrain.photos.bibliotheque"]),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: fr["terrain.signature.option_signee"] }),
@@ -211,7 +217,9 @@ test("journée et fiche se consultent sans réseau depuis la copie, le bandeau r
   await expect(
     page.getByRole("button", { name: fr["terrain.signature.option_refus"] }),
   ).toBeVisible();
-  await expect(page.locator('input[type="file"]')).toHaveCount(1);
+  // DEUX champs fichier cachés (9L04E-TERRAIN-PHOTOS-EPUREES) : appareil
+  // photo (`capture`) et bibliothèque (`multiple`).
+  await expect(page.locator('input[type="file"]')).toHaveCount(2);
   await expect(
     page.getByText(fr["terrain.hors_reseau.saisies_gardees"]),
   ).toBeVisible();

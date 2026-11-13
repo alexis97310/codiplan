@@ -132,11 +132,15 @@ describe("sansCommentaires — respecte les chaînes et les gabarits", () => {
     expect(resultat).not.toContain("vrai");
   });
 
-  it("TÉMOIN — la sortie de app/(mobile)/terrain/[id]/page.tsx contient la ligne du bouton d'ajout de photo", () => {
+  it("TÉMOIN — la sortie de app/(mobile)/terrain/[id]/page.tsx contient la ligne du titre de la rubrique Photos", () => {
+    // 9L04E-TERRAIN-PHOTOS-EPUREES a retiré le bouton « Ajouter une photo »
+    // que ce témoin visait jusqu'ici (envoi désormais automatique) — un
+    // autre repère RÉEL du même fichier prouve la même chose : que
+    // `sansCommentaires` ne décale ni n'avale une ligne de JSX authentique.
     const source = readFileSync(
       join(RACINE, "app/(mobile)/terrain/[id]/page.tsx"),
       "utf8",
     );
-    expect(sansCommentaires(source)).toContain('{t("terrain.photos.ajouter")}');
+    expect(sansCommentaires(source)).toContain('{t("terrain.photos.titre")}');
   });
 });

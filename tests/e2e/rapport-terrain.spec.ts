@@ -113,18 +113,19 @@ test("une photo se dépose et s'affiche", async ({ page }) => {
   await ouvrirLaSessionDuTerrain(page);
   await page.goto(`/terrain/${SCENE.rapportTravaillee}`);
 
+  // ENVOI AUTOMATIQUE À LA SÉLECTION (9L04E-TERRAIN-PHOTOS-EPUREES) — plus
+  // de bouton « Ajouter une photo ».
   await page
-    .locator('input[type="file"]')
+    .locator('input[type="file"][capture]')
     .setInputFiles(fichierPhotoDEpreuve());
-  await page
-    .getByRole("button", { name: fr["terrain.photos.ajouter"] })
-    .click();
 
   await expect(page).toHaveURL(
     new RegExp(`/terrain/${SCENE.rapportTravaillee}$`),
   );
   await expect(page.getByText(fr["terrain.photos.aucune"])).toHaveCount(0);
-  await expect(page.locator("img[alt='photo-epreuve.png']")).toBeVisible();
+  await expect(
+    page.getByText(fr["terrain.photos.etat_envoyee"]),
+  ).toBeVisible();
 });
 
 test("un SVG est refusé, nommé — jamais une page muette (9EWB-PHOTOS-EN-BASE)", async ({

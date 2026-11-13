@@ -311,15 +311,13 @@ test("saisie complète hors réseau, gardée sur le téléphone, puis envoyée s
     })
     .check();
 
-  // 4. UNE PHOTO AJOUTÉE — réduite sur l'appareil, gardée en file.
+  // 4. UNE PHOTO AJOUTÉE — réduite sur l'appareil, envoi automatique à la
+  // sélection, gardée en file (9L04E-TERRAIN-PHOTOS-EPUREES).
   await page
-    .locator('input[type="file"]')
+    .locator('input[type="file"][capture]')
     .setInputFiles(fichierPhotoDEpreuve());
-  await page
-    .getByRole("button", { name: fr["terrain.photos.ajouter"] })
-    .click();
   await expect(
-    page.getByText(fr["terrain.auto.hors_ligne"]).last(),
+    page.getByText(fr["terrain.photos.etat_en_attente"]),
   ).toBeVisible();
 
   // 5. SIGNATURE DU CLIENT.

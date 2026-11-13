@@ -947,14 +947,12 @@ test("Terrain · intervention pilotée (en cours, rapport, signature)", async ({
           page.getByText(fr["terrain.rapport.enregistre"]),
         ).toBeVisible();
 
+        // ENVOI AUTOMATIQUE À LA SÉLECTION (9L04E-TERRAIN-PHOTOS-EPUREES).
         await page
-          .locator('input[type="file"]')
+          .locator('input[type="file"][capture]')
           .setInputFiles(fichierPhotoPilote());
-        await page
-          .getByRole("button", { name: fr["terrain.photos.ajouter"] })
-          .click();
         await expect(
-          page.getByText(fr["terrain.photos.enregistree"]),
+          page.getByText(fr["terrain.photos.etat_envoyee"]),
         ).toBeVisible();
       }
       await capturerEtatPilote(page, instr, cleRapport, largeur);

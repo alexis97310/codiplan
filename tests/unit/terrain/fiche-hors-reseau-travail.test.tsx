@@ -151,9 +151,9 @@ describe("la fiche de la coquille affiche les mêmes gestes que la fiche en lign
     expect(
       screen.getByRole("heading", { name: fr["terrain.photos.titre"] }),
     ).toBeVisible();
-    expect(
-      screen.getByRole("button", { name: fr["terrain.photos.ajouter"] }),
-    ).toBeVisible();
+    // « Prendre une photo » est un `<label>` (9L04E-TERRAIN-PHOTOS-EPUREES),
+    // jamais `role="button"` — le texte visible suffit.
+    expect(screen.getByText(fr["terrain.photos.prendre"])).toBeVisible();
     expect(
       screen.getByRole("heading", { name: fr["terrain.signature.titre"] }),
     ).toBeVisible();

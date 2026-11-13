@@ -318,9 +318,10 @@ describe("retouches typographiques du 30/09/2026 (D143)", () => {
       // section « Pièces remplacées » ajoute « Ajouter une pièce » et
       // « Retirer cette pièce » : 18 + 2 = 20. PUIS 9K11-LIBELLES-SUITES-
       // ITINERAIRE — le bouton « Itinéraire » sous l'adresse du site :
-      // 20 + 1 = 21.
+      // 20 + 1 = 21. PUIS 9L04E-TERRAIN-PHOTOS-EPUREES — `photos-terrain.
+      // tsx` passe d'un `<Button>` à huit : 21 + 7 = 28.
       // Même arithmétique que `composants-base.test.tsx`.
-      expect(total).toBe(21);
+      expect(total).toBe(28);
     });
   });
 

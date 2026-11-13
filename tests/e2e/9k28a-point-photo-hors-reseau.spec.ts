@@ -261,20 +261,16 @@ async function capturer(
 }
 
 /**
- * LE `<form>` DE LA `PhotosTerrain` EMBARQUÉE AU POINT — la fiche terrain
- * porte DEUX formulaires `PhotosTerrain` (la section « Photos » générale, et
- * celle-ci), MÊME COMPOSANT (`checklist-terrain.tsx`, `photos-terrain.tsx`),
- * MÊME LIBELLÉ DE BOUTON (« Ajouter une photo », `checklist.terrain.
- * ajouter_photo` ET `terrain.photos.ajouter`) : ni `input[type="file"]` ni
- * `getByRole("button", …)` seuls n'y sont univoques. Son champ caché
- * `checklist_point_id` (posé UNIQUEMENT par l'instance du point, voir
- * `photos-terrain.tsx`) distingue son `<form>` sans ambiguïté — tout ce que
- * cette épreuve cherche DANS ce formulaire part de là.
+ * LA `PhotosTerrain` EMBARQUÉE AU POINT — la fiche terrain porte DEUX
+ * instances (la section « Photos » générale, et celle-ci), MÊME COMPOSANT
+ * (`checklist-terrain.tsx`, `photos-terrain.tsx`) : ni `input[type="file"]`
+ * ni le texte des boutons seuls n'y sont univoques. `data-checklist-point-
+ * id` (posé UNIQUEMENT par l'instance du point, 9L04E-TERRAIN-PHOTOS-
+ * EPUREES — depuis que ce composant n'envoie plus par un `<form>` natif
+ * mais par `fetch`) distingue sa racine sans ambiguïté.
  */
-function formulaireDuPointPhoto(page: Page) {
-  return page
-    .locator("form")
-    .filter({ has: page.locator('input[name="checklist_point_id"]') });
+function blocDuPointPhoto(page: Page) {
+  return page.locator(`[data-checklist-point-id="${POINT_9K28A}"]`);
 }
 
 test("un point « photo » : une photo en ligne, une photo hors réseau, envoyée sans perte au retour du réseau", async ({
@@ -291,15 +287,15 @@ test("un point « photo » : une photo en ligne, une photo hors réseau, envoyé
 
   await capturer(page, "9k28a-terrain-point-photo-avant", 375);
 
-  // ── 1. EN LIGNE — une photo au point. ──────────────────────────────────
-  const formulairePoint = formulaireDuPointPhoto(page);
-  await formulairePoint
-    .locator('input[type="file"]')
+  // ── 1. EN LIGNE — une photo au point, envoi automatique à la sélection
+  // (9L04E-TERRAIN-PHOTOS-EPUREES). ───────────────────────────────────────
+  const blocPoint = blocDuPointPhoto(page);
+  await blocPoint
+    .locator('input[type="file"][capture]')
     .setInputFiles(fichierPhotoDEpreuve("en-ligne"));
-  await formulairePoint
-    .getByRole("button", { name: fr["checklist.terrain.ajouter_photo"] })
-    .click();
-  await expect(page.getByText(fr["terrain.photos.enregistree"])).toBeVisible();
+  await expect(
+    blocPoint.getByText(fr["terrain.photos.etat_envoyee"]),
+  ).toBeVisible();
 
   await capturer(page, "9k28a-terrain-point-photo-apres", 375);
 
@@ -325,15 +321,15 @@ test("un point « photo » : une photo en ligne, une photo hors réseau, envoyé
     await verif.$disconnect();
   }
 
-  // ── 2. HORS RÉSEAU, SUR LA PAGE DÉJÀ CHARGÉE — une seconde photo. ──────
+  // ── 2. HORS RÉSEAU, SUR LA PAGE DÉJÀ CHARGÉE — une seconde photo, envoi
+  // automatique à la sélection (9L04E-TERRAIN-PHOTOS-EPUREES). ───────────
   await context.setOffline(true);
-  await formulairePoint
-    .locator('input[type="file"]')
+  await blocPoint
+    .locator('input[type="file"][capture]')
     .setInputFiles(fichierPhotoDEpreuve("hors-reseau"));
-  await formulairePoint
-    .getByRole("button", { name: fr["checklist.terrain.ajouter_photo"] })
-    .click();
-  await expect(page.getByText(fr["terrain.auto.hors_ligne"])).toBeVisible();
+  await expect(
+    blocPoint.getByText(fr["terrain.photos.etat_en_attente"]),
+  ).toBeVisible();
 
   // ── LE RÉSEAU REVIENT : « ENVOYER ». ───────────────────────────────────
   await context.setOffline(false);

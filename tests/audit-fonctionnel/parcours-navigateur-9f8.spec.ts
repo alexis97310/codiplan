@@ -1130,7 +1130,10 @@ test("Étape B+C — ADV crée et planifie, le technicien traite, en deux sessio
       ecran: `/terrain/${interventionId}`,
     },
     async () => {
-      const champFichier = pt.locator('input[type="file"]');
+      // LE CHAMP APPAREIL PHOTO, CACHÉ DERRIÈRE SON `<label>` (9L04E-
+      // TERRAIN-PHOTOS-EPUREES) — `[capture]` le distingue du champ
+      // bibliothèque, désormais lui aussi présent.
+      const champFichier = pt.locator('input[type="file"][capture]');
       if ((await champFichier.count()) === 0) {
         return { verdict: "anomalie", note: "pas de champ d'ajout de photo" };
       }
@@ -1140,13 +1143,8 @@ test("Étape B+C — ADV crée et planifie, le technicien traite, en deux sessio
       );
       const chemin = join(DOSSIER_CAPTURES, "zz9f8-photo.png");
       writeFileSync(chemin, png);
+      // ENVOI AUTOMATIQUE À LA SÉLECTION — plus de bouton « Ajouter ».
       await champFichier.setInputFiles(chemin);
-      const boutonAjouter = pt.getByRole("button", {
-        name: fr["terrain.photos.ajouter"],
-      });
-      if (await boutonAjouter.isVisible().catch(() => false)) {
-        await boutonAjouter.click();
-      }
       await pt.waitForLoadState("networkidle");
       await capturerDouble(pt, "c06-photo");
     },

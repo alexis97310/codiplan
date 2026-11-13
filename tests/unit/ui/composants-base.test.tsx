@@ -392,8 +392,14 @@ describe('tous les boutons du terrain portent size="lg" (décision du 30/09/2026
     // 18. PUIS 9I7B : la section « Pièces remplacées », dans
     // `rapport-automatique.tsx`, ajoute « Ajouter une pièce » et « Retirer
     // cette pièce » — 18 + 2 = 20. PUIS 9K11-LIBELLES-SUITES-ITINERAIRE :
-    // le bouton « Itinéraire » dans `[id]/page.tsx` — 20 + 1 = 21. Voir
-    // `tests/unit/ui/retouches-2a.test.ts`, même population.
-    expect(total).toBe(21);
+    // le bouton « Itinéraire » dans `[id]/page.tsx` — 20 + 1 = 21. PUIS
+    // 9L04E-TERRAIN-PHOTOS-EPUREES : `photos-terrain.tsx` passe d'UN
+    // `<Button>` (soumission native, disparue avec l'envoi automatique) à
+    // HUIT littéraux dans le source — le bouton à deux temps « Revenir »/
+    // « Confirmer »/déclencheur (3, réutilisé pour Supprimer ET pour
+    // Retirer de la file), une étiquette rapide (`.map`, un seul littéral
+    // pour les quatre), « Enregistrer » la légende, « Retirer »/
+    // « Réessayer » sur un échec (2), « Fermer » — 21 + 7 = 28.
+    expect(total).toBe(28);
   });
 });

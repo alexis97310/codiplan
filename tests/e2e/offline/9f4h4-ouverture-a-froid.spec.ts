@@ -343,15 +343,13 @@ test("ouverture à froid : compteur, rapport, photo, signature et Terminer, tous
     pageFroide.getByText(fr["terrain.auto.hors_ligne"]).nth(1),
   ).toBeVisible();
 
-  // ── 7. UNE PHOTO AJOUTÉE ────────────────────────────────────────────────
+  // ── 7. UNE PHOTO AJOUTÉE — envoi automatique à la sélection
+  // (9L04E-TERRAIN-PHOTOS-EPUREES) ────────────────────────────────────────
   await pageFroide
-    .locator('input[type="file"]')
+    .locator('input[type="file"][capture]')
     .setInputFiles(fichierPhotoDEpreuve());
-  await pageFroide
-    .getByRole("button", { name: fr["terrain.photos.ajouter"] })
-    .click();
   await expect(
-    pageFroide.getByText(fr["terrain.auto.hors_ligne"]).last(),
+    pageFroide.getByText(fr["terrain.photos.etat_en_attente"]),
   ).toBeVisible();
 
   // ── 8. SIGNATURE DU CLIENT ──────────────────────────────────────────────
