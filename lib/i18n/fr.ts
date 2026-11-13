@@ -5118,7 +5118,12 @@ export const fr = {
   // ── LA SAISIE TERRAIN (9K21-CHECKLIST-TERRAIN-SAISIE, CK5) ───────────────
   "checklist.terrain.provenance_prefixe": "Checklist",
   "checklist.terrain.points": "points",
-  "checklist.terrain.non_conforme": "non conforme",
+  // Majuscule partout (décision d'Alexis du 13/11/2026, 9L04D-TERRAIN-
+  // CHECKLIST-EPUREE, point 5) — seule option des trois à ne pas déjà
+  // porter la sienne (voir `option_conforme`, `option_sans_objet` juste en
+  // dessous). Le même mot sert aussi au terrain, aux bons (CK8) et à la
+  // fiche bureau (CK9), qui lisent cette même clé.
+  "checklist.terrain.non_conforme": "Non conforme",
   "checklist.terrain.afficher_detail": "Afficher le détail",
   "checklist.terrain.masquer_detail": "Masquer le détail",
   "checklist.terrain.option_conforme": "Conforme",
@@ -5127,6 +5132,20 @@ export const fr = {
   // 9K28-CHECKLIST-REPONSE-PHOTO — le sixième type, « photo ».
   "checklist.terrain.ajouter_photo": "Ajouter une photo",
   "checklist.terrain.photos_ajoutees": "photo(s) ajoutée(s)",
+  // ── LA FICHE « ÉPURÉE » (9L04D-TERRAIN-CHECKLIST-EPUREE, décision
+  // d'Alexis du 13/11/2026) ────────────────────────────────────────────────
+  "checklist.terrain.legende": "✓ conforme · ✕ non conforme · – sans objet",
+  "checklist.terrain.sur": "sur",
+  "checklist.terrain.hors_reseau": "Hors réseau",
+  "checklist.terrain.a_envoyer": "à envoyer",
+  "checklist.terrain.obligatoire_manquant": "obligatoire",
+  // Les trois SYMBOLES des pastilles — UN SEUL ENDROIT à modifier si un
+  // essai avec un technicien demande des lettres plutôt que des symboles.
+  "checklist.terrain.symbole_conforme": "✓",
+  "checklist.terrain.symbole_non_conforme": "✕",
+  "checklist.terrain.symbole_sans_objet": "–",
+  "checklist.terrain.symbole_rubrique_ouverte": "▾",
+  "checklist.terrain.symbole_rubrique_fermee": "▸",
   // Clés déjà nommées par le domaine et la route (9K18-CHECKLIST-DOMAINE,
   // `lib/checklists/validation-reponse.ts`, `lib/checklists/depot.ts`,
   // `app/api/terrain/[id]/checklist/route.ts`) — aucun écran ne les rendait
