@@ -306,7 +306,7 @@ test("375/1280 px, en ligne — les cinq types, le résumé, et la ligne prérem
 
     // CONFORME_NON_CONFORME_SANS_OBJET — « Freins », rendu NON CONFORME pour
     // éprouver la ligne préremplie (point 3 du ticket) — une pastille, son
-    // nom accessible porte le libellé capitalisé (point 5, D252).
+    // nom accessible porte le libellé capitalisé (point 5, D253).
     await page
       .getByRole("button", {
         name: fr["checklist.terrain.non_conforme"],

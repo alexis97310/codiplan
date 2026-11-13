@@ -332,19 +332,17 @@ test("375/1280 px, EN LIGNE — les trois manques nommés et cliquables, Confirm
     await expect(lienChecklist).toBeVisible();
     await expect(confirmer).toBeDisabled();
 
-    // LE LIEN REFERME LA FEUILLE, DÉPLIE LA TUILE ET Y SAUTE.
+    // LE LIEN REFERME LA FEUILLE, DÉPLIE LA RUBRIQUE DU POINT ET Y SAUTE
+    // (9L04D, point 4 : plus de bouton global « Afficher/Masquer le
+    // détail » — la preuve du dépli est que la pastille du point devient
+    // visible, même patron que 9k23).
     await lienChecklist.click();
-    await expect(
-      page.getByRole("button", {
-        name: fr["checklist.terrain.masquer_detail"],
-      }),
-    ).toBeVisible();
-    await page
-      .getByRole("button", {
-        name: fr["checklist.terrain.option_conforme"],
-        exact: true,
-      })
-      .click();
+    const boutonConforme = page.getByRole("button", {
+      name: fr["checklist.terrain.option_conforme"],
+      exact: true,
+    });
+    await expect(boutonConforme).toBeVisible();
+    await boutonConforme.click();
 
     // PLUS AUCUN MANQUE — « Confirmer la fin » se débloque.
     await cliquerTerminer(page);
@@ -408,8 +406,13 @@ test("375 px, MODE AVION — les mêmes manques depuis la copie locale, temps qu
 
     // REFERME LA FEUILLE SANS COMMENTAIRE NI SIGNATURE — vérifie que le
     // verdict LOCAL hors réseau (pas seulement l'écran) bloque aussi.
+    // 9L04D : la rubrique incomplète reste dépliée derrière la feuille, et
+    // sa pastille « Non conforme » répond aussi à un « Non » non exact.
     await page
-      .getByRole("button", { name: fr["terrain.terminer.confirmation.non"] })
+      .getByRole("button", {
+        name: fr["terrain.terminer.confirmation.non"],
+        exact: true,
+      })
       .click();
 
     await page
@@ -424,11 +427,9 @@ test("375 px, MODE AVION — les mêmes manques depuis la copie locale, temps qu
       .fill("zz9K27B client injoignable");
     await page.getByLabel(fr["terrain.signature.motif_libelle"]).blur();
 
-    await page
-      .getByRole("button", {
-        name: fr["checklist.terrain.afficher_detail"],
-      })
-      .click();
+    // 9L04D : plus de bouton global « Afficher le détail » — la rubrique
+    // incomplète reste dépliée d'elle-même, la pastille du point est déjà
+    // visible.
     await page
       .getByRole("button", {
         name: fr["checklist.terrain.option_conforme"],

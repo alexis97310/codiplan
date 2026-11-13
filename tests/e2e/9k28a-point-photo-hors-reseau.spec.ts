@@ -260,12 +260,6 @@ async function capturer(
   });
 }
 
-async function deplierLaChecklist(page: Page): Promise<void> {
-  await page
-    .getByRole("button", { name: fr["checklist.terrain.afficher_detail"] })
-    .click();
-}
-
 /**
  * LE `<form>` DE LA `PhotosTerrain` EMBARQUÉE AU POINT — la fiche terrain
  * porte DEUX formulaires `PhotosTerrain` (la section « Photos » générale, et
@@ -292,7 +286,8 @@ test("un point « photo » : une photo en ligne, une photo hors réseau, envoyé
   await page.waitForResponse(
     (r) => r.url().includes("/api/terrain/instantane") && r.ok(),
   );
-  await deplierLaChecklist(page);
+  // 9L04D : plus de bouton global « Afficher le détail » — la rubrique
+  // incomplète (« Photos ») reste dépliée d'elle-même.
 
   await capturer(page, "9k28a-terrain-point-photo-avant", 375);
 

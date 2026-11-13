@@ -36,7 +36,7 @@ pleine largeur pour un choix à 2-4 options, rubriques repliables, avancement «
 - **Conflit avec D143 (point 11, 30/09/2026)** : `tests/unit/ui/retouches-2a.test.ts` exige 700 minimum sur
   tout texte de 12-13 px, partout dans `app/`/`components/`. La fiche épurée demande l'inverse
   (« 500 libellés, 600 titres et boutons ; pas de 700 »). **Signalé et tranché par un nouvel arbitrage**,
-  D252 (`docs/arbitrages.md`) : D143 reste la règle partout, sept lignes de `checklist-terrain.tsx` entrent
+  D253 (`docs/arbitrages.md`) : D143 reste la règle partout, sept lignes de `checklist-terrain.tsx` entrent
   dans la liste d'exemption (fermée dans les deux sens) avec leur condition de réouverture.
 
 ## 2. Ce qui a été fait
@@ -64,7 +64,7 @@ pleine largeur pour un choix à 2-4 options, rubriques repliables, avancement «
   formule `ouvert = manuel ?? !complete` ouvre par défaut tant qu'incomplète, et le manuel ne prime sur la
   complétude que si la personne a rouvert explicitement). Le saut CK7 (« Terminer » refusé → lien qui déplie
   et saute) ouvre désormais la RUBRIQUE du point visé, pas un drapeau global.
-- **`docs/arbitrages.md`** : D252.
+- **`docs/arbitrages.md`** : D253 (renuméroté depuis D252 lors de la reprise 9L04DA — voir §6).
 
 ## 3. Épreuves
 
