@@ -65,6 +65,9 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   "app/api/equipe/[id]/copier-lien/route.ts": "administrer_utilisateurs",
   "app/api/equipe/[id]/copier-nouveau-lien/route.ts":
     "administrer_utilisateurs",
+  // 9L03C (décision d'Alexis du 10/11/2026 puis du 13/11/2026) — « Retirer
+  // l'accès », une seule route pour les deux onglets d'Équipe.
+  "app/api/equipe/[id]/retirer-acces/route.ts": "administrer_utilisateurs",
   // D196 (12/10/2026, 9ET-COMPTES-BUREAU-1) — créer un compte de bureau ou lui
   // envoyer un lien d'accès, même capacité que le chemin technicien ci-dessus.
   "app/api/equipe/bureau/creer/route.ts": "administrer_utilisateurs",
@@ -723,7 +726,9 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
     // activité).
     // 113 depuis 9K20-CHECKLIST-DUPLIQUER-DEPART — `.../[id]/dupliquer/
     // route.ts` et `.../gabarit/route.ts`.
-    expect(Object.keys(ROUTE_CAPACITE).length).toBe(113);
+    // 114 depuis 9L03C-RETIRER-ACCES-DESACTIVER — `.../equipe/[id]/retirer-acces/
+    // route.ts`.
+    expect(Object.keys(ROUTE_CAPACITE).length).toBe(114);
   });
 
   it("aucune exemption ne survit à son objet — adossement dans les deux sens", () => {
