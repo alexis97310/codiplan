@@ -97,3 +97,47 @@ même détachement, à la suite de `fb9b72e00` (9L04B, point 6).
 ## Numéro d'arbitrage
 
 **D252** — le suivant libre sur `origin/main` au moment du rebase (dernier existant : D251).
+
+## Reprise 9L04CA (14/11/2026)
+
+9L04C a été RECALÉ à 01:19 : `CI=1 pnpm verify` rougissait deux fois sur les MÊMES deux scènes
+(contrat `tickets/recales/9L04C-TERRAIN-STYLE-EPURE.md` — introuvable sur ce poste au moment de la
+reprise, ni dans ce worktree ni dans les autres checkouts voisins ; cette section travaille donc
+sur le CONTEXTE donné par le ticket 9L04CA lui-même, pas sur le contrat original). Cause UNIQUE,
+mesurée par le pilote : l'en-tête sur une ligne posé au point 4 ci-dessus répète, dans un texte
+plus court, deux valeurs que des scènes anciennes cherchaient sans portée — `getByText` sans
+portée a trouvé DEUX éléments (violation du mode strict de Playwright), là où une seule
+intervention terrain existait avant ce lot.
+
+- **`tests/e2e/9di-tp-ter1-journee-fiche.spec.ts`** — `getByText(machineAttendue)` trouvait le nom
+  de la machine à la fois dans le `<span>` de la rubrique « Machine » du corps de la fiche ET dans
+  le `<p>` de l'en-tête (`<matériel> · <référence>`), puisque ce dernier commence par le même
+  libellé. Porté à la rubrique : `page.locator("section").filter({ has: page.getByRole("heading",
+  { name: fr["intervention.machine"] }) })`, puis `.getByText(machineAttendue)` sur ce
+  sous-ensemble. La scène prouve toujours la MÊME chose — la machine est affichée sur la fiche —
+  mais regarde désormais la rubrique qui porte cette preuve, jamais l'en-tête qui ne fait que la
+  résumer. Aucune assertion retirée.
+- **`tests/e2e/9f4h5-compteur-vivant.spec.ts`** — `getByText(/^\d{2}:\d{2}:\d{2}$/)` trouvait le
+  total vivant à la fois dans la rubrique « Compteur » du corps (28 px) ET dans le chrono de
+  l'en-tête (16 px), les deux affichant le même composant `CompteurVivant` au même format depuis le
+  point 4. Même traitement : porté à la rubrique via `page.locator("section").filter({ has:
+  page.getByRole("heading", { name: fr["terrain.compteur"] }) })`. La scène prouve toujours que la
+  valeur a changé après 3 s ; elle regarde la rubrique, pas l'en-tête.
+- **Recherche des collisions analogues** (`tests/e2e/**`, nom de client/machine ou format d'heure
+  pouvant rencontrer l'en-tête) : aucune autre scène visitant `/terrain/${id}` n'utilise un
+  `getByText` non borné sur un nom de machine (`libelleMaterielComplet`/`machineAttendue` n'apparaît
+  ailleurs que dans `liens-fiches.spec.ts`, sans rapport — un paramètre d'URL du back-office) ni sur
+  le motif `HH:MM:SS` (seule occurrence : la scène ci-dessus, déjà corrigée). Le nom du CLIENT,
+  lui, n'est affiché qu'une seule fois sur cette fiche (dans l'en-tête) — aucune collision possible.
+  Aucune autre correction nécessaire.
+- **Aucun écran retouché** pour cette reprise : le cherry-pick des 7 commits de
+  `9L04C-TERRAIN-STYLE-EPURE-garde` sur `origin/main` (`fb9b72e00`, 9L04B point 6) s'est appliqué
+  SANS CONFLIT — rien à concilier avec 9L04D ni aucun autre lot publié depuis.
+- Épreuves rejouées au premier plan (`CI=1 --workers=1`) : les deux scènes réécrites, toutes les e2e
+  dont le nom contient `terrain`, `journee` ou `compteur`, `9l04b-gabarit-rattachement.spec.ts`,
+  `zz-captures-9l04c-terrain-style-epure.spec.ts` et `tous-les-ecrans-rendent.spec.ts` — **153
+  collectées, 4 ignorées (hors portée du filtre), 149 vertes, 0 échec**. Puis `CI=1 pnpm verify`
+  (format, typecheck, lint, test, test:isolation, build) — **vert** (un aller-retour `prettier
+  --write` sur les deux fichiers réécrits avant le dernier passage).
+- `pnpm verify:full` n'a PAS été rejoué ici non plus (même contrainte de budget que 9L04C) — laissé
+  à la file de nuit.

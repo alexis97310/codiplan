@@ -284,7 +284,16 @@ test("la fiche d'une intervention transmise montre priorité, créneau, panne, m
   await expect(page.getByText(fr["priorite.p1"])).toBeVisible();
   await expect(page.getByText(creneauAttendu)).toBeVisible();
   await expect(page.getByText(fr["terrain9di.e2e.panne"])).toBeVisible();
-  await expect(page.getByText(machineAttendue)).toBeVisible();
+
+  // PORTÉE À LA RUBRIQUE « Machine » DU CORPS DE LA FICHE (reprise 9L04CA) :
+  // depuis 9L04C, l'en-tête sur une ligne répète aussi le matériel
+  // (« <matériel> · <référence> »), et `getByText(machineAttendue)` sans
+  // portée trouvait les deux — violation du mode strict de Playwright.
+  const rubriqueMachine = page.locator("section").filter({
+    has: page.getByRole("heading", { name: fr["intervention.machine"] }),
+  });
+  await expect(rubriqueMachine.getByText(machineAttendue)).toBeVisible();
+
   await expect(page.getByText(fr["terrain9di.e2e.contact_nom"])).toBeVisible();
 
   const lienTelephone = page.locator(`a[href="tel:${TELEPHONE}"]`);

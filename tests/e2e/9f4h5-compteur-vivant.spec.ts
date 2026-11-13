@@ -134,8 +134,16 @@ test("Démarrer, attendre 3 s : la valeur a changé et n'est plus 00:00:00", asy
   // LE TOTAL VIVANT, `HH:MM:SS` — jamais confondu avec « Le compteur tourne
   // depuis HH:MM » (deux groupes seulement), qui reste affiché à sa place
   // habituelle.
+  //
+  // PORTÉE À LA RUBRIQUE « Compteur » DU CORPS DE LA FICHE (reprise 9L04CA) :
+  // depuis 9L04C, l'en-tête sur une ligne affiche lui aussi le total vivant
+  // au même format, et `getByText` sans portée trouvait les deux — violation
+  // du mode strict de Playwright.
   const ZERO = /^00:00:00$/;
-  const valeur = page.getByText(/^\d{2}:\d{2}:\d{2}$/);
+  const rubriqueCompteur = page.locator("section").filter({
+    has: page.getByRole("heading", { name: fr["terrain.compteur"] }),
+  });
+  const valeur = rubriqueCompteur.getByText(/^\d{2}:\d{2}:\d{2}$/);
   await expect(valeur).toBeVisible();
   await expect(valeur).toHaveText(ZERO);
 
