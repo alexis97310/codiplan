@@ -202,6 +202,11 @@ const AMENDEMENTS_ATTENDUS: ReadonlyArray<readonly [string, string]> = [
   // neuve, même rattachée à un second client — D249 reste entière pour une
   // identité déjà activée.
   ["D249", "D250"],
+  // D252 (13/11/2026, 9L04C-TERRAIN-STYLE-EPURE) amende D124 : le style
+  // « épuré » du terrain est une ZONE (`data-zone="terrain"`), pas une
+  // troisième apparence, et ses jetons ne viennent pas de
+  // `codiplan-maquette-complete.html` — un écart que D124 laissait ouvert.
+  ["D124", "D252"],
 ];
 
 describe("câblage bidirectionnel entre décisions", () => {

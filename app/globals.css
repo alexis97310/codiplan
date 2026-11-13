@@ -504,6 +504,71 @@
 }
 
 /*
+ * ─────────────────────────────────────────────────────────────────────────────
+ * LE TERRAIN « ÉPURÉ » (décision d'Alexis du 13/11/2026, D252 amende D124 pour
+ * CE PÉRIMÈTRE SEUL — 9L04C-TERRAIN-STYLE-EPURE).
+ *
+ * **CE N'EST PAS UNE TROISIÈME APPARENCE.** `APPARENCES`
+ * (`lib/theme/apparence.ts`) reste à deux entrées : l'épuré n'est pas un choix
+ * qu'une société fait à la place d'un autre thème, c'est l'habillage d'une
+ * ZONE de l'application — le terrain — par-dessus l'apparence déjà posée sur
+ * le document. L'attribut est donc un second axe, `data-zone="terrain"`, posé
+ * par `app/(mobile)/layout.tsx` et par les deux coquilles hors session
+ * (`terrain-hors-reseau`, `scanner-hors-reseau`) — jamais par
+ * `data-apparence`, que `tests/unit/theme/deux-apparences.test.ts` interdit
+ * de citer en dur dans un écran (D95).
+ *
+ * **AUCUN JETON NOUVEAU.** Le bloc ci-dessous ne fait que SURCHARGER des
+ * jetons déjà listés dans `JETONS` — `--app-fond`, `--app-encre`, … — pour
+ * tout ce qui vit sous `[data-zone="terrain"]` ; `tests/unit/theme/
+ * apparence.test.ts` (« toute déclaration --app-… du style est un jeton de la
+ * liste ») reste donc satisfait sans toucher à `lib/theme/apparence.ts`. Le
+ * bureau, hors de cette zone, continue de lire les valeurs de
+ * `[data-apparence="maquette"]` plus haut — c'est ce qu'une capture d'écran
+ * bureau prouve (`tests/unit/theme/terrain-epure.test.ts`).
+ *
+ * **D'OÙ VIENNENT CES VALEURS — PAS DE `codiplan-maquette-complete.html`,
+ * ET C'EST L'ÉCART NOMMÉ.** D124 fait de cette maquette la source unique des
+ * jetons de couleur ; elle ne dessine aucun écran de terrain. Les valeurs
+ * ci-dessous viennent d'une SECONDE maquette, hors dépôt, à données
+ * fictives, que le pilote a validée le 13/11/2026 (quatre écrans de 390 px) —
+ * exactement le cas que D124 avait laissé ouvert : « ce qu'elle ne dessine
+ * pas reste libre » (§1). Les contrastes AA (texte normal, 4,5:1) sont
+ * vérifiés et consignés dans la passation du ticket plutôt que mesurés ici :
+ * --app-encre-faible (#5b6472) sur blanc ≈5,98:1 ; --app-marque (#0053a1,
+ * inchangé) sur --app-surface-creuse (#f1f3f6) ≈6,86:1 ; --app-rouge-encre
+ * (#a3040e) sur blanc ≈8,14:1 ; --app-orange-encre (#6b4300) sur blanc
+ * ≈8,65:1.
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+[data-zone="terrain"] {
+  /* Fond blanc partout — jamais le gris `#f4f6f9` du bureau — et aucun cadre
+     ni carte : `--app-bord` devient le filet 1 px entre les lignes, posé en
+     `border-b` par les écrans plutôt qu'en `rounded-lg border` autour d'un
+     bloc. `--app-surface-creuse` sert les champs et les pistes, sans
+     bordure propre. */
+  --app-fond: #ffffff;
+  --app-surface-creuse: #f1f3f6;
+  --app-bord: #e6e8ec;
+  --app-bord-faible: #e6e8ec;
+  --app-encre: #111827;
+  --app-encre-faible: #5b6472;
+
+  /* Vert et rouge ne colorent qu'une RÉPONSE DONNÉE (une case cochée, un
+     compteur arrêté) — jamais un geste disponible, qui reste bleu
+     (`--app-marque`, INCHANGÉ : #0053a1 dans les deux zones). */
+  --app-vert-bord: #1b7f3b;
+  --app-vert-encre: #1b7f3b;
+  --app-vert-plein: #1b7f3b;
+  --app-rouge-bord: #c40511;
+  --app-rouge-encre: #a3040e;
+
+  /* Le texte d'avertissement ambre — même rôle que `--app-orange-encre` du
+     bureau, valeur propre au terrain. */
+  --app-orange-encre: #6b4300;
+}
+
+/*
  * LA TRAME DU SITE FERMÉ — `.ferme` de la maquette.
  *
  * Elle ne se réduit pas à une couleur : c'est un DÉGRADÉ RÉPÉTÉ, et Tailwind
