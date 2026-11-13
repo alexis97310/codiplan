@@ -54,7 +54,11 @@ export default async function MiseEnPageTerrain({
   const { theme, initiales, role } = await chromeDeLaRequete();
 
   return (
-    <>
+    // LE TERRAIN « ÉPURÉ » (D252, décision d'Alexis du 13/11/2026) — une
+    // ZONE, jamais une troisième apparence (voir `app/globals.css`).
+    // `display:contents` : cette balise n'existe que pour porter l'attribut,
+    // elle ne doit rien changer à la disposition empilée de ce segment.
+    <div data-zone="terrain" className="contents">
       {/*
         LA COPIE LOCALE EST UNE AFFAIRE DE TECHNICIEN, PAS DE CE SEGMENT
         (constat 3 de l'audit fonctionnel 9F5, docs/audits/9F5-fonctionnel/
@@ -79,6 +83,6 @@ export default async function MiseEnPageTerrain({
         {children}
       </div>
       <BarreBasseDuTerrain />
-    </>
+    </div>
   );
 }

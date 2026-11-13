@@ -93,7 +93,7 @@ export function ListeJournee({
         className={
           nombreNonOuvertes === 0
             ? "sr-only"
-            : "border-app-bleu-bord bg-app-bleu-fond text-app-bleu-encre rounded-md border px-3 py-2 text-16 font-bold"
+            : "border-app-bleu-bord bg-app-bleu-fond text-app-bleu-encre rounded-md border px-3 py-2 text-16 font-medium"
         }
       >
         {nombreNonOuvertes === 0
@@ -154,15 +154,15 @@ function Section({
 }) {
   return (
     <section className="flex flex-col gap-2">
-      <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
+      <h2 className="text-app-encre-faible text-13 font-bold tracking-[0.6px] uppercase">
         {titre}
       </h2>
       {lignes.length === 0 ? (
-        <p className="bg-app-surface border-app-bord text-app-encre-faible rounded-lg border px-4 py-6 text-center text-16 font-bold">
+        <p className="border-app-bord text-app-encre-faible border-b px-4 py-6 text-center text-16 font-medium">
           {vide}
         </p>
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="divide-app-bord flex flex-col divide-y">
           {lignes.map((ligne) => (
             <Carte
               key={ligne.id}
@@ -198,22 +198,22 @@ function SectionJoursSuivants({
 }) {
   return (
     <section className="flex flex-col gap-2">
-      <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
+      <h2 className="text-app-encre-faible text-13 font-bold tracking-[0.6px] uppercase">
         {t("terrain.jours_suivants.titre")}
       </h2>
       {suite.nombre === 0 ? (
-        <p className="bg-app-surface border-app-bord text-app-encre-faible rounded-lg border px-4 py-6 text-center text-16 font-bold">
+        <p className="border-app-bord text-app-encre-faible border-b px-4 py-6 text-center text-16 font-medium">
           {libelleJoursSuivantsVide(aujourdHui)}
         </p>
       ) : (
-        <p className="bg-app-surface border-app-bord flex flex-col gap-1 rounded-lg border px-4 py-3">
+        <p className="border-app-bord flex flex-col gap-1 border-b px-4 py-3">
           <span className="text-16 font-semibold">
             {suite.nombre}{" "}
             {suite.nombre === 1
               ? t("terrain.jours_suivants.intervention_singulier")
               : t("terrain.jours_suivants.interventions_pluriel")}
           </span>
-          <span className="text-app-encre-faible text-16 font-bold">
+          <span className="text-app-encre-faible text-16 font-medium">
             {libelleDatesSuite(suite.dates)}
           </span>
         </p>
@@ -251,12 +251,12 @@ function Carte({
           de cette classe. */}
       <Link
         href={`/terrain/${ligne.id}`}
-        className="bg-app-surface border-app-bord flex flex-col gap-1.5 rounded-lg border px-4 py-3"
+        className="flex flex-col gap-1.5 px-4 py-3"
       >
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
           <span className="flex min-w-0 flex-wrap items-center gap-1.5">
             <Priorite valeur={ligne.priorite} />
-            <span className="text-16 font-bold tabular-nums">
+            <span className="text-16 font-semibold tabular-nums">
               {heureOuTiret(ligne.creneau_debut, ligne.creneau_fin, fuseau)}
             </span>
           </span>
@@ -279,30 +279,30 @@ function Carte({
           </span>
         </div>
         <p className="text-16 font-semibold">{ligne.client.raison_sociale}</p>
-        <p className="text-app-encre-faible text-16 font-bold">
+        <p className="text-app-encre-faible text-16 font-medium">
           {lieuDit(ligne.site.libelle)}
         </p>
         {/* LE TYPE, parce qu'une carte qui dit OÙ sans dire QUOI envoie
           quelqu'un en déplacement sans lui dire ce qu'il va faire. Le libellé
           vient du dictionnaire, jamais de l'énumération : `curatif` est un nom
           de statut, et un nom de statut ne se lit pas à l'écran (L0-11). */}
-        <p className="text-app-encre-faible text-16 font-bold">
+        <p className="text-app-encre-faible text-16 font-medium">
           {typeLu(ligne.type)}
         </p>
         {ligne.machinesLibelle === null ? null : (
-          <p className="text-app-encre-faible truncate text-16 font-bold">
+          <p className="text-app-encre-faible truncate text-16 font-medium">
             {ligne.machinesLibelle}
           </p>
         )}
         {ligne.panneResume === null ? null : (
-          <p className="truncate text-16 font-bold">{ligne.panneResume}</p>
+          <p className="truncate text-16 font-medium">{ligne.panneResume}</p>
         )}
         {/* LA CARTE « EN RETARD » PORTE SA PROPRE DATE (9F2-TERRAIN-JOURS-
           MAQUETTE, D210) — elle n'est jamais dans la section « Aujourd'hui »
           ou « Demain », et sans cette ligne, rien à l'écran ne dirait QUAND
           elle était attendue. */}
         {!enRetard || ligne.enRetardPrevueLibelle === null ? null : (
-          <p className="text-app-rouge-encre text-16 font-bold">
+          <p className="text-app-rouge-encre text-16 font-medium">
             {t("terrain.carte.en_retard_prevue")} {ligne.enRetardPrevueLibelle}
           </p>
         )}

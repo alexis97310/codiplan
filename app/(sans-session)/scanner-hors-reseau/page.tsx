@@ -29,19 +29,22 @@ export const metadata: Metadata = { title: t("scanner.hors_reseau.titre") };
  */
 export default function PageScannerHorsReseau() {
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center gap-6">
+    <main
+      data-zone="terrain"
+      className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center gap-6"
+    >
       <header>
-        <h1 className="text-24 font-extrabold tracking-tight">
+        <h1 className="text-24 font-semibold tracking-tight">
           {t("scanner.hors_reseau.titre")}
         </h1>
       </header>
       <p
         role="status"
-        className="border-app-bord bg-app-surface text-app-encre-faible rounded-lg border px-4 py-6 text-center text-16 font-bold"
+        className="border-app-bord text-app-encre-faible border-b px-4 py-6 text-center text-16 font-medium"
       >
         {t("scanner.hors_reseau.message")}
       </p>
-      <Link href="/terrain" className="text-16 font-bold underline">
+      <Link href="/terrain" className="text-16 font-medium underline">
         {t("terrain.retour")}
       </Link>
     </main>

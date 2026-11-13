@@ -222,25 +222,25 @@ export default async function PageTerrain() {
     <main className="flex flex-col gap-4">
       <header className="flex items-start justify-between gap-2">
         <div className="flex flex-col gap-1">
-          <h1 className="text-24 font-extrabold tracking-tight">
+          <h1 className="text-24 font-semibold tracking-tight">
             {t("terrain.titre")}
           </h1>
-          <p className="text-app-encre-faible text-16 font-bold">
+          <p className="text-app-encre-faible text-16 font-medium">
             {libelleJourLongEnTeteDePhrase(aujourdHui)}
           </p>
           {/* 9I5-ECRANS-INCOMPLETS-LE-DISENT — même esprit que le sous-titre
               d'« Indicateurs du mois » (`components/mise-en-page/page.tsx`,
-              `text-app-encre-faible … font-bold`) ; cette page n'utilise pas
+              `text-app-encre-faible … font-medium`) ; cette page n'utilise pas
               `Page`, et le terrain impose 16/18/24/28 px (D143, point 8) —
               jamais le 13 px du back-office. Même taille que la ligne de
               date juste au-dessus. */}
-          <p className="text-app-encre-faible text-16 font-bold">
+          <p className="text-app-encre-faible text-16 font-medium">
             {t("terrain.sous_titre_manquant")}
           </p>
         </div>
         <Link
           href="/scanner"
-          className="border-app-bord bg-app-surface inline-flex min-h-11 items-center justify-center rounded-md border px-3 py-2 text-16 font-bold"
+          className="border-app-bord inline-flex min-h-11 items-center justify-center rounded-md border px-3 py-2 text-16 font-semibold"
         >
           {t("terrain.action.scanner")}
         </Link>

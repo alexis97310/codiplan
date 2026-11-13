@@ -35,7 +35,10 @@ export default function PageTerrainHorsReseau() {
     // contenu reste celui d'un téléphone, posé LOCALEMENT ici plutôt que dans
     // la mise en page partagée, que `/connexion`, `/premier-acces` et les
     // autres écrans sans session continuent de rendre à 1400 px.
-    <div className="mx-auto w-full max-w-[720px] px-4 py-4 text-16">
+    <div
+      data-zone="terrain"
+      className="mx-auto w-full max-w-[720px] px-4 py-4 text-16"
+    >
       <Suspense>
         <ConsultationHorsReseau />
       </Suspense>

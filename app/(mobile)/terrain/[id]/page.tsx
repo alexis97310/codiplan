@@ -31,6 +31,7 @@ import { RapportTerrainAutomatique } from "@/components/terrain/rapport-automati
 import { BoutonSuspendreTerrain } from "@/components/terrain/suspendre-terrain";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
 import { Button } from "@/components/ui/button";
+import { Icone } from "@/components/ui/icone";
 import { Message } from "@/components/ui/message";
 import { Priorite } from "@/components/ui/priorite";
 import { type ContexteActif } from "@/lib/auth/contexte";
@@ -415,26 +416,68 @@ export default async function PageInterventionTerrain({
   // ci-dessus).
   const enPause = !ici && ailleurs === null && ligne.statut === "en_cours";
   const genereLe = maintenant(fiche.fuseau).instant.toISOString();
+  const materielEtNumero = sousTitreDeLEnTete(
+    machinesAffichees[0]?.libelle ?? null,
+    referenceAffichee(ligne),
+  );
 
   return (
     <main className="flex flex-col gap-4">
-      <header className="flex flex-col gap-2">
-        {/* PLUS DE « ← Retour à ma journée » ICI (audit du 21/10/2026, 9G9B)
-            — la marque du bandeau du haut et l'onglet « Journée » de la
-            barre basse mènent déjà au même endroit ; ce lien était une
-            troisième route vers la même destination. */}
-        <div className="flex flex-wrap items-center gap-2">
-          <Priorite valeur={ligne.priorite} />
-          <h1 className="text-24 font-extrabold tracking-tight">
+      {/*
+        L'EN-TÊTE SUR UNE LIGNE, 60 PX (point 4, 9L04C-TERRAIN-STYLE-EPURE,
+        décision d'Alexis du 13/11/2026) — retour, client, « matériel · n°
+        d'intervention » dessous, chrono à droite. LE RETOUR REVIENT ICI,
+        ALORS QUE 9G9B (21/10/2026) L'AVAIT RETIRÉ de cette fiche : la
+        maquette validée le 13/11 le redemande explicitement sur la ligne
+        d'en-tête, plus récente que cet audit — un écart nommé, consigné
+        dans la passation plutôt que tranché ici une seconde fois.
+
+        17 px pour le client et 13-14 px pour la ligne du dessous sont ceux
+        de la maquette d'Alexis, mais `tests/unit/ui/retouches-2a.test.ts`
+        (D143, point 8) tient `app/(mobile)/terrain/[id]/page.tsx` au
+        plancher 16/18/24/28 px hors surtitre/pastille : ramenés à 18 et 16,
+        les deux valeurs les plus proches de l'échelle déjà posée, plutôt que
+        d'assouplir ce gardien sans décision nommée — voir la passation.
+      */}
+      <header className="border-app-bord flex min-h-[60px] items-center gap-3 border-b py-2">
+        <Link
+          href="/terrain"
+          aria-label={t("terrain.retour")}
+          className="text-app-encre flex size-11 shrink-0 items-center justify-center"
+        >
+          <Icone nom="chev-l" taille={22} />
+        </Link>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <h1 className="text-app-encre truncate text-18 font-semibold">
             {fiche.client ?? t("terrain.client_inconnu")}
           </h1>
-          <span
-            className={`rounded-full px-2 py-0.5 text-12 font-bold ${CLASSES_STATUT[statut]}`}
-          >
-            {t(`statut.${statut}`)}
-          </span>
+          {materielEtNumero === null ? null : (
+            <p className="text-app-encre-faible truncate text-16 font-medium">
+              {materielEtNumero}
+            </p>
+          )}
         </div>
+        <p className="text-app-encre shrink-0 text-16 font-semibold tabular-nums">
+          {ici && enCours !== null ? (
+            <CompteurVivant
+              depart={enCours.segment.debut}
+              minutesFermees={mesure.minutes}
+              instantServeur={new Date(genereLe)}
+            />
+          ) : (
+            enDuree(mesure.minutes)
+          )}
+        </p>
       </header>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <Priorite valeur={ligne.priorite} />
+        <span
+          className={`rounded-full px-2 py-0.5 text-12 font-bold ${CLASSES_STATUT[statut]}`}
+        >
+          {t(`statut.${statut}`)}
+        </span>
+      </div>
 
       <BandeauReseau genereLe={genereLe} fuseau={fiche.fuseau} fiche />
       <RafraichissementAutomatique />
@@ -475,7 +518,7 @@ export default async function PageInterventionTerrain({
           un défilement. La section Compteur, seule à porter ce geste, vient
           maintenant juste après les bandeaux, avant tout le reste de la
           fiche. */}
-      <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
+      <section className="border-app-bord flex flex-col gap-3 border-b px-4 py-3.5">
         <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
           {t("terrain.compteur")}
         </h2>
@@ -488,7 +531,7 @@ export default async function PageInterventionTerrain({
           minutes fermées + segment en cours, `HH:MM:SS` qui défile — plutôt
           que la seule mesure des segments fermés.
         */}
-        <p className="text-[28px] font-extrabold tabular-nums">
+        <p className="text-28 font-semibold tabular-nums">
           {ici && enCours !== null ? (
             <CompteurVivant
               depart={enCours.segment.debut}
@@ -499,7 +542,7 @@ export default async function PageInterventionTerrain({
             enDuree(mesure.minutes)
           )}
         </p>
-        <p className="text-app-encre-faible text-16 font-bold">
+        <p className="text-app-encre-faible text-16 font-medium">
           {/* TROIS CAS, PAS DEUX (point 7, 9G5-TERRAIN-ERGONOMIE) —
               « Temps mesuré, hors compteur en cours. » restait affiché
               quand RIEN ne tourne nulle part pour cette personne (ni ici,
@@ -570,8 +613,8 @@ export default async function PageInterventionTerrain({
         dateDispoPrevue={ligne.date_dispo_prevue?.toISOString() ?? null}
       />
 
-      <section className="bg-app-surface border-app-bord rounded-lg border px-4 py-3.5">
-        <dl className="grid grid-cols-[104px_1fr] gap-x-3 gap-y-2.5 text-16 font-bold">
+      <section className="border-app-bord border-b px-4 py-3.5">
+        <dl className="grid grid-cols-[104px_1fr] gap-x-3 gap-y-2.5 text-16 font-medium">
           <Ligne
             libelle={t("intervention.reference")}
             valeur={referenceAffichee(ligne)}
@@ -604,40 +647,40 @@ export default async function PageInterventionTerrain({
       </section>
 
       {consignesAcces === null ? null : (
-        <section className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5">
+        <section className="border-app-bord flex flex-col gap-2 border-b px-4 py-3.5">
           <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
             {t("site.consignes_acces")}
           </h2>
-          <p className="text-16 font-bold">{consignesAcces}</p>
+          <p className="text-16 font-medium">{consignesAcces}</p>
         </section>
       )}
 
       {ligne.description === null ? null : (
-        <section className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5">
+        <section className="border-app-bord flex flex-col gap-2 border-b px-4 py-3.5">
           <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
             {t("intervention.panne_signalee")}
           </h2>
-          <p className="text-16 font-bold">{ligne.description}</p>
+          <p className="text-16 font-medium">{ligne.description}</p>
         </section>
       )}
 
       {machinesAffichees.length === 0 ? null : (
-        <section className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5">
+        <section className="border-app-bord flex flex-col gap-2 border-b px-4 py-3.5">
           <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
             {t("intervention.machine")}
           </h2>
-          <ul className="flex flex-col gap-2 text-16 font-bold">
+          <ul className="flex flex-col gap-2 text-16 font-medium">
             {machinesAffichees.map((machine) => (
               <li key={machine.libelle} className="flex flex-col gap-0.5">
                 <span>{machine.libelle}</span>
                 {machine.anneeFabrication === null ? null : (
-                  <span className="text-app-encre-faible text-16 font-bold">
+                  <span className="text-app-encre-faible text-16 font-medium">
                     {t("machine.champ.annee_fabrication")}
                     {t("ponctuation.deux_points")}
                     {machine.anneeFabrication}
                   </span>
                 )}
-                <span className="text-app-encre-faible text-16 font-bold">
+                <span className="text-app-encre-faible text-16 font-medium">
                   {t("machine.garantie.libelle")}
                   {t("ponctuation.deux_points")}
                   {machine.garantieLibelle}
@@ -649,13 +692,13 @@ export default async function PageInterventionTerrain({
       )}
 
       {contact === null ? null : (
-        <section className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5">
+        <section className="border-app-bord flex flex-col gap-2 border-b px-4 py-3.5">
           <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
             {t("intervention.contact_sur_place")}
           </h2>
-          <p className="text-16 font-bold">{contact.nom}</p>
+          <p className="text-16 font-medium">{contact.nom}</p>
           {contact.numeros.length === 0 ? (
-            <p className="text-app-encre-faible text-16 font-bold">
+            <p className="text-app-encre-faible text-16 font-medium">
               {t("terrain.contact_sans_numero")}
             </p>
           ) : (
@@ -777,6 +820,21 @@ export default async function PageInterventionTerrain({
 function libelleDuType(type: string): string {
   const cle = `type_intervention.${type}`;
   return estCleTraduction(cle) ? t(cle) : type;
+}
+
+/**
+ * `<matériel> · <référence>` sous le client, dans l'en-tête (point 4,
+ * 9L04C-TERRAIN-STYLE-EPURE) — composé hors du JSX (L0-11), avec le point
+ * médian du dictionnaire. `null` quand aucune machine n'est rattachée : la
+ * référence seule ne justifie pas la ligne.
+ */
+function sousTitreDeLEnTete(
+  materiel: string | null,
+  reference: string,
+): string | null {
+  return materiel === null
+    ? null
+    : `${materiel}${t("ponctuation.point_median")}${reference}`;
 }
 
 function Ligne({

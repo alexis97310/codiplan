@@ -78,7 +78,7 @@ export function ConsultationHorsReseau() {
       <>
         <p
           role="status"
-          className="border-app-bord bg-app-surface text-app-encre-faible rounded-lg border px-4 py-6 text-center text-16 font-bold"
+          className="border-app-bord text-app-encre-faible border-b px-4 py-6 text-center text-16 font-medium"
         >
           {t("terrain.hors_reseau.aucune_copie")}
         </p>
@@ -163,7 +163,7 @@ function Journee({ copie }: { readonly copie: InstantaneJSON }) {
           que pour la consultation hors réseau, le bandeau y est donc
           toujours visible. */}
       <header className="flex flex-col gap-1">
-        <h1 className="text-24 font-extrabold tracking-tight">
+        <h1 className="text-24 font-semibold tracking-tight">
           {t("terrain.hors_reseau.titre")}
         </h1>
       </header>
@@ -188,12 +188,12 @@ function Journee({ copie }: { readonly copie: InstantaneJSON }) {
         vide={t("terrain.demain.vide")}
       />
       <section className="flex flex-col gap-2">
-        <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
+        <h2 className="text-app-encre-faible text-13 font-bold tracking-[0.6px] uppercase">
           {t("terrain.jours_suivants.titre")}
         </h2>
-        <p className="bg-app-surface border-app-bord flex flex-col gap-1 rounded-lg border px-4 py-3">
+        <p className="border-app-bord flex flex-col gap-1 border-b px-4 py-3">
           {journee.suite.nombre === 0 ? (
-            <span className="text-app-encre-faible text-16 font-bold">
+            <span className="text-app-encre-faible text-16 font-medium">
               {libelleJoursSuivantsVide(journee.jour)}
             </span>
           ) : (
@@ -204,7 +204,7 @@ function Journee({ copie }: { readonly copie: InstantaneJSON }) {
                   ? t("terrain.jours_suivants.intervention_singulier")
                   : t("terrain.jours_suivants.interventions_pluriel")}
               </span>
-              <span className="text-app-encre-faible text-16 font-bold">
+              <span className="text-app-encre-faible text-16 font-medium">
                 {libelleDatesSuite(journee.suite.dates)}
               </span>
             </>
@@ -235,17 +235,17 @@ function Section({
 }) {
   return (
     <section className="flex flex-col gap-2">
-      <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
+      <h2 className="text-app-encre-faible text-13 font-bold tracking-[0.6px] uppercase">
         {titre}
       </h2>
       {lignes.length === 0 ? (
         vide === undefined ? null : (
-          <p className="bg-app-surface border-app-bord text-app-encre-faible rounded-lg border px-4 py-6 text-center text-16 font-bold">
+          <p className="border-app-bord text-app-encre-faible border-b px-4 py-6 text-center text-16 font-medium">
             {vide}
           </p>
         )
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="divide-app-bord flex flex-col divide-y">
           {lignes.map((ligne) => (
             <Carte key={ligne.id} ligne={ligne} fuseau={fuseau} />
           ))}
@@ -268,10 +268,10 @@ function Carte({
     <li>
       <Link
         href={`/terrain-hors-reseau?id=${ligne.id}`}
-        className="bg-app-surface border-app-bord flex flex-col gap-1.5 rounded-lg border px-4 py-3"
+        className="flex flex-col gap-1.5 px-4 py-3"
       >
         <div className="flex items-center justify-between gap-3">
-          <span className="text-16 font-bold tabular-nums">
+          <span className="text-16 font-semibold tabular-nums">
             {ligne.creneauDebut === null
               ? t("terrain.sans_creneau")
               : heureLocale(new Date(ligne.creneauDebut), fuseau)}
@@ -286,16 +286,16 @@ function Carte({
           </span>
         </div>
         <p className="text-16 font-semibold">{ligne.client}</p>
-        <p className="text-app-encre-faible text-16 font-bold">
+        <p className="text-app-encre-faible text-16 font-medium">
           {lieuDit(ligne.site)}
         </p>
         {ligne.machinesLibelles.length === 0 ? null : (
-          <p className="text-app-encre-faible truncate text-16 font-bold">
+          <p className="text-app-encre-faible truncate text-16 font-medium">
             {ligne.machinesLibelles.join(t("ponctuation.point_median"))}
           </p>
         )}
         {panne === null ? null : (
-          <p className="truncate text-16 font-bold">{panne}</p>
+          <p className="truncate text-16 font-medium">{panne}</p>
         )}
       </Link>
     </li>
@@ -384,7 +384,7 @@ function Fiche({
     return (
       <p
         role="status"
-        className="border-app-bord bg-app-surface text-app-encre-faible rounded-lg border px-4 py-6 text-center text-16 font-bold"
+        className="border-app-bord text-app-encre-faible border-b px-4 py-6 text-center text-16 font-medium"
       >
         {t("terrain.hors_reseau.fiche_introuvable")}
       </p>
@@ -428,7 +428,7 @@ function Fiche({
         {t("terrain.retour")}
       </Link>
       <header>
-        <h1 className="text-24 font-extrabold tracking-tight">
+        <h1 className="text-24 font-semibold tracking-tight">
           {fiche.client ?? t("terrain.client_inconnu")}
         </h1>
       </header>
@@ -438,8 +438,8 @@ function Fiche({
           pli à 375 px ; la fiche EN LIGNE (`/terrain/[id]`) la place juste
           après l'en-tête depuis le point 1 de 9G5-TERRAIN-ERGONOMIE. Même
           ordre ici. */}
-      <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-        <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
+      <section className="border-app-bord flex flex-col gap-3 border-b px-4 py-3.5">
+        <h2 className="text-app-encre-faible text-13 font-bold tracking-[0.6px] uppercase">
           {t("terrain.compteur")}
         </h2>
         {fiche.verdictDemarrer.refuse ? (
@@ -473,20 +473,20 @@ function Fiche({
         sansSession
       />
 
-      <section className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5">
-        <p className="text-16 font-bold">
+      <section className="border-app-bord flex flex-col gap-2 border-b px-4 py-3.5">
+        <p className="text-16 font-medium">
           {lieuDit(fiche.lieu ?? t("terrain.inconnu"))}
         </p>
       </section>
 
       {fiche.contact === null ? null : (
-        <section className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5">
-          <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
+        <section className="border-app-bord flex flex-col gap-2 border-b px-4 py-3.5">
+          <h2 className="text-app-encre-faible text-13 font-bold tracking-[0.6px] uppercase">
             {t("intervention.contact_sur_place")}
           </h2>
-          <p className="text-16 font-bold">{fiche.contact.nom}</p>
+          <p className="text-16 font-medium">{fiche.contact.nom}</p>
           {fiche.contact.numeros.length === 0 ? (
-            <p className="text-app-encre-faible text-16 font-bold">
+            <p className="text-app-encre-faible text-16 font-medium">
               {t("terrain.contact_sans_numero")}
             </p>
           ) : (
@@ -506,11 +506,11 @@ function Fiche({
       )}
 
       {fiche.machinesLibelles.length === 0 ? null : (
-        <section className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5">
-          <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
+        <section className="border-app-bord flex flex-col gap-2 border-b px-4 py-3.5">
+          <h2 className="text-app-encre-faible text-13 font-bold tracking-[0.6px] uppercase">
             {t("intervention.machine")}
           </h2>
-          <ul className="flex flex-col gap-1.5 text-16 font-bold">
+          <ul className="flex flex-col gap-1.5 text-16 font-medium">
             {fiche.machinesLibelles.map((libelle) => (
               <li key={libelle}>{libelle}</li>
             ))}
@@ -519,11 +519,11 @@ function Fiche({
       )}
 
       {fiche.panne === null ? null : (
-        <section className="bg-app-surface border-app-bord flex flex-col gap-2 rounded-lg border px-4 py-3.5">
-          <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
+        <section className="border-app-bord flex flex-col gap-2 border-b px-4 py-3.5">
+          <h2 className="text-app-encre-faible text-13 font-bold tracking-[0.6px] uppercase">
             {t("intervention.panne_signalee")}
           </h2>
-          <p className="text-16 font-bold">{fiche.panne}</p>
+          <p className="text-16 font-medium">{fiche.panne}</p>
         </section>
       )}
 
@@ -626,7 +626,7 @@ function Fiche({
 
       <p
         role="status"
-        className="border-app-bord bg-app-surface text-app-encre-faible rounded-lg border px-4 py-3 text-16 font-bold"
+        className="border-app-bord text-app-encre-faible border-b px-4 py-3 text-16 font-medium"
       >
         {t("terrain.hors_reseau.saisies_gardees")}
       </p>
