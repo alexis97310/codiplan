@@ -58,7 +58,10 @@ model Devise {
   symbole       String? // symbole si la devise en a un, sinon on affiche le code (D19)
   societes      Societe[]
   parites       Parite[]
-  taux_horaires TauxHoraire[]
+  taux_horaires TauxHoraire[] @ignore
+  // `@ignore` : JAMAIS navigué, même raisonnement que le bloc de `Societe`
+  // (9L04A-MEMOIRE-BUILD-CAUSE, D246) — `TauxHoraire` se lit toujours par sa
+  // propre requête filtrée sur `societe_id`, jamais par cette réciproque.
   forfaits      Forfait[]
 
   @@map("devise")
@@ -97,23 +100,27 @@ model Societe {
   absences    Absence[]
   segments    SegmentTravail[]
 
-  trajets_par_zone TempsTrajetZone[]
+  trajets_par_zone TempsTrajetZone[] @ignore
 
   intervention_machines InterventionMachine[]
 
   demandes Demande[]
 
-  technicien_calendriers TechnicienCalendrier[]
+  technicien_calendriers TechnicienCalendrier[] @ignore
 
   interventions Intervention[]
 
-  compteurs_numerotation CompteurNumerotation[]
+  compteurs_numerotation CompteurNumerotation[] @ignore
 
   documents       Document[]
-  documents_recus DocumentRecu[]
+  documents_recus DocumentRecu[] @ignore
 
-  import_lots       ImportLot[]
-  import_lot_lignes ImportLotLigne[]
+  import_lots       ImportLot[]      @ignore
+  import_lot_lignes ImportLotLigne[] @ignore
+  // Les six `@ignore` ci-dessus (`trajets_par_zone` à `import_lot_lignes`)
+  // suivent le même raisonnement que le bloc plus bas dans ce modèle (voir
+  // son commentaire) — même mesure, même ticket (9L04A-MEMOIRE-BUILD-CAUSE,
+  // D246).
 
   notifications Notification[]
 
@@ -197,50 +204,58 @@ model Societe {
   /// absence de réglage n'est pas un réglage à zéro jour.
   delai_relance_suite_jours Int?
 
-  devise                       Devise                         @relation(fields: [devise_code], references: [code])
+  devise                       Devise                            @relation(fields: [devise_code], references: [code])
   agences                      Agence[]
   calendriers                  Calendrier[]
-  utilisateur_societes         UtilisateurSociete[]
-  utilisateur_clients          UtilisateurClient[]
-  perimetres_portail           UtilisateurClientSite[]
+  utilisateur_societes         UtilisateurSociete[]              @ignore
+  utilisateur_clients          UtilisateurClient[]               @ignore
+  perimetres_portail           UtilisateurClientSite[]           @ignore
   contacts                     Contact[]
   habilitations                Habilitation[]
-  techniciens_habilites        TechnicienHabilitation[]
-  sites_habilitations          SiteHabilitationRequise[]
+  techniciens_habilites        TechnicienHabilitation[]          @ignore
+  sites_habilitations          SiteHabilitationRequise[]         @ignore
   clients                      Client[]
-  sessions_actives             Session[]
+  sessions_actives             Session[]                         @ignore
   sites                        Site[]
-  familles_materiel            FamilleMateriel[]
-  sous_types_materiel          SousTypeMateriel[]
-  modeles_materiel             ModeleMateriel[]
-  taux_horaires                TauxHoraire[]
+  familles_materiel            FamilleMateriel[]                 @ignore
+  sous_types_materiel          SousTypeMateriel[]                @ignore
+  modeles_materiel             ModeleMateriel[]                  @ignore
+  taux_horaires                TauxHoraire[]                     @ignore
   forfaits                     Forfait[]
   machines                     Machine[]
   prestations                  Prestation[]
   verifications_vgp            VgpVerification[]
-  observations_vgp             VgpObservation[]
-  campagnes_vgp                VgpCampagne[]
-  interventionPrestations      InterventionPrestation[]
-  prestationTypesIntervention  PrestationTypeIntervention[]
-  interventionSignatures       InterventionSignature[]
+  observations_vgp             VgpObservation[]                  @ignore
+  campagnes_vgp                VgpCampagne[]                     @ignore
+  interventionPrestations      InterventionPrestation[]          @ignore
+  prestationTypesIntervention  PrestationTypeIntervention[]      @ignore
+  interventionSignatures       InterventionSignature[]           @ignore
   interventionPauses           InterventionPause[]
   piecesRemplacees             InterventionPieceRemplacee[]
   interventionStatutHistorique InterventionStatutHistorique[]
   demandeStatutHistorique      DemandeStatutHistorique[]
-  notificationLectures         NotificationLecture[]
+  notificationLectures         NotificationLecture[]             @ignore
   suitesADonner                SuiteADonner[]
   checklistModeles             ChecklistModele[]
-  checklistVersions            ChecklistVersion[]
-  checklistPoints              ChecklistPoint[]
-  checklistReponses            ChecklistReponse[]
-  checklistReponsePhotos       ChecklistReponsePhoto[] @ignore
-  // `@ignore` : JAMAIS navigué (ni `include`, ni accès direct — le dépôt lit
-  // toujours `checklistModeleTypeIntervention` ou `ChecklistModele.types`
-  // directement). Mesuré nécessaire le 12/11/2026 (9K28B-REPRISE-REPONSE-
-  // PHOTO-MEMOIRE, sur `ChecklistReponsePhoto`) : une réciproque ajoutée à
-  // `Societe`, l'un des modèles déjà les plus reliés du schéma, peut seule
-  // faire déborder la mémoire de `next build`. Aucun effet en base.
+  checklistVersions            ChecklistVersion[]                @ignore
+  checklistPoints              ChecklistPoint[]                  @ignore
+  checklistReponses            ChecklistReponse[]                @ignore
+  checklistReponsePhotos       ChecklistReponsePhoto[]           @ignore
   checklistModeleTypes         ChecklistModeleTypeIntervention[] @ignore
+  // TOUT `@ignore` ci-dessus depuis `utilisateur_societes` (VINGT-ET-UN
+  // champs), en plus des deux déjà posés par 9K28B/9K30A
+  // (`checklistReponsePhotos`, `checklistModeleTypes`) et des six posés plus
+  // haut dans ce modèle (`trajets_par_zone` à `import_lot_lignes`) : JAMAIS
+  // navigué depuis `Societe` (ni `include`, ni accès direct — chaque table
+  // se lit TOUJOURS par sa propre requête filtrée sur `societe_id`, jamais
+  // par la réciproque de `Societe`). Mesuré par grep sur tout le dépôt, nom
+  // de champ par nom de champ (9L04A-MEMOIRE-BUILD-CAUSE, D246, 13/11/2026) :
+  // `Societe`, le modèle le plus relié du schéma, portait VINGT-SEPT
+  // réciproques jamais lues une fois ce ticket terminé — chacune alourdit
+  // par ACCUMULATION le type Prisma généré pour `Societe`, répété partout où
+  // il est importé, sans qu'aucune seule ne fasse déborder `next build` à
+  // elle seule. Aucun effet en base —
+  // aucune des réciproques n'a de colonne propre.
 
   @@map("societe")
 }
@@ -908,9 +923,14 @@ model Site {
   agence  Agence  @relation(fields: [societe_id, agence_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
 
   /// Cible du chaînage composite depuis `utilisateur_client_site` (L1-02b).
-  perimetres             UtilisateurClientSite[]
+  /// `@ignore` : JAMAIS navigué depuis `Site` (9L04A-MEMOIRE-BUILD-CAUSE,
+  /// D246) — sans effet sur le chaînage lui-même, porté par la clé étrangère
+  /// composite déclarée sur `UtilisateurClientSite`, pas par ce champ.
+  perimetres             UtilisateurClientSite[]   @ignore
   contacts               Contact[]
-  habilitations_requises SiteHabilitationRequise[]
+  /// `@ignore` : même raisonnement, même ticket — `SiteHabilitationRequise`
+  /// se lit toujours par sa propre requête filtrée.
+  habilitations_requises SiteHabilitationRequise[] @ignore
   machines               Machine[]
 
   /// Cible du chaînage TRIPLE depuis `contact` : un contact rattaché à un site
@@ -1609,7 +1629,9 @@ model Machine {
   site              Site           @relation(fields: [societe_id, site_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
   modele            ModeleMateriel @relation(fields: [societe_id, modele_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
   machine_remplacee Machine?       @relation("MachineRemplacee", fields: [societe_id, machine_remplacee_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
-  remplacantes      Machine[]      @relation("MachineRemplacee")
+  /// `@ignore` : JAMAIS navigué (9L04A-MEMOIRE-BUILD-CAUSE, D246) — sans
+  /// effet sur la relation nommée elle-même, portée par `machine_remplacee`.
+  remplacantes      Machine[]      @relation("MachineRemplacee") @ignore
 
   /// La documentation PROPRE à cet exemplaire — certificat de conformité,
   /// procès-verbal de mise en service (L8-01). L'écran affiche l'UNION de
@@ -1721,12 +1743,21 @@ model Intervention {
   suites_a_donner_origine SuiteADonner[]                 @relation("SuiteADonnerOrigine")
   /// LES SUITES À DONNER qui NOMMENT cette intervention comme sa reprise —
   /// relation inverse de pure comptabilité, jamais un parent RLS (D231).
+  /// PAS `@ignore` (9L04A-MEMOIRE-BUILD-CAUSE, D246) — mesuré À TORT comme
+  /// non lue : `@ignore` sur ce champ retire aussi `SuiteADonner.
+  /// intervention_reprise` (même relation nommée, deux sens) du client
+  /// généré, qui EST lu (`lib/suite-a-donner/lecture.ts`). Voir le
+  /// commentaire sur `Prestation.realisations`, même famille d'erreur.
   suites_a_donner_reprise SuiteADonner[]                 @relation("SuiteADonnerReprise")
   /// LES RÉPONSES DE CHECKLIST (9K08-CHECKLIST-SCHEMA, D235) — forme
   /// « filiation » (D103), celle-ci décide qui les voit : c'est par elle, et
   /// par elle seule, qu'un compte portail lit sa checklist, jamais par le
-  /// modèle ni la version (forme « interne »).
-  checklist_reponses      ChecklistReponse[]
+  /// modèle ni la version (forme « interne »). La politique RLS chaîne sur la
+  /// clé étrangère en base, jamais sur ce champ Prisma : `@ignore` (9L04A-
+  /// MEMOIRE-BUILD-CAUSE, D246) — `ChecklistReponse` se lit toujours par sa
+  /// propre requête filtrée, jamais navigué depuis `Intervention`. Aucun
+  /// effet sur la politique.
+  checklist_reponses      ChecklistReponse[]             @ignore
 
   id         String @id @db.Uuid
   societe_id String @db.Uuid
@@ -2023,7 +2054,9 @@ model Intervention {
   contact           Contact?          @relation(fields: [societe_id, client_id, contact_id], references: [societe_id, client_id, id], onDelete: Restrict, onUpdate: Restrict)
   forfait           Forfait?          @relation(fields: [societe_id, forfait_deplacement_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
   devise            Devise?           @relation(fields: [devise_code], references: [code], onDelete: Restrict, onUpdate: Restrict)
-  observations_vgp  VgpObservation[]
+  /// `@ignore` : JAMAIS navigué (9L04A-MEMOIRE-BUILD-CAUSE, D246) —
+  /// `VgpObservation` se lit toujours par sa propre requête filtrée.
+  observations_vgp  VgpObservation[]  @ignore
   /// LA DEMANDE D'ORIGINE (68-DEMANDES-2). `Restrict` en suppression, comme
   /// tous les autres liens de cette table : une demande dont une intervention
   /// dépend ne s'efface pas.
@@ -2750,10 +2783,10 @@ model ChecklistModele {
   cree_le    DateTime @default(now()) @db.Timestamptz(3)
   modifie_le DateTime @updatedAt @db.Timestamptz(3)
 
-  societe   Societe            @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  famille   FamilleMateriel?   @relation(fields: [societe_id, famille_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
-  sous_type SousTypeMateriel?  @relation(fields: [societe_id, sous_type_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
-  modele    ModeleMateriel?    @relation(fields: [societe_id, modele_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  societe   Societe                           @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  famille   FamilleMateriel?                  @relation(fields: [societe_id, famille_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  sous_type SousTypeMateriel?                 @relation(fields: [societe_id, sous_type_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  modele    ModeleMateriel?                   @relation(fields: [societe_id, modele_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
   versions  ChecklistVersion[]
   /// Les types d'intervention où ce modèle est proposé (9K30A). VIDE = tous
   /// les types — voir le docblock de `ChecklistModeleTypeIntervention`.
@@ -2914,16 +2947,16 @@ model ChecklistReponse {
   /// `choix_dans_une_liste` — un des choix du point (vérifié par le dépôt,
   /// jamais relu depuis `ChecklistPoint`, même patron que les colonnes
   /// recopiées ci-dessus).
-  valeur_choix String?
+  valeur_choix    String?
   /// `texte_libre` — borne de longueur posée en base (9K18-CHECKLIST-DOMAINE).
-  valeur_texte String?
+  valeur_texte    String?
   /// `photo` — AUCUNE valeur propre, un simple marqueur de présence (9K28-
   /// CHECKLIST-REPONSE-PHOTO) : la ou les photos elles-mêmes sont des
   /// `Document` liés par `checklist_reponse_photo`, jamais une colonne ici.
   /// Posée `true` UNIQUEMENT quand au moins une photo est déjà liée (même
   /// transaction que la liaison, `enregistrerReponsePhoto`) — une réponse
   /// `photo` sans aucune photo n'existe jamais.
-  valeur_photo Boolean?
+  valeur_photo    Boolean?
 
   /// QUI a répondu — une IDENTITÉ, aucune relation Prisma déclarée vers
   /// `Utilisateur` (même choix que `Notification.destinataire_id`, D39) :
@@ -3234,9 +3267,15 @@ model Prestation {
   cree_le    DateTime @default(now())
   modifie_le DateTime @updatedAt
 
-  societe      Societe                  @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  famille      FamilleMateriel?         @relation(fields: [societe_id, famille_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
-  /// Les fois où cette prestation a été déclarée réalisée (BON-2).
+  societe      Societe                      @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  famille      FamilleMateriel?             @relation(fields: [societe_id, famille_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  /// Les fois où cette prestation a été déclarée réalisée (BON-2). PAS
+  /// `@ignore` (9L04A-MEMOIRE-BUILD-CAUSE, D246) — mesuré à tort comme non
+  /// lue en ne vérifiant que CE champ : `@ignore` ici retire aussi
+  /// `InterventionPrestation.prestation` (même relation, deux sens) du
+  /// client généré, qui EST lu par un `select` imbriqué
+  /// (`lib/interventions/depot-rapport-terrain.ts`). Vérifier le PARTENAIRE
+  /// de la relation, jamais seulement le champ qu'on ignore.
   realisations InterventionPrestation[]
   /// Les types d'intervention où elle est PROPOSÉE au technicien (9K29).
   /// VIDE = tous les types — voir le docblock de `PrestationTypeIntervention`.
@@ -3444,8 +3483,13 @@ model FamilleMateriel {
   sous_types        SousTypeMateriel[]
   forfaits          Forfait[]
   prestations       Prestation[]
+  /// PAS `@ignore` sur `campagnes_vgp` (9L04A-MEMOIRE-BUILD-CAUSE, D246) —
+  /// mesuré à tort comme non lue en ne vérifiant que ce champ : `@ignore`
+  /// ici retire aussi `VgpCampagne.famille` (même relation, deux sens) du
+  /// client généré, qui EST lu (`lib/vgp/campagne.ts`). Voir le commentaire
+  /// sur `Prestation.realisations`, même famille d'erreur.
   campagnes_vgp     VgpCampagne[]
-  checklist_modeles ChecklistModele[]
+  checklist_modeles ChecklistModele[]  @ignore
 
   /// Cible du chaînage composite de `modele_materiel` : elle rend le couple
   /// (société, famille) référençable d'un seul geste, de sorte qu'un modèle ne
@@ -3483,7 +3527,10 @@ model SousTypeMateriel {
   societe           Societe           @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
   famille           FamilleMateriel   @relation(fields: [societe_id, famille_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
   modeles           ModeleMateriel[]
-  checklist_modeles ChecklistModele[]
+  /// `@ignore` : JAMAIS navigué depuis `SousTypeMateriel` (9L04A-MEMOIRE-
+  /// BUILD-CAUSE, D246) — `ChecklistModele` se lit toujours par sa propre
+  /// requête filtrée.
+  checklist_modeles ChecklistModele[] @ignore
 
   /// Cible du chaînage composite de `modele_materiel` et de
   /// `checklist_modele` (couple société, sous-type seul).
@@ -3545,7 +3592,10 @@ model ModeleMateriel {
   /// famille qui ne porte pas ce sous-type est refusé par la même clé.
   sous_type         SousTypeMateriel? @relation(fields: [societe_id, famille_id, sous_type_id], references: [societe_id, famille_id, id], onDelete: Restrict, onUpdate: Restrict)
   machines          Machine[]
-  checklist_modeles ChecklistModele[]
+  /// `@ignore` : JAMAIS navigué depuis `ModeleMateriel` (9L04A-MEMOIRE-
+  /// BUILD-CAUSE, D246) — `ChecklistModele` se lit toujours par sa propre
+  /// requête filtrée.
+  checklist_modeles ChecklistModele[] @ignore
 
   /// La documentation COMMUNE à tous les exemplaires — notice, fiche technique,
   /// manuel d'atelier (L8-01). Elle se corrige une fois pour toutes : c'est ce
@@ -3957,8 +4007,8 @@ model Document {
   intervention Intervention?   @relation(fields: [societe_id, intervention_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
 
   /// Les fichiers du bac qui ont produit cette fiche (L8-07).
-  recus             DocumentRecu[]
-  verifications_vgp VgpVerification[]
+  recus              DocumentRecu[]
+  verifications_vgp  VgpVerification[]
   /// Les points de checklist qu'elle répond (9K28-CHECKLIST-REPONSE-PHOTO) —
   /// `intervention_id` ci-dessus reste sa seule cible ; ce lien n'est qu'une
   /// ÉTIQUETTE, jamais une seconde cible (`document_cible_unique` inchangée).
