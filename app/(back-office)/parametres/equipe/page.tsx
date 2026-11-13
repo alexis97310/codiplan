@@ -1503,10 +1503,11 @@ function GesteAccesBureau({
 }) {
   // L'ACCÈS A ÉTÉ RETIRÉ (9L03C) : aucun autre geste n'a de sens — envoyer ou
   // copier un lien rouvrirait une voie que l'administrateur vient de fermer.
-  // Ré-accorder l'accès passe par le chemin de création/modification du
-  // compte, pas par ici.
+  // Le badge « Accès retiré » est déjà montré par la cellule « Accès » :
+  // rien à répéter ici. Ré-accorder l'accès passe par le chemin de
+  // création/modification du compte, pas par ici.
   if (!compte.accesInterneActif) {
-    return <Badge ton="gris">{t("equipe.acces_retire")}</Badge>;
+    return null;
   }
   if (etat.etat === "actif") {
     return (
@@ -1586,7 +1587,11 @@ function LigneCompteBureau({
         />
       </Cellule>
       <Cellule>
-        <BadgeAccesBureau etat={etat} fuseau={fuseau} />
+        {compte.accesInterneActif ? (
+          <BadgeAccesBureau etat={etat} fuseau={fuseau} />
+        ) : (
+          <Badge ton="gris">{t("equipe.acces_retire")}</Badge>
+        )}
       </Cellule>
       <Cellule>
         <GesteAccesBureau compte={compte} etat={etat} exclusif={exclusif} />
@@ -1682,11 +1687,12 @@ function GesteAccesTechnicien({
   readonly etat: EtatAcces;
   readonly exclusif: boolean;
 }) {
-  // L'ACCÈS A ÉTÉ RETIRÉ (9L03C) — même garde que `GesteAccesBureau` : rien
+  // L'ACCÈS A ÉTÉ RETIRÉ (9L03C) — même garde que `GesteAccesBureau`, et le
+  // même partage avec la cellule « Accès » qui porte déjà le badge : rien
   // d'autre n'a de sens, et c'est distinct du badge « Inactif » du planning
   // (`technicien.actif`), déjà montré par ailleurs sur cette ligne.
   if (!technicien.accesInterneActif) {
-    return <Badge ton="gris">{t("equipe.acces_retire")}</Badge>;
+    return null;
   }
   if (etat.etat === "actif") {
     return (
@@ -1784,7 +1790,11 @@ function LigneTechnicienTableau({
         <CelluleAVenirTableau nombre={interventionsAVenir} etat={etat} />
       </Cellule>
       <Cellule>
-        <BadgeAccesBureau etat={etat} fuseau={fuseau} />
+        {technicien.accesInterneActif ? (
+          <BadgeAccesBureau etat={etat} fuseau={fuseau} />
+        ) : (
+          <Badge ton="gris">{t("equipe.acces_retire")}</Badge>
+        )}
       </Cellule>
       <Cellule>
         <GesteAccesTechnicien
@@ -1836,7 +1846,11 @@ function CarteTechnicien({
             />
             <span className="text-13 font-bold">{technicien.nom}</span>
           </div>
-          <Badge ton={tonAccesBureau(etat)}>{libelleAccesBureau(etat)}</Badge>
+          {technicien.accesInterneActif ? (
+            <Badge ton={tonAccesBureau(etat)}>{libelleAccesBureau(etat)}</Badge>
+          ) : (
+            <Badge ton="gris">{t("equipe.acces_retire")}</Badge>
+          )}
         </div>
         <div className="text-app-encre-faible text-12 font-bold">
           <span>{libelleStatutRessource(technicien.statutRessource)}</span>

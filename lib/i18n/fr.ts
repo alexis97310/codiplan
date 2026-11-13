@@ -7510,7 +7510,7 @@ export const fr = {
   "equipe.retirer_acces": "Retirer l'accès",
   "equipe.retirer_acces.confirmation":
     "La personne est déconnectée et ne peut plus ouvrir cette société. Son historique est conservé.",
-  "equipe.retirer_acces.confirmer": "Retirer l'accès",
+  "equipe.retirer_acces.confirmer": "Oui, retirer l'accès",
   "equipe.retirer_acces.revenir": "Annuler",
   "equipe.retrait_acces.reussi": "Accès retiré.",
   "equipe.retrait_acces.refus.introuvable":
