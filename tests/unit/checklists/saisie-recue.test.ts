@@ -35,9 +35,7 @@ describe("saisieGabaritRecue", () => {
   });
 
   it("refuse sans code ni libellé — même garde que saisieModeleChecklistRecue", () => {
-    const resultat = saisieGabaritRecue(
-      formulaire({ gabarit_id: "vgp-pont" }),
-    );
+    const resultat = saisieGabaritRecue(formulaire({ gabarit_id: "vgp-pont" }));
     expect(resultat).toBeNull();
   });
 

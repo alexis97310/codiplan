@@ -212,12 +212,9 @@ test("« Partir d'un gabarit de départ » rattaché au sous-type — relu dans 
   await page.goto("/parametres/checklists?volet=gabarit");
 
   const volet = page.getByRole("dialog");
-  await volet
-    .getByLabel(fr["checklist.parametrage.gabarit"])
-    .selectOption({
-      label:
-        "Entretien préventif — pont 2 colonnes électromécanique jusqu'à 3 t",
-    });
+  await volet.getByLabel(fr["checklist.parametrage.gabarit"]).selectOption({
+    label: "Entretien préventif — pont 2 colonnes électromécanique jusqu'à 3 t",
+  });
   await volet
     .getByLabel(fr["checklist.parametrage.sous_type"])
     .selectOption({ label: LIBELLE_SOUS_TYPE });
@@ -246,11 +243,17 @@ test("la cascade résout ce modèle pour une machine du sous-type — le technic
   await ouvrirLaSessionSensible(page, COMPTE_TECHNICIEN_EPREUVE);
   await page.goto(`/terrain/${INTERVENTION_ID}`);
 
-  await expect(
-    page.getByRole("heading", {
-      name: `${fr["checklist.terrain.provenance_prefixe"]}${fr["ponctuation.deux_points"]}${LIBELLE_MODELE}`,
-    }),
-  ).toBeVisible();
+  // LE LIBELLÉ EST UNE VARIABLE DU TEST, JAMAIS UN ARGUMENT DE REQUÊTE
+  // D'ÉCRAN (gardien L0-11, `sans-chaine-visible-en-dur.test.ts`) — `.filter`
+  // n'est pas instrumenté, même idiome que `texteDuBloc`
+  // (`9k30a-checklist-gabarits-valides.spec.ts`).
+  const titre = page
+    .getByRole("heading")
+    .filter({ hasText: fr["checklist.terrain.provenance_prefixe"] });
+  await expect(titre).toBeVisible();
+  expect((await titre.textContent())?.replace(/\s+/g, " ").trim()).toBe(
+    `${fr["checklist.terrain.provenance_prefixe"]}${fr["ponctuation.deux_points"]}${LIBELLE_MODELE}`,
+  );
 });
 
 test("captures — le volet « gabarit de départ », rattaché à un sous-type, à 1280 et 375 px", async ({
@@ -261,12 +264,10 @@ test("captures — le volet « gabarit de départ », rattaché à un sous-type,
   async function ouvrirEtRattacher(): Promise<void> {
     await page.goto("/parametres/checklists?volet=gabarit");
     const volet = page.getByRole("dialog");
-    await volet
-      .getByLabel(fr["checklist.parametrage.gabarit"])
-      .selectOption({
-        label:
-          "Entretien préventif — pont 2 colonnes électromécanique jusqu'à 3 t",
-      });
+    await volet.getByLabel(fr["checklist.parametrage.gabarit"]).selectOption({
+      label:
+        "Entretien préventif — pont 2 colonnes électromécanique jusqu'à 3 t",
+    });
     await volet
       .getByLabel(fr["checklist.parametrage.sous_type"])
       .selectOption({ label: LIBELLE_SOUS_TYPE });
