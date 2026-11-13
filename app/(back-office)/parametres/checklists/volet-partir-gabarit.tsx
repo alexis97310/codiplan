@@ -13,6 +13,12 @@ import {
   TYPES_INTERVENTION,
   type TypeIntervention,
 } from "@/lib/interventions/saisie";
+import type {
+  LigneFamille,
+  LigneModele,
+  LigneSousType,
+} from "@/lib/materiel/depot";
+import { ChampsRattachement } from "./champs-rattachement";
 
 /**
  * « PARTIR D'UN GABARIT DE DÉPART » (9K20-CHECKLIST-DUPLIQUER-DEPART, étendu
@@ -25,11 +31,24 @@ import {
  * Les cases à cocher restent MODIFIABLES après leur pré-cochage : la
  * suggestion ne contraint jamais la société (voir le docblock de
  * `lib/checklists/gabarits-de-depart.ts`).
+ *
+ * RATTACHEMENT (9L04B-GABARIT-RATTACHEMENT) — le texte de suggestion reste un
+ * texte libre, jamais un identifiant (un sous-type ou une famille n'existe
+ * que dans le périmètre d'une société) : `ChampsRattachement`, le MÊME
+ * composant que la création et la duplication, n'est donc JAMAIS
+ * pré-sélectionné depuis ce texte — l'administrateur choisit lui-même parmi
+ * les sous-types/familles/modèles de sa société, ou laisse vide (générique).
  */
 export function VoletPartirGabarit({
   gabarits,
+  sousTypes,
+  familles,
+  machinesModeles,
 }: {
   readonly gabarits: readonly GabaritDeDepart[];
+  readonly sousTypes: readonly LigneSousType[];
+  readonly familles: readonly LigneFamille[];
+  readonly machinesModeles: readonly LigneModele[];
 }) {
   const premier = gabarits[0];
   const [gabaritId, setGabaritId] = useState(premier?.id);
@@ -100,6 +119,11 @@ export function VoletPartirGabarit({
             {t("checklist.parametrage.types_intervention_indice")}
           </p>
         </fieldset>
+        <ChampsRattachement
+          sousTypes={sousTypes}
+          familles={familles}
+          machinesModeles={machinesModeles}
+        />
         <div className="flex justify-end gap-2">
           <Link
             href="/parametres/checklists"

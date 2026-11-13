@@ -621,20 +621,19 @@ export type ResultatCreationDepuisGabarit =
     };
 
 /**
- * CRÉE UN MODÈLE DEPUIS UN GABARIT DE DÉPART — en-tête neuf (code, libellé),
- * version 1 posée depuis les points du gabarit nommé, publiée par
- * `publierVersion`. Le gabarit ne fixe ni nature ni rattachement matériel
- * (voir `lib/checklists/gabarits-de-depart.ts`) : `saisie` n'en porte pas non
- * plus ici.
+ * CRÉE UN MODÈLE DEPUIS UN GABARIT DE DÉPART — en-tête neuf (code, libellé,
+ * rattachement), version 1 posée depuis les points du gabarit nommé, publiée
+ * par `publierVersion`. Le gabarit lui-même ne fixe ni nature ni rattachement
+ * matériel (voir `lib/checklists/gabarits-de-depart.ts`, qui n'en propose
+ * qu'une SUGGESTION en texte) : c'est l'administrateur qui choisit le
+ * rattachement à l'écran, EXACTEMENT comme pour `creerModele` directement
+ * (9L04B-GABARIT-RATTACHEMENT) — même type `saisie`, même traduction du refus
+ * par `motifModeleChecklist`.
  */
 export async function creerModeleDepuisGabarit(
   contexte: ContexteSession,
   gabaritId: string,
-  saisie: {
-    readonly code: string;
-    readonly libelle: string;
-    readonly typesIntervention?: readonly TypeInterventionSaisie[];
-  },
+  saisie: SaisieModeleChecklist,
   client?: PrismaClient,
 ): Promise<ResultatCreationDepuisGabarit> {
   const gabarit = gabaritDeDepart(gabaritId);

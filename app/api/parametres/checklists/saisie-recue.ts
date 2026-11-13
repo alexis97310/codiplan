@@ -1,11 +1,9 @@
 import {
   schemaModeleChecklist,
-  schemaTypesIntervention,
   schemaVersionChecklist,
   type SaisieModeleChecklist,
   type SaisiePointChecklist,
 } from "@/lib/checklists/saisie";
-import type { TypeIntervention } from "@/lib/interventions/saisie";
 
 import { champ } from "../../interventions/actions";
 
@@ -62,35 +60,26 @@ export function saisieVersionRecue(
 
 /**
  * LA SAISIE DU BOUTON « PARTIR D'UN GABARIT DE DÉPART » (9K20-CHECKLIST-
- * DUPLIQUER-DEPART) — l'identifiant du gabarit (une liste close, confrontée
- * par `lib/checklists/gabarits-de-depart.ts`, pas ici) et le code/libellé du
- * modèle à naître. `null` si code ou libellé manque — un identifiant de
- * gabarit inconnu est un refus PLUS TARD, nommé par le dépôt.
+ * DUPLIQUER-DEPART, étendue au rattachement par 9L04B-GABARIT-RATTACHEMENT)
+ * — l'identifiant du gabarit (une liste close, confrontée par
+ * `lib/checklists/gabarits-de-depart.ts`, pas ici) PLUS EXACTEMENT la même
+ * saisie que `saisieModeleChecklistRecue` (code, libellé, types, rattachement,
+ * `exige_machine`) : même schéma, jamais une seconde règle de validation qui
+ * diverge en silence (§9, 01/09). `null` si le gabarit ou l'en-tête manque —
+ * un identifiant de gabarit inconnu est un refus PLUS TARD, nommé par le dépôt.
  */
-export function saisieGabaritRecue(formulaire: FormData): {
-  readonly gabaritId: string;
-  readonly code: string;
-  readonly libelle: string;
-  readonly typesIntervention: readonly TypeIntervention[];
-} | null {
+export function saisieGabaritRecue(
+  formulaire: FormData,
+): ({ readonly gabaritId: string } & SaisieModeleChecklist) | null {
   const gabaritId = champ(formulaire, "gabarit_id");
-  const code = champ(formulaire, "code");
-  const libelle = champ(formulaire, "libelle");
-  if (gabaritId === null || code === null || libelle === null) {
+  if (gabaritId === null) {
     return null;
   }
-  // AUCUNE CASE COCHÉE = PROPOSÉ POUR TOUS LES TYPES (9K30A) — même idiome
-  // et même schéma que `saisieModeleChecklistRecue` : jamais une seconde
-  // règle de validation qui diverge en silence (§9, 01/09).
-  const analyseTypes = schemaTypesIntervention.safeParse(
-    formulaire
-      .getAll("types_intervention")
-      .filter((valeur): valeur is string => typeof valeur === "string"),
-  );
-  if (!analyseTypes.success) {
+  const saisie = saisieModeleChecklistRecue(formulaire);
+  if (saisie === null) {
     return null;
   }
-  return { gabaritId, code, libelle, typesIntervention: analyseTypes.data };
+  return { gabaritId, ...saisie };
 }
 
 /** Le retour vers l'écran, avec son motif s'il y en a un. */

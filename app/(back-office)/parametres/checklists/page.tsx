@@ -25,6 +25,7 @@ import {
 } from "@/lib/checklists/depot";
 import { GABARITS_DE_DEPART } from "@/lib/checklists/gabarits-de-depart";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
+import { ChampsRattachement } from "./champs-rattachement";
 import { VoletPartirGabarit } from "./volet-partir-gabarit";
 import {
   listerLesFamilles,
@@ -226,7 +227,12 @@ export default async function PageChecklists({
         : null}
 
       {volet === "gabarit" ? (
-        <VoletPartirGabarit gabarits={GABARITS_DE_DEPART} />
+        <VoletPartirGabarit
+          gabarits={GABARITS_DE_DEPART}
+          sousTypes={sousTypesActifs}
+          familles={famillesActives}
+          machinesModeles={modelesActifs}
+        />
       ) : null}
     </Page>
   );
@@ -555,78 +561,16 @@ function ChampsRattachementEtNature({
           {t("checklist.parametrage.types_intervention_indice")}
         </p>
       </fieldset>
-      <SelectRattachement
-        id="sous_type_id"
-        libelle={t("checklist.parametrage.sous_type")}
-        libelleAucun={t("checklist.parametrage.sous_type_aucun")}
-        options={sousTypes.map((s) => ({ id: s.id, libelle: s.libelle }))}
-        valeur={sousTypeId}
-      />
-      <SelectRattachement
-        id="famille_id"
-        libelle={t("checklist.parametrage.famille")}
-        libelleAucun={t("checklist.parametrage.famille_aucune")}
-        options={familles.map((f) => ({ id: f.id, libelle: f.libelle }))}
-        valeur={familleId}
-      />
-      <SelectRattachement
-        id="modele_id"
-        libelle={t("checklist.parametrage.modele")}
-        libelleAucun={t("checklist.parametrage.modele_aucun")}
-        options={machinesModeles.map((m) => ({
-          id: m.id,
-          libelle: `${m.marque} ${m.reference}`,
-        }))}
-        valeur={modeleId}
-      />
-      <p className="text-app-encre-faible text-12 font-bold">
-        {t("checklist.parametrage.modele_aide")}
-      </p>
-      <CaseACocher
-        name="exige_machine"
-        libelle={t("checklist.parametrage.exige_machine")}
-        defaultChecked={exigeMachine}
-        className="flex items-center gap-2"
+      <ChampsRattachement
+        sousTypes={sousTypes}
+        familles={familles}
+        machinesModeles={machinesModeles}
+        sousTypeId={sousTypeId}
+        familleId={familleId}
+        modeleId={modeleId}
+        exigeMachine={exigeMachine}
       />
     </>
-  );
-}
-
-function SelectRattachement({
-  id,
-  libelle,
-  libelleAucun,
-  options,
-  valeur,
-}: {
-  readonly id: string;
-  readonly libelle: string;
-  readonly libelleAucun: string;
-  readonly options: readonly {
-    readonly id: string;
-    readonly libelle: string;
-  }[];
-  readonly valeur?: string;
-}) {
-  return (
-    <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-app-encre-faible text-12 font-bold">
-        {libelle}
-      </label>
-      <select
-        id={id}
-        name={id}
-        defaultValue={valeur ?? ""}
-        className="border-app-bord bg-app-surface min-w-44 rounded-md border px-2 py-1 text-13 font-bold"
-      >
-        <option value="">{libelleAucun}</option>
-        {options.map((option) => (
-          <option key={option.id} value={option.id}>
-            {option.libelle}
-          </option>
-        ))}
-      </select>
-    </div>
   );
 }
 
