@@ -196,10 +196,10 @@ const EXCEPTIONS: readonly Exception[] = [
       "les deux <details> de repli (famille, modèle) et un <select> de filtre",
   },
   {
-    chemin: "app/(back-office)/parametres/checklists/page.tsx",
+    chemin: "app/(back-office)/parametres/checklists/champs-rattachement.tsx",
     categories: ["champ"],
     raison:
-      "les <select> de rattachement (sous-type, famille, modèle) — la nature d'intervention est passée en cases à cocher au 9K30A",
+      "les <select> de rattachement (sous-type, famille, modèle), extraits de page.tsx au 9L04B pour être partagés avec le volet gabarit",
   },
   {
     chemin: "app/(back-office)/parametres/checklists/volet-partir-gabarit.tsx",
