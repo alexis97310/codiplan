@@ -2,7 +2,10 @@ import { afterAll, afterEach, describe, expect, it } from "vitest";
 
 import { creerCompteDeBureau } from "@/lib/auth/acces-bureau";
 import { basculerSociete } from "@/lib/auth/societe-active";
-import { retirerAccesInterne, RefusRetraitAcces } from "@/lib/auth/retrait-acces";
+import {
+  retirerAccesInterne,
+  RefusRetraitAcces,
+} from "@/lib/auth/retrait-acces";
 import { Role } from "@/lib/auth/roles";
 import { uuidv7 } from "@/lib/db/uuid";
 
@@ -57,7 +60,11 @@ async function creerTemp(role: Role, societeId = SOCIETE_A): Promise<string> {
   return cree.utilisateurId;
 }
 
-async function rattacherAussi(utilisateurId: string, societeId: string, role: Role): Promise<void> {
+async function rattacherAussi(
+  utilisateurId: string,
+  societeId: string,
+  role: Role,
+): Promise<void> {
   await clientOwner().$executeRawUnsafe(
     `INSERT INTO "utilisateur_societe" (id, utilisateur_id, societe_id, role)
      VALUES ($1::uuid, $2::uuid, $3::uuid, $4::"Role")`,

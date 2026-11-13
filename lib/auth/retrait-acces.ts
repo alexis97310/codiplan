@@ -1,6 +1,9 @@
 import { EvenementAcces, type PrismaClient } from "@prisma/client";
 
-import { avecContexteApplicatif, prisma as clientParDefaut } from "@/lib/db/client";
+import {
+  avecContexteApplicatif,
+  prisma as clientParDefaut,
+} from "@/lib/db/client";
 import { avecSociete, VARIABLE_SESSION_UTILISATEUR } from "@/lib/db/rls";
 import { uuidv7 } from "@/lib/db/uuid";
 
