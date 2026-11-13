@@ -1459,6 +1459,38 @@ function SecondFacteurBureau({
   );
 }
 
+/**
+ * « RETIRER L'ACCÈS » (9L03C, décision d'Alexis du 10/11/2026 puis du
+ * 13/11/2026) — UN SEUL bouton pour les deux onglets, `onglet` voyageant
+ * dans le formulaire pour que le retour (refus compris) retrouve le bon
+ * (`app/api/equipe/[id]/retirer-acces/route.ts`). Montré sur CHAQUE compte,
+ * sans jugement côté écran sur qui est le dernier administrateur : c'est au
+ * serveur de refuser, lisiblement (même discipline que `BoutonCopierLien`
+ * devant `cible_protegee`).
+ */
+function BoutonRetirerAcces({
+  utilisateurId,
+  onglet,
+}: {
+  readonly utilisateurId: string;
+  readonly onglet?: "bureau";
+}) {
+  return (
+    <form method="post" action={`/api/equipe/${utilisateurId}/retirer-acces`}>
+      {onglet === undefined ? null : (
+        <input type="hidden" name="onglet" value={onglet} />
+      )}
+      <BoutonAvecConfirmation
+        libelle={t("equipe.retirer_acces")}
+        variant="outline"
+        texteConfirmation={t("equipe.retirer_acces.confirmation")}
+        boutonConfirmer={t("equipe.retirer_acces.confirmer")}
+        boutonRevenir={t("equipe.retirer_acces.revenir")}
+      />
+    </form>
+  );
+}
+
 /** Le geste de la ligne — même règle que `BlocAcces` : rien quand l'accès est déjà actif. */
 function GesteAccesBureau({
   compte,
@@ -1469,21 +1501,34 @@ function GesteAccesBureau({
   readonly etat: EtatAccesBureau;
   readonly exclusif: boolean;
 }) {
+  // L'ACCÈS A ÉTÉ RETIRÉ (9L03C) : aucun autre geste n'a de sens — envoyer ou
+  // copier un lien rouvrirait une voie que l'administrateur vient de fermer.
+  // Ré-accorder l'accès passe par le chemin de création/modification du
+  // compte, pas par ici.
+  if (!compte.accesInterneActif) {
+    return <Badge ton="gris">{t("equipe.acces_retire")}</Badge>;
+  }
   if (etat.etat === "actif") {
     return (
-      <MenuGestesAccesActif
-        nom={compte.nom}
-        courriel={compte.email}
-        action={`/api/equipe/bureau/${compte.utilisateurId}/nouveau-lien`}
-        actionCopier={`/api/equipe/bureau/${compte.utilisateurId}/copier-nouveau-lien`}
-        copieNouveauLienAutorisee={
-          // D223 (rôle protégé) ET D226 (exclusivité) : les deux motifs
-          // ferment la même entrée de menu plutôt que d'exposer un bouton
-          // que le serveur refuserait quand même.
-          !estCibleProtegeeCopieNouveauLien(compte.role) && exclusif
-        }
-        prefixeMotifRefus="equipe.bureau.acces.refus."
-      />
+      <div className="flex flex-col gap-1.5">
+        <MenuGestesAccesActif
+          nom={compte.nom}
+          courriel={compte.email}
+          action={`/api/equipe/bureau/${compte.utilisateurId}/nouveau-lien`}
+          actionCopier={`/api/equipe/bureau/${compte.utilisateurId}/copier-nouveau-lien`}
+          copieNouveauLienAutorisee={
+            // D223 (rôle protégé) ET D226 (exclusivité) : les deux motifs
+            // ferment la même entrée de menu plutôt que d'exposer un bouton
+            // que le serveur refuserait quand même.
+            !estCibleProtegeeCopieNouveauLien(compte.role) && exclusif
+          }
+          prefixeMotifRefus="equipe.bureau.acces.refus."
+        />
+        <BoutonRetirerAcces
+          utilisateurId={compte.utilisateurId}
+          onglet="bureau"
+        />
+      </div>
     );
   }
   return (
@@ -1501,6 +1546,10 @@ function GesteAccesBureau({
       <BoutonCopierLien
         action={`/api/equipe/bureau/${compte.utilisateurId}/copier-lien`}
         prefixeMotifRefus="equipe.bureau.acces.refus."
+      />
+      <BoutonRetirerAcces
+        utilisateurId={compte.utilisateurId}
+        onglet="bureau"
       />
     </div>
   );
@@ -1633,19 +1682,28 @@ function GesteAccesTechnicien({
   readonly etat: EtatAcces;
   readonly exclusif: boolean;
 }) {
+  // L'ACCÈS A ÉTÉ RETIRÉ (9L03C) — même garde que `GesteAccesBureau` : rien
+  // d'autre n'a de sens, et c'est distinct du badge « Inactif » du planning
+  // (`technicien.actif`), déjà montré par ailleurs sur cette ligne.
+  if (!technicien.accesInterneActif) {
+    return <Badge ton="gris">{t("equipe.acces_retire")}</Badge>;
+  }
   if (etat.etat === "actif") {
     return (
-      <MenuGestesAccesActif
-        nom={technicien.nom}
-        courriel={technicien.email}
-        action={`/api/equipe/${technicien.utilisateurId}/nouveau-lien`}
-        actionCopier={`/api/equipe/${technicien.utilisateurId}/copier-nouveau-lien`}
-        // D226 (9I8D1) : un technicien peut lui aussi être membre de
-        // plusieurs sociétés — D223 (rôle protégé) ne s'applique jamais à un
-        // technicien par construction (voir `copierNouveauLienDAcces`), donc
-        // pas repris ici.
-        copieNouveauLienAutorisee={exclusif}
-      />
+      <div className="flex flex-col gap-1.5">
+        <MenuGestesAccesActif
+          nom={technicien.nom}
+          courriel={technicien.email}
+          action={`/api/equipe/${technicien.utilisateurId}/nouveau-lien`}
+          actionCopier={`/api/equipe/${technicien.utilisateurId}/copier-nouveau-lien`}
+          // D226 (9I8D1) : un technicien peut lui aussi être membre de
+          // plusieurs sociétés — D223 (rôle protégé) ne s'applique jamais à un
+          // technicien par construction (voir `copierNouveauLienDAcces`), donc
+          // pas repris ici.
+          copieNouveauLienAutorisee={exclusif}
+        />
+        <BoutonRetirerAcces utilisateurId={technicien.utilisateurId} />
+      </div>
     );
   }
   return (
@@ -1663,6 +1721,7 @@ function GesteAccesTechnicien({
       <BoutonCopierLien
         action={`/api/equipe/${technicien.utilisateurId}/copier-lien`}
       />
+      <BoutonRetirerAcces utilisateurId={technicien.utilisateurId} />
     </div>
   );
 }
