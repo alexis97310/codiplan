@@ -31,7 +31,7 @@ export default function PageScannerHorsReseau() {
   return (
     <main
       data-zone="terrain"
-      className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center gap-6"
+      className="bg-app-fond mx-auto flex min-h-dvh w-full max-w-2xl flex-1 flex-col justify-center gap-6"
     >
       <header>
         <h1 className="text-24 font-semibold tracking-tight">

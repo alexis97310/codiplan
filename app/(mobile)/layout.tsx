@@ -57,7 +57,10 @@ export default async function MiseEnPageTerrain({
     // LE TERRAIN « ÉPURÉ » (D252, décision d'Alexis du 13/11/2026) — une
     // ZONE, jamais une troisième apparence (voir `app/globals.css`).
     // `display:contents` : cette balise n'existe que pour porter l'attribut,
-    // elle ne doit rien changer à la disposition empilée de ce segment.
+    // elle ne doit rien changer à la disposition empilée de ce segment —
+    // et ELLE NE PEUT RIEN PEINDRE (un élément `contents` n'a pas de boîte).
+    // Le fond blanc du terrain est donc peint par le DIV DE CONTENU
+    // ci-dessous, qui en hérite déjà la valeur par la cascade.
     <div data-zone="terrain" className="contents">
       {/*
         LA COPIE LOCALE EST UNE AFFAIRE DE TECHNICIEN, PAS DE CE SEGMENT
@@ -79,8 +82,10 @@ export default async function MiseEnPageTerrain({
         entrees={ENTREES_TERRAIN}
         accueil="/terrain"
       />
-      <div className="mx-auto w-full max-w-[720px] px-4 py-4 pb-[76px] text-16">
-        {children}
+      <div className="bg-app-fond min-h-dvh">
+        <div className="mx-auto w-full max-w-[720px] px-4 py-4 pb-[76px] text-16">
+          {children}
+        </div>
       </div>
       <BarreBasseDuTerrain />
     </div>

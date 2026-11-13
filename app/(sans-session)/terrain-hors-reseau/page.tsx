@@ -37,7 +37,7 @@ export default function PageTerrainHorsReseau() {
     // autres écrans sans session continuent de rendre à 1400 px.
     <div
       data-zone="terrain"
-      className="mx-auto w-full max-w-[720px] px-4 py-4 text-16"
+      className="bg-app-fond mx-auto min-h-dvh w-full max-w-[720px] px-4 py-4 text-16"
     >
       <Suspense>
         <ConsultationHorsReseau />
