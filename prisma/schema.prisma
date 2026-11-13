@@ -995,10 +995,22 @@ model Utilisateur {
 /// Habilitation d'un utilisateur interne sur une société, avec son rôle.
 /// C'est cette table qui porte le multi-société (chapitre 11 §11.2).
 model UtilisateurSociete {
-  id             String @id @db.Uuid
-  utilisateur_id String @db.Uuid
-  societe_id     String @db.Uuid
+  id             String  @id @db.Uuid
+  utilisateur_id String  @db.Uuid
+  societe_id     String  @db.Uuid
   role           Role
+  /// RETRAIT D'ACCÈS (9L03C, décision d'Alexis du 10/11/2026 puis du
+  /// 13/11/2026 — « Désactiver »). La ligne n'est JAMAIS supprimée : cinq
+  /// clés `ON DELETE RESTRICT` (`technicien_habilitation`, `absence`,
+  /// `segment_travail` auteur, `intervention_pause` ouvert_par/fermée_par)
+  /// la rendraient de toute façon irretirable dès qu'un technicien a
+  /// travaillé (mesuré par 9L03A). `actif = false` ferme l'accès sans toucher
+  /// à l'historique — même patron que `UtilisateurClient.actif`. Une ligne
+  /// inactive n'ouvre RIEN : `retirerAccesInterne` (`lib/auth/retrait-acces.ts`)
+  /// est le seul geste qui la pose à `false`, et chaque lecture de rôle
+  /// interne (`lireRole`, `habilitationsDuCompte`, le compte des
+  /// administrateurs) ne retient qu'une ligne `actif = true`.
+  actif          Boolean @default(true)
 
   utilisateur Utilisateur @relation(fields: [utilisateur_id], references: [id])
   societe     Societe     @relation(fields: [societe_id], references: [id])
@@ -1279,6 +1291,12 @@ enum EvenementAcces {
   /// celle-ci rend bien un accès PERDU : le facteur devient inerte, et la
   /// personne doit ré-enrôler à sa prochaine connexion.
   reinitialisation_second_facteur
+  /// RETRAIT DE L'ACCÈS INTERNE (9L03C, décision d'Alexis du 10/11/2026 puis
+  /// du 13/11/2026). Couvre à la fois la désactivation de la ligne
+  /// `utilisateur_societe` et la fermeture des sessions qu'elle entraîne —
+  /// un seul geste, un seul événement, comme les autres entrées de cette
+  /// énumération nomment un GESTE et jamais ses deux écritures séparément.
+  retrait_acces_interne
 }
 
 /// Journal des accès — distinct du `journal_audit` du ticket L0-10, qui portera
