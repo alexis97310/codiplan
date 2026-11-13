@@ -735,12 +735,10 @@ export async function inviterClientAuPortail(
     // garde d'exclusivité : les deux branches ci-dessous en ont besoin, l'une
     // pour le motif neutre existant (D226), l'autre pour le critère NEUF de
     // la reprise (« jamais activé » = identité NEUVE, D249 amendée).
-    const compteExistant = await avecDesignationAuth(client).compte.findFirst(
-      {
-        where: { utilisateur_id: existante.id },
-        select: { mot_de_passe: true },
-      },
-    );
+    const compteExistant = await avecDesignationAuth(client).compte.findFirst({
+      where: { utilisateur_id: existante.id },
+      select: { mot_de_passe: true },
+    });
     const sansMotDePasse =
       compteExistant === null || compteExistant.mot_de_passe === null;
 
