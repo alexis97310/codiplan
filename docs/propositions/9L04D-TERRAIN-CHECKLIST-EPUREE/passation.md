@@ -123,3 +123,54 @@ rejouer par qui prend la suite, ou par la file.
 - Le style « épuré » n'est posé QUE sur `ChecklistTerrain` — « Ma journée », la fiche terrain hors checklist,
   la coquille hors réseau restent dans leur habillage actuel (D124 non amendé pour eux par CE lot ; ce sera
   le travail des tickets voisins, 9L04E et suivants).
+
+## 6. Reprise 9L04DA (14/11/2026)
+
+Reprend la branche `9L04D-TERRAIN-CHECKLIST-EPUREE-garde` sur `origin/main`, qui portait depuis le 9L04C
+(`D252`, zone `[data-zone="terrain"]`) et sa reprise 9L04CA (en-tête). Les sept commits de la garde se sont
+rejoués SANS conflit de code — seul `docs/arbitrages.md` collisionnait : les deux lots avaient chacun posé
+leur décision sous le même numéro, **D252**, à l'insertion suivant la même décision précédente (D251). Rien
+n'a été retiré : la décision de 9L04C/9L04CA GARDE D252 (déjà publiée), celle de 9L04D est renumérotée
+**D253** — avec ses deux renvois (`tests/unit/ui/retouches-2a.test.ts`, ce fichier) mis à jour. Les jetons
+eux-mêmes ne collisionnaient pas : 9L04C surcharge des noms EXISTANTS sous la zone, 9L04D en ajoute de
+NOUVEAUX (`--app-terrain-*`), jamais le même nom pour les deux.
+
+### Les trois scènes recalées
+
+Mesurées par le pilote (14/11, ~05:10) contre CETTE branche, après rebase sur 9L04C/9L04CA — le bouton
+global « Afficher/Masquer le détail » a disparu avec le composant redessiné, et la rubrique incomplète
+s'ouvre désormais d'elle-même :
+
+- **`9k27-terrain-terminer-ce-qui-manque.spec.ts`** (scènes EN LIGNE et MODE AVION) : l'assertion sur
+  « Masquer le détail » devient la visibilité de la pastille du point visé (même patron que 9k23, qui avait
+  déjà fait ce choix). Le clic « Afficher le détail » de la scène MODE AVION, devenu mort, est retiré — la
+  rubrique « Freinage », incomplète, reste ouverte sans lui.
+  **Le ticket signalait, dans cette même scène MODE AVION, une ambiguïté nouvelle sous le nom du fichier
+  VOISIN (9k28a) : mesurée et confirmée ici, à la ligne 411 de 9k27, pas de 9k28a.**
+  `getByRole('button', { name: fr["terrain.terminer.confirmation.non"] })` (non exact) trouve désormais DEUX
+  boutons dès que la rubrique du point reste visible derrière la feuille « Terminer » refermée sans
+  réponse : le vrai bouton « Non » et la pastille « Non conforme ». `exact: true` tranche.
+- **`9k28a-point-photo-hors-reseau.spec.ts`** : `deplierLaChecklist()` ciblait le même bouton disparu —
+  fonction retirée avec son seul appel ; la rubrique « Photos » (un point non obligatoire, donc incomplète)
+  s'ouvre déjà d'elle-même. Aucune ambiguïté « Non » mesurée ici : ce point est de type `photo`, sans
+  pastille conforme/non conforme.
+
+### Autres usages cherchés (point 3 du ticket)
+
+Recherche de `afficher_detail`/`masquer_detail` sur tout `tests/e2e/**` : aucun autre usage, les deux ci-
+dessus étaient les seuls restants. Recherche des `getByRole("button", …)` non exacts sur les clés
+`option_conforme`/`confirmation.oui`/`confirmation.non` : toutes les autres occurrences (9k21, 9k22, 9k23,
+captures-9g8) sont déjà `exact: true` ou n'ont jamais la checklist à l'écran en même temps (vérifié scène
+par scène — `captures-9g8-terrain-confirmations-et-acces.spec.ts:176` n'a aucun `checklist_version_id` posé
+sur son intervention, donc rien à distinguer).
+
+### Épreuves rejouées (premier plan, `CI=1 --workers=1`)
+
+Les trois scènes recalées, plus 24 fichiers `*checklist*`/`*terrain*` (88 tests, dont 9k27/9k28a), plus
+`tous-les-ecrans-rendent.spec.ts` (61 passés, 4 ignorés) : tout vert. Puis `CI=1 pnpm verify` (format,
+typecheck, lint, test, isolation, build) : vert. `verify:full` est laissé à la file, non joué ici.
+
+Les PNG de capture régénérés par ces rejeux (effet de bord de `capturer()` sur des fixtures locales,
+hors procédure officielle) ont été annulés (`git checkout --`) avant commit — ce ne sont pas des captures
+du lot.
+
