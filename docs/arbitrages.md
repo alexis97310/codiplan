@@ -8690,3 +8690,19 @@ Elle ne change rien à la disposition de la checklist, des photos, de la barre d
 > Le jour où Alexis confirme vouloir, au pixel, 17 px pour le client de l'en-tête et 13-14 px pour sa ligne secondaire (plutôt que 18/16, les valeurs retenues ici), ou 600 plutôt que 700 pour les titres de rubrique à 12-13 px, cette décision se relit avec D143 elle-même (points 8 et 11), qui devra alors nommer l'exception plutôt que la laisser implicite. Le jour où `FicheJSON` gagne le numéro d'intervention, l'en-tête hors réseau se relit pour recevoir la même ligne « matériel · n° d'intervention » que la fiche en ligne.
 
 Portée : `app/globals.css` (bloc `[data-zone="terrain"]`), `app/(mobile)/layout.tsx`, `app/(mobile)/terrain/page.tsx`, `app/(mobile)/terrain/[id]/page.tsx`, `app/(sans-session)/terrain-hors-reseau/page.tsx`, `app/(sans-session)/scanner-hors-reseau/page.tsx`, `components/terrain/liste-journee.tsx`, `components/terrain/consultation-hors-reseau.tsx`, `components/ui/icone.tsx` (`chev-l`, réutilisée), `lib/i18n/fr.ts` (`ponctuation.point_median`, `terrain.retour`, réutilisées), `tests/unit/theme/terrain-epure.test.ts` (créé).
+
+## D253 — LA FICHE TERRAIN « ÉPURÉE » AMENDE D143 (POINT 11) POUR SON SEUL PÉRIMÈTRE : UN TEXTE DE 12-13 PX N'Y EXIGE PLUS 700 (décision d'Alexis du 13/11/2026 ; 9L04D-TERRAIN-CHECKLIST-EPUREE)
+
+### CE QUI A ÉTÉ MESURÉ
+
+`tests/unit/ui/retouches-2a.test.ts` (D143, point 11, 30/09/2026) exige qu'une ligne portant `text-12`/`text-13`/`text-xs`/`text-[12px]`/`text-[13px]` porte aussi `font-bold` (ou plus), partout dans `app/` et `components/`, avec une liste d'exemptions fermée dans les deux sens et vidée depuis D185. La fiche terrain « épurée » que la présente décision installe (voir le § commun en tête des tickets 9L04C à 9L04J) prescrit l'inverse pour ce seul écran : « Graisses : 500 libellés, 600 titres et boutons ; pas de 700 », appliquée à des textes de 13 px (légende, encre secondaire, consigne, « N obligatoire », titre de rubrique). Les deux règles ne peuvent pas être vraies en même temps sur ces lignes précises.
+
+### LA DÉCISION
+
+D143 point 11 reste la règle PARTOUT AILLEURS — le bureau ne change pas (voir le § commun : « le bureau ne change pas »). Sur le seul périmètre de la fiche terrain « épurée », un texte de 13 px n'exige plus 700 : la lisibilité s'appuie ici sur le contraste (jetons `--app-terrain-encre`/`--app-terrain-encre-secondaire`, D124 amendé) et sur l'espacement, pas sur la graisse. `tests/unit/ui/retouches-2a.test.ts` ajoute à sa liste d'exemptions (fermée dans les deux sens) les lignes de `components/terrain/checklist-terrain.tsx` que 9L04D introduit à 13 px sans `font-bold` ; le reste de ce fichier, et tout autre fichier, continue d'exiger 700 sans exception.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où un écran AUTRE que la fiche terrain « épurée » (9L04C à 9L04J et leurs suites) voudrait la même exemption, cette décision se relit : elle suppose que l'exemption reste nommée ligne par ligne, jamais un répertoire entier, et que D143 garde sa portée générale sauf sur les lignes explicitement listées. Le jour où 9L04D serait repris avec des graisses différentes, les lignes exemptées correspondantes sortent de la liste avec lui — une exemption qui ne protège plus rien se retire plutôt que de rouiller (même règle que D185 l'a déjà appliquée une fois à ce fichier).
+
+Portée : `tests/unit/ui/retouches-2a.test.ts` (`EXEMPTIONS`), `app/globals.css`, `lib/theme/apparence.ts` (`JETONS` : `terrain-filet`, `terrain-champ-fond`, `terrain-encre`, `terrain-encre-secondaire`, `terrain-vert-plein(-encre)`, `terrain-rouge-plein(-encre)`), `tests/unit/theme/echelle-typographique.test.ts`, `components/terrain/checklist-terrain.tsx`, `lib/i18n/fr.ts`.

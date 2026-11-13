@@ -120,6 +120,17 @@ export const JETONS = [
   "bleu-plein-encre",
   "vert-plein",
   "vert-plein-encre",
+  // La fiche terrain « épurée » (décision d'Alexis du 13/11/2026, amende
+  // D124 pour ce seul périmètre) — des valeurs propres, jamais une redite
+  // des jetons ci-dessus.
+  "terrain-filet",
+  "terrain-champ-fond",
+  "terrain-encre",
+  "terrain-encre-secondaire",
+  "terrain-vert-plein",
+  "terrain-vert-plein-encre",
+  "terrain-rouge-plein",
+  "terrain-rouge-plein-encre",
   // Le CHROME de navigation (D121, D122) — une troisième zone, ni la charte
   // d'une société ni un statut : la colonne latérale est un fond marine FIXE.
   "chrome-fond",

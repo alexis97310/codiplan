@@ -94,6 +94,19 @@
   --app-vert-plein: #12824b;
   --app-vert-plein-encre: #ffffff;
 
+  /* LA FICHE TERRAIN « ÉPURÉE » (décision d'Alexis du 13/11/2026, amende D124
+     pour ce seul périmètre — l'application technicien, jamais le bureau) :
+     des valeurs propres, mesurées sur la maquette validée ce jour-là, pas une
+     redite des jetons ci-dessus (dont les valeurs diffèrent, parfois de peu). */
+  --app-terrain-filet: #e6e8ec;
+  --app-terrain-champ-fond: #f1f3f6;
+  --app-terrain-encre: #111827;
+  --app-terrain-encre-secondaire: #5b6472;
+  --app-terrain-vert-plein: #1b7f3b;
+  --app-terrain-vert-plein-encre: #ffffff;
+  --app-terrain-rouge-plein: #c40511;
+  --app-terrain-rouge-plein-encre: #ffffff;
+
   /*
    * LE CHROME DE NAVIGATION — une TROISIÈME zone de couleur (D121, D122),
    * mesurée sur `docs/maquette/codiplan-maquette-complete.html` (`.sidebar`,
@@ -210,6 +223,18 @@
   --app-bleu-plein-encre: #ffffff;
   --app-vert-plein: #15803d;
   --app-vert-plein-encre: #ffffff;
+
+  /* LA FICHE TERRAIN « ÉPURÉE » — aucune mesure propre à cette apparence
+     (postérieure à son époque) : DÉRIVÉE de ses propres teintes voisines,
+     au même degré, comme le reste de ce bloc (voir le CHROME plus bas). */
+  --app-terrain-filet: #ebebeb;
+  --app-terrain-champ-fond: #f4f4f4;
+  --app-terrain-encre: #252525;
+  --app-terrain-encre-secondaire: #8e8e8e;
+  --app-terrain-vert-plein: #15803d;
+  --app-terrain-vert-plein-encre: #ffffff;
+  --app-terrain-rouge-plein: #dc2626;
+  --app-terrain-rouge-plein-encre: #ffffff;
 
   /* LE CHROME — cette apparence n'avait pas de barre latérale à son époque
      (D121 lui est postérieur) : rien à RECOUVRER. Ces jetons sont donc
@@ -339,6 +364,17 @@
   --color-app-bleu-plein-encre: var(--app-bleu-plein-encre);
   --color-app-vert-plein: var(--app-vert-plein);
   --color-app-vert-plein-encre: var(--app-vert-plein-encre);
+
+  /* LA FICHE TERRAIN « ÉPURÉE » — `border-app-terrain-filet`,
+     `bg-app-terrain-champ-fond`, `text-app-terrain-encre`, etc. */
+  --color-app-terrain-filet: var(--app-terrain-filet);
+  --color-app-terrain-champ-fond: var(--app-terrain-champ-fond);
+  --color-app-terrain-encre: var(--app-terrain-encre);
+  --color-app-terrain-encre-secondaire: var(--app-terrain-encre-secondaire);
+  --color-app-terrain-vert-plein: var(--app-terrain-vert-plein);
+  --color-app-terrain-vert-plein-encre: var(--app-terrain-vert-plein-encre);
+  --color-app-terrain-rouge-plein: var(--app-terrain-rouge-plein);
+  --color-app-terrain-rouge-plein-encre: var(--app-terrain-rouge-plein-encre);
 
   /* LE CHROME DE NAVIGATION (D121, D122) — `bg-app-chrome-fond`,
      `text-app-chrome-lien`, etc. Voir le commentaire de leur déclaration

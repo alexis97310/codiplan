@@ -13,8 +13,10 @@ import { sansCommentaires } from "../outils/fichiers-source";
  *
  * Deux garanties de plus, dans le même fichier parce qu'elles touchent le
  * même bloc de style :
- * - aucun jeton de COULEUR (`--app-…`/`--color-app-…`) n'est ajouté par ce
- *   ticket — comptés avant (40 de chaque) et confrontés ici ;
+ * - le compte des jetons de COULEUR (`--app-…`/`--color-app-…`) est un
+ *   TÉMOIN, pas un plafond — 40 de chaque avant ce ticket, 48 depuis que
+ *   9L04D-TERRAIN-CHECKLIST-EPUREE y a posé les huit jetons de la fiche
+ *   terrain « épurée » (décision d'Alexis du 13/11/2026) ;
  * - une règle de focus visible existe (spec §3.9 :317).
  */
 
@@ -89,11 +91,11 @@ describe("l'échelle typographique (TP-UX1-1, D138)", () => {
     expect(collisions).toEqual([]);
   });
 
-  it("n'ajoute aucun jeton de couleur — 40 `--app-…`, 40 `--color-app-…`, comme avant ce ticket", () => {
+  it("compte les jetons de couleur — 48 `--app-…`, 48 `--color-app-…` depuis 9L04D", () => {
     const app = new Set(STYLE.match(/--app-[a-z0-9-]+/g) ?? []);
     const colorApp = new Set(STYLE.match(/--color-app-[a-z0-9-]+/g) ?? []);
-    expect(app.size).toBe(40);
-    expect(colorApp.size).toBe(40);
+    expect(app.size).toBe(48);
+    expect(colorApp.size).toBe(48);
   });
 
   it("pose une règle de focus visible (spec §3.9 :317, anneau de 3 px)", () => {

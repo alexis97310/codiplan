@@ -113,8 +113,44 @@ describe("retouches typographiques du 30/09/2026 (D143)", () => {
      * cliquable sur toute sa surface (`Kpi`, D140) — et `CLASSES_LIEN_TUILE`
      * a quitté le fichier avec lui. Une exemption qui ne protège plus rien
      * ment, elle se retire plutôt que de rouiller.
+     *
+     * **SEPT ENTRÉES REPRENNENT depuis 9L04D-TERRAIN-CHECKLIST-EPUREE (D253,
+     * décision d'Alexis du 13/11/2026)** : la fiche terrain « épurée »
+     * prescrit « 500 libellés, 600 titres et boutons ; pas de 700 », et ce
+     * point 11 l'interdirait sur ses textes de 13 px. La portée reste CE
+     * SEUL FICHIER, ligne par ligne — D143 garde sa forme partout ailleurs
+     * (voir D253 pour la décision et sa condition de réouverture).
      */
-    const EXEMPTIONS: ReadonlyArray<readonly [string, string]> = [];
+    const EXEMPTIONS: ReadonlyArray<readonly [string, string]> = [
+      [
+        "components/terrain/checklist-terrain.tsx",
+        'className="text-app-terrain-encre-secondaire text-13"',
+      ],
+      [
+        "components/terrain/checklist-terrain.tsx",
+        '<p className="text-app-terrain-encre-secondaire text-13">',
+      ],
+      [
+        "components/terrain/checklist-terrain.tsx",
+        '<p className="text-app-terrain-vert-plein text-13 font-medium">',
+      ],
+      [
+        "components/terrain/checklist-terrain.tsx",
+        '<span className="text-app-marque text-13">',
+      ],
+      [
+        "components/terrain/checklist-terrain.tsx",
+        '<span className="text-app-terrain-encre-secondaire text-13 font-medium tracking-[0.6px] uppercase">',
+      ],
+      [
+        "components/terrain/checklist-terrain.tsx",
+        '<span className="text-app-terrain-encre-secondaire text-13">',
+      ],
+      [
+        "components/terrain/checklist-terrain.tsx",
+        '<h2 className="text-app-terrain-encre-secondaire text-13 font-medium tracking-[0.6px] uppercase">',
+      ],
+    ];
 
     function estExempte(chemin: string, ligne: string): boolean {
       return EXEMPTIONS.some(
@@ -139,7 +175,7 @@ describe("retouches typographiques du 30/09/2026 (D143)", () => {
       expect(fautifs).toEqual([]);
     });
 
-    it("l'exemption ne couvre que la ligne nommée — le reste de ces deux fichiers reste tenu", () => {
+    it("l'exemption ne couvre que la ligne nommée — le reste des fichiers qu'elle cite reste tenu", () => {
       for (const [chemin] of EXEMPTIONS) {
         const f = FICHIERS.find((x) => x.chemin === chemin);
         expect(f, chemin).toBeDefined();
