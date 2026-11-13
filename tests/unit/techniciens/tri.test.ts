@@ -23,6 +23,7 @@ describe("trierLesTechniciens (ÉQUIPE, LISTES-1, TP-A6)", () => {
     agenceLibelle: "TPA6-Agence",
     actif: true,
     statutRessource: null,
+    accesInterneActif: true,
   });
 
   // SOLDE 189 (9EXA-EQUIPE-TECHNICIENS-MAQUETTE) — « Triés par nom de

@@ -79,7 +79,13 @@ async function lireRole(
 ): Promise<Role | null> {
   return avecSocieteEtRole(client, societeId, null, async (tx) => {
     const interne = await tx.utilisateurSociete.findFirst({
-      where: { utilisateur_id: utilisateurId, societe_id: societeId },
+      where: {
+        utilisateur_id: utilisateurId,
+        societe_id: societeId,
+        // Une ligne inactive n'ouvre RIEN (9L03C, décision d'Alexis du
+        // 13/11/2026) : l'accès a été retiré, l'historique reste.
+        actif: true,
+      },
       select: { role: true },
     });
     if (interne !== null) {
@@ -333,7 +339,8 @@ export async function habilitationsDuCompte(
   const [internes, portail] = await Promise.all([
     avecIdentite(client, utilisateurId, (tx) =>
       tx.utilisateurSociete.findMany({
-        where: { utilisateur_id: utilisateurId },
+        // Une ligne inactive n'ouvre RIEN (9L03C) : même critère que `lireRole`.
+        where: { utilisateur_id: utilisateurId, actif: true },
         select: { societe_id: true, role: true },
         orderBy: { societe_id: "asc" },
       }),

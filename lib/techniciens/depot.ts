@@ -196,9 +196,16 @@ export type LigneTechnicien = {
   readonly email: string;
   readonly agenceId: string;
   readonly agenceLibelle: string;
+  /** NOTION DE PLANNING — « technicien inactif » (`technicien.actif`), DISTINCTE de `accesInterneActif` ci-dessous (9L03C). */
   readonly actif: boolean;
   /** SALARIÉ OU PATENTÉ (QG-9, D163) — `null` tant que non renseigné. */
   readonly statutRessource: StatutRessource | null;
+  /**
+   * L'ACCÈS À L'APPLICATION — `utilisateur_societe.actif` (9L03C,
+   * `retirerAccesInterne`). Distinct du planning : un technicien peut rester
+   * inactif AU PLANNING sans que son accès soit retiré, et réciproquement.
+   */
+  readonly accesInterneActif: boolean;
 };
 
 /**
@@ -248,6 +255,7 @@ export async function listerLesTechniciens(
   contexte: ContexteSession,
   client?: PrismaClient,
 ): Promise<readonly LigneTechnicien[]> {
+  const societeId = exigerSocieteActive(contexte);
   return avecContexteApplicatif(
     contexte,
     async (tx) => {
@@ -268,6 +276,18 @@ export async function listerLesTechniciens(
         select: { id: true, nom: true, email: true },
       });
       const identiteDe = new Map(identites.map((u) => [u.id, u]));
+      // L'ACCÈS — lu à part, `utilisateur_societe.actif` (9L03C) : une notion
+      // distincte du planning, jamais mélangée au `actif` ci-dessus.
+      const habilitations = await tx.utilisateurSociete.findMany({
+        where: {
+          societe_id: societeId,
+          utilisateur_id: { in: techniciens.map((t) => t.utilisateur_id) },
+        },
+        select: { utilisateur_id: true, actif: true },
+      });
+      const accesDe = new Map(
+        habilitations.map((h) => [h.utilisateur_id, h.actif]),
+      );
       const lignes = techniciens.map((t) => {
         const identite = identiteDe.get(t.utilisateur_id);
         return {
@@ -278,6 +298,7 @@ export async function listerLesTechniciens(
           agenceLibelle: t.agence.libelle,
           actif: t.actif,
           statutRessource: t.statut_ressource,
+          accesInterneActif: accesDe.get(t.utilisateur_id) ?? false,
         };
       });
       return trierLesTechniciens(lignes);

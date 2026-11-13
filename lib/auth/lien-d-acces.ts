@@ -1228,7 +1228,10 @@ export async function revoquerAccesPortailClient(
     ),
     avecSociete(client, societeId, (tx) =>
       tx.utilisateurSociete.findFirst({
-        where: { utilisateur_id: utilisateurId },
+        // Une ligne inactive (accès retiré, 9L03C) n'ouvre RIEN : elle ne
+        // doit pas retenir une session ouverte que plus aucun accès ne
+        // justifie.
+        where: { utilisateur_id: utilisateurId, actif: true },
         select: { utilisateur_id: true },
       }),
     ),

@@ -198,6 +198,8 @@ export type LigneCompteDeBureau = {
   readonly role: Role;
   readonly mfaActif: boolean;
   readonly secondFacteurExige: boolean;
+  /** L'ACCÈS À L'APPLICATION — `utilisateur_societe.actif` (9L03C, `retirerAccesInterne`). */
+  readonly accesInterneActif: boolean;
 };
 
 /**
@@ -218,7 +220,7 @@ export async function listerComptesDeBureau(
     async (tx) => {
       const habilitations = await tx.utilisateurSociete.findMany({
         where: { societe_id: societeId, role: { in: [...ROLES_DE_BUREAU] } },
-        select: { utilisateur_id: true, role: true },
+        select: { utilisateur_id: true, role: true, actif: true },
       });
       if (habilitations.length === 0) {
         return [];
@@ -237,6 +239,7 @@ export async function listerComptesDeBureau(
           role: habilitation.role,
           mfaActif: identite?.mfa_actif ?? false,
           secondFacteurExige: exigeSecondFacteur(habilitation.role),
+          accesInterneActif: habilitation.actif,
         };
       });
     },

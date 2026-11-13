@@ -7503,6 +7503,22 @@ export const fr = {
   "equipe.bureau.refus.autre_societe_second_facteur":
     "Ce compte appartient aussi à une autre société : son second facteur ne peut pas être réinitialisé ici.",
 
+  // ── RETIRER L'ACCÈS D'UN COMPTE INTERNE (9L03C, décision d'Alexis du
+  // 10/11/2026 puis du 13/11/2026) — une seule famille de clés pour les deux
+  // onglets d'Équipe, le geste lui-même ne les distinguant pas (voir
+  // `app/api/equipe/[id]/retirer-acces/route.ts`).
+  "equipe.retirer_acces": "Retirer l'accès",
+  "equipe.retirer_acces.confirmation":
+    "La personne est déconnectée et ne peut plus ouvrir cette société. Son historique est conservé.",
+  "equipe.retirer_acces.confirmer": "Retirer l'accès",
+  "equipe.retirer_acces.revenir": "Annuler",
+  "equipe.retrait_acces.reussi": "Accès retiré.",
+  "equipe.retrait_acces.refus.introuvable":
+    "Ce compte ne fait pas partie de l'équipe active.",
+  "equipe.retrait_acces.refus.dernier_administrateur":
+    "Cette personne est la seule à administrer les utilisateurs de cette société : son accès ne peut pas être retiré.",
+  "equipe.acces_retire": "Accès retiré",
+
   // ── L'ÉCRAN « ÉQUIPE ET ACCÈS » (D196, 9ET-COMPTES-BUREAU-2) ─────────────
   //
   // Maquette `maquette-toutes-pages.html:4607-4716`. `equipe.titre` continue
