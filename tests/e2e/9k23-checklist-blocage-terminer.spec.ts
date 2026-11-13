@@ -269,14 +269,12 @@ test("375/1280 px, EN LIGNE — refus nommé, lien qui déplie et saute, puis Te
     await capturer(page, "refus-nomme-en-ligne", 375);
     await capturer(page, "refus-nomme-en-ligne", 1280);
 
-    // LE LIEN REFERME LA FEUILLE, DÉPLIE LA TUILE ET Y SAUTE.
+    // LE LIEN REFERME LA FEUILLE, DÉPLIE LA RUBRIQUE DU POINT ET Y SAUTE
+    // (9L04D, point 4 : plus de bouton global « Afficher/Masquer le
+    // détail » — la preuve du dépli est que la pastille du point devient
+    // visible).
     await page.setViewportSize({ width: 375, height: 900 });
     await lien.click();
-    await expect(
-      page.getByRole("button", {
-        name: fr["checklist.terrain.masquer_detail"],
-      }),
-    ).toBeVisible();
     const boutonConforme = page.getByRole("button", {
       name: fr["checklist.terrain.option_conforme"],
       exact: true,

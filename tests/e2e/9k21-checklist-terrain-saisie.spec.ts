@@ -282,27 +282,31 @@ test("375/1280 px, en ligne — les cinq types, le résumé, et la ligne prérem
       name: `${fr["checklist.terrain.provenance_prefixe"]}${fr["ponctuation.deux_points"]}${checklist.libelle}`,
     });
     await expect(titre).toBeVisible();
-    // LE RÉSUMÉ — `.filter({hasText})` PLUTÔT QU'UN NOM DE `getByRole`
-    // (gardien L0-11) : `filter` n'est pas une requête d'écran instrumentée,
-    // donc le compte (une donnée, jamais un texte produit) peut y figurer
-    // sans détour. Comparaison exacte par `textContent()` + `toBe`, jamais
-    // `toHaveText` (lui, instrumenté).
-    const resume = page
+    // L'AVANCEMENT — « Checklist · N sur 5 » (9L04D, point 1). `.filter(
+    // {hasText})` PLUTÔT QU'UN NOM DE `getByRole` (gardien L0-11) : `filter`
+    // n'est pas une requête d'écran instrumentée, donc le compte (une
+    // donnée, jamais un texte produit) peut y figurer sans détour.
+    // Comparaison exacte par `textContent()` + `toBe`, jamais `toHaveText`
+    // (lui, instrumenté).
+    const avancement = page
       .getByRole("status")
-      .filter({ hasText: fr["checklist.terrain.points"] });
-    await expect(resume).toBeVisible();
-    expect(await resume.textContent()).toBe(
-      `0/5 ${fr["checklist.terrain.points"]}`,
+      .filter({ hasText: fr["checklist.terrain.provenance_prefixe"] });
+    await expect(avancement).toBeVisible();
+    expect(await avancement.textContent()).toBe(
+      `${fr["checklist.terrain.provenance_prefixe"]}${fr["ponctuation.point_median"]}0 ${fr["checklist.terrain.sur"]} 5`,
     );
+    // LA LÉGENDE DES SYMBOLES (point 2) — une fois, en tête.
+    await expect(page.getByText(fr["checklist.terrain.legende"])).toBeVisible();
     await capturer(page, "terrain-fiche-avant", 375);
     await capturer(page, "terrain-fiche-avant", 1280);
 
-    await page
-      .getByRole("button", { name: fr["checklist.terrain.afficher_detail"] })
-      .click();
+    // PLUS DE BOUTON « AFFICHER LE DÉTAIL » (point 1) — la checklist est
+    // toujours ouverte ; chaque rubrique l'est par défaut tant qu'elle
+    // reste incomplète (point 4).
 
     // CONFORME_NON_CONFORME_SANS_OBJET — « Freins », rendu NON CONFORME pour
-    // éprouver la ligne préremplie (point 3 du ticket).
+    // éprouver la ligne préremplie (point 3 du ticket) — une pastille, son
+    // nom accessible porte le libellé capitalisé (point 5, D252).
     await page
       .getByRole("button", {
         name: fr["checklist.terrain.non_conforme"],
@@ -320,17 +324,26 @@ test("375/1280 px, en ligne — les cinq types, le résumé, et la ligne prérem
       })
       .fill("2.3");
 
-    // CASE_FAITE
-    await page
-      .getByLabel(fr["checklist.parametrage.type_reponse.case_faite"])
-      .check();
+    // CASE_FAITE — une coche ronde (point 3), `role="checkbox"`, son nom
+    // accessible porte le libellé DU POINT (jamais le nom générique du
+    // type) : deux points « Fait » sur une même checklist resteraient
+    // chacun désignés sans ambiguïté. Sans filtre de nom ici — un seul
+    // `checkbox` existe sur cette fiche, et « Nettoyage effectué » est une
+    // valeur de fixture, pas une clé du dictionnaire (gardien L0-11).
+    await page.getByRole("checkbox").click();
 
-    // CHOIX_DANS_UNE_LISTE
+    // CHOIX_DANS_UNE_LISTE — trois options (≤ 4) : des SEGMENTS plutôt
+    // qu'un menu déroulant (point 3). Choisi par POSITION (le premier,
+    // « Bon ») — jamais par son nom accessible : le gardien L0-11
+    // instrumente ce nom, et « Bon » est une valeur de fixture, pas une
+    // clé du dictionnaire.
     await page
-      .getByRole("combobox", {
+      .getByRole("radiogroup", {
         name: fr["checklist.terrain.e2e.point_choix"],
       })
-      .selectOption("Bon");
+      .getByRole("radio")
+      .first()
+      .click();
 
     // TEXTE_LIBRE
     await page
@@ -339,8 +352,8 @@ test("375/1280 px, en ligne — les cinq types, le résumé, et la ligne prérem
       })
       .fill("Rien à signaler par ailleurs.");
 
-    expect(await resume.textContent()).toBe(
-      `5/5 ${fr["checklist.terrain.points"]}${fr["ponctuation.virgule"]}1 ${fr["checklist.terrain.non_conforme"]}`,
+    expect(await avancement.textContent()).toBe(
+      `${fr["checklist.terrain.provenance_prefixe"]}${fr["ponctuation.point_median"]}5 ${fr["checklist.terrain.sur"]} 5`,
     );
 
     // LA LIGNE PRÉREMPLIE, DANS « SUITE À DONNER » (point 3) — composée par
@@ -406,13 +419,11 @@ test("une intervention sans gabarit résolu n'affiche AUCUNE tuile", async ({
     await page.goto(`/terrain/${scene.interventionId}`);
 
     // LA TUILE NE SE RÉDUIT PAS, ELLE NE SE REND PAS DU TOUT — un seul
-    // contrôle, mais DÉFINITIF : ce bouton n'existe que dans
-    // `ChecklistTerrain` elle-même (aucun autre écran ne porte ce libellé).
-    await expect(
-      page.getByRole("button", {
-        name: fr["checklist.terrain.afficher_detail"],
-      }),
-    ).toHaveCount(0);
+    // contrôle, mais DÉFINITIF : cette légende n'existe que dans
+    // `ChecklistTerrain` elle-même (aucun autre écran ne porte ce texte).
+    await expect(page.getByText(fr["checklist.terrain.legende"])).toHaveCount(
+      0,
+    );
   } finally {
     await nettoyer(client, scene);
   }

@@ -240,9 +240,8 @@ async function repondreAuPremierPointHorsReseau(
   interventionId: string,
 ): Promise<void> {
   await page.goto(`/terrain-hors-reseau?id=${interventionId}`);
-  await page
-    .getByRole("button", { name: fr["checklist.terrain.afficher_detail"] })
-    .click();
+  // PLUS DE BOUTON « AFFICHER LE DÉTAIL » (9L04D, point 1) — la checklist
+  // est toujours ouverte.
   await page
     .getByRole("button", {
       name: fr["checklist.terrain.option_conforme"],
