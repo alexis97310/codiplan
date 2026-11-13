@@ -701,7 +701,16 @@ export async function inviterClientAuPortail(
   ).utilisateur.findUnique({ where: { email }, select: { id: true } });
 
   let utilisateurId: string;
-  let identiteNouvelle = false;
+  let identiteOuverteIci = false;
+  /**
+   * CETTE IDENTITÉ EXISTANTE N'A JAMAIS ÉTÉ ACTIVÉE — aucun mot de passe
+   * choisi (9L03B, reprise de 9L04, décision d'Alexis du 13/11/2026) : seule
+   * valeur hors `false` par défaut, posée ci-dessous quand `existante` est
+   * exclusive à la société active ET sans mot de passe. Reste `false` quand
+   * `existante` est `null` (identité neuve, `identiteOuverteIci` porte alors
+   * le même rôle) — jamais les deux à la fois.
+   */
+  let jamaisActivee = false;
   if (existante !== null) {
     // ── UN COMPTE INTERNE NE PEUT PAS DEVENIR UN COMPTE CLIENT ──────────────
     //
@@ -722,6 +731,19 @@ export async function inviterClientAuPortail(
     }
     utilisateurId = existante.id;
 
+    // ── CE COMPTE A-T-IL DÉJÀ CHOISI UN MOT DE PASSE ? (9L03B) — lu AVANT la
+    // garde d'exclusivité : les deux branches ci-dessous en ont besoin, l'une
+    // pour le motif neutre existant (D226), l'autre pour le critère NEUF de
+    // la reprise (« jamais activé » = identité NEUVE, D249 amendée).
+    const compteExistant = await avecDesignationAuth(client).compte.findFirst(
+      {
+        where: { utilisateur_id: existante.id },
+        select: { mot_de_passe: true },
+      },
+    );
+    const sansMotDePasse =
+      compteExistant === null || compteExistant.mot_de_passe === null;
+
     // ── CETTE IDENTITÉ EST-ELLE CONNUE D'UNE AUTRE SOCIÉTÉ ? (C1) ───────────
     //
     // Voir le en-tête de la fonction, juste au-dessus, pour ce que ce refus
@@ -733,16 +755,12 @@ export async function inviterClientAuPortail(
       client,
     );
     if (!exclusive) {
-      const compteAilleurs = await avecDesignationAuth(client).compte.findFirst(
-        {
-          where: { utilisateur_id: existante.id },
-          select: { mot_de_passe: true },
-        },
-      );
-      if (compteAilleurs === null || compteAilleurs.mot_de_passe === null) {
+      if (sansMotDePasse) {
         // Pas encore activé, connu d'une autre société (D226) — MÊME refus
         // neutre que l'employé d'ailleurs ci-dessous (D249) : l'un ou l'autre
-        // ne se distingue plus du seul motif reçu.
+        // ne se distingue plus du seul motif reçu. INCHANGÉ par la reprise
+        // (9L03B, point 2) : « jamais activé » ne vaut identité NEUVE que
+        // pour une identité EXCLUSIVE à la société active.
         return { accepte: false, motif: "compte_connu_ailleurs" };
       }
 
@@ -762,6 +780,11 @@ export async function inviterClientAuPortail(
         // réservé au cas LOCAL (voir l'en-tête de la fonction).
         return { accepte: false, motif: "compte_connu_ailleurs" };
       }
+    } else {
+      // ── EXCLUSIVE À LA SOCIÉTÉ ACTIVE ET SANS MOT DE PASSE : IDENTITÉ
+      // JAMAIS ACTIVÉE (9L03B, D249 amendée, 13/11/2026) — traitée comme une
+      // identité NEUVE : voir l'en-tête de la fonction.
+      jamaisActivee = sansMotDePasse;
     }
   } else {
     // ── L'IDENTITÉ ET SON COMPTE AU REPOS, ÉCRITS DIRECTEMENT ───────────────
@@ -791,8 +814,13 @@ export async function inviterClientAuPortail(
         mot_de_passe: null,
       },
     });
-    identiteNouvelle = true;
+    identiteOuverteIci = true;
   }
+
+  // ── TRAITER COMME UNE IDENTITÉ NEUVE — soit elle l'est (ouverte ici), soit
+  // elle est jamais activée et exclusive à la société active (9L03B, reprise
+  // de 9L04, décision d'Alexis du 13/11/2026 : « jamais activé » = NEUVE).
+  const traiterCommeNeuve = identiteOuverteIci || jamaisActivee;
 
   // ── LE RATTACHEMENT — CRÉÉ OU RÉACTIVÉ, JAMAIS DE LIGNE utilisateur_societe
   //
@@ -816,25 +844,28 @@ export async function inviterClientAuPortail(
           client_id: clientId,
           societe_id: societeId,
           actif: true,
-          accepte_le: identiteNouvelle ? instantAcceptation() : null,
-          nom_client_invitation: identiteNouvelle ? null : fiche.raison_sociale,
+          accepte_le: traiterCommeNeuve ? instantAcceptation() : null,
+          nom_client_invitation: traiterCommeNeuve
+            ? null
+            : fiche.raison_sociale,
         },
         update: { actif: true },
       }),
     client,
   );
 
-  // ── LE JETON — SEULEMENT POUR UNE IDENTITÉ NOUVELLE (D249) ──────────────
+  // ── LE JETON — POUR UNE IDENTITÉ TRAITÉE COMME NEUVE (D249, amendée 9L03B)
   //
   // Avant D249, une identité déjà ouverte SANS mot de passe recevait une
-  // réémission de son lien de premier accès. Ce n'est plus le cas : D249 ne
-  // distingue plus cette situation de celle d'une identité déjà active —
-  // toute identité déjà ouverte entre EN ATTENTE, sans jeton, et c'est la
-  // raison qui l'a amenée à exister la première fois (une invitation
-  // antérieure, encore valable ou à réémettre par l'administrateur) qui lui
+  // réémission de son lien de premier accès. D249 avait fermé cette voie pour
+  // TOUTE identité déjà ouverte, mot de passe ou non — 9L03B (13/11/2026) la
+  // rouvre pour la SEULE identité JAMAIS ACTIVÉE (exclusive à la société
+  // active) : elle garde son lien de premier accès, exactement comme une
+  // identité neuve. Une identité déjà activée, elle, reste EN ATTENTE sans
+  // jeton — c'est la raison qui l'a amenée à exister la première fois qui lui
   // donne de quoi se connecter.
   let url: string | null = null;
-  if (identiteNouvelle) {
+  if (traiterCommeNeuve) {
     const emetteur = creerAuth(
       client,
       { societeId, role: null },
@@ -864,23 +895,30 @@ export async function inviterClientAuPortail(
     }
   }
 
-  // ── LA TRACE — SEULEMENT SI UNE IDENTITÉ A ÉTÉ OUVERTE (D162) ───────────
-  if (identiteNouvelle) {
+  // ── LA TRACE — SEULEMENT SI UN JETON A ÉTÉ ÉMIS (D162) — « premier envoi »
+  // pour une identité OUVERTE ici, « réémission » pour une identité jamais
+  // activée déjà ouverte (9L03B) : même distinction que `detailCopie`
+  // ci-dessus, réutilisée ici plutôt que recopiée.
+  if (traiterCommeNeuve) {
     await avecDesignationAuth(client).journalAcces.create({
       data: {
         id: uuidv7(),
         utilisateur_id: contexteAdmin.utilisateurId,
-        evenement: "ouverture_identite",
+        evenement: identiteOuverteIci
+          ? "ouverture_identite"
+          : "reemission_premier_acces",
         societe_id_cible: societeId,
         role,
-        detail:
-          `invitation au portail client, premier envoi ; lien copié par ` +
-          `l'administrateur ; ${MARQUEUR_CIBLE}${utilisateurId}`,
+        detail: detailCopie(
+          "invitation au portail client",
+          utilisateurId,
+          identiteOuverteIci,
+        ),
       },
     });
   }
 
-  return { accepte: true, url, enAttente: !identiteNouvelle };
+  return { accepte: true, url, enAttente: !traiterCommeNeuve };
 }
 
 /** Ce qu'un refus NOMMÉ dit — la ligne n'existait pas, ou n'est plus en attente (D50). */
@@ -1225,9 +1263,16 @@ export type CompteDuPortailClient = {
   readonly email: string;
   readonly actif: boolean;
   /**
-   * EN ATTENTE D'ACCEPTATION (9L04, D249) — `actif` et pas encore accepté.
-   * « Copier un nouveau lien » (9K14) ne se montre jamais sur une ligne en
-   * attente : il n'y a aucun mot de passe à réinitialiser avant acceptation.
+   * EN ATTENTE D'ACCEPTATION (9L04, D249 ; critère affiné par 9L03B,
+   * 13/11/2026) — `actif`, pas encore accepté, ET un mot de passe existe déjà
+   * (l'identité a été activée AILLEURS avant ce rattachement). Une identité
+   * JAMAIS ACTIVÉE (aucun mot de passe choisi) n'est PAS « en attente » :
+   * elle reste traitée comme une identité neuve (voir l'en-tête
+   * d'`inviterClientAuPortail`), et « Copier un nouveau lien » (9K14) reste
+   * proposé sur sa ligne. « Copier un nouveau lien » ne se montre JAMAIS sur
+   * une ligne en attente au sens strict : il n'y a aucune session ailleurs
+   * que son titulaire aurait déjà ouverte avec un mot de passe à
+   * réinitialiser.
    */
   readonly enAttente: boolean;
 };
@@ -1259,11 +1304,42 @@ export async function comptesDuPortailDuClient(
       orderBy: { id: "asc" },
     }),
   );
+
+  // ── UN MOT DE PASSE EXISTE-T-IL DÉJÀ, POUR CHAQUE LIGNE SANS ACCEPTATION ?
+  // (9L03B, 13/11/2026) — seule une ligne `actif` et sans acceptation ET déjà
+  // pourvue d'un mot de passe est réellement « en attente » (voir
+  // `CompteDuPortailClient.enAttente`) ; une identité jamais activée n'a pas
+  // besoin de cette lecture pour être traitée comme neuve. Une fiche client
+  // ne porte qu'une poignée de comptes portail : pas de plafond de
+  // concurrence ici, à la différence de l'écran Équipe (`parTranchesDeCinq`,
+  // `lib/auth/acces-bureau.ts`), société entière.
+  const designe = avecDesignationAuth(client);
+  const aVerifier = lignes.filter(
+    (ligne) => ligne.actif && ligne.accepte_le === null,
+  );
+  const motsDePasse = new Map(
+    await Promise.all(
+      aVerifier.map(
+        async (ligne) =>
+          [
+            ligne.utilisateur_id,
+            await designe.compte.findFirst({
+              where: { utilisateur_id: ligne.utilisateur_id },
+              select: { mot_de_passe: true },
+            }),
+          ] as const,
+      ),
+    ),
+  );
+
   return lignes.map((ligne) => ({
     id: ligne.id,
     utilisateurId: ligne.utilisateur_id,
     email: ligne.utilisateur.email,
     actif: ligne.actif,
-    enAttente: ligne.actif && ligne.accepte_le === null,
+    enAttente:
+      ligne.actif &&
+      ligne.accepte_le === null &&
+      (motsDePasse.get(ligne.utilisateur_id)?.mot_de_passe ?? null) !== null,
   }));
 }

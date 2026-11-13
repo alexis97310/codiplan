@@ -483,14 +483,18 @@ describe("inviterClientAuPortail — l'invitation", () => {
   });
 
   /**
-   * COMPORTEMENT CHANGÉ PAR 9L04/D249 — ce test s'appelait « non-régression »
-   * avant ce lot : une identité déjà ouverte (même sans mot de passe nulle
-   * part) qui reçoit une SECONDE invitation, pour un AUTRE client, n'obtient
-   * plus de lien — elle entre EN ATTENTE, exactement comme une identité déjà
-   * active (D249 ne distingue plus les deux cas pour une identité déjà
-   * ouverte). Seule une identité NOUVELLE obtient un lien.
+   * COMPORTEMENT RAMENÉ PAR 9L03B (reprise de 9L04, décision d'Alexis du
+   * 13/11/2026) — D249 avait fermé, pour TOUTE identité déjà ouverte, la voie
+   * du lien de premier accès, qu'elle ait ou non déjà choisi un mot de passe.
+   * La reprise la rouvre pour la SEULE identité JAMAIS ACTIVÉE, EXCLUSIVE à
+   * la société active : une seconde invitation, pour un AUTRE client de la
+   * MÊME société, lui garde son lien de premier accès et ne la met jamais
+   * « en attente » — exactement comme une identité neuve (voir le test
+   * juste au-dessus). Le test suivant (mot de passe déjà posé) reste, lui,
+   * INCHANGÉ par la reprise : D249 continue de s'appliquer pleinement dès
+   * qu'un mot de passe existe déjà.
    */
-  it("une identité déjà ouverte, invitée à un SECOND client, entre EN ATTENTE elle aussi — même sans mot de passe nulle part (9L04, D249)", async () => {
+  it("une identité JAMAIS ACTIVÉE, invitée à un SECOND client, garde son lien de premier accès — traitée comme une identité neuve (9L03B, D249 amendée)", async () => {
     const email = courriel();
     await inviterClientAuPortail(ADMIN_A, CLIENT_A1, email, clientApp());
 
@@ -500,7 +504,10 @@ describe("inviterClientAuPortail — l'invitation", () => {
       email,
       clientApp(),
     );
-    expect(second).toEqual({ accepte: true, url: null, enAttente: true });
+    expect(second.accepte).toBe(true);
+    if (!second.accepte) return;
+    expect(second.url).not.toBeNull();
+    expect(second.enAttente).toBe(false);
   });
 
   it("une seconde invitation POUR LE MÊME client RÉACTIVE la ligne, jamais ne la duplique — sans redemander d'acceptation (9L04)", async () => {
@@ -706,6 +713,52 @@ describe("comptesDuPortailDuClient — la lecture pour la fiche client", () => {
     expect(compte).toBeDefined();
     expect(compte?.actif).toBe(true);
     expect(compte?.enAttente).toBe(true);
+  });
+
+  /**
+   * 9L03B (13/11/2026) — une ligne `actif: true`, `accepte_le: null`, posée
+   * directement en base (comme le ferait un rattachement jamais accepté),
+   * n'est PAS « en attente » si son titulaire n'a JAMAIS choisi de mot de
+   * passe : `enAttente` ne se lit plus seulement sur `accepte_le`, il exige
+   * aussi qu'un mot de passe existe déjà (voir `CompteDuPortailClient`,
+   * `lib/auth/lien-d-acces.ts`). Sans ce critère, « Copier un nouveau lien »
+   * (9K14) se cacherait à tort sur la ligne d'un compte invité jamais activé.
+   */
+  it("une ligne non acceptée MAIS JAMAIS ACTIVÉE (aucun mot de passe) n'est pas « en attente » (9L03B)", async () => {
+    const email = courriel();
+    const utilisateurId = uuidv7();
+    await clientOwner().utilisateur.create({
+      data: { id: utilisateurId, nom: "Jamais activé", email },
+    });
+    await clientOwner().compte.create({
+      data: {
+        id: uuidv7(),
+        utilisateur_id: utilisateurId,
+        emetteur: "local:credential",
+        compte_externe_id: utilisateurId,
+        fournisseur_id: "credential",
+        mot_de_passe: null,
+      },
+    });
+    await clientOwner().utilisateurClient.create({
+      data: {
+        id: uuidv7(),
+        utilisateur_id: utilisateurId,
+        client_id: CLIENT_A1,
+        societe_id: SOCIETE_A,
+        actif: true,
+      },
+    });
+
+    const comptes = await comptesDuPortailDuClient(
+      ADMIN_A,
+      CLIENT_A1,
+      clientApp(),
+    );
+    const compte = comptes.find((c) => c.email === email);
+    expect(compte).toBeDefined();
+    expect(compte?.actif).toBe(true);
+    expect(compte?.enAttente).toBe(false);
   });
 });
 
