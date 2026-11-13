@@ -1,0 +1,21 @@
+-- 9L04E-TERRAIN-PHOTOS-EPUREES — QUI A DÉPOSÉ CETTE PHOTO.
+--
+-- Mesuré au point 0 de ce lot : la suppression et la modification de légende
+-- d'une photo, réservées à son auteur, ne peuvent PAS se lire dans
+-- `journal_audit` — la politique `journal_audit_lecture` exige la capacité
+-- `consulter_journal_audit` (admin_societe/direction seuls,
+-- `lib/auth/habilitations.ts`), que le rôle `technicien` qui dépose et
+-- supprime SES PROPRES photos n'a jamais : une lecture du journal depuis ce
+-- rôle rend toujours zéro ligne, jamais une colonne « non trouvée ».
+--
+-- Une colonne, NEUVE, NULLABLE : un document déposé avant ce lot n'a pas
+-- d'auteur connu — jamais un auteur inventé (CLAUDE.md §8), le geste qui en
+-- dépend (supprimer, légender) refuse alors comme pour un auteur différent.
+-- Aucune relation Prisma déclarée (même choix que `Notification.
+-- destinataire_id`, D39 ; `SuiteADonner.qualifiee_par`) : une relation ferait
+-- naître son inverse sur `Utilisateur`, que le gardien de D39 refuserait.
+-- Posée à la création par `deposerPhotoIntervention`
+-- (`lib/documents/depot.ts`) depuis `contexte.utilisateurId`, jamais
+-- recalculée après coup.
+
+ALTER TABLE "document" ADD COLUMN "depose_par" uuid;

@@ -84,6 +84,9 @@ const CHAMPS_RECU = {
 /** Code d'erreur Prisma d'une violation de contrainte d'unicité. */
 const VIOLATION_UNICITE = "P2002";
 
+/** Code d'erreur Prisma d'une violation de clé étrangère. */
+const VIOLATION_CLE_ETRANGERE = "P2003";
+
 /**
  * Le résultat d'un dépôt. `doublon` n'est PAS une erreur : c'est la réponse
  * attendue quand le même fichier revient, et elle rend le reçu déjà présent
@@ -577,6 +580,9 @@ export async function deposerPhotoIntervention(
             empreinte,
             objet_cle: `bd:${empreinte}`,
             octets: new Uint8Array(saisie.octets),
+            // QUI LA DÉPOSE (9L04E-TERRAIN-PHOTOS-EPUREES) — posé UNE FOIS,
+            // jamais recalculé ; voir le docblock du champ.
+            depose_par: contexte.utilisateurId,
           },
           select: { id: true },
         });
@@ -723,6 +729,204 @@ export async function photosDeLIntervention(
         },
         orderBy: [{ cree_le: "asc" }, { id: "asc" }],
       });
+    },
+    client,
+  );
+}
+
+/**
+ * QUI A DÉPOSÉ CHAQUE PHOTO (9L04E-TERRAIN-PHOTOS-EPUREES) — lu dans
+ * `Document.depose_par`, jamais dans `journal_audit` (voir le docblock de ce
+ * champ et celui de `photoModifiableDansTx` : la politique de lecture du
+ * journal exige une capacité que le technicien appelant n'a jamais). Séparée
+ * de `photosDeLIntervention` pour ne pas élargir sa sélection — ce champ ne
+ * sert qu'à la fiche terrain, jamais au bon ni à la fiche bureau.
+ *
+ * UNE SEULE requête pour tous les documents demandés — jamais une par photo.
+ */
+export async function auteursDesPhotos(
+  contexte: ContexteSession,
+  documentIds: readonly string[],
+  client?: PrismaClient,
+): Promise<ReadonlyMap<string, string | null>> {
+  if (documentIds.length === 0) {
+    return new Map();
+  }
+  const lignes = await avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.document.findMany({
+        where: { id: { in: [...documentIds] } },
+        select: { id: true, depose_par: true },
+      }),
+    client,
+  );
+  return new Map(lignes.map((ligne) => [ligne.id, ligne.depose_par]));
+}
+
+/** Le motif d'un refus de suppression ou de modification de légende. */
+export type MotifRefusPhoto =
+  "introuvable" | "pas_lauteur" | "intervention_fermee" | "lien_checklist";
+
+/**
+ * STATUTS AU-DELÀ DESQUELS UNE PHOTO NE SE TOUCHE PLUS (décision d'Alexis du
+ * 13/11/2026 : « jusqu'à Terminer ») — même liste fermée que
+ * `lib/interventions/depot.ts:3247` pour « l'intervention est-elle encore
+ * ouverte ? ».
+ */
+export const STATUTS_PHOTO_FERMEE: readonly string[] = [
+  "terminee",
+  "cloturee",
+  "annulee",
+];
+
+/**
+ * LE PÉRIMÈTRE COMMUN À LA SUPPRESSION ET À LA MODIFICATION DE LÉGENDE — lu
+ * DANS la transaction de l'appelant (jamais via `avecContexteApplicatif`,
+ * qui ouvrirait une seconde transaction imbriquée). Trois refus, dans l'ordre
+ * où ils se lisent : la photo n'existe pas (ou est hors périmètre — même
+ * périmètre que `deposerPhotoIntervention`, R7, D151), l'intervention est
+ * fermée, l'appelant n'est pas celui qui l'a prise.
+ *
+ * **L'AUTEUR EST LU DANS `Document.depose_par`, JAMAIS DANS `journal_audit`**
+ * — mesuré au point 0 de ce lot : la politique de LECTURE du journal exige
+ * la capacité `consulter_journal_audit` (admin_societe/direction seuls,
+ * `lib/auth/habilitations.ts`), que le rôle `technicien` — seul appelant de
+ * cette fonction, par la route terrain — n'a jamais. Une lecture du journal
+ * depuis ce rôle rend TOUJOURS zéro ligne, refusant « pas l'auteur » même au
+ * vrai auteur. Voir le docblock de `Document.depose_par`
+ * (`prisma/schema.prisma`) et de la migration qui l'a posée.
+ */
+async function photoModifiableDansTx(
+  tx: Prisma.TransactionClient,
+  contexte: ContexteSession,
+  interventionId: string,
+  documentId: string,
+): Promise<
+  | {
+      readonly accepte: true;
+      readonly nomFichier: string;
+    }
+  | { readonly accepte: false; readonly motif: MotifRefusPhoto }
+> {
+  const document = await tx.document.findFirst({
+    where: { id: documentId, intervention_id: interventionId },
+    select: {
+      nom_fichier: true,
+      depose_par: true,
+      intervention: { select: { technicien_id: true, statut: true } },
+    },
+  });
+  if (
+    document === null ||
+    document.intervention === null ||
+    !accesSurCetteIntervention(
+      exigerContexteActif(contexte),
+      "saisir_rapport",
+      document.intervention.technicien_id,
+    )
+  ) {
+    return { accepte: false, motif: "introuvable" };
+  }
+  if (STATUTS_PHOTO_FERMEE.includes(document.intervention.statut)) {
+    return { accepte: false, motif: "intervention_fermee" };
+  }
+  if (document.depose_par !== contexte.utilisateurId) {
+    return { accepte: false, motif: "pas_lauteur" };
+  }
+  return { accepte: true, nomFichier: document.nom_fichier };
+}
+
+/**
+ * SUPPRIME UNE PHOTO D'INTERVENTION (décision d'Alexis du 13/11/2026) — par
+ * son auteur, jusqu'à « Terminer ». Suppression RÉELLE, jamais logique :
+ * `document` est une table métier cloisonnée auditée par défaut depuis D55
+ * (`scripts/lib/perimetre-audit.ts`), le déclencheur écrit déjà les valeurs
+ * d'avant dans `journal_audit` — même doctrine que `supprimerClient`/
+ * `supprimerSite` (`lib/clients/depot.ts`, `lib/sites/depot.ts`) : la
+ * suppression est acceptable parce qu'elle reste réversible PAR LA LECTURE
+ * du journal (par un rôle habilité à le lire), jamais parce qu'une colonne
+ * `supprime_le` la maquillerait en écriture.
+ *
+ * **Les photos de réponse de checklist (`checklist_reponse_photo`, 9K28) sont
+ * IMMUABLES** — refus LU dans la clé étrangère `RESTRICT`
+ * (`checklist_reponse_photo_societe_id_document_id_fkey`), jamais prévenu par
+ * une lecture préalable : même doctrine que la déduplication de `recevoir`
+ * (voir l'en-tête du fichier) — le refus existe déjà en base, le relire ici
+ * serait une seconde règle qui pourrait diverger de la première.
+ */
+export async function supprimerPhotoIntervention(
+  contexte: ContexteSession,
+  interventionId: string,
+  documentId: string,
+  client?: PrismaClient,
+): Promise<{ readonly accepte: boolean; readonly motif?: MotifRefusPhoto }> {
+  try {
+    return await avecContexteApplicatif(
+      contexte,
+      async (tx) => {
+        const verdict = await photoModifiableDansTx(
+          tx,
+          contexte,
+          interventionId,
+          documentId,
+        );
+        if (!verdict.accepte) {
+          return verdict;
+        }
+        await tx.document.delete({ where: { id: documentId } });
+        return { accepte: true };
+      },
+      client,
+    );
+  } catch (erreur: unknown) {
+    if (
+      erreur instanceof Prisma.PrismaClientKnownRequestError &&
+      erreur.code === VIOLATION_CLE_ETRANGERE
+    ) {
+      return { accepte: false, motif: "lien_checklist" };
+    }
+    throw erreur;
+  }
+}
+
+/**
+ * MODIFIE LA LÉGENDE D'UNE PHOTO DÉJÀ ENVOYÉE (décision d'Alexis du
+ * 13/11/2026 : « facultative, après l'envoi ») — mêmes contrôles que
+ * `supprimerPhotoIntervention`. `libelle` VIDE rend la photo « sans légende » :
+ * `document_libelle_non_vide` (migration `20260913100000_documents_l8`)
+ * interdit la chaîne vide en base, donc ce cas repose le `nom_fichier`
+ * d'origine — la même valeur que `deposerPhotoIntervention` y écrit déjà
+ * quand aucune légende n'est fournie au dépôt. C'est ce qui permet à
+ * l'affichage de détecter « sans légende » par comparaison `libelle ===
+ * nom_fichier`, sans colonne supplémentaire.
+ */
+export async function modifierLegendePhoto(
+  contexte: ContexteSession,
+  interventionId: string,
+  documentId: string,
+  libelle: string,
+  client?: PrismaClient,
+): Promise<{ readonly accepte: boolean; readonly motif?: MotifRefusPhoto }> {
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const verdict = await photoModifiableDansTx(
+        tx,
+        contexte,
+        interventionId,
+        documentId,
+      );
+      if (!verdict.accepte) {
+        return verdict;
+      }
+      const libelleFinal =
+        libelle.trim().length > 0 ? libelle.trim() : verdict.nomFichier;
+      await tx.document.update({
+        where: { id: documentId },
+        data: { libelle: libelleFinal },
+      });
+      return { accepte: true };
     },
     client,
   );

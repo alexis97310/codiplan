@@ -4066,6 +4066,20 @@ model Document {
   date_document   DateTime? @db.Date
   date_expiration DateTime? @db.Date
 
+  /// QUI A DÉPOSÉ CETTE PHOTO (9L04E-TERRAIN-PHOTOS-EPUREES) — NULLABLE : un
+  /// document déposé avant ce lot n'a pas d'auteur connu, jamais un auteur
+  /// inventé (CLAUDE.md §8). Posée UNE FOIS, à la création
+  /// (`deposerPhotoIntervention`), jamais recalculée. AUCUNE relation Prisma
+  /// déclarée vers `Utilisateur` — une IDENTITÉ, même choix que
+  /// `Notification.destinataire_id` (D39) : une relation ferait naître son
+  /// inverse, que le gardien de D39 refuserait. Pas une colonne audit
+  /// générique : `journal_audit` porte déjà « qui a créé cette ligne », mais
+  /// sa POLITIQUE DE LECTURE exige la capacité `consulter_journal_audit`
+  /// (admin_societe/direction seuls) — le rôle `technicien` qui dépose et
+  /// supprime SES PROPRES photos n'y lit jamais rien. Voir le docblock de la
+  /// migration `20261114100000_photo_depose_par_9l04e`.
+  depose_par String? @db.Uuid
+
   cree_le    DateTime @default(now())
   modifie_le DateTime @updatedAt
 
