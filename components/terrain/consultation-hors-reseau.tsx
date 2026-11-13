@@ -614,11 +614,11 @@ function Fiche({
             </p>
             <PhotosTerrain
               action={`/api/terrain/${fiche.id}/photos`}
-              libelleAjouter={t("terrain.photos.ajouter")}
               interventionId={fiche.id}
               utilisateurId={utilisateurId}
               societeId={societeId}
               sansSession
+              afficherExistantes={false}
             />
           </section>
         }

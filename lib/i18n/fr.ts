@@ -3282,13 +3282,9 @@ export const fr = {
   "terrain.photos.titre": "Photos",
   "terrain.photos.aucune": "Aucune photo n'a été prise.",
   "terrain.photos.libelle": "Légende",
-  // LE NOM ACCESSIBLE DU CHAMP FICHIER (constat 5 de l'audit fonctionnel
-  // 9F5) — sans lui, un lecteur d'écran n'annonce rien de plus que « Fichier
-  // non sélectionné ». Masqué visuellement (`sr-only`) : l'icône native du
-  // sélecteur reste le seul repère visible, inchangé.
-  "terrain.photos.fichier": "Photo",
   "terrain.photos.libelle_placeholder": "Avant intervention…",
-  "terrain.photos.ajouter": "Ajouter une photo",
+  "terrain.photos.prendre": "Prendre une photo",
+  "terrain.photos.bibliotheque": "Choisir dans la bibliothèque",
   "terrain.photos.refus": "La photo n'a pas pu être ajoutée. Réessayez.",
   "terrain.photos.refus_type": "Seules les images sont acceptées (JPEG, PNG).",
   "terrain.photos.refus_taille":
@@ -3299,6 +3295,38 @@ export const fr = {
   "terrain.photos.envoi": "Envoi…",
   "terrain.photos.enregistree": "Photo enregistrée.",
   "terrain.photos.echec": "Échec : réessayez.",
+  "terrain.photos.sans_legende": "Sans légende",
+  "terrain.photos.etat_envoyee": "Envoyée",
+  "terrain.photos.etat_en_attente": "En attente du réseau",
+  "terrain.photos.etat_echec": "Échec · réessayer",
+  "terrain.photos.aide_toucher":
+    "Touchez une photo pour la légender ou la supprimer.",
+  "terrain.photos.voir": "Voir la photo",
+  "terrain.photos.etiquette_avant": "Avant",
+  "terrain.photos.etiquette_apres": "Après",
+  "terrain.photos.etiquette_plaque": "Plaque",
+  "terrain.photos.etiquette_defaut": "Défaut",
+  "terrain.photos.enregistrer_legende": "Enregistrer",
+  "terrain.photos.legende_enregistree": "Légende enregistrée.",
+  "terrain.photos.legende_echec":
+    "La légende n'a pas pu être enregistrée. Réessayez.",
+  "terrain.photos.pas_encore_envoyee":
+    "Cette photo n'a pas encore été envoyée.",
+  "terrain.photos.supprimer": "Supprimer",
+  "terrain.photos.supprimer_confirmation":
+    "Supprimer cette photo ? Cette action est définitive.",
+  "terrain.photos.supprimer_confirmer": "Supprimer",
+  "terrain.photos.supprimer_echec":
+    "La photo n'a pas pu être supprimée. Réessayez.",
+  "terrain.photos.retirer_de_la_file": "Retirer cette photo",
+  "terrain.photos.retirer_de_la_file_confirmation":
+    "Retirer cette photo ? Elle ne sera pas envoyée.",
+  "terrain.photos.refus_pas_lauteur":
+    "Seul le technicien qui a pris cette photo peut la modifier ou la supprimer.",
+  "terrain.photos.refus_intervention_fermee":
+    "L'intervention est terminée : les photos ne peuvent plus être modifiées.",
+  "terrain.photos.refus_lien_checklist":
+    "Cette photo répond un point de check-list : elle ne peut pas être supprimée.",
 
   "terrain.signature.titre": "Signature du client",
   "terrain.signature.deja_signee":
@@ -5134,7 +5162,6 @@ export const fr = {
   "checklist.terrain.option_sans_objet": "Sans objet",
   "checklist.terrain.choisir": "Choisir…",
   // 9K28-CHECKLIST-REPONSE-PHOTO — le sixième type, « photo ».
-  "checklist.terrain.ajouter_photo": "Ajouter une photo",
   "checklist.terrain.photos_ajoutees": "photo(s) ajoutée(s)",
   // ── LA FICHE « ÉPURÉE » (9L04D-TERRAIN-CHECKLIST-EPUREE, décision
   // d'Alexis du 13/11/2026) ────────────────────────────────────────────────

@@ -40,7 +40,11 @@ import { obtenirSession } from "@/lib/auth/session";
 import { enDuree } from "@/lib/calendar/duree";
 import { checklistDeLIntervention } from "@/lib/checklists/depot";
 import { valeurChecklistAffichee } from "@/lib/checklists/presentation";
-import { photosDeLIntervention } from "@/lib/documents/depot";
+import {
+  auteursDesPhotos,
+  photosDeLIntervention,
+  STATUTS_PHOTO_FERMEE,
+} from "@/lib/documents/depot";
 import { estUuid } from "@/lib/identifiant";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
@@ -242,6 +246,10 @@ export default async function PageInterventionTerrain({
 
   const ligne = fiche.ligne;
   const statut = ligne.statut as StatutAffiche;
+  // JUSQU'À « TERMINER » (décision d'Alexis du 13/11/2026, 9L04E-TERRAIN-
+  // PHOTOS-EPUREES) — une fois l'intervention fermée, plus aucune photo ne
+  // se supprime ni ne se légende depuis cette fiche.
+  const photosOuvertes = !STATUTS_PHOTO_FERMEE.includes(ligne.statut);
 
   // ── LE RAPPORT DE TERRAIN (ticket 17-BON-2) ──────────────────────────────
   //
@@ -285,6 +293,19 @@ export default async function PageInterventionTerrain({
     // interventions sans checklist.
     checklistDeLIntervention(contexte, id),
   ]);
+  // QUI A PRIS CHAQUE PHOTO (9L04E-TERRAIN-PHOTOS-EPUREES) — lu dans
+  // `Document.depose_par`, APRÈS le lot ci-dessus : dépend des identifiants
+  // qu'il vient de rendre, une seule requête pour toutes les photos.
+  const auteursPhotos = await auteursDesPhotos(
+    contexte,
+    (photos ?? []).map((photo) => photo.id),
+  );
+  const photosExistantes = (photos ?? []).map((photo) => ({
+    id: photo.id,
+    libelle: photo.libelle,
+    nomFichier: photo.nom_fichier,
+    deposeParMoi: auteursPhotos.get(photo.id) === contexte.utilisateurId,
+  }));
   const prestationsActives = prestationsCatalogue.filter((p) => p.actif);
   const idsRealises = new Set(
     (prestationsFaites ?? []).map((p) => p.prestation_id),
@@ -792,33 +813,13 @@ export default async function PageInterventionTerrain({
               <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
                 {t("terrain.photos.titre")}
               </h2>
-              {(photos ?? []).length === 0 ? (
-                <p className="text-app-encre-faible text-16 font-bold">
-                  {t("terrain.photos.aucune")}
-                </p>
-              ) : (
-                <ul className="grid grid-cols-3 gap-2">
-                  {(photos ?? []).map((photo) => (
-                    <li key={photo.id} className="flex flex-col gap-1">
-                      {/* eslint-disable-next-line @next/next/no-img-element -- octets servis par une route applicative */}
-                      <img
-                        src={`/api/documents/${photo.id}/octets`}
-                        alt={photo.libelle}
-                        className="border-app-bord aspect-square rounded border object-cover"
-                      />
-                      <span className="text-app-encre-faible truncate text-16 font-bold">
-                        {photo.libelle}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
               <PhotosTerrain
                 action={`/api/terrain/${id}/photos`}
-                libelleAjouter={t("terrain.photos.ajouter")}
                 interventionId={id}
                 utilisateurId={contexte.utilisateurId}
                 societeId={contexte.societeId}
+                photosExistantes={photosExistantes}
+                interventionOuverte={photosOuvertes}
               />
             </section>
           }

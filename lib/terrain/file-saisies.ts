@@ -273,6 +273,18 @@ export type GestePhoto = {
   /** Le point de checklist répondu, FACULTATIF (9K28-CHECKLIST-REPONSE-PHOTO) — même route, même geste, jamais une seconde chaîne. */
   readonly checklistPointId?: string;
 };
+/**
+ * SUPPRIME UNE PHOTO DÉJÀ ENVOYÉE (9L04E-TERRAIN-PHOTOS-EPUREES, décision
+ * d'Alexis du 13/11/2026) — UNIQUEMENT une photo déjà confirmée par le
+ * serveur (`documentId` réel) : supprimer une photo ENCORE en file (un geste
+ * `photo` pas encore parti) se fait par `retirerSaisie` directement, sans
+ * jamais poser ce geste (voir `components/interventions/photos-terrain.tsx`)
+ * — aucun appel réseau n'a alors de sens.
+ */
+export type GesteSuppressionPhoto = {
+  readonly type: "suppression_photo";
+  readonly documentId: string;
+};
 export type GesteTerminer = { readonly type: "terminer" };
 /**
  * « J'ATTENDS UNE PIÈCE » (9K13-TERRAIN-ATTENTE-PIECE, décision d'Alexis du
@@ -311,6 +323,7 @@ export type Geste =
   | GestePrestations
   | GesteSignature
   | GestePhoto
+  | GesteSuppressionPhoto
   | GesteTerminer
   | GesteSuspendre
   | GesteChecklist;
@@ -481,6 +494,10 @@ function gesteReconnu(brut: unknown): Geste | null {
                 ? g.checklistPointId
                 : undefined,
           }
+        : null;
+    case "suppression_photo":
+      return typeof g.documentId === "string"
+        ? { type: "suppression_photo", documentId: g.documentId }
         : null;
     case "terminer":
       return { type: "terminer" };

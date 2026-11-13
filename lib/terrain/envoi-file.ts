@@ -50,12 +50,24 @@ const ORDRE_PIPELINE: Readonly<Record<Geste["type"], number>> = {
   checklist: 2,
   suspendre: 3,
   photo: 4,
+  // MÊME RANG QUE `photo` (9L04E-TERRAIN-PHOTOS-EPUREES) — supprimer une
+  // photo n'a aucune dépendance d'ordre avec le reste du pipeline ; à rang
+  // égal, `trieeParPipeline` ci-dessous départage par `id` (l'ordre
+  // chronologique d'écriture), comme pour tout autre ex æquo.
+  suppression_photo: 4,
   signature: 5,
   terminer: 6,
 };
 
 function routeDe(type: Geste["type"]): string {
-  return type === "photo" ? "photos" : type;
+  switch (type) {
+    case "photo":
+      return "photos";
+    case "suppression_photo":
+      return "photos/supprimer";
+    default:
+      return type;
+  }
 }
 
 function corpsDe(entree: EntreeFile): FormData {
@@ -122,6 +134,9 @@ function corpsDe(entree: EntreeFile): FormData {
       if (geste.checklistPointId !== undefined) {
         corps.set("checklist_point_id", geste.checklistPointId);
       }
+      return corps;
+    case "suppression_photo":
+      corps.set("document_id", geste.documentId);
       return corps;
     case "terminer":
       corps.set("instant_appareil", entree.instantAppareil);

@@ -720,12 +720,12 @@ function champDuType(
           )}
           <PhotosTerrain
             action={`/api/terrain/${photo.interventionId}/photos`}
-            libelleAjouter={t("checklist.terrain.ajouter_photo")}
             interventionId={photo.interventionId}
             utilisateurId={photo.utilisateurId}
             societeId={photo.societeId}
             sansSession={photo.sansSession}
             checklistPointId={point.id}
+            afficherExistantes={false}
           />
         </div>
       );
