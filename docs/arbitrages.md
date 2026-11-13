@@ -8636,3 +8636,25 @@ Elle ne revient pas sur D249 pour une identité déjà activée : D249 reste la 
 **Règles amendées :** aucune règle du chapitre 10 — D250 amende D249 (arbitrage de rang 2 relatif au même chapitre), sur le seul point nommé ci-dessus.
 
 Portée : `lib/auth/lien-d-acces.ts` (`inviterClientAuPortail`, `CompteDuPortailClient.enAttente`, `comptesDuPortailDuClient`), `tests/isolation/invitation-portail-client.test.ts`, `tests/e2e/captures-9j21-finitions-invitation.spec.ts` (nettoyage, sans lien avec le critère lui-même).
+
+## D251 — RETIRER L'ACCÈS D'UN COMPTE INTERNE DÉSACTIVE LA LIGNE `utilisateur_societe`, ELLE N'EST JAMAIS SUPPRIMÉE (décision d'Alexis du 10/11/2026, puis du 13/11/2026 « Désactiver » ; 9L03A-RETIRER-ACCES-INTERNE, 9L03C-RETIRER-ACCES-DESACTIVER)
+
+### CE QUI A ÉTÉ MESURÉ
+
+9L03A a mesuré, avant tout code, que SUPPRIMER une ligne `utilisateur_societe` se heurte à cinq contraintes `ON DELETE RESTRICT` déjà en production (`technicien_habilitation`, `absence`, `segment_travail` auteur, `intervention_pause` ouvert_par et fermée_par) — posées délibérément pour qu'un départ n'efface pas une habilitation, une absence, un compteur ou une pause déjà rattachés. La suppression échoue donc pour tout technicien ayant une activité enregistrée, c'est-à-dire la cible la plus courante du geste « Retirer l'accès » demandé, pas un cas rare.
+
+### LA DÉCISION
+
+Le geste ne supprime jamais la ligne `utilisateur_societe` : il pose `actif = false`, même patron que `utilisateur_client.actif` (9L04). L'historique — habilitations, absences, segments de travail, pauses — reste entier, et les cinq contraintes `RESTRICT` ne sont jamais sollicitées. **Une ligne inactive n'ouvre RIEN** : le rôle et la société active à la connexion (`lireRole`, `habilitationsDuCompte`, `lib/auth/societe-active.ts`), ni le compte des administrateurs (une ligne inactive ne compte pas pour juger du dernier administrateur d'une société). Le geste ferme en plus toutes les sessions déjà ouvertes de la personne si elle ne garde aucune habilitation ailleurs sur la plateforme, et seulement celles actives sur la société visée sinon.
+
+Aucune politique RLS neuve n'a été nécessaire : `cloisonnement_societe`, posée sur `utilisateur_societe` depuis le ticket L0-04, couvre déjà l'`UPDATE` pour toute ligne de la société active — la capacité (`administrer_utilisateurs`) se vérifie côté application, comme pour les autres écritures de cette table.
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+Elle ne touche pas la notion de « technicien inactif » du planning (`technicien.actif`) : les deux notions restent distinctes, une personne peut être inactive au planning sans que son accès soit retiré, et réciproquement. Elle ne rouvre pas la question du RETRAIT via la suppression : un geste futur qui voudrait vraiment effacer une ligne devrait d'abord lever ou contourner les cinq contraintes `RESTRICT` nommées ci-dessus, et c'est une décision distincte.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où une ligne `utilisateur_societe` inactive doit redevenir visible dans une lecture qui ne l'exclut pas aujourd'hui (un rapport, un export, un calcul de facturation qui compterait par erreur une habilitation retirée), cette décision se relit : elle suppose aujourd'hui que toute lecture qui détermine un ACCÈS ou un RÔLE filtre sur `actif = true`, et que lister les lectures qui ne le font pas encore reste un travail fini, pas une liste qui s'allonge sans qu'on le remarque.
+
+Portée : `prisma/schema.prisma` (`UtilisateurSociete.actif`, `EvenementAcces.retrait_acces_interne`), `prisma/migrations/20261113090000_retrait_acces_interne_9l03c/`, `lib/db/migrations-attendues.ts`, `lib/auth/retrait-acces.ts` (créé), `lib/auth/societe-active.ts` (`lireRole`, `habilitationsDuCompte`), `lib/auth/lien-d-acces.ts` (`revoquerAccesPortailClient`), `lib/auth/acces-bureau.ts` (`LigneCompteDeBureau.accesInterneActif`, `listerComptesDeBureau`), `lib/techniciens/depot.ts` (`LigneTechnicien.accesInterneActif`, `listerLesTechniciens`), `app/api/equipe/[id]/retirer-acces/route.ts` (créé), `app/(back-office)/parametres/equipe/page.tsx`, `lib/i18n/fr.ts`, `tests/unit/auth/porte.test.ts`, `tests/unit/equipe/retirer-acces-route.test.ts`, `tests/isolation/retrait-acces-interne.test.ts`, `tests/e2e/captures-9l03c-retirer-acces.spec.ts`.
