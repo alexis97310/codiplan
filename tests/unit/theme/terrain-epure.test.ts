@@ -24,7 +24,9 @@ const STYLE = STYLE_BRUT.replace(/\/\*[\s\S]*?\*\//g, "");
 function blocDuSelecteur(selecteur: string): string {
   const debut = STYLE.indexOf(selecteur);
   if (debut === -1) {
-    throw new Error(`sélecteur introuvable dans app/globals.css : ${selecteur}`);
+    throw new Error(
+      `sélecteur introuvable dans app/globals.css : ${selecteur}`,
+    );
   }
   const ouvrante = STYLE.indexOf("{", debut);
   const fermante = STYLE.indexOf("\n}", ouvrante);
@@ -95,10 +97,10 @@ describe("le bureau, hors de la zone terrain, rend ses anciennes couleurs (D124 
 });
 
 describe("aucun écran ne nomme la zone par un autre mot — un seul attribut", () => {
-  it("le style ne porte qu'UN SEUL sélecteur `[data-zone=\"…\"]`", () => {
-    const occurrences = [...STYLE.matchAll(/\[data-zone="([a-z0-9-]+)"\]/g)].map(
-      (m) => m[1],
-    );
+  it('le style ne porte qu\'UN SEUL sélecteur `[data-zone="…"]`', () => {
+    const occurrences = [
+      ...STYLE.matchAll(/\[data-zone="([a-z0-9-]+)"\]/g),
+    ].map((m) => m[1]);
     expect(occurrences).toEqual(["terrain"]);
   });
 });
