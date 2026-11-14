@@ -521,6 +521,13 @@ function PointLigne({
   return (
     <div
       id={`checklist-point-${point.id}`}
+      // FOCALISABLE PAR PROGRAMME SEULEMENT (point 2, 9L04G) — `tabIndex={-1}`
+      // l'exclut de l'ordre de tabulation normal (jamais un arrêt de plus au
+      // clavier pour qui parcourt la fiche point par point) ; `.focus()` dans
+      // l'effet ci-dessous l'atteint quand même, quel que soit le TYPE de
+      // réponse de CE point — texte, choix, photo — sans connaître son
+      // contrôle précis.
+      tabIndex={-1}
       className={
         surSaPropreLigne
           ? "border-app-terrain-filet flex min-h-16 flex-col gap-2 border-b py-3 last:border-b-0"
@@ -690,9 +697,13 @@ export function ChecklistTerrain({
     if (pointASauter === null) {
       return;
     }
-    document
-      .getElementById(`checklist-point-${pointASauter}`)
-      ?.scrollIntoView({ block: "center" });
+    const noeud = document.getElementById(`checklist-point-${pointASauter}`);
+    noeud?.scrollIntoView({ block: "center" });
+    // LE FOCUS, PAS SEULEMENT LE DÉFILEMENT (point 2, 9L04G) — un lecteur
+    // d'écran annonce alors CE point précis, jamais seulement « la page a
+    // bougé ». `tabIndex={-1}` sur ce même nœud (`PointLigne`) le rend
+    // focalisable sans l'ajouter à l'ordre de tabulation.
+    noeud?.focus();
     setPointASauter(null);
   }, [pointASauter]);
 

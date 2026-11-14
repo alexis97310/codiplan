@@ -2055,6 +2055,7 @@ export function RapportTerrainAutomatique({
   function allerALaSignature(): void {
     setConfirmationTerminerOuverte(false);
     signatureSectionRef.current?.scrollIntoView({ block: "start" });
+    signatureSectionRef.current?.focus();
   }
 
   /** Un point de checklist cité dans la feuille — referme-la avant d'y saisir. */
@@ -2274,6 +2275,11 @@ export function RapportTerrainAutomatique({
 
       <section
         ref={signatureSectionRef}
+        // FOCALISABLE PAR PROGRAMME SEULEMENT (point 2, 9L04G, même patron
+        // que `PointLigne` dans `checklist-terrain.tsx`) — `allerALaSignature`
+        // y appelle `.focus()` juste après le défilement, pour qu'un lecteur
+        // d'écran annonce CETTE section, jamais seulement « la page a bougé ».
+        tabIndex={-1}
         className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5"
       >
         <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
