@@ -534,7 +534,8 @@ async function habiliterEtRattacherDans(
   utilisateurId: string,
   saisie: SaisieTechnicien,
 ): Promise<
-  { readonly accepte: true } | { readonly accepte: false; readonly motif: "deja_membre" }
+  | { readonly accepte: true }
+  | { readonly accepte: false; readonly motif: "deja_membre" }
 > {
   const existante = await tx.utilisateurSociete.findFirst({
     where: { utilisateur_id: utilisateurId, societe_id: societeId },

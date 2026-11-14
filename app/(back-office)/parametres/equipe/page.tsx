@@ -1534,7 +1534,10 @@ function GesteAccesBureau({
   // (9L04K), lui, a tout son sens ici : c'est le seul geste proposé.
   if (!compte.accesInterneActif) {
     return (
-      <BoutonRetablirAcces utilisateurId={compte.utilisateurId} onglet="bureau" />
+      <BoutonRetablirAcces
+        utilisateurId={compte.utilisateurId}
+        onglet="bureau"
+      />
     );
   }
   if (etat.etat === "actif") {

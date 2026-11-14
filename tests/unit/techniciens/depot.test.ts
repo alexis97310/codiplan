@@ -152,7 +152,10 @@ function fabriquerClientFactice(options: {
           ? null
           : options.utilisateurSocieteExistante === null
             ? null
-            : { id: "0192f0a0-0000-7000-8000-00000000us0", ...options.utilisateurSocieteExistante },
+            : {
+                id: "0192f0a0-0000-7000-8000-00000000us0",
+                ...options.utilisateurSocieteExistante,
+              },
       update: async ({ data }: { data: unknown }) => {
         appels.utilisateurSocieteReactivee.push(data);
         return { id: "0192f0a0-0000-7000-8000-00000000us0" };

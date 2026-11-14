@@ -141,7 +141,9 @@ for (const largeur of [1280, 375] as const) {
 
       // ── LA TUILE D'ÉQUIPE DU TABLEAU DE BORD, AVANT ─────────────────────
       await page.goto("/tableau-de-bord");
-      await expect(page.locator('[data-bloc="kpi-acces-a-ouvrir"]')).toBeVisible();
+      await expect(
+        page.locator('[data-bloc="kpi-acces-a-ouvrir"]'),
+      ).toBeVisible();
       await capturer(page, "tableau-de-bord-tuile-equipe-avant", largeur);
 
       // ── LE RETRAIT, PRÉALABLE À CE QUE CE LOT ÉPROUVE ────────────────────
@@ -160,9 +162,7 @@ for (const largeur of [1280, 375] as const) {
       // ── « RÉTABLIR L'ACCÈS » (9L04K) ────────────────────────────────────
       await page.goto("/parametres/equipe?onglet=bureau");
       ligne = page.getByRole("row").filter({ hasText: sujet.nom });
-      await expect(
-        ligne.getByText(fr["equipe.acces_retire"]),
-      ).toBeVisible();
+      await expect(ligne.getByText(fr["equipe.acces_retire"])).toBeVisible();
       const bouton = ligne.getByRole("button", {
         name: fr["equipe.retablir_acces"],
       });
@@ -199,7 +199,9 @@ for (const largeur of [1280, 375] as const) {
 
       // ── LA TUILE D'ÉQUIPE DU TABLEAU DE BORD, APRÈS ─────────────────────
       await page.goto("/tableau-de-bord");
-      await expect(page.locator('[data-bloc="kpi-acces-a-ouvrir"]')).toBeVisible();
+      await expect(
+        page.locator('[data-bloc="kpi-acces-a-ouvrir"]'),
+      ).toBeVisible();
       await capturer(page, "tableau-de-bord-tuile-equipe-apres", largeur);
     });
 

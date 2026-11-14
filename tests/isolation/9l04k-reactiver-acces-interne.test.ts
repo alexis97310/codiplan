@@ -14,7 +14,12 @@ import { techniciensAccesAOuvrir } from "@/lib/tableau-de-bord/lectures";
 import { creerTechnicien } from "@/lib/techniciens/depot";
 
 import { clientApp, clientOwner, fermerClients } from "./setup/db";
-import { AGENCE_A, SOCIETE_A, SOCIETE_B, UTILISATEUR_PAR_ROLE } from "./setup/fixtures";
+import {
+  AGENCE_A,
+  SOCIETE_A,
+  SOCIETE_B,
+  UTILISATEUR_PAR_ROLE,
+} from "./setup/fixtures";
 
 /**
  * 9L04K-REACTIVER-ACCES-INTERNE — RÉ-ACCORDER L'ACCÈS D'UN COMPTE INTERNE
