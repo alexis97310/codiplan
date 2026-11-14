@@ -690,14 +690,19 @@ export function PhotosTerrain({
 
   function selectionner(evenement: React.ChangeEvent<HTMLInputElement>): void {
     const fichiers = evenement.currentTarget.files;
-    evenement.currentTarget.value = "";
     if (fichiers === null) {
       return;
     }
     // ENVOI AUTOMATIQUE, UN PAR FICHIER (point 2 du ticket) — une photo en
     // échec n'empêche jamais les autres : chaque fichier porte sa propre
-    // tentative, indépendante des autres.
-    for (const fichier of Array.from(fichiers)) {
+    // tentative, indépendante des autres. `Array.from` COPIE la liste AVANT
+    // de vider le champ : `fichiers` reste une vue LIVE sur `input.files`
+    // dans ce moteur (mesuré) — remettre `value = ""` avant cette copie
+    // viderait la boucle elle-même, et aucune photo ne serait jamais
+    // envoyée.
+    const copie = Array.from(fichiers);
+    evenement.currentTarget.value = "";
+    for (const fichier of copie) {
       const id = crypto.randomUUID();
       const apercu = URL.createObjectURL(fichier);
       setTentatives((precedentes) => [
