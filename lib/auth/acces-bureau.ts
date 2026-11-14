@@ -272,6 +272,16 @@ const VIOLATION_UNICITE = "P2002";
  * cette adresse n'apprend donc rien de plus que « elle ne peut pas être
  * rattachée ici ». Un courriel connu de la MÊME société (déjà membre) garde
  * son refus propre, `deja_membre`, inchangé.
+ *
+ * **UNE LIGNE RETIRÉE SE RÉACTIVE, ELLE NE DUPLIQUE JAMAIS (9L04K-REACTIVER-
+ * ACCES-INTERNE)** — mesuré par la passation de 9L03C : avant ce lot, une
+ * ligne `utilisateur_societe` INACTIVE (`retirerAccesInterne`,
+ * `lib/auth/retrait-acces.ts`) heurtait la contrainte d'unicité
+ * `(utilisateur_id, societe_id)` exactement comme une ligne active, et
+ * rendait `deja_membre` sans distinction — recréer le compte d'une personne
+ * dont l'accès avait été retiré échouait donc toujours. Seule une ligne
+ * INACTIVE est désormais réactivée (rôle de CE formulaire appliqué) ; une
+ * ligne ACTIVE garde son refus `deja_membre` inchangé.
  */
 export async function creerCompteDeBureau(
   contexte: ContexteSession,
@@ -315,12 +325,30 @@ export async function creerCompteDeBureau(
     utilisateurId = cree.id;
   }
 
-  // ── L'HABILITATION DE BUREAU ──────────────────────────────────────────────
+  // ── L'HABILITATION DE BUREAU — CRÉÉE, OU RÉACTIVÉE SI UNE LIGNE INACTIVE
+  // EXISTE DÉJÀ (9L04K-REACTIVER-ACCES-INTERNE, mesuré par 9L03C : « ré-
+  // accorder l'accès passe par le chemin de création/modification »). Le
+  // RÔLE demandé par CE formulaire est appliqué à la réactivation — jamais
+  // celui que portait la ligne avant son retrait.
   try {
-    await avecContexteApplicatif(
+    const resultat = await avecContexteApplicatif(
       contexte,
-      (tx) =>
-        tx.utilisateurSociete.create({
+      async (tx) => {
+        const existante = await tx.utilisateurSociete.findFirst({
+          where: { utilisateur_id: utilisateurId, societe_id: societeId },
+          select: { id: true, actif: true },
+        });
+        if (existante !== null) {
+          if (existante.actif) {
+            return { accepte: false as const, motif: "deja_membre" as const };
+          }
+          await tx.utilisateurSociete.update({
+            where: { id: existante.id },
+            data: { actif: true, role: saisie.role },
+          });
+          return { accepte: true as const };
+        }
+        await tx.utilisateurSociete.create({
           data: {
             id: uuidv7(),
             utilisateur_id: utilisateurId,
@@ -328,9 +356,14 @@ export async function creerCompteDeBureau(
             role: saisie.role,
           },
           select: { id: true },
-        }),
+        });
+        return { accepte: true as const };
+      },
       client,
     );
+    if (!resultat.accepte) {
+      return resultat;
+    }
   } catch (erreur: unknown) {
     if (
       erreur instanceof Prisma.PrismaClientKnownRequestError &&

@@ -64,6 +64,7 @@ const SAISIE_VALIDE: SaisieTechnicien = {
 type Appels = {
   utilisateurCree: unknown[];
   utilisateurSocieteCree: unknown[];
+  utilisateurSocieteReactivee: unknown[];
   technicienCree: unknown[];
   technicienModifie: unknown[];
   /** Nombre d'ouvertures de `$transaction`, TOUTES origines confondues. */
@@ -101,10 +102,19 @@ function fabriquerClientFactice(options: {
    * NEUVE, qui n'a encore aucune société.
    */
   readonly identiteExclusive?: boolean;
+  /**
+   * LA LIGNE `utilisateur_societe` DÉJÀ EN BASE pour cette identité, AVANT
+   * l'écriture (9L04K-REACTIVER-ACCES-INTERNE) — absente par défaut (aucune
+   * ligne, le chemin de CRÉATION ordinaire). `{ actif: false }` rejoue la
+   * RÉACTIVATION ; `{ actif: true }` n'est jamais atteint par ce dépôt — la
+   * contrainte d'unicité (`echecUtilisateurSociete`) tient déjà ce cas.
+   */
+  readonly utilisateurSocieteExistante?: { readonly actif: boolean } | null;
 }): { readonly client: PrismaClient; readonly appels: Appels } {
   const appels: Appels = {
     utilisateurCree: [],
     utilisateurSocieteCree: [],
+    utilisateurSocieteReactivee: [],
     technicienCree: [],
     technicienModifie: [],
     transactionsOuvertes: 0,
@@ -137,6 +147,16 @@ function fabriquerClientFactice(options: {
       },
     },
     utilisateurSociete: {
+      findFirst: async () =>
+        options.utilisateurSocieteExistante === undefined
+          ? null
+          : options.utilisateurSocieteExistante === null
+            ? null
+            : { id: "0192f0a0-0000-7000-8000-00000000us0", ...options.utilisateurSocieteExistante },
+      update: async ({ data }: { data: unknown }) => {
+        appels.utilisateurSocieteReactivee.push(data);
+        return { id: "0192f0a0-0000-7000-8000-00000000us0" };
+      },
       create: async ({ data }: { data: { id: string } }) => {
         if (options.echecUtilisateurSociete !== undefined) {
           throw options.echecUtilisateurSociete;
@@ -368,6 +388,33 @@ describe("un courriel déjà pris rattache, il ne duplique jamais (gardien)", ()
     );
 
     expect(resultat).toEqual({ accepte: false, motif: "deja_membre" });
+    expect(appels.technicienCree).toHaveLength(0);
+  });
+});
+
+describe("une ligne `utilisateur_societe` INACTIVE se réactive (9L04K-REACTIVER-ACCES-INTERNE)", () => {
+  it("réactive la ligne, et n'écrit NI `utilisateurSociete.create` NI `technicien.create`", async () => {
+    const { client, appels } = fabriquerClientFactice({
+      utilisateurExistant: { id: "0192f0a0-0000-7000-8000-0000000000ex" },
+      utilisateurSocieteExistante: { actif: false },
+    });
+
+    const resultat = await creerTechnicien(
+      CONTEXTE_ADMIN,
+      SAISIE_VALIDE,
+      client,
+    );
+
+    expect(resultat).toEqual({
+      accepte: true,
+      utilisateurId: "0192f0a0-0000-7000-8000-0000000000ex",
+      rattache: true,
+    });
+    expect(appels.utilisateurSocieteReactivee).toEqual([{ actif: true }]);
+    expect(appels.utilisateurSocieteCree).toHaveLength(0);
+    // LA FICHE `technicien`, JAMAIS SUPPRIMÉE PAR LE RETRAIT, N'EST JAMAIS
+    // RE-CRÉÉE : sa clé est PRIMAIRE (`societe_id`, `utilisateur_id`), pas une
+    // contrainte d'unicité secondaire traduisible en `deja_membre`.
     expect(appels.technicienCree).toHaveLength(0);
   });
 });

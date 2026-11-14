@@ -495,8 +495,7 @@ export async function creerTechnicien(
             motif: "agence_inactive" as const,
           };
         }
-        await habiliterEtRattacherDans(tx, societeId, utilisateurId, saisie);
-        return { accepte: true as const };
+        return habiliterEtRattacherDans(tx, societeId, utilisateurId, saisie);
       },
       client,
     );
@@ -514,12 +513,44 @@ export async function creerTechnicien(
   return { accepte: true, utilisateurId, rattache };
 }
 
+/**
+ * L'HABILITATION ET LE RATTACHEMENT — CRÉÉS, OU LA PREMIÈRE SEULE RÉACTIVÉE
+ * SI ELLE EXISTE DÉJÀ INACTIVE (9L04K-REACTIVER-ACCES-INTERNE, mesuré par
+ * 9L03C).
+ *
+ * **LA FICHE `technicien` N'EST JAMAIS RE-CRÉÉE NI MODIFIÉE ICI** —
+ * `retirerAccesInterne` ne la touche jamais (D196), elle porte donc encore
+ * son agence et son statut de ressource tels qu'ils étaient avant le retrait
+ * : les reprendre tels quels, sans les soumettre au formulaire de création,
+ * est le choix du ticket. `(societe_id, utilisateur_id)` est sa clé PRIMAIRE
+ * — tenter de la recréer heurterait cette clé, jamais une contrainte
+ * d'unicité secondaire traduisible en `deja_membre` (voir `motifDeLErreur`
+ * ci-dessus) : la sauter pour une ligne déjà existante n'est donc pas qu'une
+ * optimisation, c'est ce qui évite un refus illisible.
+ */
 async function habiliterEtRattacherDans(
   tx: Prisma.TransactionClient,
   societeId: string,
   utilisateurId: string,
   saisie: SaisieTechnicien,
-): Promise<void> {
+): Promise<
+  { readonly accepte: true } | { readonly accepte: false; readonly motif: "deja_membre" }
+> {
+  const existante = await tx.utilisateurSociete.findFirst({
+    where: { utilisateur_id: utilisateurId, societe_id: societeId },
+    select: { id: true, actif: true },
+  });
+  if (existante !== null) {
+    if (existante.actif) {
+      return { accepte: false, motif: "deja_membre" };
+    }
+    await tx.utilisateurSociete.update({
+      where: { id: existante.id },
+      data: { actif: true },
+    });
+    return { accepte: true };
+  }
+
   await tx.utilisateurSociete.create({
     data: {
       id: uuidv7(),
@@ -541,6 +572,7 @@ async function habiliterEtRattacherDans(
     },
     select: { id: true },
   });
+  return { accepte: true };
 }
 
 /**
