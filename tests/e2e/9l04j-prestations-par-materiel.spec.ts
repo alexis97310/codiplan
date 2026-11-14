@@ -136,7 +136,9 @@ test.beforeAll(async () => {
         code: fr["terrain9l04j.e2e.prestation_pont_code"],
         libelle: fr["terrain9l04j.e2e.prestation_pont_libelle"],
         actif: true,
-        familles: { create: [{ id: uuidv7(), famille_id: modelePont.famille_id }] },
+        familles: {
+          create: [{ id: uuidv7(), famille_id: modelePont.famille_id }],
+        },
       },
     });
 
@@ -152,7 +154,9 @@ test.beforeAll(async () => {
         statut: "affectee",
         date_planifiee: new Date("2026-09-25T00:00:00Z"),
         duree_estimee_min: 60,
-        machines: { create: [{ id: uuidv7(), machine_id: MACHINE_PONT_9L04J }] },
+        machines: {
+          create: [{ id: uuidv7(), machine_id: MACHINE_PONT_9L04J }],
+        },
       },
     });
     await client.intervention.create({
@@ -188,7 +192,9 @@ test.beforeAll(async () => {
         statut: "cloturee",
         date_planifiee: new Date("2026-09-20T00:00:00Z"),
         duree_estimee_min: 60,
-        machines: { create: [{ id: uuidv7(), machine_id: MACHINE_PONT_9L04J }] },
+        machines: {
+          create: [{ id: uuidv7(), machine_id: MACHINE_PONT_9L04J }],
+        },
         prestations_realisees: {
           create: [{ id: uuidv7(), prestation_id: PRESTATION_PONT_9L04J }],
         },
@@ -242,7 +248,9 @@ test.describe("le terrain ne propose une prestation que pour la famille de SA ma
   }) => {
     await ouvrirLaSessionDuTerrain(page);
     await page.goto(`/terrain/${INTERVENTION_PONT_9L04J}`);
-    const case_ = page.getByLabel(fr["terrain9l04j.e2e.prestation_pont_libelle"]);
+    const case_ = page.getByLabel(
+      fr["terrain9l04j.e2e.prestation_pont_libelle"],
+    );
     await expect(case_).toBeVisible();
     await expect(case_).toBeEnabled();
   });
@@ -294,10 +302,7 @@ test.describe("le réglage des prestations montre et modifie les familles de mat
       .getByLabel(fr["prestations.libelle"], { exact: true })
       .first()
       .fill(fr["terrain9l04j.e2e.prestation_reglage_libelle"]);
-    await page
-      .getByRole("checkbox", { name: libellePont })
-      .first()
-      .check();
+    await page.getByRole("checkbox", { name: libellePont }).first().check();
     await page
       .getByRole("button", { name: fr["prestations.creer_action"] })
       .click();

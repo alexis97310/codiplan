@@ -89,7 +89,11 @@ describe("prestationsPourFamille — VIDE = générale, une réalisation ne disp
   });
 
   it("sur un pont, elle EST proposée", () => {
-    const proposees = prestationsPourFamille(catalogue, FAMILLE_PONT, new Set());
+    const proposees = prestationsPourFamille(
+      catalogue,
+      FAMILLE_PONT,
+      new Set(),
+    );
     expect(proposees.map((p) => p.id)).toEqual(["p1", "p2", "p3"]);
   });
 

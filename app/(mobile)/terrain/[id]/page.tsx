@@ -384,8 +384,7 @@ export default async function PageInterventionTerrain({
   // disparaît jamais.
   const familleMachineId =
     ligne.machines.length > 0
-      ? (donneesMateriel.get(ligne.machines[0]!.machine_id)?.familleId ??
-        null)
+      ? (donneesMateriel.get(ligne.machines[0]!.machine_id)?.familleId ?? null)
       : null;
   const prestationsAProposer = prestationsPourFamille(
     prestationsProposees(

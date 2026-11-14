@@ -403,9 +403,7 @@ describe("9L04J — les familles de matériel d'une prestation", () => {
   it("le catalogue hors réseau porte les familles (9L04J, étendant la promesse D216)", async () => {
     const id = await creer({ familles: [FAMILLE_A] });
     const catalogue = await catalogueActifPourTerrain(SESSION, clientApp());
-    expect(catalogue.find((p) => p.id === id)?.familles).toEqual([
-      FAMILLE_A,
-    ]);
+    expect(catalogue.find((p) => p.id === id)?.familles).toEqual([FAMILLE_A]);
   });
 
   it("une AUTRE société ne lit ni n'écrit les familles d'une prestation qui n'est pas la sienne", async () => {

@@ -161,7 +161,9 @@ export default async function PagePrestations({
             <tr key={prestation.id}>
               <Cellule fort>{prestation.code}</Cellule>
               <Cellule>{prestation.libelle}</Cellule>
-              <Cellule>{libellesDesFamilles(prestation.familles, familles)}</Cellule>
+              <Cellule>
+                {libellesDesFamilles(prestation.familles, familles)}
+              </Cellule>
               <Cellule>{dureeAffichee(prestation)}</Cellule>
               <Cellule>{libellesDesTypes(prestation.types)}</Cellule>
               <Cellule>
