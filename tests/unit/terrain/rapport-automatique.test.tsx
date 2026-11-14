@@ -415,7 +415,7 @@ describe("le plafond de 50 pièces (9I8E-RESERVES-LISTES-ET-PIECES, point 4 ; r�
   });
 });
 
-describe("le catalogue vide se distingue du catalogue filtré par type (9K29, D243)", () => {
+describe("le catalogue vide se distingue du catalogue filtré (9K29, D243 ; 9L04J, D259)", () => {
   function sceneVide(props: {
     catalogueIndisponibleHorsReseau?: boolean;
     aucunePrestationPourCeType?: boolean;
@@ -454,11 +454,11 @@ describe("le catalogue vide se distingue du catalogue filtré par type (9K29, D2
     expect(screen.getByText(fr["terrain.prestations.aucune"])).toBeVisible();
   });
 
-  it("catalogue non vide, mais rien pour ce type — un message DISTINCT", () => {
+  it("catalogue non vide, mais rien ne correspond — la rubrique ENTIÈRE s'efface (D259)", () => {
     sceneVide({ aucunePrestationPourCeType: true });
     expect(
-      screen.getByText(fr["terrain.prestations.aucune_pour_ce_type"]),
-    ).toBeVisible();
+      screen.queryByText(fr["terrain.prestations.titre"]),
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByText(fr["terrain.prestations.aucune"]),
     ).not.toBeInTheDocument();

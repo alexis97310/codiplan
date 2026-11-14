@@ -68,6 +68,7 @@ const INSTANTANE: InstantaneJSON = {
       fuseau: "Pacific/Noumea",
       panne: null,
       machinesLibelles: [],
+      familleMachineId: null,
       contact: null,
       rapport: {
         commentaireTechnicien: null,
@@ -95,6 +96,7 @@ const INSTANTANE: InstantaneJSON = {
       code: "VID",
       libelle: fr["terrain.e2e.prestation_libelle"],
       types: [],
+      familles: [],
     },
   ],
   checklistModeles: {},

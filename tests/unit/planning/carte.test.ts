@@ -89,6 +89,7 @@ describe("dureeCarteAffichee", () => {
 describe("materielDeLaCarte", () => {
   const PONT: DonneesMateriel = {
     familleLibelle: "Pont Elevateur",
+    familleId: "famille-pont",
     marque: "RAVAGLIOLI",
     reference: "RAV4401.4",
     numeroSerie: "00106",
@@ -111,6 +112,7 @@ describe("materielDeLaCarte", () => {
   it("plusieurs machines : jointes par une virgule, comme `machinesAffichees`", () => {
     const autre: DonneesMateriel = {
       familleLibelle: "Cric",
+      familleId: "famille-cric",
       marque: "Cascos",
       reference: "13442",
       numeroSerie: "10044",

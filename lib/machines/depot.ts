@@ -905,6 +905,10 @@ export async function libellesDesMachines(
  */
 export type DonneesMateriel = {
   readonly familleLibelle: string;
+  /** L'IDENTIFIANT DE LA FAMILLE (9L04J, D259) — pour le filtre par matériel
+   * du catalogue des prestations (`lib/prestations/regle-famille.ts`), qui
+   * compare des identifiants, jamais un libellé. */
+  readonly familleId: string;
   readonly marque: string;
   readonly reference: string;
   readonly numeroSerie: string;
@@ -934,6 +938,7 @@ export async function donneesMaterielDesMachines(
             select: {
               marque: true,
               reference: true,
+              famille_id: true,
               famille: { select: { libelle: true } },
             },
           },
@@ -944,6 +949,7 @@ export async function donneesMaterielDesMachines(
           machine.id,
           {
             familleLibelle: machine.modele.famille.libelle,
+            familleId: machine.modele.famille_id,
             marque: machine.modele.marque,
             reference: machine.modele.reference,
             numeroSerie: machine.numero_serie,

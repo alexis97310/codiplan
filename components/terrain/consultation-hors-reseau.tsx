@@ -21,6 +21,7 @@ import {
   type StatutIntervention,
   type TypeIntervention,
 } from "@/lib/interventions/saisie";
+import { prestationsPourFamille } from "@/lib/prestations/regle-famille";
 import { prestationsProposees } from "@/lib/prestations/regle-type";
 import { lireCopie } from "@/lib/terrain/copie-locale";
 import {
@@ -429,16 +430,21 @@ function Fiche({
     },
     fiche.fuseau,
   );
-  // PAR TYPE D'INTERVENTION (9K29, D243), même règle pure qu'en ligne
-  // (`app/(mobile)/terrain/[id]/page.tsx`) : calculée UNE FOIS, partagée par
-  // la liste proposée et par le message d'état vide qui la distingue d'un
-  // catalogue réellement vide.
+  // PAR TYPE D'INTERVENTION (9K29, D243) ET PAR FAMILLE DE MATÉRIEL (9L04J,
+  // D259), mêmes règles pures qu'en ligne (`app/(mobile)/terrain/[id]/
+  // page.tsx`) : calculées UNE FOIS, partagées par la liste proposée et par
+  // le message d'état vide qui la distingue d'un catalogue réellement vide.
+  const idsRealises = new Set(prestationsInitiales);
   const prestationsAProposer = catalogueIndisponibleHorsReseau
     ? []
-    : prestationsProposees(
-        catalogue,
-        fiche.type as TypeIntervention,
-        new Set(prestationsInitiales),
+    : prestationsPourFamille(
+        prestationsProposees(
+          catalogue,
+          fiche.type as TypeIntervention,
+          idsRealises,
+        ),
+        fiche.familleMachineId,
+        idsRealises,
       );
   return (
     <>

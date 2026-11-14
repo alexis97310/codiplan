@@ -83,6 +83,7 @@ import {
   libelleMaterielComplet,
 } from "@/lib/machines/presentation";
 import { listerLesPrestations } from "@/lib/prestations/depot";
+import { prestationsPourFamille } from "@/lib/prestations/regle-famille";
 import { prestationsProposees } from "@/lib/prestations/regle-type";
 import { lireSite } from "@/lib/sites/depot";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
@@ -311,14 +312,6 @@ export default async function PageInterventionTerrain({
   const idsRealises = new Set(
     (prestationsFaites ?? []).map((p) => p.prestation_id),
   );
-  // PAR TYPE D'INTERVENTION (9K29, D243) — une prestation « curatif seulement »
-  // ne se propose pas sur un préventif, sauf si elle a déjà été déclarée
-  // réalisée (`idsRealises`) : une réalisation ne disparaît jamais.
-  const prestationsAProposer = prestationsProposees(
-    prestationsActives,
-    ligne.type as TypeIntervention,
-    idsRealises,
-  );
   const adresseSite = formatAdresseSite(
     site?.adresse ?? null,
     site?.commune ?? null,
@@ -381,6 +374,27 @@ export default async function PageInterventionTerrain({
   const donneesMateriel = await donneesMaterielDesMachines(
     contexte,
     ligne.machines.map((m) => m.machine_id),
+  );
+  // LA FAMILLE DE LA MACHINE DE L'INTERVENTION (9L04J, D259) — `null` si
+  // aucune machine n'est rattachée (D56, une intervention porte au plus UNE
+  // machine). PAR TYPE D'INTERVENTION (9K29, D243) ET PAR FAMILLE DE
+  // MATÉRIEL (9L04J) : une prestation « curatif seulement » ou « pont
+  // élévateur seulement » ne se propose pas hors de ce cadre, sauf si elle a
+  // déjà été déclarée réalisée (`idsRealises`) : une réalisation ne
+  // disparaît jamais.
+  const familleMachineId =
+    ligne.machines.length > 0
+      ? (donneesMateriel.get(ligne.machines[0]!.machine_id)?.familleId ??
+        null)
+      : null;
+  const prestationsAProposer = prestationsPourFamille(
+    prestationsProposees(
+      prestationsActives,
+      ligne.type as TypeIntervention,
+      idsRealises,
+    ),
+    familleMachineId,
+    idsRealises,
   );
   // L'ANNÉE DE FABRICATION ET LA GARANTIE (9I8C) — lecture seule, au même
   // endroit que le libellé ci-dessous. Jugée au même jour de référence que

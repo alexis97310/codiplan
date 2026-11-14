@@ -926,11 +926,17 @@ export function RapportTerrainAutomatique({
    */
   readonly catalogueIndisponibleHorsReseau?: boolean;
   /**
-   * LE CATALOGUE N'EST PAS VIDE, MAIS RIEN N'EST PROPOSÉ POUR CE TYPE (9K29,
-   * D243) — troisième cas, distinct des deux ci-dessus : l'appelant le pose
-   * quand sa prestation ACTIVE existe, mais que la règle de proposition
-   * (`lib/prestations/regle-type.ts`) les a toutes écartées pour le type de
-   * CETTE intervention. Confondre avec `terrain.prestations.aucune` dirait
+   * LE CATALOGUE N'EST PAS VIDE, MAIS RIEN N'EST PROPOSÉ ICI (9K29, D243 ;
+   * étendu par 9L04J, D259) — troisième cas, distinct des deux ci-dessus :
+   * l'appelant le pose quand sa prestation ACTIVE existe, mais que les
+   * règles de proposition (`lib/prestations/regle-type.ts` ET `regle-
+   * famille.ts`, composées) les ont toutes écartées pour le TYPE et/ou la
+   * FAMILLE DE MATÉRIEL de cette intervention.
+   *
+   * **La rubrique entière s'efface quand c'est vrai** (décision d'Alexis du
+   * 13/11/2026, D259) — sauf si `catalogueIndisponibleHorsReseau` est vrai
+   * aussi, qui garde la priorité : une coupure réseau se NOMME, elle ne
+   * s'efface jamais. Confondre avec `terrain.prestations.aucune` dirait
    * « rien n'est paramétré » quand la vraie réponse est « rien ne s'applique
    * ici » — pas une anomalie, la règle elle-même. `false` par défaut.
    */
@@ -2583,48 +2589,55 @@ export function RapportTerrainAutomatique({
         </section>
       )}
 
-      <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-        <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
-          {t("terrain.prestations.titre")}
-        </h2>
-        {prestations.length === 0 ? (
-          <p className="text-app-encre-faible text-16 font-bold">
-            {catalogueIndisponibleHorsReseau
-              ? t("terrain.prestations.catalogue_indisponible_hors_reseau")
-              : aucunePrestationPourCeType
-                ? t("terrain.prestations.aucune_pour_ce_type")
+      {/* LA RUBRIQUE S'EFFACE ENTIÈREMENT (9L04J, D259, décision d'Alexis du
+          13/11/2026) QUAND LE CATALOGUE N'EST PAS VIDE MAIS QUE RIEN NE
+          CORRESPOND à cette intervention (type ET famille de matériel) —
+          jamais seulement un message différent à sa place. `catalogue
+          IndisponibleHorsReseau` garde la PRIORITÉ (même ordre que
+          l'ancien ternaire) : une coupure réseau reste un état qu'on NOMME,
+          jamais une rubrique qu'on efface. */}
+      {aucunePrestationPourCeType && !catalogueIndisponibleHorsReseau ? null : (
+        <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
+          <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
+            {t("terrain.prestations.titre")}
+          </h2>
+          {prestations.length === 0 ? (
+            <p className="text-app-encre-faible text-16 font-bold">
+              {catalogueIndisponibleHorsReseau
+                ? t("terrain.prestations.catalogue_indisponible_hors_reseau")
                 : t("terrain.prestations.aucune")}
-          </p>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {/* LA CIBLE TACTILE DE 44 PX (point 5, 9G5-TERRAIN-ERGONOMIE) —
-                un `<input type="checkbox">` nu n'offre, sous le pouce, que la
-                taille du glyphe rendu par le navigateur. Même habillage que
-                partout ailleurs (`CaseACocher`, CG8), jamais une seconde
-                écriture de la même cible. */}
-            {prestations.map((prestation) => (
-              <CaseACocher
-                key={prestation.id}
-                name={`prestation_${prestation.id}`}
-                libelle={prestation.libelle}
-                checked={prestationsChoisies.has(prestation.id)}
-                onChange={() =>
-                  basculerPrestation(
-                    prestation.id,
-                    !prestationsChoisies.has(prestation.id),
-                  )
-                }
-                className="flex items-center gap-2 text-16 font-bold"
-              />
-            ))}
-          </div>
-        )}
-        <Indicateur
-          etat={etatPrestations}
-          texteReussite={t("terrain.prestations.enregistre")}
-          texteEchec={t("terrain.prestations.refus")}
-        />
-      </section>
+            </p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {/* LA CIBLE TACTILE DE 44 PX (point 5, 9G5-TERRAIN-ERGONOMIE) —
+                  un `<input type="checkbox">` nu n'offre, sous le pouce, que la
+                  taille du glyphe rendu par le navigateur. Même habillage que
+                  partout ailleurs (`CaseACocher`, CG8), jamais une seconde
+                  écriture de la même cible. */}
+              {prestations.map((prestation) => (
+                <CaseACocher
+                  key={prestation.id}
+                  name={`prestation_${prestation.id}`}
+                  libelle={prestation.libelle}
+                  checked={prestationsChoisies.has(prestation.id)}
+                  onChange={() =>
+                    basculerPrestation(
+                      prestation.id,
+                      !prestationsChoisies.has(prestation.id),
+                    )
+                  }
+                  className="flex items-center gap-2 text-16 font-bold"
+                />
+              ))}
+            </div>
+          )}
+          <Indicateur
+            etat={etatPrestations}
+            texteReussite={t("terrain.prestations.enregistre")}
+            texteEchec={t("terrain.prestations.refus")}
+          />
+        </section>
+      )}
 
       {sectionPhotos}
 

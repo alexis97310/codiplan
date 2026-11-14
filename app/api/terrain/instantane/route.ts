@@ -144,6 +144,12 @@ export type FicheJSON = {
       readonly quantite: number;
     }[];
   };
+  /** LA FAMILLE DE LA MACHINE DE L'INTERVENTION (9L04J, D259) — `null` si
+   * aucune machine n'est rattachée (D56, une intervention porte au plus UNE
+   * machine). Nécessaire au FILTRE PAR MATÉRIEL (`lib/prestations/regle-
+   * famille.ts`), composé côté client avec `catalogue` ci-dessous et le
+   * filtre par type (9K29), exactement comme en ligne. */
+  readonly familleMachineId: string | null;
   readonly prestationsRealisees: readonly string[];
   /** Les `id` des mêmes prestations, DANS LE MÊME ORDRE (9F4H6, point 3) —
    * `prestationsRealisees` ne porte que des LIBELLÉS (affichage en ligne,
@@ -279,13 +285,14 @@ async function ficheEnJSON(
     return null;
   }
   const ligne = fiche.ligne;
+  const machineIds = ligne.machines.map((m) => m.machine_id);
   const [
     mesure,
     rapportTexte,
     prestationsFaites,
     photos,
     signature,
-    machinesLibelles,
+    donneesMateriel,
     pieces,
     checklist,
   ] = await Promise.all([
@@ -294,15 +301,23 @@ async function ficheEnJSON(
     prestationsRealisees(contexte, id),
     photosDeLIntervention(contexte, id),
     derniereSignature(contexte, id),
-    libellesDesMachines(
-      contexte,
-      ligne.machines.map((m) => m.machine_id),
-    ),
+    donneesMaterielDesMachines(contexte, machineIds),
     piecesRemplacees(contexte, id),
     // LA CHECKLIST RÉSOLUE (9K22-CHECKLIST-HORS-RESEAU, CK6) — `disponible:
     // false` si aucun gabarit ne s'applique, rien pour cette intervention.
     checklistDeLIntervention(contexte, id),
   ]);
+  const machinesLibelles = machineIds
+    .map((machineId) => donneesMateriel.get(machineId))
+    .filter((d): d is NonNullable<typeof d> => d !== null && d !== undefined)
+    .map(libelleMaterielComplet);
+  // LA FAMILLE DE LA MACHINE DE L'INTERVENTION (9L04J, D259) — `null` si
+  // aucune machine n'est rattachée (D56, une intervention porte au plus UNE
+  // machine).
+  const familleMachineId =
+    machineIds.length > 0
+      ? (donneesMateriel.get(machineIds[0]!)?.familleId ?? null)
+      : null;
   const statut = ligne.statut;
   const checklistJSON: FicheJSON["checklist"] = !checklist?.disponible
     ? { disponible: false }
@@ -366,6 +381,7 @@ async function ficheEnJSON(
       fuseau: fiche.fuseau,
       panne: ligne.description,
       machinesLibelles,
+      familleMachineId,
       contact:
         fiche.contact === null
           ? null
