@@ -2781,6 +2781,18 @@ enum ReponseConformite {
   sans_objet
 }
 
+/// LA SUITE À DONNER À UN POINT NON CONFORME (9L04I-CHECKLIST-NON-CONFORME-
+/// DETAIL, décision d'Alexis du 13/11/2026) — SANS RAPPORT avec `SuiteADonner`
+/// (reprise d'intervention, 9J17) : ce détail reste attaché au POINT de
+/// checklist lui-même, jamais une intervention de reprise. `piece_a_commander`
+/// ne porte PAS de référence de pièce — la pièce en attente passe par
+/// « Suspendre » (D236), ce détail n'est qu'un commentaire.
+enum ChecklistNonConformiteSuite {
+  regle_sur_place
+  piece_a_commander
+  a_revoir
+}
+
 /// LE MODÈLE DE CHECKLIST — en-tête SEUL (D235). Forme « interne » (D94) :
 /// aucun compte portail ne le lit, quel que soit son client — c'est la FAÇON
 /// DE TRAVAILLER de la société (même motif que `Prestation.duree_standard_min`
@@ -3000,6 +3012,17 @@ model ChecklistReponse {
   /// `photo` sans aucune photo n'existe jamais.
   valeur_photo    Boolean?
 
+  /// LE DÉTAIL D'UN POINT NON CONFORME (9L04I-CHECKLIST-NON-CONFORME-DETAIL) —
+  /// aucune des deux ne vaut une des SIX colonnes ci-dessus : ce sont des
+  /// INFORMATIONS ADDITIONNELLES, jamais une septième alternative à
+  /// `num_nonnulls` (`checklist_reponse_valeur_unique` reste à six colonnes,
+  /// inchangée). Permises SEULEMENT quand `valeur_conforme = non_conforme`
+  /// (`checklist_reponse_detail_non_conforme`) ; FACULTATIVES, même quand le
+  /// point est non conforme.
+  non_conformite_suite       ChecklistNonConformiteSuite?
+  /// Bornée comme `valeur_texte` (`checklist_reponse_commentaire_non_conforme_borne`).
+  non_conformite_commentaire String?
+
   /// QUI a répondu — une IDENTITÉ, aucune relation Prisma déclarée vers
   /// `Utilisateur` (même choix que `Notification.destinataire_id`, D39) :
   /// une relation ferait naître son inverse, que le gardien de D39 refuserait.
@@ -3016,8 +3039,11 @@ model ChecklistReponse {
   @@map("checklist_reponse")
 }
 
-/// LE LIEN D'UNE RÉPONSE `photo` VERS SES PHOTOS (9K28-CHECKLIST-REPONSE-
-/// PHOTO) — une réponse peut en porter PLUSIEURS. Forme « filiation » CHAÎNÉE
+/// LE LIEN D'UNE RÉPONSE VERS SES PHOTOS (9K28-CHECKLIST-REPONSE-PHOTO ; ÉTENDU
+/// AUX POINTS NON CONFORMES par 9L04I-CHECKLIST-NON-CONFORME-DETAIL, SANS
+/// migration — la garde qui limite au type de point reste APPLICATIVE,
+/// `enregistrerReponsePhoto`, `lib/checklists/depot.ts`) — une réponse peut en
+/// porter PLUSIEURS. Forme « filiation » CHAÎNÉE
 /// sur `checklist_reponse` elle-même (jamais directement sur `intervention`),
 /// même patron que `vgp_observation` sur `vgp_verification` : l'adossement se
 /// chaîne, aucune clause de société propre n'est écrite dans sa politique.

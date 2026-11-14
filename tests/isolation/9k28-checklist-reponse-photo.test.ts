@@ -137,6 +137,31 @@ async function poserGabaritPhoto(
   return { modeleId, pointId };
 }
 
+/** Même patron que `poserGabaritPhoto`, pour un point `conforme_non_conforme_sans_objet` (9L04I-CHECKLIST-NON-CONFORME-DETAIL). */
+async function poserGabaritNonConforme(
+  societeId: string,
+  suffixe: string,
+): Promise<{ readonly modeleId: string; readonly pointId: string }> {
+  const modeleId = uuidv7();
+  const versionId = uuidv7();
+  const pointId = uuidv7();
+  modelesJetables.push(modeleId);
+  await clientOwner().$executeRawUnsafe(
+    `INSERT INTO "checklist_modele" ("id", "societe_id", "code", "libelle", "modifie_le")
+     VALUES ('${modeleId}', '${societeId}', 'CK9L04I-${suffixe}', 'Checklist non conforme ${suffixe}', now())`,
+  );
+  await clientOwner().$executeRawUnsafe(
+    `INSERT INTO "checklist_version" ("id", "societe_id", "checklist_modele_id", "numero")
+     VALUES ('${versionId}', '${societeId}', '${modeleId}', 1)`,
+  );
+  await clientOwner().$executeRawUnsafe(
+    `INSERT INTO "checklist_point"
+       ("id", "societe_id", "checklist_version_id", "section", "ordre", "libelle", "obligatoire", "type_reponse")
+     VALUES ('${pointId}', '${societeId}', '${versionId}', 'Section', 1, 'Point non conforme', false, 'conforme_non_conforme_sans_objet')`,
+  );
+  return { modeleId, pointId };
+}
+
 async function supprimerModele(modeleId: string): Promise<void> {
   await clientOwner().$executeRawUnsafe(
     `DELETE FROM "checklist_reponse_photo" WHERE "checklist_reponse_id" IN (
@@ -259,6 +284,85 @@ describe("une photo de point « photo », par la vraie route", () => {
     // « interne » de `checklist_modele` (D94) ferme la chaîne de filiation
     // avant même de comparer les identifiants.
     const { pointId: pointDeLautreSociete } = await poserGabaritPhoto(
+      SOCIETE_B,
+      "intrus",
+    );
+    vi.mocked(exigerCapacite).mockResolvedValueOnce(
+      contexteActif(TECHNICIEN_A),
+    );
+
+    const reponse = await postPhotos(
+      requeteAvecPhoto(id, pointDeLautreSociete),
+      { params: Promise.resolve({ id }) },
+    );
+
+    expect(motifDeLaRedirection(reponse)).toBe("terrain.photos.refus");
+    const documents = await clientOwner().document.count({
+      where: { intervention_id: id },
+    });
+    expect(documents).toBe(0);
+  });
+});
+
+describe("une photo d'un point NON CONFORME, par la vraie route (9L04I-CHECKLIST-NON-CONFORME-DETAIL)", () => {
+  it("accepte, lie la photo, et POSE `valeur_conforme = non_conforme` — jamais `valeur_photo`", async () => {
+    const id = await jetable();
+    const { pointId } = await poserGabaritNonConforme(SOCIETE_A, "heureux");
+    vi.mocked(exigerCapacite).mockResolvedValueOnce(
+      contexteActif(TECHNICIEN_A),
+    );
+
+    const reponse = await postPhotos(requeteAvecPhoto(id, pointId), {
+      params: Promise.resolve({ id }),
+    });
+
+    expect(motifDeLaRedirection(reponse)).toBeNull();
+
+    const checklistReponse = await clientOwner().checklistReponse.findFirst({
+      where: { intervention_id: id, checklist_point_id: pointId },
+    });
+    expect(checklistReponse?.valeur_conforme).toBe("non_conforme");
+    expect(checklistReponse?.valeur_photo).toBeNull();
+
+    const document = await clientOwner().document.findFirst({
+      where: { intervention_id: id },
+    });
+    const lien = await clientOwner().checklistReponsePhoto.findFirst({
+      where: { checklist_reponse_id: checklistReponse?.id },
+    });
+    expect(lien?.document_id).toBe(document?.id);
+  });
+
+  it("une photo AJOUTÉE À UNE RÉPONSE DÉJÀ ÉCRITE garde son détail déjà saisi (suite, commentaire)", async () => {
+    const id = await jetable();
+    const { pointId } = await poserGabaritNonConforme(SOCIETE_A, "detail");
+    const reponseId = uuidv7();
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "checklist_reponse"
+         ("id", "societe_id", "intervention_id", "checklist_point_id", "libelle", "section", "obligatoire", "auteur_id", "valeur_conforme", "non_conformite_suite", "non_conformite_commentaire")
+       VALUES ('${reponseId}', '${SOCIETE_A}', '${id}', '${pointId}', 'Point non conforme', 'Section', false, '${TECHNICIEN_A}', 'non_conforme', 'piece_a_commander', 'Ne redémarre pas sous 6 bar')`,
+    );
+    vi.mocked(exigerCapacite).mockResolvedValueOnce(
+      contexteActif(TECHNICIEN_A),
+    );
+
+    const reponse = await postPhotos(requeteAvecPhoto(id, pointId), {
+      params: Promise.resolve({ id }),
+    });
+
+    expect(motifDeLaRedirection(reponse)).toBeNull();
+    const checklistReponse = await clientOwner().checklistReponse.findUnique({
+      where: { id: reponseId },
+    });
+    expect(checklistReponse?.non_conformite_suite).toBe("piece_a_commander");
+    expect(checklistReponse?.non_conformite_commentaire).toBe(
+      "Ne redémarre pas sous 6 bar",
+    );
+  });
+
+  it("LE JUMEAU — un point d'une AUTRE SOCIÉTÉ est refusé, et AUCUN document n'est créé (I6)", async () => {
+    const id = await jetable();
+    const { pointId: pointDeLautreSociete } = await poserGabaritNonConforme(
       SOCIETE_B,
       "intrus",
     );

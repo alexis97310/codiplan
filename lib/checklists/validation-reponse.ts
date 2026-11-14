@@ -2,6 +2,8 @@ import { z } from "zod";
 
 import type { ReponseConformite, TypeReponseChecklist } from "@prisma/client";
 
+import { SUITES_NON_CONFORMITE_CHECKLIST } from "@/lib/checklists/non-conformite";
+
 /**
  * LA VALIDATION DES CINQ TYPES DE RÉPONSE (9K18-CHECKLIST-DOMAINE) — FONCTION
  * PURE, aucune base. `point.typeReponse` est la source de vérité (relu dans
@@ -13,12 +15,21 @@ import type { ReponseConformite, TypeReponseChecklist } from "@prisma/client";
  * les laisse vides tant que l'atelier ne les fournit pas (CLAUDE.md §8 : pas
  * de valeur inventée) ; un lot futur qui les active rejugera `valeur_mesuree`
  * à cet endroit précis.
+ *
+ * `conforme_non_conforme_sans_objet` PORTE DEPUIS 9L04I-CHECKLIST-NON-
+ * CONFORME-DETAIL deux informations additionnelles, `suite` et `commentaire`
+ * — FACULTATIVES, et refusées (`checklist.refus.detail_hors_non_conforme`)
+ * sur toute réponse AUTRE que `non_conforme` (même règle que la contrainte
+ * `checklist_reponse_detail_non_conforme` en base, jamais contournable par
+ * cette seule validation applicative).
  */
 
 export type SaisieReponsePoint =
   | {
       readonly typeReponse: "conforme_non_conforme_sans_objet";
       readonly valeurConforme: ReponseConformite;
+      readonly suite: (typeof SUITES_NON_CONFORMITE_CHECKLIST)[number] | null;
+      readonly commentaire: string | null;
     }
   | { readonly typeReponse: "valeur_mesuree"; readonly valeurMesuree: number }
   | { readonly typeReponse: "case_faite"; readonly valeurFait: true }
@@ -39,6 +50,19 @@ export type ResultatValidationReponse =
   | { readonly valide: false; readonly cle: string };
 
 const schemaValeurConforme = z.enum(["conforme", "non_conforme", "sans_objet"]);
+const schemaSuiteNonConforme = z.enum(SUITES_NON_CONFORMITE_CHECKLIST);
+// MÊME BORNE QUE `valeur_texte` ci-dessous (2000) — un commentaire de point
+// reste plus court, 500 (`checklist_reponse_commentaire_non_conforme_borne`).
+const schemaCommentaireNonConforme = z.string().trim().min(1).max(500);
+/** Bare (sans détail) OU l'objet `{ conforme, suite, commentaire }` — jamais les deux formes mêlées. */
+const schemaDetailConformite = z.union([
+  schemaValeurConforme,
+  z.object({
+    conforme: schemaValeurConforme,
+    suite: schemaSuiteNonConforme.nullable().optional(),
+    commentaire: schemaCommentaireNonConforme.nullable().optional(),
+  }),
+]);
 // BORNE (9K18) : `numeric(12, 3)` en base — 999999999.999 est le plus grand
 // absolu qu'elle peut porter ; au-delà, la base refuserait avec une erreur
 // technique plutôt que ce refus nommé.
@@ -58,15 +82,38 @@ export function validerReponsePoint(
 ): ResultatValidationReponse {
   switch (point.typeReponse) {
     case "conforme_non_conforme_sans_objet": {
-      const verdict = schemaValeurConforme.safeParse(valeurBrute);
+      const verdict = schemaDetailConformite.safeParse(valeurBrute);
       if (!verdict.success) {
         return { valide: false, cle: "checklist.refus.valeur_invalide" };
+      }
+      if (typeof verdict.data === "string") {
+        return {
+          valide: true,
+          saisie: {
+            typeReponse: "conforme_non_conforme_sans_objet",
+            valeurConforme: verdict.data,
+            suite: null,
+            commentaire: null,
+          },
+        };
+      }
+      const { conforme, suite = null, commentaire = null } = verdict.data;
+      if (
+        (suite !== null || commentaire !== null) &&
+        conforme !== "non_conforme"
+      ) {
+        return {
+          valide: false,
+          cle: "checklist.refus.detail_hors_non_conforme",
+        };
       }
       return {
         valide: true,
         saisie: {
           typeReponse: "conforme_non_conforme_sans_objet",
-          valeurConforme: verdict.data,
+          valeurConforme: conforme,
+          suite,
+          commentaire,
         },
       };
     }

@@ -10,6 +10,7 @@ import {
 } from "@/lib/calendar/fuseau";
 import { fuseauDuTechnicien } from "@/lib/calendar/technicien";
 import { checklistDeLIntervention } from "@/lib/checklists/depot";
+import type { DetailNonConforme } from "@/lib/checklists/non-conformite";
 import { valeurChecklistAffichee } from "@/lib/checklists/presentation";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import {
@@ -173,7 +174,9 @@ export type FicheJSON = {
     | {
         readonly disponible: true;
         readonly checklistVersionId: string;
-        readonly reponses: Readonly<Record<string, string | number | boolean>>;
+        readonly reponses: Readonly<
+          Record<string, string | number | boolean | DetailNonConforme>
+        >;
       }
     | { readonly disponible: false };
 };
@@ -323,8 +326,10 @@ async function ficheEnJSON(
             .filter(
               (
                 entree,
-              ): entree is readonly [string, string | number | boolean] =>
-                entree[1] !== null,
+              ): entree is readonly [
+                string,
+                string | number | boolean | DetailNonConforme,
+              ] => entree[1] !== null,
             ),
         ),
       };

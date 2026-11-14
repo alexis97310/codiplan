@@ -30,6 +30,34 @@ import type {
   FicheJSON,
   InstantaneJSON,
 } from "@/app/api/terrain/instantane/route";
+import {
+  SUITES_NON_CONFORMITE_CHECKLIST,
+  type DetailNonConforme,
+} from "@/lib/checklists/non-conformite";
+
+/**
+ * `valeur` EST un `DetailNonConforme` (9L04I-CHECKLIST-NON-CONFORME-DETAIL) —
+ * revalidé ICI plutôt que fait confiance, même discipline que le reste de ce
+ * fichier : la copie vient d'IndexedDB, jamais d'une source qui garantit sa
+ * propre forme.
+ */
+function estDetailNonConformeBrut(
+  valeur: unknown,
+): valeur is DetailNonConforme {
+  if (typeof valeur !== "object" || valeur === null) {
+    return false;
+  }
+  const d = valeur as Record<string, unknown>;
+  if (d.conforme !== "non_conforme") {
+    return false;
+  }
+  const suiteValide =
+    d.suite === null ||
+    (SUITES_NON_CONFORMITE_CHECKLIST as readonly unknown[]).includes(d.suite);
+  const commentaireValide =
+    d.commentaire === null || typeof d.commentaire === "string";
+  return suiteValide && commentaireValide;
+}
 
 /**
  * LA COPIE ENTIÈRE, VALIDÉE (9F4H6B-FILE-ANCIEN-FORMAT, point 2) — `lireCopie`
@@ -248,14 +276,18 @@ export function checklistDeLaFiche(fiche: FicheJSON): FicheJSON["checklist"] {
   ) {
     return { disponible: false };
   }
-  const reponses: Record<string, string | number | boolean> = {};
+  const reponses: Record<
+    string,
+    string | number | boolean | DetailNonConforme
+  > = {};
   for (const [pointId, valeur] of Object.entries(
     c.reponses as Record<string, unknown>,
   )) {
     if (
       typeof valeur === "string" ||
       typeof valeur === "number" ||
-      typeof valeur === "boolean"
+      typeof valeur === "boolean" ||
+      estDetailNonConformeBrut(valeur)
     ) {
       reponses[pointId] = valeur;
     }

@@ -785,6 +785,281 @@ describe("9K18-CHECKLIST-DOMAINE — les cinq types de réponse, les contraintes
       }
     });
   });
+
+  // 9L04I-CHECKLIST-NON-CONFORME-DETAIL — NESTÉ ICI (et non en describe de
+  // tête) pour réutiliser `poserModeleEtVersion`/`poserPoint`/
+  // `poserReponseBrute`, locaux à CE describe (§9, 01/09 : une seule
+  // fonction, jamais une seconde écriture qui pourrait diverger).
+  describe("9L04I-CHECKLIST-NON-CONFORME-DETAIL — la suite et le commentaire d'un point non conforme", () => {
+    describe("`checklist_reponse_detail_non_conforme` — SEULEMENT sur `valeur_conforme = non_conforme`", () => {
+      it("une suite sur une réponse `conforme` est refusée, EN BASE", async () => {
+        const { modeleId, versionId } = await poserModeleEtVersion(
+          SOCIETE_A,
+          "DETAIL-SUR-CONFORME",
+        );
+        const pointId = await poserPoint(
+          SOCIETE_A,
+          versionId,
+          "conforme_non_conforme_sans_objet",
+          [],
+        );
+        try {
+          await expect(
+            poserReponseBrute(
+              SOCIETE_A,
+              INTERVENTION_A1,
+              pointId,
+              UTILISATEUR_INTERNE_A,
+              {
+                valeur_conforme: "'conforme'",
+                non_conformite_suite: "'a_revoir'",
+              },
+            ),
+          ).rejects.toThrow(/checklist_reponse_detail_non_conforme/);
+        } finally {
+          await supprimerModeleEtVersion(modeleId);
+        }
+      });
+
+      it("un commentaire sur une réponse `sans_objet` est refusé, EN BASE", async () => {
+        const { modeleId, versionId } = await poserModeleEtVersion(
+          SOCIETE_A,
+          "COMMENTAIRE-SUR-SANS-OBJET",
+        );
+        const pointId = await poserPoint(
+          SOCIETE_A,
+          versionId,
+          "conforme_non_conforme_sans_objet",
+          [],
+        );
+        try {
+          await expect(
+            poserReponseBrute(
+              SOCIETE_A,
+              INTERVENTION_A1,
+              pointId,
+              UTILISATEUR_INTERNE_A,
+              {
+                valeur_conforme: "'sans_objet'",
+                non_conformite_commentaire: "'Hors sujet ici'",
+              },
+            ),
+          ).rejects.toThrow(/checklist_reponse_detail_non_conforme/);
+        } finally {
+          await supprimerModeleEtVersion(modeleId);
+        }
+      });
+
+      it("la suite ET le commentaire sur une réponse `non_conforme` — les DEUX, un seul, ou ni l'un ni l'autre — PASSENT", async () => {
+        const { modeleId, versionId } = await poserModeleEtVersion(
+          SOCIETE_A,
+          "DETAIL-SUR-NON-CONFORME",
+        );
+        const pointId = await poserPoint(
+          SOCIETE_A,
+          versionId,
+          "conforme_non_conforme_sans_objet",
+          [],
+        );
+        try {
+          const id = await poserReponseBrute(
+            SOCIETE_A,
+            INTERVENTION_A1,
+            pointId,
+            UTILISATEUR_INTERNE_A,
+            {
+              valeur_conforme: "'non_conforme'",
+              non_conformite_suite: "'piece_a_commander'",
+              non_conformite_commentaire: "'Ne redémarre pas sous 6 bar'",
+            },
+          );
+          const reponse = await clientOwner().checklistReponse.findUnique({
+            where: { id },
+          });
+          expect(reponse?.non_conformite_suite).toBe("piece_a_commander");
+          expect(reponse?.non_conformite_commentaire).toBe(
+            "Ne redémarre pas sous 6 bar",
+          );
+        } finally {
+          await supprimerModeleEtVersion(modeleId);
+        }
+      });
+
+      it("`non_conforme` SANS AUCUN détail — les deux FACULTATIFS — PASSE", async () => {
+        const { modeleId, versionId } = await poserModeleEtVersion(
+          SOCIETE_A,
+          "NON-CONFORME-SANS-DETAIL",
+        );
+        const pointId = await poserPoint(
+          SOCIETE_A,
+          versionId,
+          "conforme_non_conforme_sans_objet",
+          [],
+        );
+        try {
+          const id = await poserReponseBrute(
+            SOCIETE_A,
+            INTERVENTION_A1,
+            pointId,
+            UTILISATEUR_INTERNE_A,
+            { valeur_conforme: "'non_conforme'" },
+          );
+          const reponse = await clientOwner().checklistReponse.findUnique({
+            where: { id },
+          });
+          expect(reponse?.non_conformite_suite).toBeNull();
+          expect(reponse?.non_conformite_commentaire).toBeNull();
+        } finally {
+          await supprimerModeleEtVersion(modeleId);
+        }
+      });
+
+      it("JUMEAU — la contrainte retirée, une suite sur `conforme` PASSE", async () => {
+        const { modeleId, versionId } = await poserModeleEtVersion(
+          SOCIETE_A,
+          "DETAIL-JUMEAU",
+        );
+        const pointId = await poserPoint(
+          SOCIETE_A,
+          versionId,
+          "conforme_non_conforme_sans_objet",
+          [],
+        );
+        try {
+          await clientOwner().$executeRawUnsafe(
+            `ALTER TABLE "checklist_reponse" DROP CONSTRAINT "checklist_reponse_detail_non_conforme"`,
+          );
+          const id = await poserReponseBrute(
+            SOCIETE_A,
+            INTERVENTION_A1,
+            pointId,
+            UTILISATEUR_INTERNE_A,
+            {
+              valeur_conforme: "'conforme'",
+              non_conformite_suite: "'a_revoir'",
+            },
+          );
+          const reponse = await clientOwner().checklistReponse.findUnique({
+            where: { id },
+          });
+          expect(reponse).not.toBeNull();
+        } finally {
+          await supprimerModeleEtVersion(modeleId);
+          await clientOwner().$executeRawUnsafe(
+            `ALTER TABLE "checklist_reponse"
+             ADD CONSTRAINT "checklist_reponse_detail_non_conforme" CHECK (
+               ("non_conformite_suite" IS NULL AND "non_conformite_commentaire" IS NULL)
+               OR "valeur_conforme" = 'non_conforme'
+             )`,
+          );
+        }
+      });
+    });
+
+    describe("`checklist_reponse_commentaire_non_conforme_borne`", () => {
+      it("une chaîne VIDE est refusée, EN BASE", async () => {
+        const { modeleId, versionId } = await poserModeleEtVersion(
+          SOCIETE_A,
+          "COMMENTAIRE-VIDE",
+        );
+        const pointId = await poserPoint(
+          SOCIETE_A,
+          versionId,
+          "conforme_non_conforme_sans_objet",
+          [],
+        );
+        try {
+          await expect(
+            poserReponseBrute(
+              SOCIETE_A,
+              INTERVENTION_A1,
+              pointId,
+              UTILISATEUR_INTERNE_A,
+              {
+                valeur_conforme: "'non_conforme'",
+                non_conformite_commentaire: "''",
+              },
+            ),
+          ).rejects.toThrow(/checklist_reponse_commentaire_non_conforme_borne/);
+        } finally {
+          await supprimerModeleEtVersion(modeleId);
+        }
+      });
+
+      it("une chaîne de PLUS de 500 caractères est refusée, EN BASE", async () => {
+        const { modeleId, versionId } = await poserModeleEtVersion(
+          SOCIETE_A,
+          "COMMENTAIRE-TROP-LONG",
+        );
+        const pointId = await poserPoint(
+          SOCIETE_A,
+          versionId,
+          "conforme_non_conforme_sans_objet",
+          [],
+        );
+        try {
+          await expect(
+            poserReponseBrute(
+              SOCIETE_A,
+              INTERVENTION_A1,
+              pointId,
+              UTILISATEUR_INTERNE_A,
+              {
+                valeur_conforme: "'non_conforme'",
+                non_conformite_commentaire: `'${"x".repeat(501)}'`,
+              },
+            ),
+          ).rejects.toThrow(/checklist_reponse_commentaire_non_conforme_borne/);
+        } finally {
+          await supprimerModeleEtVersion(modeleId);
+        }
+      });
+
+      it("JUMEAU — la contrainte retirée, une chaîne de PLUS de 500 caractères PASSE", async () => {
+        const { modeleId, versionId } = await poserModeleEtVersion(
+          SOCIETE_A,
+          "COMMENTAIRE-JUMEAU",
+        );
+        const pointId = await poserPoint(
+          SOCIETE_A,
+          versionId,
+          "conforme_non_conforme_sans_objet",
+          [],
+        );
+        try {
+          await clientOwner().$executeRawUnsafe(
+            `ALTER TABLE "checklist_reponse" DROP CONSTRAINT "checklist_reponse_commentaire_non_conforme_borne"`,
+          );
+          const id = await poserReponseBrute(
+            SOCIETE_A,
+            INTERVENTION_A1,
+            pointId,
+            UTILISATEUR_INTERNE_A,
+            {
+              valeur_conforme: "'non_conforme'",
+              non_conformite_commentaire: `'${"x".repeat(501)}'`,
+            },
+          );
+          const reponse = await clientOwner().checklistReponse.findUnique({
+            where: { id },
+          });
+          expect(reponse).not.toBeNull();
+        } finally {
+          await supprimerModeleEtVersion(modeleId);
+          await clientOwner().$executeRawUnsafe(
+            `ALTER TABLE "checklist_reponse"
+             ADD CONSTRAINT "checklist_reponse_commentaire_non_conforme_borne" CHECK (
+               "non_conformite_commentaire" IS NULL
+               OR (
+                 btrim("non_conformite_commentaire") <> ''
+                 AND length("non_conformite_commentaire") <= 500
+               )
+             )`,
+          );
+        }
+      });
+    });
+  });
 });
 
 describe("lib/checklists/depot.ts — créer un modèle, publier une version, lire la dernière publiée", () => {

@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import {
   Prisma,
+  type ChecklistNonConformiteSuite,
   type PrismaClient,
   type ReponseConformite,
   type TypeReponseChecklist,
@@ -895,6 +896,9 @@ export type ReponseDeChecklist = {
   readonly valeurTexte: string | null;
   /** Le nombre de photos déjà liées (9K28-CHECKLIST-REPONSE-PHOTO) — 0 si `valeurPhoto` est `null`. */
   readonly nombrePhotos: number;
+  /** LE DÉTAIL D'UN POINT NON CONFORME (9L04I-CHECKLIST-NON-CONFORME-DETAIL) — `null` sauf quand `valeurConforme === "non_conforme"`. */
+  readonly nonConformiteSuite: ChecklistNonConformiteSuite | null;
+  readonly nonConformiteCommentaire: string | null;
   readonly auteurId: string;
   readonly reponduLe: Date;
 };
@@ -1014,6 +1018,8 @@ export async function checklistDeLIntervention(
           valeurChoix: reponse.valeur_choix,
           valeurTexte: reponse.valeur_texte,
           nombrePhotos: photosParReponseId.get(reponse.id)?.length ?? 0,
+          nonConformiteSuite: reponse.non_conformite_suite,
+          nonConformiteCommentaire: reponse.non_conformite_commentaire,
           auteurId: reponse.auteur_id,
           reponduLe: reponse.repondu_le,
         })),
@@ -1050,6 +1056,8 @@ function valeursDeLaSaisie(saisie: SaisieReponsePoint): {
   readonly valeur_fait: boolean | null;
   readonly valeur_choix: string | null;
   readonly valeur_texte: string | null;
+  readonly non_conformite_suite: ChecklistNonConformiteSuite | null;
+  readonly non_conformite_commentaire: string | null;
 } {
   switch (saisie.typeReponse) {
     case "conforme_non_conforme_sans_objet":
@@ -1059,6 +1067,8 @@ function valeursDeLaSaisie(saisie: SaisieReponsePoint): {
         valeur_fait: null,
         valeur_choix: null,
         valeur_texte: null,
+        non_conformite_suite: saisie.suite,
+        non_conformite_commentaire: saisie.commentaire,
       };
     case "valeur_mesuree":
       return {
@@ -1067,6 +1077,8 @@ function valeursDeLaSaisie(saisie: SaisieReponsePoint): {
         valeur_fait: null,
         valeur_choix: null,
         valeur_texte: null,
+        non_conformite_suite: null,
+        non_conformite_commentaire: null,
       };
     case "case_faite":
       return {
@@ -1075,6 +1087,8 @@ function valeursDeLaSaisie(saisie: SaisieReponsePoint): {
         valeur_fait: true,
         valeur_choix: null,
         valeur_texte: null,
+        non_conformite_suite: null,
+        non_conformite_commentaire: null,
       };
     case "choix_dans_une_liste":
       return {
@@ -1083,6 +1097,8 @@ function valeursDeLaSaisie(saisie: SaisieReponsePoint): {
         valeur_fait: null,
         valeur_choix: saisie.valeurChoix,
         valeur_texte: null,
+        non_conformite_suite: null,
+        non_conformite_commentaire: null,
       };
     case "texte_libre":
       return {
@@ -1091,6 +1107,8 @@ function valeursDeLaSaisie(saisie: SaisieReponsePoint): {
         valeur_fait: null,
         valeur_choix: null,
         valeur_texte: saisie.valeurTexte,
+        non_conformite_suite: null,
+        non_conformite_commentaire: null,
       };
   }
 }
@@ -1248,8 +1266,9 @@ export type EcritureReponsePhoto =
   { readonly id: string } | { readonly refuse: true; readonly cle: string };
 
 /**
- * LIE UNE PHOTO DÉJÀ DÉPOSÉE À UN POINT `photo` (9K28-CHECKLIST-REPONSE-
- * PHOTO) — appelée DANS la transaction déjà cloisonnée de
+ * LIE UNE PHOTO DÉJÀ DÉPOSÉE À UN POINT `photo` OU À UN POINT NON CONFORME
+ * (9K28-CHECKLIST-REPONSE-PHOTO ; ÉTENDU par 9L04I-CHECKLIST-NON-CONFORME-
+ * DETAIL) — appelée DANS la transaction déjà cloisonnée de
  * `deposerPhotoIntervention` (`lib/documents/depot.ts`), comme
  * `obligatoiresManquantsPourTerminer`/`checklistDuBon` ci-dessus : jamais une
  * seconde chaîne de dépôt, le document existe déjà quand cette fonction est
@@ -1269,9 +1288,19 @@ export type EcritureReponsePhoto =
  * fonction ne vérifie pas son existence une seconde fois, la clé étrangère de
  * base le ferait de toute façon échouer sinon.
  *
+ * **UN POINT `conforme_non_conforme_sans_objet` POSE `valeur_conforme =
+ * "non_conforme"` À LA PLACE** (9L04I) — jamais `valeur_photo`, qui serait
+ * une SEPTIÈME colonne non nulle que `checklist_reponse_valeur_unique`
+ * refuserait ; la pastille se pose ICI pour ne jamais dépendre de l'ordre
+ * d'arrivée entre cette photo et la réponse « non conforme » elle-même
+ * (deux routes indépendantes de la file hors réseau, voir le commentaire
+ * dans le corps de la fonction). `non_conformite_suite`/`_commentaire` ne
+ * sont jamais écrits par cette fonction.
+ *
  * `checklist.refus.point_hors_version` si le point n'existe pas dans la
- * version (figée ou résolue), OU si ce point n'est pas du type `photo` — un
- * point d'un AUTRE type ne se répond jamais par cette voie.
+ * version (figée ou résolue), OU si ce point n'est NI `photo` NI
+ * `conforme_non_conforme_sans_objet` — un point d'un AUTRE type ne se
+ * répond jamais par cette voie.
  */
 export async function enregistrerReponsePhoto(
   tx: Prisma.TransactionClient,
@@ -1306,7 +1335,15 @@ export async function enregistrerReponsePhoto(
       type_reponse: true,
     },
   });
-  if (point === null || point.type_reponse !== "photo") {
+  // DEUX TYPES DE POINT PEUVENT RECEVOIR UNE PHOTO (9L04I-CHECKLIST-NON-
+  // CONFORME-DETAIL ÉTEND 9K28) — `photo` (la seule réponse) et
+  // `conforme_non_conforme_sans_objet` (une photo de la non-conformité, EN
+  // PLUS de la pastille). TOUT AUTRE TYPE refuse, exactement comme avant.
+  if (
+    point === null ||
+    (point.type_reponse !== "photo" &&
+      point.type_reponse !== "conforme_non_conforme_sans_objet")
+  ) {
     return { refuse: true, cle: "checklist.refus.point_hors_version" };
   }
 
@@ -1327,6 +1364,17 @@ export async function enregistrerReponsePhoto(
     return { refuse: true, cle: "checklist.refus.point_hors_version" };
   }
 
+  // `conforme_non_conforme_sans_objet` POSE `valeur_conforme: "non_conforme"`
+  // LUI-MÊME, JAMAIS `valeur_photo` (9L04I) — une photo de non-conformité
+  // n'existe QUE sur un point déjà, ou à l'instant même, non conforme : poser
+  // la pastille ICI évite la course entre la file hors réseau (qui porte la
+  // pastille) et l'envoi de la photo (qui peut la précéder, l'une des deux
+  // routes n'attendant jamais l'autre). `non_conformite_suite`/
+  // `_commentaire` ne sont JAMAIS touchés ici : une photo ajoutée avant ou
+  // après le détail ne doit jamais l'écraser, `enregistrerReponses` reste la
+  // SEULE écriture de ces deux colonnes. `valeur_photo` reste donc NULL sur
+  // ce type de point : il resterait sinon une SEPTIÈME colonne non nulle,
+  // que `checklist_reponse_valeur_unique` (six colonnes) refuserait.
   const reponse = await tx.checklistReponse.upsert({
     where: {
       societe_id_intervention_id_checklist_point_id: {
@@ -1345,7 +1393,9 @@ export async function enregistrerReponsePhoto(
       unite: point.unite,
       obligatoire: point.obligatoire,
       auteur_id: params.auteurId,
-      valeur_photo: true,
+      ...(point.type_reponse === "photo"
+        ? { valeur_photo: true }
+        : { valeur_conforme: "non_conforme" as const }),
     },
     update: {
       libelle: point.libelle,
@@ -1353,7 +1403,9 @@ export async function enregistrerReponsePhoto(
       unite: point.unite,
       obligatoire: point.obligatoire,
       auteur_id: params.auteurId,
-      valeur_photo: true,
+      ...(point.type_reponse === "photo"
+        ? { valeur_photo: true }
+        : { valeur_conforme: "non_conforme" as const }),
     },
     select: { id: true },
   });
@@ -1401,9 +1453,22 @@ export async function enregistrerReponsePhoto(
  * TOUJOURS au moins un, `enregistrerReponsePhoto` le garantit — pour que
  * `bon-tuiles.tsx` rende leur vignette sous le point, exactement comme la
  * section « Photos » de la fiche terrain (`/api/documents/{id}/octets`).
+ *
+ * `conforme` PORTE DEPUIS 9L04I-CHECKLIST-NON-CONFORME-DETAIL la suite, le
+ * commentaire et les photos liées d'un point NON CONFORME — `suite` et
+ * `commentaire` restent `null` pour `conforme`/`sans_objet` (la contrainte
+ * `checklist_reponse_detail_non_conforme` l'impose déjà en base), et
+ * `documentIds` reste vide tant qu'aucune photo n'a été ajoutée à la
+ * non-conformité (FACULTATIVES, voir `lib/checklists/non-conformite.ts`).
  */
 export type RenduReponseChecklistBon =
-  | { readonly nature: "conforme"; readonly valeur: ReponseConformite }
+  | {
+      readonly nature: "conforme";
+      readonly valeur: ReponseConformite;
+      readonly suite: ChecklistNonConformiteSuite | null;
+      readonly commentaire: string | null;
+      readonly documentIds: readonly string[];
+    }
   | {
       readonly nature: "mesure";
       readonly valeur: number;
@@ -1457,12 +1522,20 @@ function renduDeLaReponseBon(
     readonly valeur_choix: string | null;
     readonly valeur_texte: string | null;
     readonly valeur_photo: boolean | null;
+    readonly non_conformite_suite: ChecklistNonConformiteSuite | null;
+    readonly non_conformite_commentaire: string | null;
     readonly unite: string | null;
   },
   documentIdsParReponse: ReadonlyMap<string, readonly string[]>,
 ): RenduReponseChecklistBon {
   if (reponse.valeur_conforme !== null) {
-    return { nature: "conforme", valeur: reponse.valeur_conforme };
+    return {
+      nature: "conforme",
+      valeur: reponse.valeur_conforme,
+      suite: reponse.non_conformite_suite,
+      commentaire: reponse.non_conformite_commentaire,
+      documentIds: documentIdsParReponse.get(reponse.id) ?? [],
+    };
   }
   if (reponse.valeur_mesuree !== null) {
     return {

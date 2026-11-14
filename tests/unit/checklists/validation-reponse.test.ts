@@ -24,7 +24,7 @@ describe("conforme_non_conforme_sans_objet", () => {
   const POINT = point({ typeReponse: "conforme_non_conforme_sans_objet" });
 
   it.each(["conforme", "non_conforme", "sans_objet"] as const)(
-    "accepte « %s »",
+    "accepte « %s » SEUL (sans détail), suite et commentaire restent `null`",
     (valeur) => {
       const verdict = validerReponsePoint(POINT, valeur);
       expect(verdict).toEqual({
@@ -32,6 +32,8 @@ describe("conforme_non_conforme_sans_objet", () => {
         saisie: {
           typeReponse: "conforme_non_conforme_sans_objet",
           valeurConforme: valeur,
+          suite: null,
+          commentaire: null,
         },
       });
     },
@@ -42,6 +44,113 @@ describe("conforme_non_conforme_sans_objet", () => {
     expect(verdict).toEqual({
       valide: false,
       cle: "checklist.refus.valeur_invalide",
+    });
+  });
+
+  // 9L04I-CHECKLIST-NON-CONFORME-DETAIL — la suite à donner, le commentaire
+  // et (par une autre voie, `enregistrerReponsePhoto`) les photos liées.
+  describe("le détail non conforme (9L04I)", () => {
+    it("accepte `non_conforme` avec suite ET commentaire, les DEUX facultatifs", () => {
+      const verdict = validerReponsePoint(POINT, {
+        conforme: "non_conforme",
+        suite: "piece_a_commander",
+        commentaire: "Ne redémarre pas sous 6 bar",
+      });
+      expect(verdict).toEqual({
+        valide: true,
+        saisie: {
+          typeReponse: "conforme_non_conforme_sans_objet",
+          valeurConforme: "non_conforme",
+          suite: "piece_a_commander",
+          commentaire: "Ne redémarre pas sous 6 bar",
+        },
+      });
+    });
+
+    it("accepte `non_conforme` avec SEULEMENT la suite", () => {
+      const verdict = validerReponsePoint(POINT, {
+        conforme: "non_conforme",
+        suite: "a_revoir",
+      });
+      expect(verdict).toEqual({
+        valide: true,
+        saisie: {
+          typeReponse: "conforme_non_conforme_sans_objet",
+          valeurConforme: "non_conforme",
+          suite: "a_revoir",
+          commentaire: null,
+        },
+      });
+    });
+
+    it("accepte `non_conforme` avec SEULEMENT le commentaire", () => {
+      const verdict = validerReponsePoint(POINT, {
+        conforme: "non_conforme",
+        commentaire: "Fuite constatée",
+      });
+      expect(verdict).toEqual({
+        valide: true,
+        saisie: {
+          typeReponse: "conforme_non_conforme_sans_objet",
+          valeurConforme: "non_conforme",
+          suite: null,
+          commentaire: "Fuite constatée",
+        },
+      });
+    });
+
+    it("refuse une suite sur `conforme` (detail_hors_non_conforme)", () => {
+      const verdict = validerReponsePoint(POINT, {
+        conforme: "conforme",
+        suite: "a_revoir",
+      });
+      expect(verdict).toEqual({
+        valide: false,
+        cle: "checklist.refus.detail_hors_non_conforme",
+      });
+    });
+
+    it("refuse un commentaire sur `sans_objet` (detail_hors_non_conforme)", () => {
+      const verdict = validerReponsePoint(POINT, {
+        conforme: "sans_objet",
+        commentaire: "Hors sujet ici",
+      });
+      expect(verdict).toEqual({
+        valide: false,
+        cle: "checklist.refus.detail_hors_non_conforme",
+      });
+    });
+
+    it("refuse une suite hors énumération", () => {
+      const verdict = validerReponsePoint(POINT, {
+        conforme: "non_conforme",
+        suite: "autre_chose",
+      });
+      expect(verdict).toEqual({
+        valide: false,
+        cle: "checklist.refus.valeur_invalide",
+      });
+    });
+
+    it("refuse un commentaire vide ou trop long", () => {
+      expect(
+        validerReponsePoint(POINT, {
+          conforme: "non_conforme",
+          commentaire: "   ",
+        }).valide,
+      ).toBe(false);
+      expect(
+        validerReponsePoint(POINT, {
+          conforme: "non_conforme",
+          commentaire: "x".repeat(501),
+        }).valide,
+      ).toBe(false);
+      expect(
+        validerReponsePoint(POINT, {
+          conforme: "non_conforme",
+          commentaire: "x".repeat(500),
+        }).valide,
+      ).toBe(true);
     });
   });
 });

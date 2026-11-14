@@ -1,3 +1,4 @@
+import type { DetailNonConforme } from "./non-conformite";
 import type { ReponseDeChecklist } from "./depot";
 
 /**
@@ -12,17 +13,36 @@ import type { ReponseDeChecklist } from "./depot";
  * [id]/page.tsx` (la fiche en ligne) et `app/api/terrain/instantane/
  * route.ts` (la copie emportée hors réseau) doivent composer la MÊME valeur
  * depuis la MÊME réponse, jamais deux lectures qui pourraient diverger.
+ *
+ * `conforme_non_conforme_sans_objet` rend l'objet `DetailNonConforme`
+ * (9L04I-CHECKLIST-NON-CONFORME-DETAIL) DÈS que la suite ou le commentaire
+ * porte une valeur — sinon la simple chaîne, comme avant (`ChecklistTerrain`
+ * sait lire les deux formes, voir `lib/checklists/non-conformite.ts`).
  */
 export function valeurChecklistAffichee(
   typeReponse: string,
   reponse: ReponseDeChecklist | undefined,
-): string | number | boolean | null {
+): string | number | boolean | DetailNonConforme | null {
   if (reponse === undefined) {
     return null;
   }
   switch (typeReponse) {
-    case "conforme_non_conforme_sans_objet":
-      return reponse.valeurConforme;
+    case "conforme_non_conforme_sans_objet": {
+      if (reponse.valeurConforme === null) {
+        return null;
+      }
+      if (
+        reponse.nonConformiteSuite === null &&
+        reponse.nonConformiteCommentaire === null
+      ) {
+        return reponse.valeurConforme;
+      }
+      return {
+        conforme: "non_conforme",
+        suite: reponse.nonConformiteSuite,
+        commentaire: reponse.nonConformiteCommentaire,
+      };
+    }
     case "valeur_mesuree":
       return reponse.valeurMesuree === null
         ? null

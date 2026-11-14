@@ -6,6 +6,7 @@ import type {
 } from "@/app/api/terrain/instantane/route";
 import {
   catalogueDeLaCopie,
+  checklistDeLaFiche,
   copieUtilisable,
   photosDeLaFiche,
   prestationsRealiseesDeLaFiche,
@@ -243,5 +244,83 @@ describe("rapportDeLaFiche", () => {
     expect(rapportDeLaFiche(fiche).piecesRemplacees).toEqual([
       { designation: "Vis M6", reference: null, quantite: 1 },
     ]);
+  });
+});
+
+describe("checklistDeLaFiche — aucun test n'existait (9L04I-CHECKLIST-NON-CONFORME-DETAIL)", () => {
+  it("disponible: false, mal formée ou absente, devient { disponible: false }", () => {
+    expect(checklistDeLaFiche({} as unknown as FicheJSON)).toEqual({
+      disponible: false,
+    });
+    expect(
+      checklistDeLaFiche({
+        checklist: "pas un objet",
+      } as unknown as FicheJSON),
+    ).toEqual({ disponible: false });
+    expect(
+      checklistDeLaFiche({
+        checklist: { disponible: false },
+      } as unknown as FicheJSON),
+    ).toEqual({ disponible: false });
+  });
+
+  it("une réponse simple (chaîne) traverse sans changement", () => {
+    const fiche = {
+      checklist: {
+        disponible: true,
+        checklistVersionId: "v1",
+        reponses: { p1: "conforme" },
+      },
+    } as unknown as FicheJSON;
+    expect(checklistDeLaFiche(fiche)).toEqual({
+      disponible: true,
+      checklistVersionId: "v1",
+      reponses: { p1: "conforme" },
+    });
+  });
+
+  it("le DÉTAIL NON CONFORME (suite + commentaire) traverse sans changement", () => {
+    const fiche = {
+      checklist: {
+        disponible: true,
+        checklistVersionId: "v1",
+        reponses: {
+          p1: {
+            conforme: "non_conforme",
+            suite: "piece_a_commander",
+            commentaire: "Ne redémarre pas sous 6 bar",
+          },
+        },
+      },
+    } as unknown as FicheJSON;
+    expect(checklistDeLaFiche(fiche)).toEqual({
+      disponible: true,
+      checklistVersionId: "v1",
+      reponses: {
+        p1: {
+          conforme: "non_conforme",
+          suite: "piece_a_commander",
+          commentaire: "Ne redémarre pas sous 6 bar",
+        },
+      },
+    });
+  });
+
+  it("un détail de forme invalide (conforme absent, suite hors énumération) est écarté — ce point redevient « pas encore répondu »", () => {
+    const fiche = {
+      checklist: {
+        disponible: true,
+        checklistVersionId: "v1",
+        reponses: {
+          p1: { suite: "piece_a_commander", commentaire: "Sans conforme" },
+          p2: { conforme: "non_conforme", suite: "autre_chose" },
+        },
+      },
+    } as unknown as FicheJSON;
+    expect(checklistDeLaFiche(fiche)).toEqual({
+      disponible: true,
+      checklistVersionId: "v1",
+      reponses: {},
+    });
   });
 });
