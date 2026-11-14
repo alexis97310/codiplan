@@ -422,9 +422,8 @@ test("375 px — « Suspendre » depuis la barre fixe, avec pièce ; la barre se
     await expect(suspendre).toBeVisible();
     await suspendre.click();
 
-    await page
-      .getByLabel(fr["intervention.suspension.piece"])
-      .fill("zz9L04GB-REF-42");
+    const reference = fr["terrain.e2e.piece_ref_barre_fixe"];
+    await page.getByLabel(fr["intervention.suspension.piece"]).fill(reference);
     await page
       .getByLabel(fr["intervention.suspension.date_dispo"])
       .fill("2026-12-20");
@@ -433,7 +432,7 @@ test("375 px — « Suspendre » depuis la barre fixe, avec pièce ; la barre se
       .getByRole("button", { name: fr["terrain.suspendre.enregistrer"] })
       .click();
 
-    await expect(page.getByText("zz9L04GB-REF-42")).toBeVisible();
+    await expect(page.getByText(reference)).toBeVisible();
 
     // LA BARRE SE VIDE — « Suspendue » n'a aujourd'hui aucun geste terrain
     // à y proposer (voir la passation : « Reprendre » depuis le terrain
@@ -448,7 +447,7 @@ test("375 px — « Suspendre » depuis la barre fixe, avec pièce ; la barre se
       select: { statut: true, piece_attendue_ref: true },
     });
     expect(ligne.statut).toBe("suspendue");
-    expect(ligne.piece_attendue_ref).toBe("zz9L04GB-REF-42");
+    expect(ligne.piece_attendue_ref).toBe(reference);
   } finally {
     await nettoyerSceneSuspendre(client, scene);
   }

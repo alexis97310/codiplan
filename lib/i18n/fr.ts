@@ -6571,6 +6571,10 @@ export const fr = {
   // `9k13-terrain-attente-piece.spec.ts`, en ligne et hors réseau.
   "terrain.e2e.piece_ref_en_ligne": "REF-E2E-123",
   "terrain.e2e.piece_ref_hors_reseau": "REF-AVION-9",
+  // 9L04G-TERRAIN-BARRE-FIXE-TERMINER — même raison, pour
+  // `9l04g-terrain-barre-fixe-terminer.spec.ts` : « Suspendre » depuis la
+  // barre fixe.
+  "terrain.e2e.piece_ref_barre_fixe": "zz9L04GB-REF-42",
 
   // ── FIXTURES DE L'ÉPREUVE 9K21 (tests/e2e/9k21-checklist-terrain-saisie.
   // spec.ts) — même raison que `terrain.e2e.*` ci-dessus : le libellé d'un
