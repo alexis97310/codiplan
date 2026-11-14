@@ -2879,7 +2879,10 @@ export function RapportTerrainAutomatique({
         >
           <div className="flex items-start justify-between gap-3">
             <div className="flex flex-col gap-0.5">
-              <h2 id="terrain-recapitulatif-titre" className="text-18 font-bold">
+              <h2
+                id="terrain-recapitulatif-titre"
+                className="text-18 font-bold"
+              >
                 {t("terrain.recapitulatif.titre")}
               </h2>
               <p className="text-app-terrain-encre-secondaire text-16 font-medium">
@@ -2897,7 +2900,9 @@ export function RapportTerrainAutomatique({
             </Button>
           </div>
 
-          <RubriqueRecapitulatif titre={t("terrain.recapitulatif.rubrique_client")}>
+          <RubriqueRecapitulatif
+            titre={t("terrain.recapitulatif.rubrique_client")}
+          >
             <p className="text-16 font-bold">
               {recapitulatif.client ?? t("terrain.client_inconnu")}
             </p>
@@ -2953,7 +2958,9 @@ export function RapportTerrainAutomatique({
               <RubriqueRecapitulatif
                 titre={t("terrain.recapitulatif.rubrique_controles")}
               >
-                <p className="text-16 font-bold">{resumeChecklistBon(resume)}</p>
+                <p className="text-16 font-bold">
+                  {resumeChecklistBon(resume)}
+                </p>
                 {nonConformites.map((point) => (
                   <p
                     key={point.id}
@@ -2971,7 +2978,9 @@ export function RapportTerrainAutomatique({
             );
           })()}
 
-          <RubriqueRecapitulatif titre={t("terrain.recapitulatif.rubrique_travaux")}>
+          <RubriqueRecapitulatif
+            titre={t("terrain.recapitulatif.rubrique_travaux")}
+          >
             {prestations.filter((p) => prestationsChoisies.has(p.id)).length ===
             0 ? (
               <p className="text-app-terrain-encre-secondaire text-16 font-medium">

@@ -48,7 +48,10 @@ type Scene = {
   readonly modeleId: string;
 };
 
-async function creerScene(client: PrismaClient, prefixe: string): Promise<Scene> {
+async function creerScene(
+  client: PrismaClient,
+  prefixe: string,
+): Promise<Scene> {
   const reperes = await reperesDeLaScene();
   const agence = await client.agence.findFirstOrThrow({
     where: { societe_id: reperes.societeId, code: "DUCOS" },
@@ -183,7 +186,14 @@ async function creerScene(client: PrismaClient, prefixe: string): Promise<Scene>
     data: { checklist_version_id: versionId },
   });
 
-  return { clientId, siteId, contactId, interventionId, prestationId, modeleId };
+  return {
+    clientId,
+    siteId,
+    contactId,
+    interventionId,
+    prestationId,
+    modeleId,
+  };
 }
 
 async function nettoyerScene(
@@ -280,7 +290,9 @@ test("375 px — le récapitulatif se lit avant la signature, sans aucun montant
 
     // LA QUALITÉ EN SEGMENTS — « Resp. atelier ».
     await page
-      .getByRole("radio", { name: fr["terrain.signature.qualite.resp_atelier"] })
+      .getByRole("radio", {
+        name: fr["terrain.signature.qualite.resp_atelier"],
+      })
       .click();
     await capturer(page, "signature-qualite-segments-apres");
 

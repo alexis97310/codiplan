@@ -2114,13 +2114,9 @@ describe("le récapitulatif avant signature (point 1-2, 9L04H-TERRAIN-RECAPITULA
     ).toBeVisible();
     expect(within(dialogue).getByText(fr["9l04h.e2e.client"])).toBeVisible();
     expect(within(dialogue).getByText(fr["9l04h.e2e.site"])).toBeVisible();
-    expect(
-      within(dialogue).getByText(fr["9l04h.e2e.materiel"]),
-    ).toBeVisible();
+    expect(within(dialogue).getByText(fr["9l04h.e2e.materiel"])).toBeVisible();
     expect(within(dialogue).getByText(fr["9l04h.e2e.nature"])).toBeVisible();
-    expect(
-      within(dialogue).getByText(fr["9l04h.e2e.creneau"]),
-    ).toBeVisible();
+    expect(within(dialogue).getByText(fr["9l04h.e2e.creneau"])).toBeVisible();
   });
 
   it("montre les travaux cochés et la suite à donner, sans rien devant « Facturation » si rien n'est posé", () => {
@@ -2129,15 +2125,11 @@ describe("le récapitulatif avant signature (point 1-2, 9L04H-TERRAIN-RECAPITULA
       suite_a_donner: fr["9l04h.e2e.suite"],
     });
     const dialogue = ouvrirRecapitulatif();
-    expect(
-      within(dialogue).getByText(PRESTATIONS[0]!.libelle),
-    ).toBeVisible();
+    expect(within(dialogue).getByText(PRESTATIONS[0]!.libelle)).toBeVisible();
     expect(
       within(dialogue).queryByText(PRESTATIONS[1]!.libelle),
     ).not.toBeInTheDocument();
-    expect(
-      within(dialogue).getByText(fr["9l04h.e2e.suite"]),
-    ).toBeVisible();
+    expect(within(dialogue).getByText(fr["9l04h.e2e.suite"])).toBeVisible();
     expect(
       within(dialogue).queryByText(
         fr["terrain.recapitulatif.rubrique_facturation"],
@@ -2186,7 +2178,10 @@ describe("le récapitulatif avant signature (point 1-2, 9L04H-TERRAIN-RECAPITULA
     ).toBeVisible();
     expect(
       within(dialogue).getByText(
-        libelleDuPoint(fr["9l04h.e2e.section"], fr["9l04h.e2e.point_eclairage"]),
+        libelleDuPoint(
+          fr["9l04h.e2e.section"],
+          fr["9l04h.e2e.point_eclairage"],
+        ),
       ),
     ).toBeVisible();
     expect(
