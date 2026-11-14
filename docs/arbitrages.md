@@ -8812,3 +8812,25 @@ Elle ne touche pas à l'immutabilité de `checklist_reponse_photo` (I6) : un lie
 > Le jour où une réponse qui porte une photo doit malgré tout pouvoir se retirer (ce qui suppose de décider, pour la première fois, ce qu'il advient du lien `checklist_reponse_photo` et de la photo elle-même — orpheline ? effacée ? rattachée ailleurs ?), cette décision se relit : elle suppose aujourd'hui qu'aucun chemin ne se pose cette question, I6 réglant tout par le refus pur et simple.
 
 Portée : `prisma/migrations/20261115020000_checklist_reponse_retrait_9l04m/`, `lib/db/migrations-attendues.ts`, `lib/checklists/depot.ts` (`enregistrerReponses`), `lib/i18n/fr.ts`, `tests/isolation/checklist-domaine.test.ts`, `tests/isolation/checklists.test.ts`, `tests/e2e/9l04m-checklist-retrait-reponse.spec.ts`.
+
+## D258 — LÉGENDE D'UNE PHOTO FACULTATIVE ET POSÉE APRÈS L'ENVOI ; SUPPRESSION PAR SON AUTEUR SEUL, JUSQU'À « TERMINER », DERRIÈRE CONFIRMATION ; LA SUPPRESSION HORS RÉSEAU PART AVEC LA FILE (décisions d'Alexis du 13/11/2026 ; 9L04E-TERRAIN-PHOTOS-EPUREES)
+
+### CE QUI A ÉTÉ MESURÉ
+
+Constat d'Alexis du 13/11/2026 : le bouton qui ouvre l'appareil photo ne s'ouvrait pas — un champ fichier natif, sans libellé engageant, suivi d'un bouton « Ajouter une photo » qui n'ouvrait rien lui-même — et toutes les photos s'appelaient « image.jpg » (la légende, saisie AVANT l'envoi dans l'ancien formulaire, restait vide par défaut et retombait sur le nom de fichier). Trois questions réglées dans l'atelier du même jour : la légende se saisit-elle avant ou après l'envoi (et peut-elle rester vide) ; qui peut supprimer une photo, et jusqu'à quand ; la suppression passe-t-elle par la file hors réseau comme l'ajout.
+
+### LA DÉCISION
+
+**Légende** : facultative, saisie APRÈS l'envoi (jamais au moment de la prise), par un champ libre et quatre étiquettes rapides (« Avant », « Après », « Plaque », « Défaut ») dans la feuille ouverte au toucher de la photo. Une légende vidée n'efface rien en base — `document_libelle_non_vide` l'interdit depuis D93 — elle repose le nom de fichier d'origine, et c'est CETTE valeur que l'affichage détecte pour montrer « Sans légende » plutôt qu'un nom de fichier.
+
+**Suppression** : réservée à l'auteur de la photo (celui qui l'a déposée, jamais un autre technicien même affecté depuis à la même intervention), et seulement tant que l'intervention n'est pas fermée (`terminee`, `cloturee`, `annulee` — jusqu'à « Terminer »). Accès par toucher de la photo puis « Supprimer » puis une confirmation explicite à deux temps — jamais un geste silencieux. Suppression RÉELLE (`document` est une table auditée par défaut depuis D55 : la trace reste dans `journal_audit`), jamais logique. Une photo liée à une réponse de checklist (`checklist_reponse_photo`, 9K28) reste IMMUABLE : la suppression est refusée, nommément, par la clé étrangère `RESTRICT` déjà posée — aucune seconde règle qui pourrait diverger de celle-là.
+
+**Hors réseau** : une photo encore en file (jamais envoyée) se retire localement, sans appel réseau — rien à annuler côté serveur. Une photo déjà envoyée dont la suppression est demandée hors réseau entre dans la MÊME file que l'ajout, et part au retour du réseau par « Envoyer ».
+
+**Un fait technique découvert en construisant cette décision, consigné ici parce qu'il engage une doctrine (I8)** : l'auteur d'une photo ne peut PAS se lire dans `journal_audit` depuis la route qui l'exploite — la politique de LECTURE du journal exige la capacité `consulter_journal_audit` (admin_societe/direction seuls), que le rôle `technicien`, seul appelant de cette route, n'a jamais. Une colonne neuve, nullable, `Document.depose_par` (migration `20261114100000_photo_depose_par_9l04e`) porte donc cette identité — posée une fois à la création, jamais recalculée, sans relation Prisma déclarée (même choix que `Notification.destinataire_id`, D39).
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où une autre route voudrait établir « qui a écrit cette ligne » pour en restreindre l'édition à un rôle qui n'a pas `consulter_journal_audit`, cette décision se relit : `journal_audit` n'est pas une source utilisable pour CE genre de contrôle applicatif tant que sa politique de lecture reste réservée à l'encadrement — soit la capacité s'élargit (une décision à part), soit une colonne dédiée se pose comme ici. Le jour où un second cas réclamerait la même colonne sur une autre table, le motif se généralise plutôt que de se recopier.
+
+Portée : `prisma/schema.prisma` (`Document.depose_par`), `prisma/migrations/20261114100000_photo_depose_par_9l04e/`, `lib/documents/depot.ts` (`photoModifiableDansTx`, `supprimerPhotoIntervention`, `modifierLegendePhoto`, `auteursDesPhotos`), `app/api/terrain/[id]/photos/supprimer/route.ts`, `app/api/terrain/[id]/photos/legende/route.ts`, `components/interventions/photos-terrain.tsx`, `lib/terrain/file-saisies.ts` (`GesteSuppressionPhoto`), `lib/terrain/envoi-file.ts`.
