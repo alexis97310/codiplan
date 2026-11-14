@@ -1,4 +1,5 @@
 import type { DetailNonConforme } from "./non-conformite";
+import { t } from "@/lib/i18n/fr";
 import type { ReponseDeChecklist } from "./depot";
 
 /**
@@ -62,4 +63,29 @@ export function valeurChecklistAffichee(
     default:
       return null;
   }
+}
+
+/**
+ * « 13 conformes, 2 non conformes, 1 sans objet » (CK8, point 3 du ticket) —
+ * UNIQUEMENT les réponses « conforme/non conforme/sans objet » ; les
+ * mesures, cases et textes n'entrent dans aucun des trois comptes.
+ *
+ * DÉPLACÉE de `components/interventions/bon-tuiles.tsx` vers ce module, SANS
+ * dépendance Prisma (9L04H-TERRAIN-RECAPITULATIF-SIGNATURE) — le récapitulatif
+ * terrain, un composant CLIENT (`rapport-automatique.tsx`), doit pouvoir
+ * composer le MÊME texte que le bon sans entraîner `lib/checklists/depot.ts`
+ * (et son client Prisma) dans le paquet du navigateur. `bon-tuiles.tsx`
+ * réexporte cette fonction pour ses appelants existants.
+ */
+export function resumeChecklistBon(resume: {
+  readonly conformes: number;
+  readonly nonConformes: number;
+  readonly sansObjet: number;
+}): string {
+  const virgule = t("ponctuation.virgule");
+  return (
+    `${resume.conformes} ${t("checklist.bon.resume_conformes")}${virgule}` +
+    `${resume.nonConformes} ${t("checklist.bon.resume_non_conformes")}${virgule}` +
+    `${resume.sansObjet} ${t("checklist.bon.resume_sans_objet")}`
+  );
 }

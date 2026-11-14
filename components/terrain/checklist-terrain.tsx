@@ -572,8 +572,13 @@ function CocheRonde({
   );
 }
 
-/** LES SEGMENTS DE CHOIX, pleine largeur, 2 à 4 options (point 3, 9L04D). */
-function SegmentsChoix({
+/**
+ * LES SEGMENTS DE CHOIX, pleine largeur, 2 à 4 options (point 3, 9L04D).
+ * EXPORTÉ depuis 9L04H-TERRAIN-RECAPITULATIF-SIGNATURE — la qualité du
+ * signataire (`rapport-automatique.tsx`) réutilise ce MÊME contrôle plutôt
+ * que d'en récrire un second (§9, 01/09).
+ */
+export function SegmentsChoix({
   libelle,
   options,
   valeur,

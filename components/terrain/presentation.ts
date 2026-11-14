@@ -7,7 +7,7 @@ import {
   type JourLocal,
 } from "@/lib/calendar/fuseau";
 import { jourSemaineIso } from "@/lib/calendar/semaine";
-import { t, type CleTraduction } from "@/lib/i18n/fr";
+import { estCleTraduction, t, type CleTraduction } from "@/lib/i18n/fr";
 import { jourEtDateAbregee } from "@/lib/interventions/presentation-partagee";
 
 /**
@@ -51,6 +51,18 @@ export function creneauDeLaFiche(
     return debut;
   }
   return `${debut} – ${heureLocale(ligne.creneau_fin, fuseau)}`;
+}
+
+/**
+ * LE LIBELLÉ D'UN TYPE D'INTERVENTION — DÉPLACÉ de `app/(mobile)/terrain/
+ * [id]/page.tsx` (9L04H-TERRAIN-RECAPITULATIF-SIGNATURE) : la coquille hors
+ * réseau (`consultation-hors-reseau.tsx`) en a désormais besoin elle aussi,
+ * pour la rubrique « INTERVENTION » du récapitulatif — une seule écriture,
+ * partagée (§9, 01/09).
+ */
+export function libelleDuType(type: string): string {
+  const cle = `type_intervention.${type}`;
+  return estCleTraduction(cle) ? t(cle) : type;
 }
 
 /**

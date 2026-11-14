@@ -4,6 +4,7 @@ import { Carte } from "@/components/ui/carte";
 import { type JourLocal } from "@/lib/calendar/fuseau";
 import { type RenduReponseChecklistBon } from "@/lib/checklists/depot";
 import { libelleSuiteNonConformite } from "@/lib/checklists/non-conformite";
+import { resumeChecklistBon } from "@/lib/checklists/presentation";
 import { t } from "@/lib/i18n/fr";
 import { mot, motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 import {
@@ -238,23 +239,11 @@ export function TuileConditionsFacturation({
   );
 }
 
-/**
- * « 13 conformes, 2 non conformes, 1 sans objet » (CK8, point 3 du ticket) —
- * UNIQUEMENT les réponses « conforme/non conforme/sans objet » ; les
- * mesures, cases et textes n'entrent dans aucun des trois comptes.
- */
-export function resumeChecklistBon(resume: {
-  readonly conformes: number;
-  readonly nonConformes: number;
-  readonly sansObjet: number;
-}): string {
-  const virgule = t("ponctuation.virgule");
-  return (
-    `${resume.conformes} ${t("checklist.bon.resume_conformes")}${virgule}` +
-    `${resume.nonConformes} ${t("checklist.bon.resume_non_conformes")}${virgule}` +
-    `${resume.sansObjet} ${t("checklist.bon.resume_sans_objet")}`
-  );
-}
+// `resumeChecklistBon` VIT DÉSORMAIS DANS `lib/checklists/presentation.ts`
+// (9L04H-TERRAIN-RECAPITULATIF-SIGNATURE) — sans dépendance Prisma, pour que
+// le récapitulatif terrain (composant CLIENT) puisse l'importer aussi.
+// Réexportée ici pour ses appelants existants (§9, 01/09).
+export { resumeChecklistBon };
 
 /**
  * Le texte d'une réponse — déduit de `rendu.nature` SEUL, jamais d'un type
