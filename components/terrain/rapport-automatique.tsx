@@ -12,6 +12,7 @@ import {
   type PointObligatoireManquant,
   type PointPourCompletude,
 } from "@/lib/checklists/completude";
+import { resumeChecklistBon } from "@/lib/checklists/presentation";
 import {
   libelleDuPoint,
   lignesReprise,
@@ -19,7 +20,7 @@ import {
   suiteAvecLigne,
   suiteAvecLignes,
 } from "@/lib/checklists/suite-preremplie";
-import { estCleTraduction, t } from "@/lib/i18n/fr";
+import { estCleTraduction, t, type CleTraduction } from "@/lib/i18n/fr";
 import { minutesDepuisMillisecondes } from "@/lib/interventions/compteur";
 import {
   manquesPourTerminer,
@@ -59,6 +60,7 @@ import {
 } from "@/lib/terrain/file-saisies";
 
 import { DeclencheurBarreAction } from "./barre-action-terrain";
+import { SegmentsChoix } from "./checklist-terrain";
 import { CompteurVivant } from "./compteur-vivant";
 
 /**
@@ -563,6 +565,96 @@ function nonConformesDepuisFile(
 }
 
 /**
+ * LES RÉPONSES CHECKLIST CONNUES, FUSIONNÉES AVEC LA FILE (9L04H-TERRAIN-
+ * RECAPITULATIF-SIGNATURE) — même principe qu'`obligatoiresManquantsDepuisFile`
+ * ci-dessus, mais pour la VALEUR de chaque réponse, pas seulement sa
+ * présence : le résumé « conformes/non conformes/sans objet » du
+ * récapitulatif doit rester à jour sans attendre un rechargement de la
+ * fiche, exactement comme les points manquants de « Terminer ».
+ */
+function valeursChecklistDepuisFile(
+  entreesCompteur: readonly EntreeFile[],
+  reponsesInitiales: Readonly<Record<string, unknown>>,
+): Readonly<Record<string, unknown>> {
+  const gesteChecklistEnFile = entreesCompteur.find(
+    (e): e is EntreeFile & { readonly geste: GesteChecklist } =>
+      e.geste.type === "checklist",
+  );
+  return {
+    ...reponsesInitiales,
+    ...(gesteChecklistEnFile?.geste.difference ?? {}),
+  };
+}
+
+/**
+ * LE RÉSUMÉ « CONFORMES/NON CONFORMES/SANS OBJET » DU RÉCAPITULATIF (point
+ * 2, 9L04H) — SEULS les points de type `conforme_non_conforme_sans_objet` y
+ * entrent, exactement comme `checklistDuBon` (`lib/checklists/depot.ts`) :
+ * les mesures, cases et textes libres n'ont pas de notion de conformité.
+ * `resume: null` quand aucun point de ce type n'a encore de réponse — la
+ * rubrique « CONTRÔLES » ne se rend alors pas du tout, jamais « 0, 0, 0 ».
+ */
+function resumeEtNonConformitesChecklist(
+  points: readonly (PointPourCompletude & { readonly typeReponse: string })[],
+  valeurs: Readonly<Record<string, unknown>>,
+): {
+  readonly resume: {
+    readonly conformes: number;
+    readonly nonConformes: number;
+    readonly sansObjet: number;
+  } | null;
+  readonly nonConformites: readonly PointObligatoireManquant[];
+} {
+  let conformes = 0;
+  let nonConformes = 0;
+  let sansObjet = 0;
+  const nonConformites: PointObligatoireManquant[] = [];
+  for (const point of points) {
+    if (point.typeReponse !== "conforme_non_conforme_sans_objet") {
+      continue;
+    }
+    const valeur = valeurs[point.id];
+    if (valeur === "conforme") {
+      conformes++;
+    } else if (valeur === "non_conforme") {
+      nonConformes++;
+      nonConformites.push({
+        id: point.id,
+        section: point.section,
+        libelle: point.libelle,
+      });
+    } else if (valeur === "sans_objet") {
+      sansObjet++;
+    }
+  }
+  const total = conformes + nonConformes + sansObjet;
+  return {
+    resume: total === 0 ? null : { conformes, nonConformes, sansObjet },
+    nonConformites,
+  };
+}
+
+/**
+ * LES TROIS SEGMENTS DE QUALITÉ (point 2, 9L04H) — « Autre » n'y figure PAS :
+ * ce n'est pas une qualité, c'est la saisie libre qui en accepte une
+ * quatrième, inconnue de cette liste fermée. `estQualitePreset` sert au
+ * montage (voir le mount effect) à décider si une qualité restaurée (un
+ * brouillon, ou une valeur D'AVANT CE TICKET — texte libre, `signataire_
+ * qualite` reste une colonne libre en base, voir son docblock Prisma) doit
+ * ouvrir la saisie libre pour rester lisible, plutôt que de disparaître
+ * derrière un segment qu'elle ne correspond à aucun.
+ */
+const CLES_QUALITE_SEGMENTS: readonly CleTraduction[] = [
+  "terrain.signature.qualite.gerant",
+  "terrain.signature.qualite.resp_atelier",
+  "terrain.signature.qualite.mecanicien",
+];
+
+function estQualitePreset(valeur: string): boolean {
+  return CLES_QUALITE_SEGMENTS.map((cle) => t(cle)).includes(valeur);
+}
+
+/**
  * LE POINT DU POINTEUR, À L'ÉCHELLE DE LA RÉSOLUTION DU CANEVAS (point 5,
  * 9G5-TERRAIN-ERGONOMIE) — le canevas de signature est désormais FLUIDE
  * (largeur CSS = largeur disponible), mais sa résolution de dessin
@@ -689,6 +781,29 @@ function Indicateur({
   );
 }
 
+/**
+ * UNE RUBRIQUE DU RÉCAPITULATIF (point 2, 9L04H-TERRAIN-RECAPITULATIF-
+ * SIGNATURE) — même titre de rubrique que le reste de la fiche épurée
+ * (13 px, capitales, espacé, gris), sans filet ni carte : un simple groupe
+ * de lignes, séparé de la rubrique suivante par l'espace du conteneur.
+ */
+function RubriqueRecapitulatif({
+  titre,
+  children,
+}: {
+  readonly titre: string;
+  readonly children: ReactNode;
+}) {
+  return (
+    <section className="flex flex-col gap-1.5">
+      <h3 className="text-app-terrain-encre-secondaire text-13 font-bold tracking-[0.6px] uppercase">
+        {titre}
+      </h3>
+      {children}
+    </section>
+  );
+}
+
 export function RapportTerrainAutomatique({
   interventionId,
   utilisateurId,
@@ -705,6 +820,7 @@ export function RapportTerrainAutomatique({
   dejaSignee,
   afficherTerminer,
   verdictTerminerRefuseCle,
+  recapitulatif,
   checklistPourTerminer,
   sectionPhotos,
   catalogueIndisponibleHorsReseau = false,
@@ -759,6 +875,23 @@ export function RapportTerrainAutomatique({
    */
   readonly verdictTerminerRefuseCle: string | null;
   /**
+   * CE QUE LE RÉCAPITULATIF AVANT SIGNATURE RELIT (9L04H-TERRAIN-
+   * RECAPITULATIF-SIGNATURE) — le constat de la revue du 13/11/2026 : le
+   * technicien ne voit jamais le bon (`/interventions/<id>/bon` le renvoie
+   * sur cette fiche, D221) et le client signait sans avoir sous les yeux ce
+   * qu'il signe. `materiel` porte déjà le n° de série (`libelleMaterielComplet`),
+   * jamais recomposé ici. Rien ici ne porte le moindre montant (I3/D176).
+   */
+  readonly recapitulatif: {
+    readonly client: string | null;
+    readonly site: string | null;
+    readonly materiel: readonly string[];
+    readonly natureLibelle: string;
+    readonly creneauLibelle: string | null;
+    /** Le contact sur place, pour préremplir le nom du signataire — `null` hors réseau si la copie ne le porte pas encore. */
+    readonly contactSurPlaceNom: string | null;
+  };
+  /**
    * LA CHECKLIST, POUR LE VERDICT LOCAL DE « TERMINER » (9K23-CHECKLIST-
    * BLOCAGE-TERMINER, CK7) — `null` si aucun gabarit n'est résolu pour cette
    * intervention (3.10 : condition réputée remplie, `peutTerminer` reçoit
@@ -768,7 +901,11 @@ export function RapportTerrainAutomatique({
    * est relue séparément, au moment du clic, jamais ici. `typeReponse` sert
    * ICI à « Reprendre la non-conformité de la checklist » (9L04F) : seul un
    * point `conforme_non_conforme_sans_objet` peut être non conforme, jamais
-   * une réponse libre qui porterait accidentellement ce mot.
+   * une réponse libre qui porterait accidentellement ce mot ; et au résumé
+   * « conformes/non conformes/sans objet » du récapitulatif (9L04H), le SEUL
+   * autre endroit de ce composant qui doit distinguer ce type de point des
+   * quatre autres — `etatDeCompletude` continue de l'ignorer, par structural
+   * typing (`PointPourCompletude` reste son seul paramètre).
    */
   readonly checklistPourTerminer: {
     readonly points: readonly (PointPourCompletude & {
@@ -819,10 +956,26 @@ export function RapportTerrainAutomatique({
   const [issueSignature, setIssueSignature] = useState<IssueSignature | null>(
     null,
   );
-  const [nomSignataire, setNomSignataire] = useState("");
+  // PRÉREMPLI AVEC LE CONTACT SUR PLACE (point 2, 9L04H-TERRAIN-
+  // RECAPITULATIF-SIGNATURE, décision d'Alexis du 13/11/2026) — modifiable
+  // ensuite comme avant ; un brouillon trouvé au montage (plus bas) prend le
+  // pas, exactement comme pour `qualiteSignataire`.
+  const [nomSignataire, setNomSignataire] = useState(
+    () => recapitulatif.contactSurPlaceNom ?? "",
+  );
   const [qualiteSignataire, setQualiteSignataire] = useState("");
+  // LA QUALITÉ EN SEGMENTS, « AUTRE » OUVRANT UNE SAISIE LIBRE (point 2,
+  // 9L04H) — `true` dès le montage si un brouillon (ou une signature déjà
+  // acceptée) porte une qualité QUI NE CORRESPOND À AUCUN DES TROIS SEGMENTS
+  // (une valeur d'avant ce ticket, en texte libre, 100 % lisible) : voir le
+  // mount effect, plus bas, qui l'arme après avoir lu le brouillon.
+  const [qualiteAutreOuverte, setQualiteAutreOuverte] = useState(false);
   const [motifSignature, setMotifSignature] = useState("");
   const [aTrace, setATrace] = useState(false);
+  // LE RÉCAPITULATIF AVANT SIGNATURE (point 1-2, 9L04H) — feuille plein
+  // écran, même patron que celle de « Terminer » plus bas : un geste d'écran
+  // de plus, jamais un second aller-retour réseau.
+  const [recapitulatifOuvert, setRecapitulatifOuvert] = useState(false);
 
   const [etatRapport, setEtatRapport] = useState<Etat>("repos");
   const [etatPrestations, setEtatPrestations] = useState<Etat>("repos");
@@ -876,6 +1029,19 @@ export function RapportTerrainAutomatique({
   // pas au clic sur une phrase.
   const [phrasesTypesOuvertes, setPhrasesTypesOuvertes] = useState(false);
   const positionCurseurCommentaireRef = useRef<number | null>(null);
+  // LES RÉPONSES CHECKLIST CONNUES, À JOUR EN PERMANENCE (point 2, 9L04H-
+  // TERRAIN-RECAPITULATIF-SIGNATURE) — même principe que `pointsManquantsAffiches`
+  // ci-dessus, mais pour la VALEUR de chaque réponse : le résumé « CONTRÔLES »
+  // du récapitulatif reste juste même si une réponse checklist a été
+  // modifiée APRÈS le rendu serveur, sans attendre un rechargement.
+  const [valeursChecklistAffichees, setValeursChecklistAffichees] = useState<
+    Readonly<Record<string, unknown>>
+  >(() =>
+    valeursChecklistDepuisFile(
+      [],
+      checklistPourTerminer?.reponsesInitiales ?? {},
+    ),
+  );
   // LE TEMPS AFFICHÉ DANS LA FEUILLE DE CONFIRMATION, EN DIRECT (M3) — les
   // minutes déjà FERMÉES (serveur + file) et le DÉBUT du segment encore
   // ouvert, s'il y en a un ; `null` si rien ne tourne. `CompteurVivant` fait
@@ -1512,6 +1678,10 @@ export function RapportTerrainAutomatique({
         setNomSignataire(brouillon.signature.nom);
         qualiteSignatureRef.current = brouillon.signature.qualite;
         setQualiteSignataire(brouillon.signature.qualite);
+        setQualiteAutreOuverte(
+          brouillon.signature.qualite.length > 0 &&
+            !estQualitePreset(brouillon.signature.qualite),
+        );
         imageSignatureRef.current = brouillon.signature.image;
         setATrace(true);
       } else {
@@ -1557,6 +1727,14 @@ export function RapportTerrainAutomatique({
         // SANS ATTENDRE UN RECHARGEMENT (point 3, 9L04F) — même discipline.
         setPointsNonConformesAffiches(
           nonConformesDepuisFile(entrees, checklistPourTerminer),
+        );
+        // LE RÉSUMÉ « CONTRÔLES » DU RÉCAPITULATIF, MÊME RÉGIME (9L04H) —
+        // voir le docblock de `valeursChecklistDepuisFile`.
+        setValeursChecklistAffichees(
+          valeursChecklistDepuisFile(
+            entrees,
+            checklistPourTerminer?.reponsesInitiales ?? {},
+          ),
         );
         const mesureAffichage = mesureCompteurDeLaFile(
           entrees,
@@ -2481,6 +2659,22 @@ export function RapportTerrainAutomatique({
           </p>
         ) : null}
 
+        {/* LE RÉCAPITULATIF, AVANT TOUTE SIGNATURE (point 1-2, 9L04H-TERRAIN-
+            RECAPITULATIF-SIGNATURE) — « à lire AVEC le client » : ouvert
+            DEPUIS cette rubrique, comme demandé, plutôt que d'y enfermer tout
+            le geste de signature (voir la passation — écart nommé, mesuré
+            contre le risque des épreuves e2e déjà posées sur les trois
+            boutons d'issue ci-dessous, inchangés). */}
+        <Button
+          type="button"
+          variant="outline"
+          size="lg"
+          className="self-start text-16"
+          onClick={() => setRecapitulatifOuvert(true)}
+        >
+          {t("terrain.recapitulatif.ouvrir")}
+        </Button>
+
         <div className="flex flex-wrap gap-2">
           <Button
             type="button"
@@ -2532,38 +2726,79 @@ export function RapportTerrainAutomatique({
                 className="border-app-bord bg-app-surface rounded-md border px-2 py-1.5 text-16 font-bold"
               />
             </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-16 font-bold">
-                {t("terrain.signature.qualite_libelle")}
-              </span>
-              <input
-                type="text"
-                value={qualiteSignataire}
-                onChange={(e) => {
-                  qualiteSignatureRef.current = e.target.value;
-                  setQualiteSignataire(e.target.value);
-                  ecrireBrouillonCourant();
-                }}
-                onBlur={() => void tenterEnvoiSignature()}
-                maxLength={80}
-                className="border-app-bord bg-app-surface rounded-md border px-2 py-1.5 text-16 font-bold"
-              />
-            </label>
+            {/* LA QUALITÉ EN SEGMENTS (point 2, 9L04H) — « Autre » ouvre la
+                saisie libre d'avant ce ticket, jamais effacée : une qualité
+                restaurée qui ne correspond à aucun des trois segments (une
+                intervention passée, ou un brouillon antérieur) arme
+                `qualiteAutreOuverte` au montage (voir son docblock) et reste
+                donc lisible ici, dans le champ libre. */}
+            <SegmentsChoix
+              libelle={t("terrain.signature.qualite_libelle")}
+              options={[
+                t("terrain.signature.qualite.gerant"),
+                t("terrain.signature.qualite.resp_atelier"),
+                t("terrain.signature.qualite.mecanicien"),
+                t("terrain.signature.qualite.autre"),
+              ]}
+              valeur={
+                qualiteAutreOuverte
+                  ? t("terrain.signature.qualite.autre")
+                  : estQualitePreset(qualiteSignataire)
+                    ? qualiteSignataire
+                    : null
+              }
+              onChange={(option) => {
+                if (option === t("terrain.signature.qualite.autre")) {
+                  setQualiteAutreOuverte(true);
+                  return;
+                }
+                // `null` : LE SEGMENT ACTIF A ÉTÉ RECLIQUÉ (`SegmentsChoix`
+                // le décoche) — remet la qualité à vide, comme avant tout
+                // choix.
+                setQualiteAutreOuverte(false);
+                const valeur = typeof option === "string" ? option : "";
+                qualiteSignatureRef.current = valeur;
+                setQualiteSignataire(valeur);
+                ecrireBrouillonCourant();
+                void tenterEnvoiSignature();
+              }}
+            />
+            {!qualiteAutreOuverte ? null : (
+              <label className="flex flex-col gap-1">
+                <span className="text-16 font-bold">
+                  {t("terrain.signature.qualite_libelle")}
+                </span>
+                <input
+                  type="text"
+                  value={qualiteSignataire}
+                  onChange={(e) => {
+                    qualiteSignatureRef.current = e.target.value;
+                    setQualiteSignataire(e.target.value);
+                    ecrireBrouillonCourant();
+                  }}
+                  onBlur={() => void tenterEnvoiSignature()}
+                  maxLength={80}
+                  className="border-app-bord bg-app-surface rounded-md border px-2 py-1.5 text-16 font-bold"
+                />
+              </label>
+            )}
             {/* LA LARGEUR DISPONIBLE, PAS 320 PX FIXES (point 5,
                 9G5-TERRAIN-ERGONOMIE) — 320 px dépassait les 311 px utiles à
                 375 px (gouttières de la page et de la carte). `w-full`
                 rend le canevas fluide ; sa RÉSOLUTION de dessin
                 (`width`/`height`) est posée à la taille affichée par le
                 `useLayoutEffect` ci-dessus (point 1, 9H4-FINITIONS-AVANT-
-                AUDIT) — 320×140 n'est qu'un défaut avant sa première mesure.
+                AUDIT) — 320×190 n'est qu'un défaut avant sa première mesure.
                 `position()` met le point du pointeur à l'échelle de cette
                 résolution (`positionCanevas`, ci-dessus) — sans cette
-                échelle, le tracé dérivait du doigt qui le pose. */}
+                échelle, le tracé dérivait du doigt qui le pose. 190 px et
+                le fond `app-terrain-champ-fond` (#F1F3F6) : la fiche épurée
+                (point 2, 9L04H, décision d'Alexis du 13/11/2026). */}
             <canvas
               ref={canvasRef}
               width={320}
-              height={140}
-              className="border-app-bord bg-app-surface h-[140px] w-full touch-none rounded-md border"
+              height={190}
+              className="bg-app-terrain-champ-fond h-[190px] w-full touch-none rounded-md"
               onPointerDown={demarrerTrace}
               onPointerMove={tracer}
               onPointerUp={arreterTrace}
@@ -2574,15 +2809,30 @@ export function RapportTerrainAutomatique({
                 {t("terrain.signature.a_tracer")}
               </p>
             )}
-            <Button
-              type="button"
-              variant="outline"
-              size="lg"
-              className="self-start text-16"
-              onClick={effacerTrace}
-            >
-              {t("terrain.signature.effacer")}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                className="text-16"
+                onClick={effacerTrace}
+              >
+                {t("terrain.signature.effacer")}
+              </Button>
+              {/* « VALIDER LA SIGNATURE » (point 2, 9L04H) — un geste
+                  explicite, à côté de l'enregistrement automatique déjà en
+                  place (D212, `onBlur`/`onPointerUp` ci-dessus) : il force le
+                  même envoi, pour que le signataire voie tout de suite
+                  `Indicateur` confirmer, sans dépendre d'un flou de champ. */}
+              <Button
+                type="button"
+                size="lg"
+                className="text-16"
+                onClick={() => void tenterEnvoiSignature()}
+              >
+                {t("terrain.signature.valider")}
+              </Button>
+            </div>
           </>
         ) : null}
 
@@ -2613,6 +2863,152 @@ export function RapportTerrainAutomatique({
           texteEchec={t("terrain.signature.refus")}
         />
       </section>
+
+      {!recapitulatifOuvert ? null : (
+        // LE RÉCAPITULATIF, PLEIN ÉCRAN (point 1-2, 9L04H-TERRAIN-
+        // RECAPITULATIF-SIGNATURE) — MÊME PATRON que la feuille de
+        // confirmation de « Terminer » plus bas (`z-[60]`, `role="dialog"`) :
+        // au-dessus de la barre basse, jamais dessous. Lecture seule — aucun
+        // geste n'y modifie quoi que ce soit, « Fermer » revient simplement
+        // à la fiche.
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="terrain-recapitulatif-titre"
+          className="bg-app-fond fixed inset-0 z-[60] flex flex-col gap-4 overflow-y-auto p-4"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex flex-col gap-0.5">
+              <h2 id="terrain-recapitulatif-titre" className="text-18 font-bold">
+                {t("terrain.recapitulatif.titre")}
+              </h2>
+              <p className="text-app-terrain-encre-secondaire text-16 font-medium">
+                {t("terrain.recapitulatif.sous_titre")}
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              className="text-16"
+              onClick={() => setRecapitulatifOuvert(false)}
+            >
+              {t("terrain.recapitulatif.fermer")}
+            </Button>
+          </div>
+
+          <RubriqueRecapitulatif titre={t("terrain.recapitulatif.rubrique_client")}>
+            <p className="text-16 font-bold">
+              {recapitulatif.client ?? t("terrain.client_inconnu")}
+            </p>
+            {recapitulatif.site === null ? null : (
+              <p className="text-16 font-medium">{recapitulatif.site}</p>
+            )}
+            {recapitulatif.materiel.length === 0 ? (
+              <p className="text-app-terrain-encre-secondaire text-16 font-medium">
+                {t("terrain.recapitulatif.materiel_aucun")}
+              </p>
+            ) : (
+              recapitulatif.materiel.map((libelle) => (
+                <p key={libelle} className="text-16 font-medium">
+                  {libelle}
+                </p>
+              ))
+            )}
+          </RubriqueRecapitulatif>
+
+          <RubriqueRecapitulatif
+            titre={t("terrain.recapitulatif.rubrique_intervention")}
+          >
+            <p className="text-16 font-medium">{recapitulatif.natureLibelle}</p>
+            {recapitulatif.creneauLibelle === null ? null : (
+              <p className="text-16 font-medium">
+                {recapitulatif.creneauLibelle}
+              </p>
+            )}
+            <p className="text-16 font-medium">
+              {debutSegmentOuvertAffiche === null ? (
+                texteConfirmationTemps(minutesFermeesAffichees)
+              ) : (
+                <>
+                  {t("terrain.terminer.confirmation.temps")}{" "}
+                  <CompteurVivant
+                    depart={new Date(debutSegmentOuvertAffiche)}
+                    minutesFermees={minutesFermeesAffichees}
+                  />
+                </>
+              )}
+            </p>
+          </RubriqueRecapitulatif>
+
+          {(() => {
+            const { resume, nonConformites } = resumeEtNonConformitesChecklist(
+              checklistPourTerminer?.points ?? [],
+              valeursChecklistAffichees,
+            );
+            if (resume === null) {
+              return null;
+            }
+            return (
+              <RubriqueRecapitulatif
+                titre={t("terrain.recapitulatif.rubrique_controles")}
+              >
+                <p className="text-16 font-bold">{resumeChecklistBon(resume)}</p>
+                {nonConformites.map((point) => (
+                  <p
+                    key={point.id}
+                    // ROUGE #A3040E, LE TEXTE D'ALERTE DE LA FICHE ÉPURÉE
+                    // (décision d'Alexis du 13/11/2026) — `--app-rouge-encre`
+                    // vaut déjà cette teinte sous `[data-zone="terrain"]`
+                    // (app/globals.css), jamais `--app-terrain-rouge-plein`
+                    // (#C40511, réservé aux PASTILLES PLEINES).
+                    className="text-app-rouge-encre text-16 font-bold"
+                  >
+                    {libelleDuPoint(point.section, point.libelle)}
+                  </p>
+                ))}
+              </RubriqueRecapitulatif>
+            );
+          })()}
+
+          <RubriqueRecapitulatif titre={t("terrain.recapitulatif.rubrique_travaux")}>
+            {prestations.filter((p) => prestationsChoisies.has(p.id)).length ===
+            0 ? (
+              <p className="text-app-terrain-encre-secondaire text-16 font-medium">
+                {t("terrain.recapitulatif.travaux_aucun")}
+              </p>
+            ) : (
+              prestations
+                .filter((p) => prestationsChoisies.has(p.id))
+                .map((p) => (
+                  <p key={p.id} className="text-16 font-medium">
+                    {p.libelle}
+                  </p>
+                ))
+            )}
+            {suite.trim().length === 0 ? null : (
+              <div className="flex flex-col gap-0.5">
+                <p className="text-app-terrain-encre-secondaire text-13 font-bold tracking-[0.6px] uppercase">
+                  {t("terrain.recapitulatif.suite_titre")}
+                </p>
+                <p className="text-16 font-medium">{suite}</p>
+              </div>
+            )}
+          </RubriqueRecapitulatif>
+
+          {conditionsFacturation.length === 0 ? null : (
+            <RubriqueRecapitulatif
+              titre={t("terrain.recapitulatif.rubrique_facturation")}
+            >
+              {conditionsFacturation.map((ligne) => (
+                <p key={ligne} className="text-16 font-bold">
+                  {ligne}
+                </p>
+              ))}
+            </RubriqueRecapitulatif>
+          )}
+        </div>
+      )}
 
       {afficherTerminer || enCoursLocalement ? (
         <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">

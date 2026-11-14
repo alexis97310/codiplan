@@ -15,6 +15,7 @@ import {
   contactAffiche,
   creneauDeLaFiche,
   heureLocale,
+  libelleDuType,
   lienItineraire,
 } from "@/components/terrain/presentation";
 import {
@@ -324,6 +325,11 @@ export default async function PageInterventionTerrain({
   );
   const itineraire = lienItineraire(adresseSite);
   const consignesAcces = site?.consignes_acces ?? null;
+  // LA NATURE ET LE CRÉNEAU, COMPOSÉS UNE SEULE FOIS (9L04H-TERRAIN-
+  // RECAPITULATIF-SIGNATURE) — lus par la ligne `<dl>` existante ET par le
+  // récapitulatif avant signature, jamais deux compositions du même fait.
+  const natureLibelle = libelleDuType(ligne.type);
+  const creneauLibelle = creneauDeLaFiche(ligne, fiche.fuseau);
 
   // LA CHECKLIST, APLATIE EN PROPS CLIENT-SAFE (9K21-CHECKLIST-TERRAIN-
   // SAISIE, CK5) — `ChecklistTerrain` est un composant client : ni
@@ -656,14 +662,8 @@ export default async function PageInterventionTerrain({
             />
             <Ligne libelle={mot("site")} valeur={fiche.lieu} />
             <Ligne libelle={t("site.adresse")} valeur={adresseSite} />
-            <Ligne
-              libelle={t("intervention.type")}
-              valeur={libelleDuType(ligne.type)}
-            />
-            <Ligne
-              libelle={t("terrain.creneau")}
-              valeur={creneauDeLaFiche(ligne, fiche.fuseau)}
-            />
+            <Ligne libelle={t("intervention.type")} valeur={natureLibelle} />
+            <Ligne libelle={t("terrain.creneau")} valeur={creneauLibelle} />
           </dl>
           {itineraire === null ? null : (
             <Button
@@ -791,6 +791,14 @@ export default async function PageInterventionTerrain({
           verdictTerminerRefuseCle={
             verdictTerminer.refuse ? verdictTerminer.cle : null
           }
+          recapitulatif={{
+            client: fiche.client,
+            site: fiche.lieu,
+            materiel: machinesAffichees.map((m) => m.libelle),
+            natureLibelle,
+            creneauLibelle,
+            contactSurPlaceNom: contact?.nom ?? null,
+          }}
           checklistPourTerminer={
             checklist === null || !checklist.disponible
               ? null
@@ -828,12 +836,6 @@ export default async function PageInterventionTerrain({
       </main>
     </BarreActionTerrain>
   );
-}
-
-/** Le libellé du type, ou son code si le dictionnaire l'ignore. */
-function libelleDuType(type: string): string {
-  const cle = `type_intervention.${type}`;
-  return estCleTraduction(cle) ? t(cle) : type;
 }
 
 /**

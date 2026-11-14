@@ -38,8 +38,10 @@ import { BoutonCompteurTerrain } from "./compteur-terrain";
 import { RapportTerrainAutomatique } from "./rapport-automatique";
 import { BoutonSuspendreTerrain } from "./suspendre-terrain";
 import {
+  creneauDeLaFiche,
   heureLocale,
   libelleDatesSuite,
+  libelleDuType,
   libelleJoursSuivantsVide,
   libelleTitreDemain,
   premiereLignePanne,
@@ -411,6 +413,22 @@ function Fiche({
   // rien d'autre n'est su : un statut déjà « en_cours » sans compteur connu
   // ICI est une pause, jamais un nouveau départ.
   const enPause = fiche.statut === "en_cours";
+  // LA NATURE ET LE CRÉNEAU, MÊME COMPOSITION QU'EN LIGNE (9L04H-TERRAIN-
+  // RECAPITULATIF-SIGNATURE) — `FicheJSON` porte les créneaux en chaînes ISO,
+  // jamais des `Date` : `creneauDeLaFiche` les reçoit converties, ici
+  // seulement, jamais une seconde fonction qui les lirait en chaîne.
+  const natureLibelle = libelleDuType(fiche.type);
+  const creneauLibelle = creneauDeLaFiche(
+    {
+      date_planifiee:
+        fiche.datePlanifiee === null ? null : new Date(fiche.datePlanifiee),
+      creneau_debut:
+        fiche.creneauDebut === null ? null : new Date(fiche.creneauDebut),
+      creneau_fin:
+        fiche.creneauFin === null ? null : new Date(fiche.creneauFin),
+    },
+    fiche.fuseau,
+  );
   // PAR TYPE D'INTERVENTION (9K29, D243), même règle pure qu'en ligne
   // (`app/(mobile)/terrain/[id]/page.tsx`) : calculée UNE FOIS, partagée par
   // la liste proposée et par le message d'état vide qui la distingue d'un
@@ -581,6 +599,14 @@ function Fiche({
         verdictTerminerRefuseCle={
           fiche.verdictTerminer.refuse ? fiche.verdictTerminer.cle : null
         }
+        recapitulatif={{
+          client: fiche.client,
+          site: fiche.lieu,
+          materiel: fiche.machinesLibelles,
+          natureLibelle,
+          creneauLibelle,
+          contactSurPlaceNom: fiche.contact?.nom ?? null,
+        }}
         checklistPourTerminer={
           checklist === null
             ? null

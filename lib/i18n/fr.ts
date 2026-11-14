@@ -3347,6 +3347,26 @@ export const fr = {
   "terrain.photos.refus_lien_checklist":
     "Cette photo répond un point de check-list : elle ne peut pas être supprimée.",
 
+  // ── LE RÉCAPITULATIF AVANT SIGNATURE (9L04H-TERRAIN-RECAPITULATIF-
+  // SIGNATURE, décision d'Alexis du 13/11/2026) — à lire AVEC le client,
+  // avant qu'il ne signe sans avoir rien vu (constat de la revue du 13/11 :
+  // le technicien ne voit jamais le bon, D221). Aucun montant (I3/D176).
+  "terrain.recapitulatif.ouvrir": "Voir le récapitulatif",
+  "terrain.recapitulatif.titre": "Récapitulatif",
+  "terrain.recapitulatif.sous_titre": "À lire avec le client",
+  "terrain.recapitulatif.fermer": "Fermer",
+  "terrain.recapitulatif.rubrique_client": "Client",
+  "terrain.recapitulatif.rubrique_intervention": "Intervention",
+  "terrain.recapitulatif.rubrique_controles": "Contrôles",
+  "terrain.recapitulatif.rubrique_travaux": "Travaux",
+  "terrain.recapitulatif.rubrique_facturation": "Facturation",
+  // « machine », jamais « matériel » — synonyme fermé du glossaire (§8,
+  // D172) : « matériel » ne désigne QUE le Référentiel matériel (le
+  // catalogue), jamais une machine suivie au parc.
+  "terrain.recapitulatif.materiel_aucun": "Aucune machine rattachée.",
+  "terrain.recapitulatif.travaux_aucun": "Aucune prestation cochée.",
+  "terrain.recapitulatif.suite_titre": "Suite à donner",
+
   "terrain.signature.titre": "Signature du client",
   "terrain.signature.deja_signee":
     "Une signature a déjà été recueillie. Une nouvelle signature s'ajoute à l'ancienne, qui reste conservée.",
@@ -3378,6 +3398,16 @@ export const fr = {
     "Le motif est obligatoire pour enregistrer une absence ou un refus de signer.",
   "terrain.signature.option_manquante":
     "Choisissez une option avant d'enregistrer : signature, absence ou refus.",
+  // LA QUALITÉ EN SEGMENTS (point 2, 9L04H-TERRAIN-RECAPITULATIF-SIGNATURE,
+  // décision d'Alexis du 13/11/2026) — `signataire_qualite` reste un champ
+  // texte libre en base (aucune migration) : ces trois libellés ne sont que
+  // des RACCOURCIS de saisie, « Autre » ouvrant la saisie libre d'avant ce
+  // ticket (`terrain.signature.qualite_libelle`, réutilisée telle quelle).
+  "terrain.signature.qualite.gerant": "Gérant",
+  "terrain.signature.qualite.resp_atelier": "Resp. atelier",
+  "terrain.signature.qualite.mecanicien": "Mécanicien",
+  "terrain.signature.qualite.autre": "Autre",
+  "terrain.signature.valider": "Valider la signature",
 
   // ── TERMINER (9DE-TP-CY1, D8 à la lettre : QT-4(a)) ──────────────────────
   "terrain.terminer.titre": "Terminer",
@@ -8066,6 +8096,25 @@ export const fr = {
     "Cette machine n'est pas dans votre périmètre.",
   "portail.demandes.refus.erreur_serveur":
     "Une erreur est survenue : votre demande n'a pas été enregistrée.",
+
+  // ── FIXTURES DE 9L04H-TERRAIN-RECAPITULATIF-SIGNATURE (tests unitaires
+  // de `rapport-automatique.tsx`) — sa PROPRE scène, préfixée `9l04h.e2e.`
+  // (L0-11 : le texte attendu par un test de rendu passe par ce dictionnaire
+  // comme n'importe quel autre texte visible).
+  "9l04h.e2e.client": "SARL Exemple",
+  "9l04h.e2e.site": "Atelier Nord",
+  "9l04h.e2e.materiel": "Chariot élévateur · n° série 42",
+  "9l04h.e2e.nature": "Curatif",
+  "9l04h.e2e.creneau": "08:00 – 10:00",
+  "9l04h.e2e.suite": "Repasser dans 15 jours.",
+  "9l04h.e2e.section": "Sécurité",
+  "9l04h.e2e.point_eclairage": "Éclairage",
+  "9l04h.e2e.point_freins": "Freins",
+  // Même préfixe — l'épreuve de bout en bout (`tests/e2e/9l04h-terrain-
+  // recapitulatif-signature.spec.ts`), sa PROPRE scène écrite en base.
+  "9l04h.e2e.prestation_libelle": "zz9L04H Révision filtre",
+  "9l04h.e2e.point_libelle": "zz9L04H Niveau liquide",
+  "9l04h.e2e.contact_nom": "zz9L04H Jean Dupont",
 } as const;
 
 export type CleTraduction = keyof typeof fr;
