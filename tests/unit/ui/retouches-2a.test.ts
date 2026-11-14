@@ -291,7 +291,7 @@ describe("retouches typographiques du 30/09/2026 (D143)", () => {
       );
     });
 
-    it("chaque <Button des 7 fichiers du terrain porte text-16 — 22 au total (constat du 30/09/2026, étendu par 9DE-TP-CY1, redistribué par 9EWB-PHOTOS-EN-BASE, 9F4-TERRAIN-ENREGISTREMENT-AUTO, 9F4H3-HORS-RESEAU-ENVOYER, 9F4H6C-FILE-ROBUSTESSE, D219, D220, 9I7B, 9K11-LIBELLES-SUITES-ITINERAIRE puis 9L04F-TERRAIN-RAPPORT-PHRASES-TYPES (voir `tests/unit/ui/composants-base.test.tsx`))", () => {
+    it("chaque <Button des 7 fichiers du terrain porte text-16 — 32 au total (constat du 30/09/2026, étendu par 9DE-TP-CY1, redistribué par 9EWB-PHOTOS-EN-BASE, 9F4-TERRAIN-ENREGISTREMENT-AUTO, 9F4H3-HORS-RESEAU-ENVOYER, 9F4H6C-FILE-ROBUSTESSE, D219, D220, 9I7B, 9K11-LIBELLES-SUITES-ITINERAIRE, 9L04E-TERRAIN-PHOTOS-EPUREES, 9L04F-TERRAIN-RAPPORT-PHRASES-TYPES puis 9L04H-TERRAIN-RECAPITULATIF-SIGNATURE (voir `tests/unit/ui/composants-base.test.tsx`))", () => {
       let total = 0;
       for (const chemin of FICHIERS_TERRAIN) {
         const f = FICHIERS.find((x) => x.chemin === chemin);
@@ -321,9 +321,12 @@ describe("retouches typographiques du 30/09/2026 (D143)", () => {
       // 20 + 1 = 21. PUIS 9L04E-TERRAIN-PHOTOS-EPUREES — `photos-terrain.
       // tsx` passe d'un `<Button>` à huit : 21 + 7 = 28. PUIS
       // 9L04F-TERRAIN-RAPPORT-PHRASES-TYPES — la liste des phrases types
-      // ajoute « Fermer » : 28 + 1 = 29.
+      // ajoute « Fermer » : 28 + 1 = 29. PUIS
+      // 9L04H-TERRAIN-RECAPITULATIF-SIGNATURE — « Voir le récapitulatif »,
+      // « Fermer » (la feuille du récapitulatif) et « Valider la
+      // signature » : 29 + 3 = 32.
       // Même arithmétique que `composants-base.test.tsx`.
-      expect(total).toBe(29);
+      expect(total).toBe(32);
     });
   });
 

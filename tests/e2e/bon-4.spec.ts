@@ -167,6 +167,12 @@ test("le terrain signe avec un nom et une qualité, et le bon les imprime", asyn
   await page
     .getByLabel(fr["terrain.signature.nom_libelle"])
     .fill(fr["bon4.e2e.signataire_nom"]);
+  // LA QUALITÉ EN SEGMENTS (point 2, 9L04H-TERRAIN-RECAPITULATIF-SIGNATURE) —
+  // « Autre » ouvre la saisie libre, inchangée, pour une qualité hors des
+  // trois raccourcis.
+  await page
+    .getByRole("radio", { name: fr["terrain.signature.qualite.autre"] })
+    .click();
   await page
     .getByLabel(fr["terrain.signature.qualite_libelle"])
     .fill(fr["bon4.e2e.signataire_qualite"]);

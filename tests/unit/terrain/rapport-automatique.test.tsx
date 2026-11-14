@@ -4,6 +4,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -13,12 +14,14 @@ import {
   RapportTerrainAutomatique,
   type PrestationOption,
 } from "@/components/terrain/rapport-automatique";
-import type { EntreeFile } from "@/lib/terrain/file-saisies";
+import { resumeChecklistBon } from "@/lib/checklists/presentation";
+import { libelleDuPoint } from "@/lib/checklists/suite-preremplie";
 import { fr } from "@/lib/i18n";
 import { envoyerFile } from "@/lib/terrain/envoi-file";
 import {
   ajouterSaisie,
   EVENEMENT_COMPTEUR_DEMARRE_EN_LIGNE,
+  type EntreeFile,
   listerFilePourIntervention,
   retirerSaisie,
 } from "@/lib/terrain/file-saisies";
@@ -147,6 +150,25 @@ type ProprietesScene = Partial<{
   } | null;
 }>;
 
+// DONNÉE DE FIXTURE, PAS UNE CHAÎNE DE COMPOSANT (même régime que
+// « Courroie — ajoutée par le bureau » ci-dessus) — le récapitulatif n'est
+// éprouvé qu'au travers de CE texte-ci, jamais du dictionnaire.
+const RECAPITULATIF_PAR_DEFAUT: {
+  readonly client: string | null;
+  readonly site: string | null;
+  readonly materiel: readonly string[];
+  readonly natureLibelle: string;
+  readonly creneauLibelle: string | null;
+  readonly contactSurPlaceNom: string | null;
+} = {
+  client: "Client de scène",
+  site: null,
+  materiel: [],
+  natureLibelle: "Maintenance",
+  creneauLibelle: null,
+  contactSurPlaceNom: null,
+};
+
 function elementDeScene(props: ProprietesScene = {}) {
   return (
     <RapportTerrainAutomatique
@@ -178,6 +200,7 @@ function elementDeScene(props: ProprietesScene = {}) {
       dejaSignee={props.dejaSignee ?? false}
       afficherTerminer={props.afficherTerminer ?? false}
       verdictTerminerRefuseCle={null}
+      recapitulatif={RECAPITULATIF_PAR_DEFAUT}
       checklistPourTerminer={props.checklistPourTerminer ?? null}
       sectionPhotos={null}
     />
@@ -417,6 +440,7 @@ describe("le catalogue vide se distingue du catalogue filtré par type (9K29, D2
         dejaSignee={false}
         afficherTerminer={false}
         verdictTerminerRefuseCle={null}
+        recapitulatif={RECAPITULATIF_PAR_DEFAUT}
         checklistPourTerminer={null}
         sectionPhotos={null}
         catalogueIndisponibleHorsReseau={props.catalogueIndisponibleHorsReseau}
@@ -2015,5 +2039,232 @@ describe("mesureCompteurDeLaFile — tronqué, jamais segment par segment", () =
     expect(resultat.minutes).toBe(0);
     expect(resultat.segmentOuvert).toBe(true);
     expect(resultat.debutSegmentOuvert).toBe("2026-11-10T08:00:00.000Z");
+  });
+});
+
+describe("le récapitulatif avant signature (point 1-2, 9L04H-TERRAIN-RECAPITULATIF-SIGNATURE)", () => {
+  function sceneRecap(props: {
+    readonly recapitulatif?: typeof RECAPITULATIF_PAR_DEFAUT;
+    readonly prestationsInitiales?: readonly string[];
+    readonly conditionsFacturation?: readonly string[];
+    readonly checklistPourTerminer?: {
+      readonly points: readonly {
+        readonly id: string;
+        readonly section: string;
+        readonly libelle: string;
+        readonly obligatoire: boolean;
+        readonly typeReponse: string;
+      }[];
+      readonly reponsesInitiales: Readonly<Record<string, unknown>>;
+    } | null;
+    readonly suite_a_donner?: string | null;
+  }) {
+    return render(
+      <RapportTerrainAutomatique
+        interventionId={INTERVENTION_ID}
+        utilisateurId={UTILISATEUR_ID}
+        societeId={SOCIETE_ID}
+        statut="en_cours"
+        minutesConnues={125}
+        segmentOuvertConnu={null}
+        rapportInitial={{
+          commentaire_technicien: "Un commentaire.",
+          suite_a_donner: props.suite_a_donner ?? null,
+        }}
+        prestations={PRESTATIONS}
+        prestationsInitiales={props.prestationsInitiales ?? []}
+        afficherPieces={false}
+        piecesInitiales={[]}
+        conditionsFacturation={props.conditionsFacturation ?? []}
+        dejaSignee={false}
+        afficherTerminer={true}
+        verdictTerminerRefuseCle={null}
+        recapitulatif={props.recapitulatif ?? RECAPITULATIF_PAR_DEFAUT}
+        checklistPourTerminer={props.checklistPourTerminer ?? null}
+        sectionPhotos={null}
+      />,
+    );
+  }
+
+  function ouvrirRecapitulatif(): HTMLElement {
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: fr["terrain.recapitulatif.ouvrir"],
+      }),
+    );
+    return screen.getByRole("dialog", {
+      name: fr["terrain.recapitulatif.titre"],
+    });
+  }
+
+  it("s'ouvre depuis la rubrique Signature, avec le client, le site et la nature", () => {
+    sceneRecap({
+      recapitulatif: {
+        client: fr["9l04h.e2e.client"],
+        site: fr["9l04h.e2e.site"],
+        materiel: [fr["9l04h.e2e.materiel"]],
+        natureLibelle: fr["9l04h.e2e.nature"],
+        creneauLibelle: fr["9l04h.e2e.creneau"],
+        contactSurPlaceNom: null,
+      },
+    });
+    const dialogue = ouvrirRecapitulatif();
+    expect(
+      within(dialogue).getByText(fr["terrain.recapitulatif.sous_titre"]),
+    ).toBeVisible();
+    expect(within(dialogue).getByText(fr["9l04h.e2e.client"])).toBeVisible();
+    expect(within(dialogue).getByText(fr["9l04h.e2e.site"])).toBeVisible();
+    expect(
+      within(dialogue).getByText(fr["9l04h.e2e.materiel"]),
+    ).toBeVisible();
+    expect(within(dialogue).getByText(fr["9l04h.e2e.nature"])).toBeVisible();
+    expect(
+      within(dialogue).getByText(fr["9l04h.e2e.creneau"]),
+    ).toBeVisible();
+  });
+
+  it("montre les travaux cochés et la suite à donner, sans rien devant « Facturation » si rien n'est posé", () => {
+    sceneRecap({
+      prestationsInitiales: [PRESTATIONS[0]!.id],
+      suite_a_donner: fr["9l04h.e2e.suite"],
+    });
+    const dialogue = ouvrirRecapitulatif();
+    expect(
+      within(dialogue).getByText(PRESTATIONS[0]!.libelle),
+    ).toBeVisible();
+    expect(
+      within(dialogue).queryByText(PRESTATIONS[1]!.libelle),
+    ).not.toBeInTheDocument();
+    expect(
+      within(dialogue).getByText(fr["9l04h.e2e.suite"]),
+    ).toBeVisible();
+    expect(
+      within(dialogue).queryByText(
+        fr["terrain.recapitulatif.rubrique_facturation"],
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  it("résume les contrôles — conformes/non conformes/sans objet — et nomme chaque non-conformité", () => {
+    sceneRecap({
+      checklistPourTerminer: {
+        points: [
+          {
+            id: "p1",
+            section: fr["9l04h.e2e.section"],
+            libelle: fr["9l04h.e2e.point_freins"],
+            obligatoire: true,
+            typeReponse: "conforme_non_conforme_sans_objet",
+          },
+          {
+            id: "p2",
+            section: fr["9l04h.e2e.section"],
+            libelle: fr["9l04h.e2e.point_eclairage"],
+            obligatoire: true,
+            typeReponse: "conforme_non_conforme_sans_objet",
+          },
+          {
+            id: "p3",
+            section: fr["9l04h.e2e.section"],
+            libelle: fr["checklist.bon.resume_sans_objet"],
+            obligatoire: false,
+            typeReponse: "conforme_non_conforme_sans_objet",
+          },
+        ],
+        reponsesInitiales: {
+          p1: "conforme",
+          p2: "non_conforme",
+          p3: "sans_objet",
+        },
+      },
+    });
+    const dialogue = ouvrirRecapitulatif();
+    expect(
+      within(dialogue).getByText(
+        resumeChecklistBon({ conformes: 1, nonConformes: 1, sansObjet: 1 }),
+      ),
+    ).toBeVisible();
+    expect(
+      within(dialogue).getByText(
+        libelleDuPoint(fr["9l04h.e2e.section"], fr["9l04h.e2e.point_eclairage"]),
+      ),
+    ).toBeVisible();
+    expect(
+      within(dialogue).queryByText(
+        libelleDuPoint(fr["9l04h.e2e.section"], fr["9l04h.e2e.point_freins"]),
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  it("n'écrit aucun montant — ni devise, ni chiffre de prix, même avec des conditions de facturation", () => {
+    sceneRecap({
+      prestationsInitiales: [PRESTATIONS[0]!.id],
+      conditionsFacturation: [
+        "Déplacement facturé selon le tarif en vigueur.",
+        "Majoration de 25 % hors horaires ouvrés.",
+      ],
+    });
+    const dialogue = ouvrirRecapitulatif();
+    const texte = dialogue.textContent ?? "";
+    expect(texte).not.toMatch(/XPF|€|\bF\b/);
+    // AUCUNE SUITE DE CHIFFRES COLLÉE À UNE UNITÉ MONÉTAIRE (I3) — un
+    // pourcentage de majoration (« 25 % ») reste permis : ce n'est pas un
+    // montant, voir 9I8B-CONDITIONS-DE-FACTURATION-SANS-MONTANT.
+    expect(texte).not.toMatch(/\d[\d\s]*(?:XPF|FCFP|€)/i);
+  });
+
+  it("la qualité du signataire se choisit en segments, « Autre » ouvrant la saisie libre", () => {
+    scene();
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: fr["terrain.signature.option_signee"],
+      }),
+    );
+
+    fireEvent.click(
+      screen.getByRole("radio", {
+        name: fr["terrain.signature.qualite.gerant"],
+      }),
+    );
+    // PAS DE SAISIE LIBRE TANT QUE « AUTRE » N'EST PAS CHOISI — `getByRole`
+    // (et non `getByLabelText`, qui matcherait aussi le `radiogroup` lui-même,
+    // sous le même libellé accessible).
+    expect(
+      screen.queryByRole("textbox", {
+        name: fr["terrain.signature.qualite_libelle"],
+      }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("radio", {
+        name: fr["terrain.signature.qualite.autre"],
+      }),
+    );
+    expect(
+      screen.getByRole("textbox", {
+        name: fr["terrain.signature.qualite_libelle"],
+      }),
+    ).toBeVisible();
+  });
+
+  it("le nom du signataire est prérempli avec le contact sur place, et reste modifiable", () => {
+    sceneRecap({
+      recapitulatif: {
+        ...RECAPITULATIF_PAR_DEFAUT,
+        contactSurPlaceNom: "Marie Martin",
+      },
+    });
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: fr["terrain.signature.option_signee"],
+      }),
+    );
+    const champNom = screen.getByLabelText(
+      fr["terrain.signature.nom_libelle"],
+    ) as HTMLInputElement;
+    expect(champNom.value).toBe("Marie Martin");
+
+    fireEvent.change(champNom, { target: { value: "Autre nom" } });
+    expect(champNom.value).toBe("Autre nom");
   });
 });

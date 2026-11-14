@@ -401,8 +401,11 @@ describe('tous les boutons du terrain portent size="lg" (décision du 30/09/2026
     // pour les quatre), « Enregistrer » la légende, « Retirer »/
     // « Réessayer » sur un échec (2), « Fermer » — 21 + 7 = 28. PUIS
     // 9L04F-TERRAIN-RAPPORT-PHRASES-TYPES : la liste des phrases types, dans
-    // `rapport-automatique.tsx`, ajoute « Fermer » — 28 + 1 = 29. Voir
-    // `tests/unit/ui/retouches-2a.test.ts`, même population.
-    expect(total).toBe(29);
+    // `rapport-automatique.tsx`, ajoute « Fermer » — 28 + 1 = 29. PUIS
+    // 9L04H-TERRAIN-RECAPITULATIF-SIGNATURE : dans `rapport-automatique.tsx`,
+    // « Voir le récapitulatif » (rubrique Signature), « Fermer » (la feuille
+    // du récapitulatif) et « Valider la signature » (sous le canevas) —
+    // 29 + 3 = 32. Voir `tests/unit/ui/retouches-2a.test.ts`, même population.
+    expect(total).toBe(32);
   });
 });
