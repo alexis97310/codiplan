@@ -12,13 +12,7 @@ import { champ } from "../../interventions/actions";
  * deux routes lisent les mêmes champs, et une seconde lecture aurait divergé au
  * premier champ ajouté.
  *
- * ## LES DEUX TRADUCTIONS QUI COMPTENT
- *
- * **« Aucune famille » → `null`.** Le `<select>` rend la chaîne vide, et c'est
- * ici — et ici seulement — qu'elle devient l'absence de parent. *Une famille
- * absente n'est pas une famille introuvable* : un déplacement, un diagnostic ou
- * une formation ne visent aucune famille de matériel, et c'est le premier parent
- * facultatif de ce dépôt.
+ * ## LA TRADUCTION QUI COMPTE
  *
  * **« Durée non estimée » → `null`, JAMAIS zéro.** Le champ vide veut dire
  * *personne ne l'a encore estimée*, ce qui est l'état ordinaire d'un catalogue
@@ -33,25 +27,29 @@ import { champ } from "../../interventions/actions";
  * sociétés. Le champ n'existe pas dans le formulaire, et rien ne l'écrit.
  *
  * *Une case à cocher absente du corps vaut « décochée »* : un formulaire HTML
- * n'envoie pas les cases non cochées.
+ * n'envoie pas les cases non cochées — même idiome pour `types` (9K29) et
+ * `familles` (9L04J, D259) : AUCUNE case cochée = proposée PARTOUT (tous les
+ * types, toute machine).
  */
 export function saisiePrestationRecue(
   formulaire: FormData,
 ): SaisiePrestation | null {
-  const famille = champ(formulaire, "famille_id");
   const duree = champ(formulaire, "duree_standard_min");
 
   const analyse = schemaPrestation.safeParse({
     code: champ(formulaire, "code") ?? "",
     libelle: champ(formulaire, "libelle") ?? "",
-    // LE VIDE DEVIENT L'ABSENCE — voir l'en-tête.
-    famille_id: famille === null || famille === "" ? null : famille,
     duree_standard_min: duree === null ? null : Number(duree),
     actif: formulaire.get("actif") !== null,
     // AUCUNE CASE COCHÉE = PROPOSÉE POUR TOUS LES TYPES (9K29, D243) — même
     // idiome que `actif` : une case absente du corps vaut « décochée ».
     types: formulaire
       .getAll("types")
+      .filter((valeur): valeur is string => typeof valeur === "string"),
+    // AUCUNE CASE COCHÉE = GÉNÉRALE, PROPOSÉE SUR TOUTE MACHINE (9L04J,
+    // D259) — REMPLACE l'ancien `famille_id` scalaire d'un unique `<select>`.
+    familles: formulaire
+      .getAll("familles")
       .filter((valeur): valeur is string => typeof valeur === "string"),
   });
 

@@ -112,7 +112,6 @@ export default async function PagePrestations({
 
   const prestations = await listerLesPrestations(session.contexte);
   const familles = await famillesVisables(session.contexte);
-  const nomDeFamille = new Map(familles.map((f) => [f.id, f.libelle]));
 
   return (
     <Page
@@ -162,12 +161,7 @@ export default async function PagePrestations({
             <tr key={prestation.id}>
               <Cellule fort>{prestation.code}</Cellule>
               <Cellule>{prestation.libelle}</Cellule>
-              <Cellule>
-                {prestation.famille_id === null
-                  ? t("prestations.sans_famille")
-                  : (nomDeFamille.get(prestation.famille_id) ??
-                    t("prestations.famille_inconnue"))}
-              </Cellule>
+              <Cellule>{libellesDesFamilles(prestation.familles, familles)}</Cellule>
               <Cellule>{dureeAffichee(prestation)}</Cellule>
               <Cellule>{libellesDesTypes(prestation.types)}</Cellule>
               <Cellule>
@@ -212,12 +206,7 @@ export default async function PagePrestations({
           <CartePrestation
             key={prestation.id}
             prestation={prestation}
-            nomFamille={
-              prestation.famille_id === null
-                ? t("prestations.sans_famille")
-                : (nomDeFamille.get(prestation.famille_id) ??
-                  t("prestations.famille_inconnue"))
-            }
+            nomFamilles={libellesDesFamilles(prestation.familles, familles)}
             peutEcrire={peutEcrire}
           />
         ))}
@@ -281,14 +270,30 @@ function libellesDesTypes(types: readonly TypeIntervention[]): string {
     .join(SEPARATEUR_TYPES);
 }
 
+/**
+ * « Toutes » quand VIDE (9L04J, D259) — jamais une liste vide qui laisserait
+ * croire qu'aucune famille ne convient, l'inverse exact de la règle. Même
+ * patron que `libellesDesTypes` ci-dessus. Composée hors du JSX (L0-11).
+ */
+function libellesDesFamilles(
+  familleIds: readonly string[],
+  familles: readonly { readonly id: string; readonly libelle: string }[],
+): string {
+  if (familleIds.length === 0) return t("prestations.familles_toutes");
+  const nomDeFamille = new Map(familles.map((f) => [f.id, f.libelle]));
+  return familleIds
+    .map((id) => nomDeFamille.get(id) ?? t("prestations.famille_inconnue"))
+    .join(SEPARATEUR_TYPES);
+}
+
 /** La carte d'une prestation, sous 900 px — même contenu que sa ligne de tableau. */
 function CartePrestation({
   prestation,
-  nomFamille,
+  nomFamilles,
   peutEcrire,
 }: {
   readonly prestation: LignePrestation;
-  readonly nomFamille: string;
+  readonly nomFamilles: string;
   readonly peutEcrire: boolean;
 }) {
   return (
@@ -298,7 +303,7 @@ function CartePrestation({
         <span className="text-app-encre-faible text-12 font-bold">
           {prestation.code}
         </span>
-        <span className="text-12 font-bold">{nomFamille}</span>
+        <span className="text-12 font-bold">{nomFamilles}</span>
         <span className="text-app-encre-faible text-12 font-bold">
           {dureeAffichee(prestation)}
         </span>
@@ -376,31 +381,6 @@ function FormulairePrestation({
         valeur={valeurs?.libelle}
         large
       />
-      <div className="flex flex-col gap-1">
-        <label
-          htmlFor={`${prefixe}-famille`}
-          className="text-app-encre-faible text-12 font-bold"
-        >
-          {t("prestations.famille")}
-        </label>
-        <select
-          id={`${prefixe}-famille`}
-          name="famille_id"
-          defaultValue={valeurs?.famille_id ?? ""}
-          className="border-app-bord bg-app-surface min-w-44 rounded-md border px-2 py-1 text-13 font-bold"
-        >
-          {/* LA FAMILLE EST FACULTATIVE, et c'est le premier parent de ce dépôt
-              à l'être : un déplacement, un diagnostic ou une formation ne visent
-              aucune famille de matériel. L'option vide n'est pas un « non
-              renseigné » qu'on corrigera — c'est une réponse. */}
-          <option value="">{t("prestations.sans_famille")}</option>
-          {familles.map((famille) => (
-            <option key={famille.id} value={famille.id}>
-              {famille.libelle}
-            </option>
-          ))}
-        </select>
-      </div>
       <Champ
         id={`${prefixe}-duree`}
         nom="duree_standard_min"
@@ -431,6 +411,29 @@ function FormulairePrestation({
         </div>
         <p className="text-app-encre-faible text-12 font-bold">
           {t("prestations.types_tous_indice")}
+        </p>
+      </fieldset>
+      {/* LES FAMILLES DE MATÉRIEL (9L04J, D259) — à côté des types, même
+          fieldset de cases à cocher : AUCUNE cochée = GÉNÉRALE, proposée sur
+          toute machine. REMPLACE l'ancien `<select>` mono-valeur. */}
+      <fieldset className="flex basis-full flex-col gap-1">
+        <legend className="text-app-encre-faible text-12 font-bold">
+          {t("prestations.famille")}
+        </legend>
+        <div className="flex flex-wrap gap-2">
+          {familles.map((famille) => (
+            <CaseACocher
+              key={famille.id}
+              name="familles"
+              value={famille.id}
+              defaultChecked={valeurs?.familles.includes(famille.id) ?? false}
+              libelle={famille.libelle}
+              className="flex items-center gap-1.5 text-13 font-bold"
+            />
+          ))}
+        </div>
+        <p className="text-app-encre-faible text-12 font-bold">
+          {t("prestations.familles_indice")}
         </p>
       </fieldset>
       <CaseACocher

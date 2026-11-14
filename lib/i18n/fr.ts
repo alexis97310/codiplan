@@ -3271,12 +3271,6 @@ export const fr = {
   "terrain.prestations.titre": "Prestations réalisées",
   "terrain.prestations.aucune":
     "Aucune prestation n'est définie dans le catalogue de votre société.",
-  // 9K29, D243 — le catalogue N'EST PAS vide, mais aucune de ses prestations
-  // n'est proposée pour CE type d'intervention. Confondre les deux dirait
-  // « rien n'est paramétré » quand la vraie réponse est « rien ne s'applique
-  // ici », qui n'est l'un ni l'autre une anomalie.
-  "terrain.prestations.aucune_pour_ce_type":
-    "Aucune prestation du catalogue n'est proposée pour ce type d'intervention.",
   "terrain.prestations.enregistre": "Prestations enregistrées.",
   "terrain.prestations.refus":
     "Les prestations n'ont pas pu être enregistrées. Réessayez.",
@@ -4809,9 +4803,15 @@ export const fr = {
   "prestations.enregistrer": "Enregistrer",
   "prestations.code": "Code",
   "prestations.libelle": "Libellé",
-  "prestations.famille": "Famille de matériel",
-  "prestations.sans_famille": "Aucune famille",
+  "prestations.famille": "Familles de matériel",
   "prestations.famille_inconnue": "Famille non lisible",
+  // LES FAMILLES DE MATÉRIEL OÙ ELLE EST PROPOSÉE (9L04J, D259) — VIDE =
+  // GÉNÉRALE, et c'est ce que « Toutes » affiche quand aucune famille n'est
+  // cochée : jamais une case à décocher, seulement un ÉTAT à lire — même
+  // patron que `prestations.types_tous`.
+  "prestations.familles_toutes": "Toutes",
+  "prestations.familles_indice":
+    "Aucune famille cochée = proposée sur toute machine",
   "prestations.duree": "Durée standard",
   "prestations.duree_minutes": "Durée (en minutes — ex. 90 = 1 h 30)",
   // « NON ESTIMÉE » ET « ZÉRO » NE SE CORRIGENT PAS AU MÊME ENDROIT : zéro

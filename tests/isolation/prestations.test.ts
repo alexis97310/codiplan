@@ -200,7 +200,7 @@ describe("R3-15 — le catalogue des prestations", () => {
     // mordre.* Aucune ligne de TypeScript ne compare ici quoi que ce soit.
     const refus = await creerPrestation(
       SESSION,
-      saisie({ famille_id: FAMILLE_B }),
+      saisie({ familles: [FAMILLE_B] }),
       clientApp(),
     );
     expect(refus).toStrictEqual({
@@ -210,15 +210,16 @@ describe("R3-15 — le catalogue des prestations", () => {
   });
 
   it("une famille de SA société passe, et l'absence de famille aussi", async () => {
-    // LES DEUX CAS QUI DOIVENT RESTER VERTS. Le second est le sujet du ticket :
-    // *c'est le premier parent facultatif de ce dépôt* — un déplacement, un
-    // diagnostic ou une formation ne visent aucune famille de matériel.
-    const avec = await creer({ famille_id: FAMILLE_A });
+    // LES DEUX CAS QUI DOIVENT RESTER VERTS. Le second est le sujet du ticket
+    // d'origine (L1-12) : *c'est le premier parent facultatif de ce dépôt* —
+    // un déplacement, un diagnostic ou une formation ne visent aucune
+    // famille de matériel. VIDE = générale depuis 9L04J (D259).
+    const avec = await creer({ familles: [FAMILLE_A] });
     const sans = await creer();
     const catalogue = await listerLesPrestations(SESSION, clientApp());
-    const lues = new Map(catalogue.map((p) => [p.id, p.famille_id]));
-    expect(lues.get(avec)).toBe(FAMILLE_A);
-    expect(lues.get(sans)).toBeNull();
+    const lues = new Map(catalogue.map((p) => [p.id, p.familles]));
+    expect(lues.get(avec)).toEqual([FAMILLE_A]);
+    expect(lues.get(sans)).toEqual([]);
 
     const familles = await famillesVisables(SESSION, clientApp());
     expect(familles.map((f) => f.id)).toContain(FAMILLE_A);
@@ -350,6 +351,93 @@ describe("9K29 — les types d'intervention d'une prestation", () => {
         code: code(),
         libelle: "x",
         types: ["curatif", "curatif"],
+      }).success,
+    ).toBe(false);
+  });
+});
+
+/**
+ * 9L04J-PRESTATIONS-PAR-MATERIEL, D259 — `prestation_famille_materiel`, SOUS
+ * LE RÔLE APPLICATIF, forme « filiation » (D103). Test JUMEAU du bloc 9K29
+ * ci-dessus, même patron, même garde.
+ */
+describe("9L04J — les familles de matériel d'une prestation", () => {
+  afterEach(async () => {
+    if (posees.length > 0) {
+      await clientOwner().$executeRawUnsafe(
+        `DELETE FROM "prestation" WHERE "id" IN (${posees.map((id) => `'${id}'`).join(",")})`,
+      );
+      posees.length = 0;
+    }
+  });
+
+  afterAll(fermerClients);
+
+  it("VIDE à la création — générale, proposée sur toute machine", async () => {
+    const id = await creer();
+    const ligne = (await listerLesPrestations(SESSION, clientApp())).find(
+      (p) => p.id === id,
+    );
+    expect(ligne?.familles).toEqual([]);
+  });
+
+  it("une liste de familles est écrite à la création, et relue", async () => {
+    const id = await creer({ familles: [FAMILLE_A] });
+    const ligne = await lirePrestation(SESSION, id, clientApp());
+    expect(ligne?.familles).toEqual([FAMILLE_A]);
+  });
+
+  it("la modification REMPLACE L'ENSEMBLE — retire une famille", async () => {
+    const id = await creer({ familles: [FAMILLE_A] });
+    const modifiee = await modifierPrestation(
+      SESSION,
+      id,
+      saisie({ familles: [] }),
+      clientApp(),
+    );
+    expect(modifiee.accepte).toBe(true);
+    const ligne = await lirePrestation(SESSION, id, clientApp());
+    expect(ligne?.familles).toEqual([]);
+  });
+
+  it("le catalogue hors réseau porte les familles (9L04J, étendant la promesse D216)", async () => {
+    const id = await creer({ familles: [FAMILLE_A] });
+    const catalogue = await catalogueActifPourTerrain(SESSION, clientApp());
+    expect(catalogue.find((p) => p.id === id)?.familles).toEqual([
+      FAMILLE_A,
+    ]);
+  });
+
+  it("une AUTRE société ne lit ni n'écrit les familles d'une prestation qui n'est pas la sienne", async () => {
+    // Forme « filiation » (D103) : la fille n'est visible que si son parent
+    // l'est — la politique sur `prestation` referme déjà l'accès, et
+    // `lirePrestation` sous SESSION_B doit rendre `null`, jamais une fiche
+    // dont les familles auraient fuité.
+    const id = await creer({ familles: [FAMILLE_A] });
+    const depuisB = await lirePrestation(SESSION_B, id, clientApp());
+    expect(depuisB).toBeNull();
+
+    const modifieeDepuisB = await modifierPrestation(
+      SESSION_B,
+      id,
+      saisie({ familles: [] }),
+      clientApp(),
+    );
+    expect(modifieeDepuisB).toStrictEqual({
+      accepte: false,
+      motif: "introuvable",
+    });
+    // TÉMOIN : la tentative depuis B n'a rien changé chez A.
+    const ligne = await lirePrestation(SESSION, id, clientApp());
+    expect(ligne?.familles).toEqual([FAMILLE_A]);
+  });
+
+  it("une famille cochée deux fois dans la saisie est refusée avant d'atteindre la base", () => {
+    expect(
+      schemaPrestation.safeParse({
+        code: code(),
+        libelle: "x",
+        familles: [FAMILLE_A, FAMILLE_A],
       }).success,
     ).toBe(false);
   });

@@ -99,46 +99,51 @@ export type LignePrestation = {
   readonly id: string;
   readonly code: string;
   readonly libelle: string;
-  readonly famille_id: string | null;
   readonly duree_standard_min: number | null;
   readonly actif: boolean;
   /** VIDE = proposée pour TOUS les types (9K29, D243). */
   readonly types: readonly TypeIntervention[];
+  /** VIDE = générale, proposée sur TOUTE machine (9L04J, D259). */
+  readonly familles: readonly string[];
 };
 
 const CHAMPS = {
   id: true,
   code: true,
   libelle: true,
-  famille_id: true,
   duree_standard_min: true,
   actif: true,
   types: { select: { type_intervention: true } },
+  familles: { select: { famille_id: true } },
 } as const;
 
 /** La forme brute que Prisma rend pour `CHAMPS`/`CHAMPS_CATALOGUE_TERRAIN`. */
-type PrestationAvecTypes = {
+type PrestationAvecRelations = {
   readonly id: string;
   readonly code: string;
   readonly libelle: string;
-  readonly famille_id?: string | null;
   readonly duree_standard_min?: number | null;
   readonly actif?: boolean;
   readonly types: readonly { readonly type_intervention: string }[];
+  readonly familles: readonly { readonly famille_id: string }[];
 };
 
 /**
- * APLATIT LA RELATION `types` EN TABLEAU DE CODES — une seule fois, appelée
- * par chaque lecture qui la porte. Jamais une seconde lecture du même critère
- * (§9, 01/09).
+ * APLATIT LES RELATIONS `types` ET `familles` EN TABLEAUX — une seule fois,
+ * appelée par chaque lecture qui les porte. Jamais une seconde lecture du
+ * même critère (§9, 01/09).
  */
-function avecTypesAplatis<T extends PrestationAvecTypes>(
+function avecRelationsAplaties<T extends PrestationAvecRelations>(
   prestation: T,
-): Omit<T, "types"> & { readonly types: readonly TypeIntervention[] } {
-  const { types, ...reste } = prestation;
+): Omit<T, "types" | "familles"> & {
+  readonly types: readonly TypeIntervention[];
+  readonly familles: readonly string[];
+} {
+  const { types, familles, ...reste } = prestation;
   return {
     ...reste,
     types: types.map((t) => t.type_intervention as TypeIntervention),
+    familles: familles.map((f) => f.famille_id),
   };
 }
 
@@ -150,6 +155,13 @@ export type PrestationCatalogueTerrain = {
   /** VIDE = proposée pour TOUS les types (9K29, D243) — emportée hors réseau
    * pour que la règle de proposition s'applique aussi SANS RÉSEAU. */
   readonly types: readonly TypeIntervention[];
+  /** VIDE = générale, proposée sur TOUTE machine (9L04J, D259) — emportée
+   * hors réseau pour que le filtre par matériel s'applique aussi SANS
+   * RÉSEAU. Ce sont des IDENTIFIANTS de famille, jamais un libellé ni un
+   * chiffre : à la différence de `duree_standard_min`, écarté par le
+   * docblock historique de ce catalogue, un identifiant ne ressemble à
+   * aucune valorisation. */
+  readonly familles: readonly string[];
 };
 
 const CHAMPS_CATALOGUE_TERRAIN = {
@@ -157,18 +169,23 @@ const CHAMPS_CATALOGUE_TERRAIN = {
   code: true,
   libelle: true,
   types: { select: { type_intervention: true } },
+  familles: { select: { famille_id: true } },
 } as const;
 
 /**
- * LE CATALOGUE EMPORTÉ HORS RÉSEAU (9F4H6, point 3, promesse D216 tenue) —
- * SEULES LES PRESTATIONS ACTIVES, et JAMAIS `duree_standard_min` ni
- * `famille_id` : l'instantané (`/api/terrain/instantane`) n'emporte au
- * terrain que ce qu'il faut pour COCHER, jamais un chiffre qui ressemblerait
- * à une valorisation. Lue par l'instantané UNE SEULE FOIS, société entière
- * (aucune intervention n'est nécessaire pour en avoir besoin), jamais par
- * `listerLesPrestations` ci-dessous, dont la forme porte déjà `famille_id`/
- * `duree_standard_min`/`actif` — un sous-ensemble de champs choisi exprès,
- * jamais un filtre appliqué après coup sur la forme complète.
+ * LE CATALOGUE EMPORTÉ HORS RÉSEAU (9F4H6, point 3, promesse D216 tenue ;
+ * étendu par 9L04J, D259) — SEULES LES PRESTATIONS ACTIVES, et JAMAIS
+ * `duree_standard_min` : l'instantané (`/api/terrain/instantane`) n'emporte
+ * au terrain que ce qu'il faut pour COCHER, jamais un chiffre qui
+ * ressemblerait à une valorisation. **Les familles SONT emportées depuis
+ * 9L04J** — à la différence de `duree_standard_min`, un identifiant de
+ * famille est nécessaire au FILTRE PAR MATÉRIEL (`lib/prestations/regle-
+ * famille.ts`), qui doit s'appliquer aussi SANS RÉSEAU, exactement comme le
+ * filtre par type (9K29) avant lui. Lue par l'instantané UNE SEULE FOIS,
+ * société entière (aucune intervention n'est nécessaire pour en avoir
+ * besoin), jamais par `listerLesPrestations` ci-dessous, dont la forme porte
+ * déjà `duree_standard_min`/`actif` — un sous-ensemble de champs choisi
+ * exprès, jamais un filtre appliqué après coup sur la forme complète.
  */
 export async function catalogueActifPourTerrain(
   contexte: ContexteSession,
@@ -184,7 +201,7 @@ export async function catalogueActifPourTerrain(
       }),
     client,
   );
-  return prestations.map(avecTypesAplatis);
+  return prestations.map(avecRelationsAplaties);
 }
 
 /**
@@ -211,7 +228,7 @@ export async function listerLesPrestations(
       }),
     client,
   );
-  return prestations.map(avecTypesAplatis);
+  return prestations.map(avecRelationsAplaties);
 }
 
 /** Une prestation par son identifiant, ou `null` si elle est hors périmètre. */
@@ -225,7 +242,7 @@ export async function lirePrestation(
     (tx) => tx.prestation.findFirst({ where: { id }, select: CHAMPS }),
     client,
   );
-  return prestation === null ? null : avecTypesAplatis(prestation);
+  return prestation === null ? null : avecRelationsAplaties(prestation);
 }
 
 /**
@@ -332,13 +349,13 @@ export async function creerPrestationDans(
       societe_id: societeId,
       code: saisie.code,
       libelle: saisie.libelle,
-      famille_id: saisie.famille_id,
       duree_standard_min: saisie.duree_standard_min,
       actif: saisie.actif,
     },
     select: { id: true },
   });
   await ecrireLesTypes(tx, societeId, id, saisie.types);
+  await ecrireLesFamilles(tx, societeId, id, saisie.familles);
 }
 
 /**
@@ -357,7 +374,6 @@ export async function creerPrestationsEnLot(
       societe_id: societeId,
       code: saisie.code,
       libelle: saisie.libelle,
-      famille_id: saisie.famille_id,
       duree_standard_min: saisie.duree_standard_min,
       actif: saisie.actif,
     })),
@@ -372,6 +388,17 @@ export async function creerPrestationsEnLot(
   );
   if (typesAEcrire.length > 0) {
     await tx.prestationTypeIntervention.createMany({ data: typesAEcrire });
+  }
+  const famillesAEcrire = lignes.flatMap(({ id, saisie }) =>
+    saisie.familles.map((famille_id) => ({
+      id: uuidv7(),
+      societe_id: societeId,
+      prestation_id: id,
+      famille_id,
+    })),
+  );
+  if (famillesAEcrire.length > 0) {
+    await tx.prestationFamilleMateriel.createMany({ data: famillesAEcrire });
   }
 }
 
@@ -395,13 +422,13 @@ export async function modifierPrestationDans(
     data: {
       code: saisie.code,
       libelle: saisie.libelle,
-      famille_id: saisie.famille_id,
       duree_standard_min: saisie.duree_standard_min,
       actif: saisie.actif,
     },
   });
   if (touchees.count > 0) {
     await ecrireLesTypes(tx, societeId, id, saisie.types);
+    await ecrireLesFamilles(tx, societeId, id, saisie.familles);
   }
   return touchees.count;
 }
@@ -428,6 +455,30 @@ async function ecrireLesTypes(
       societe_id: societeId,
       prestation_id: prestationId,
       type_intervention: type,
+    })),
+  });
+}
+
+/**
+ * REMPLACE L'ENSEMBLE DES FAMILLES D'UNE PRESTATION (9L04J, D259) — même
+ * discipline qu'`ecrireLesTypes` ci-dessus, même raison.
+ */
+async function ecrireLesFamilles(
+  tx: Prisma.TransactionClient,
+  societeId: string,
+  prestationId: string,
+  familles: readonly string[],
+): Promise<void> {
+  await tx.prestationFamilleMateriel.deleteMany({
+    where: { prestation_id: prestationId },
+  });
+  if (familles.length === 0) return;
+  await tx.prestationFamilleMateriel.createMany({
+    data: familles.map((famille_id) => ({
+      id: uuidv7(),
+      societe_id: societeId,
+      prestation_id: prestationId,
+      famille_id,
     })),
   });
 }

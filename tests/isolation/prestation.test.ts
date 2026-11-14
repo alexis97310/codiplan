@@ -73,7 +73,7 @@ async function ecrire(
         colonnes.libelle ?? "Entretien annuel pont élévateur",
         colonnes.duree ?? null,
       );
-      // LA FAMILLE (9L04J, D255) — REMPLACE l'ancienne colonne scalaire :
+      // LA FAMILLE (9L04J, D259) — REMPLACE l'ancienne colonne scalaire :
       // une ligne de la table de liaison, posée dans la MÊME transaction,
       // jamais une seconde écriture séparée.
       if (colonnes.familleId !== undefined && colonnes.familleId !== null) {
@@ -133,7 +133,7 @@ describe("LA FAMILLE NE PEUT PAS VENIR D'UNE AUTRE SOCIÉTÉ", () => {
   it("une famille de la société A est refusée à une prestation de B", async () => {
     // *Sans la société dans la clé, le verrou serait muet là où le
     // cloisonnement doit mordre* — et les contrôles d'intégrité référentielle
-    // contournent les politiques RLS par construction. 9L04J, D255 : la
+    // contournent les politiques RLS par construction. 9L04J, D259 : la
     // contrainte vit désormais sur `prestation_famille_materiel`, jamais sur
     // `prestation` directement.
     const motif = await ecrire(SOCIETE_B, { familleId: FAMILLE_A });

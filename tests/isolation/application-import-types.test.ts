@@ -684,7 +684,7 @@ describe("un lot de PRESTATIONS écrit des prestations, et AUCUN montant", () =>
     if (!resultat.applique) return;
     expect(resultat.creations).toBe(2);
 
-    // 9L04J, D255 — REMPLACE le scalaire `famille_id` : la famille vit
+    // 9L04J, D259 — REMPLACE le scalaire `famille_id` : la famille vit
     // désormais dans `prestation_famille_materiel`, jointe par son code.
     const [sans] = await clientOwner().$queryRawUnsafe<
       Array<{ duree_standard_min: number | null }>

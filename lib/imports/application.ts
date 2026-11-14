@@ -842,6 +842,10 @@ export async function appliquerLeLotDeModeles(
  * un déplacement, un diagnostic ou une formation ne visent aucune famille de
  * matériel. `preparerUnePrestation` porte la distinction — cellule VIDE contre
  * cellule RENSEIGNÉE QUI NE DÉSIGNE RIEN —, et elle n'est pas relue ici.
+ * **Depuis 9L04J (D259)**, une cellule renseignée devient un tableau d'UNE
+ * famille (`familles`, qui remplace le scalaire `famille_id`) : le gabarit
+ * garde UNE SEULE colonne par ligne, la multiplicité (plusieurs familles à
+ * la fois) restant réservée à l'écran de paramétrage.
  *
  * **AUCUN MONTANT** : `schemaPrestation` n'en porte aucun (D109), et un import
  * est le chemin où personne ne relit ce qui entre.
@@ -856,7 +860,6 @@ export async function appliquerLeLotDeModeles(
 const CHAMPS_PRESTATIONS_ECRITES = [
   "code",
   "libelle",
-  "famille_id",
   "duree_standard_min",
   "actif",
   // 9K29 — comparée comme un ENSEMBLE, cinquième forme de `porteEncore`
@@ -864,6 +867,10 @@ const CHAMPS_PRESTATIONS_ECRITES = [
   // catalogue aux types inchangés aurait réécrit la table de relation à
   // l'identique.
   "types",
+  // 9L04J, D259 — MÊME FORME QUE `types` : `familles` REMPLACE l'ancien
+  // `famille_id` scalaire, et la même raison vaut pour elle, une ligne de
+  // liaison plutôt qu'une colonne.
+  "familles",
 ] as const;
 
 export async function appliquerLeLotDePrestations(
@@ -913,16 +920,20 @@ export async function appliquerLeLotDePrestations(
             id: true,
             code: true,
             libelle: true,
-            famille_id: true,
             duree_standard_min: true,
             actif: true,
             types: { select: { type_intervention: true } },
+            familles: { select: { famille_id: true } },
           },
         });
         return new Map(
-          fiches.map(({ id, types, ...reste }) => [
+          fiches.map(({ id, types, familles, ...reste }) => [
             id,
-            { ...reste, types: types.map((t) => t.type_intervention) },
+            {
+              ...reste,
+              types: types.map((t) => t.type_intervention),
+              familles: familles.map((f) => f.famille_id),
+            },
           ]),
         );
       },

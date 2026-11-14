@@ -66,16 +66,6 @@ const dureeStandard = z.number().int().positive().nullable();
 export const schemaPrestation = z.object({
   code: texteNonVide,
   libelle: texteNonVide,
-  /**
-   * La famille est NOMMÉE par son identifiant, et la base vérifie qu'elle
-   * appartient à la même société : la clé étrangère est composite
-   * `(societe_id, famille_id)`. *Sans la société dans la clé, le verrou serait
-   * muet là où le cloisonnement doit mordre* — la leçon de `modele_materiel`.
-   *
-   * **Facultative** : une prestation peut ne viser aucune famille — un
-   * déplacement, un diagnostic, une formation.
-   */
-  famille_id: z.uuid().nullable().default(null),
   duree_standard_min: dureeStandard.default(null),
   /**
    * LA CHECKLIST TYPE — un texte libre, et c'est délibéré.
@@ -100,6 +90,26 @@ export const schemaPrestation = z.object({
     .refine(
       (types) => new Set(types).size === types.length,
       "un type d'intervention ne se coche pas deux fois",
+    )
+    .default([]),
+  /**
+   * LES FAMILLES DE MATÉRIEL QU'ELLE VISE (9L04J, D259) — VIDE = générale,
+   * proposée sur TOUTE machine. **REMPLACE l'ancien `famille_id` scalaire**
+   * (L1-12, D109/D113) : même raisonnement que `types` ci-dessus — une
+   * prestation vise zéro, une ou plusieurs familles à la fois.
+   *
+   * Chaque identifiant est vérifié par la base, qui refuse une famille d'une
+   * autre société (clé étrangère composite) — jamais une comparaison écrite
+   * ici au-dessus de la politique.
+   *
+   * **Sans doublon**, même raison que `types` : la base le garantit déjà par
+   * `@@unique([prestation_id, famille_id])`.
+   */
+  familles: z
+    .array(z.uuid())
+    .refine(
+      (familles) => new Set(familles).size === familles.length,
+      "une famille de matériel ne se coche pas deux fois",
     )
     .default([]),
 });

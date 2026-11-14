@@ -533,7 +533,6 @@ export async function annulerLeLotDePrestations(
       select: {
         code: true,
         libelle: true,
-        famille_id: true,
         duree_standard_min: true,
       },
     });
@@ -568,8 +567,10 @@ export async function annulerLeLotDePrestations(
 /**
  * CE QUI RETIENT UNE FAMILLE — les quatre relations inverses du SCHÉMA.
  *
- * `modele_materiel`, `forfait`, `prestation`, `vgp_campagne` : c'est exactement
- * ce que `FamilleMateriel` déclare. Même limite qu'aux clients et aux sites —
+ * `modele_materiel`, `forfait`, `prestation_famille_materiel` (9L04J, D259 —
+ * via la table de liaison, plus un scalaire direct), `vgp_campagne` : c'est
+ * exactement ce que `FamilleMateriel` déclare. Même limite qu'aux clients et
+ * aux sites —
  * *Prisma n'expose pas ses relations inverses à l'exécution*, la liste est tenue
  * à la main et deviendrait fausse en silence à la cinquième. **Ce que le silence
  * coûte est borné** : les quatre clés sont en `onDelete: Restrict`, si bien
@@ -583,7 +584,10 @@ async function familleEstReferencee(
   const comptes = await Promise.all([
     tx.modeleMateriel.count({ where: { famille_id: familleId } }),
     tx.forfait.count({ where: { famille_id: familleId } }),
-    tx.prestation.count({ where: { famille_id: familleId } }),
+    // 9L04J, D259 — `prestation.famille_id` (scalaire) a été REMPLACÉ par la
+    // table de liaison `prestation_famille_materiel` : c'est elle qui porte
+    // désormais ce qui retient une famille depuis une prestation.
+    tx.prestationFamilleMateriel.count({ where: { famille_id: familleId } }),
     tx.vgpCampagne.count({ where: { famille_id: familleId } }),
   ]);
   return comptes.reduce((a, b) => a + b, 0) > 0;

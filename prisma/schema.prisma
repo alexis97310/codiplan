@@ -3342,7 +3342,7 @@ model Prestation {
   /// Les types d'intervention où elle est PROPOSÉE au technicien (9K29).
   /// VIDE = tous les types — voir le docblock de `PrestationTypeIntervention`.
   types        PrestationTypeIntervention[]
-  /// Les familles de matériel qu'elle vise (9L04J, D255). VIDE = générale,
+  /// Les familles de matériel qu'elle vise (9L04J, D259). VIDE = générale,
   /// proposée sur TOUTE machine — voir le docblock de
   /// `PrestationFamilleMateriel`. **REMPLACE l'ancien `famille_id` scalaire**
   /// de L1-12 (D109/D113) : amende le même raisonnement que D243/D246 pour
@@ -3601,7 +3601,7 @@ model FamilleMateriel {
   modeles           ModeleMateriel[]
   sous_types        SousTypeMateriel[]
   forfaits          Forfait[]
-  /// Les prestations qui la visent, via la table de liaison (9L04J, D255) —
+  /// Les prestations qui la visent, via la table de liaison (9L04J, D259) —
   /// REMPLACE l'ancienne relation directe `Prestation[]` du scalaire
   /// `famille_id`, retirée par la même migration.
   prestations       PrestationFamilleMateriel[]

@@ -809,7 +809,10 @@ export const CHAMPS_PRESTATIONS: Readonly<Record<string, string>> = {
  * un champ oublié, et rien ne les distingue.*
  */
 export const CHAMPS_PRESTATIONS_ECARTES: Readonly<Record<string, string>> = {
-  famille_id: "résolu depuis la colonne « Famille », par son CODE (D101)",
+  // 9L04J, D259 — REMPLACE le scalaire `famille_id` : toujours résolue
+  // depuis la MÊME colonne « Famille », par son CODE (D101), devenue un
+  // tableau d'au plus UNE famille (`[famille]` ou `[]`).
+  familles: "résolue depuis la colonne « Famille », par son CODE (D101)",
   duree_standard_min:
     "exposée par « Durée standard (minutes) », lue comme un nombre",
   actif: "un import ne désactive pas : ce geste se fait fiche par fiche",
@@ -948,7 +951,10 @@ export function preparerUnePrestation(
   }
   const saisie = {
     ...saisieDepuisLaLigne(valeurs, CHAMPS_PRESTATIONS),
-    famille_id: famille ?? null,
+    // UNE SEULE CELLULE, DONC AU PLUS UNE FAMILLE (9L04J, D259) — la colonne
+    // Excel reste inchangée ; `familles` remplace le scalaire `famille_id`
+    // qu'elle alimentait, sans que le gabarit lui-même ne change de forme.
+    familles: famille === undefined ? [] : [famille],
     duree_standard_min: lireUnEntier(
       valeurs[COLONNES_PRESTATIONS.dureeStandard],
     ),
