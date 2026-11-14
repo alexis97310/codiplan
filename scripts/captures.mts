@@ -1100,7 +1100,6 @@ async function premierLienDeCalendrierAgence(page: Page): Promise<string> {
   return chemins[0];
 }
 
-
 function empreinte(): { court: string; long: string } {
   const long = execFileSync("git", ["rev-parse", "HEAD"], {
     encoding: "utf8",
