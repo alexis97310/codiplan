@@ -7184,6 +7184,16 @@ export const fr = {
   "terrain9k29.e2e.prestation_universelle_code": "9K29-DEPLACEMENT",
   "terrain9k29.e2e.prestation_reglage_libelle": "9K29-E2E Réglage",
 
+  // `9L04J-` — 9L04J-PRESTATIONS-PAR-MATERIEL, créée et supprimée par
+  // l'épreuve. Même discipline que `terrain9k29.e2e.*` ci-dessus.
+  "terrain9l04j.e2e.client": "9L04J-E2E Client",
+  "terrain9l04j.e2e.lieu": "9L04J-E2E Lieu",
+  "terrain9l04j.e2e.prestation_pont_libelle": "9L04J-E2E Écrou porteur",
+  "terrain9l04j.e2e.prestation_pont_code": "9L04J-ECROU",
+  "terrain9l04j.e2e.serie_pont": "9L04J-SN-PONT",
+  "terrain9l04j.e2e.serie_compresseur": "9L04J-SN-COMPRESSEUR",
+  "terrain9l04j.e2e.prestation_reglage_libelle": "9L04J-E2E Réglage",
+
   // ── DONNER L'ACCÈS À UN TECHNICIEN DEPUIS ÉQUIPE (D162, 9DJ-TP-ACC1) ────────
   //
   // QT-1 (28/09/2026) : l'administrateur de la société ENVOIE un lien d'accès,
