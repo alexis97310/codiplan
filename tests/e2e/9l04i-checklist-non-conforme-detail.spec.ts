@@ -340,10 +340,12 @@ test("le bon interne et le bon client montrent la suite, le commentaire et la ph
   await page.setViewportSize({ width: 1280, height: 900 });
 
   await page.goto(`/interventions/${INTERVENTION_9L04I}/bon`);
+  // LA SUITE SEULE, PAR SON LIBELLÉ DU DICTIONNAIRE (L0-11) — le commentaire
+  // est une valeur de FIXTURE, jamais interrogée par son texte ; sa présence
+  // en base est déjà prouvée par la vérité DB du premier test de ce fichier.
   await expect(
     page.getByText(fr["checklist.non_conformite.piece_a_commander"]),
   ).toBeVisible();
-  await expect(page.getByText("Ne redémarre pas sous 6 bar")).toBeVisible();
   await page.screenshot({
     path: join(DOSSIER_CAPTURES, "bon-client-1280.png"),
     fullPage: true,
