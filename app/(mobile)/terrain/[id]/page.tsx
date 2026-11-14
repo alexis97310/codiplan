@@ -6,6 +6,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { BandeauCompteurEnCours } from "@/components/terrain/bandeau-compteur";
 import { BandeauReseau } from "@/components/terrain/bandeau-reseau";
+import { BarreActionTerrain } from "@/components/terrain/barre-action-terrain";
 import { CompteurVivant } from "@/components/terrain/compteur-vivant";
 import { BoutonCompteurTerrain } from "@/components/terrain/compteur-terrain";
 import { RafraichissementAutomatique } from "@/components/terrain/rafraichissement-auto";
@@ -422,8 +423,17 @@ export default async function PageInterventionTerrain({
   );
 
   return (
-    <main className="flex flex-col gap-4">
-      {/*
+    // RÉSERVE SOUS LA BARRE D'ACTION FIXE (point 1, 9L04G) — AU-DESSUS de
+    // celle, déjà réservée par `app/(mobile)/layout.tsx`, pour la barre
+    // basse de navigation. Posée ici FIXE (`pb-16`), que la barre d'action
+    // porte ou non un bouton pour CE statut : elle ne se mesure qu'au rendu
+    // CLIENT, une fois le portail attaché (`BarreActionTerrain`) — une
+    // réserve qui dépendrait de son contenu resterait fausse pendant toute
+    // l'hydratation, et sur une « Suspendue » qui n'a aujourd'hui rien à y
+    // porter (voir la passation).
+    <BarreActionTerrain>
+      <main className="flex flex-col gap-4 pb-16">
+        {/*
         L'EN-TÊTE SUR UNE LIGNE, 60 PX (point 4, 9L04C-TERRAIN-STYLE-EPURE,
         décision d'Alexis du 13/11/2026) — retour, client, « matériel · n°
         d'intervention » dessous, chrono à droite. LE RETOUR REVIENT ICI,
@@ -439,91 +449,91 @@ export default async function PageInterventionTerrain({
         les deux valeurs les plus proches de l'échelle déjà posée, plutôt que
         d'assouplir ce gardien sans décision nommée — voir la passation.
       */}
-      <header className="border-app-bord flex min-h-[60px] items-center gap-3 border-b py-2">
-        <Link
-          href="/terrain"
-          aria-label={t("terrain.retour")}
-          className="text-app-encre flex size-11 shrink-0 items-center justify-center"
-        >
-          <Icone nom="chev-l" taille={22} />
-        </Link>
-        <div className="flex min-w-0 flex-1 flex-col">
-          <h1 className="text-app-encre truncate text-18 font-semibold">
-            {fiche.client ?? t("terrain.client_inconnu")}
-          </h1>
-          {materielEtNumero === null ? null : (
-            <p className="text-app-encre-faible truncate text-16 font-medium">
-              {materielEtNumero}
-            </p>
-          )}
+        <header className="border-app-bord flex min-h-[60px] items-center gap-3 border-b py-2">
+          <Link
+            href="/terrain"
+            aria-label={t("terrain.retour")}
+            className="text-app-encre flex size-11 shrink-0 items-center justify-center"
+          >
+            <Icone nom="chev-l" taille={22} />
+          </Link>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <h1 className="text-app-encre truncate text-18 font-semibold">
+              {fiche.client ?? t("terrain.client_inconnu")}
+            </h1>
+            {materielEtNumero === null ? null : (
+              <p className="text-app-encre-faible truncate text-16 font-medium">
+                {materielEtNumero}
+              </p>
+            )}
+          </div>
+          <p className="text-app-encre shrink-0 text-16 font-semibold tabular-nums">
+            {ici && enCours !== null ? (
+              <CompteurVivant
+                depart={enCours.segment.debut}
+                minutesFermees={mesure.minutes}
+                instantServeur={new Date(genereLe)}
+              />
+            ) : (
+              enDuree(mesure.minutes)
+            )}
+          </p>
+        </header>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Priorite valeur={ligne.priorite} />
+          <span
+            className={`rounded-full px-2 py-0.5 text-12 font-bold ${CLASSES_STATUT[statut]}`}
+          >
+            {t(`statut.${statut}`)}
+          </span>
         </div>
-        <p className="text-app-encre shrink-0 text-16 font-semibold tabular-nums">
-          {ici && enCours !== null ? (
-            <CompteurVivant
-              depart={enCours.segment.debut}
-              minutesFermees={mesure.minutes}
-              instantServeur={new Date(genereLe)}
-            />
-          ) : (
-            enDuree(mesure.minutes)
-          )}
-        </p>
-      </header>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Priorite valeur={ligne.priorite} />
-        <span
-          className={`rounded-full px-2 py-0.5 text-12 font-bold ${CLASSES_STATUT[statut]}`}
-        >
-          {t(`statut.${statut}`)}
-        </span>
-      </div>
-
-      <BandeauReseau genereLe={genereLe} fuseau={fiche.fuseau} fiche />
-      <RafraichissementAutomatique />
-      <BoutonEnvoyer
-        utilisateurId={contexte.utilisateurId}
-        societeId={contexte.societeId}
-      />
-
-      {ailleurs === null ? null : (
-        // LE FUSEAU DE `ailleurs`, PAS CELUI DE LA FICHE CONSULTÉE (corrigé à
-        // la relecture de 9DI, T7, publiée a058705c) : `ailleurs` est une
-        // AUTRE intervention, potentiellement d'une autre agence (D5).
-        <BandeauCompteurEnCours
-          interventionId={ailleurs.interventionId}
-          client={ailleurs.client}
-          depuis={ailleurs.segment.debut}
-          fuseau={ailleurs.fuseau}
-          minutesFermees={mesureAilleurs?.minutes ?? 0}
-          instantServeur={new Date(genereLe)}
+        <BandeauReseau genereLe={genereLe} fuseau={fiche.fuseau} fiche />
+        <RafraichissementAutomatique />
+        <BoutonEnvoyer
+          utilisateurId={contexte.utilisateurId}
+          societeId={contexte.societeId}
         />
-      )}
 
-      {typeof motif === "string" && estCleTraduction(motif) ? (
-        <BandeauMotif motif={motif}>{t(motif)}</BandeauMotif>
-      ) : null}
+        {ailleurs === null ? null : (
+          // LE FUSEAU DE `ailleurs`, PAS CELUI DE LA FICHE CONSULTÉE (corrigé à
+          // la relecture de 9DI, T7, publiée a058705c) : `ailleurs` est une
+          // AUTRE intervention, potentiellement d'une autre agence (D5).
+          <BandeauCompteurEnCours
+            interventionId={ailleurs.interventionId}
+            client={ailleurs.client}
+            depuis={ailleurs.segment.debut}
+            fuseau={ailleurs.fuseau}
+            minutesFermees={mesureAilleurs?.minutes ?? 0}
+            instantServeur={new Date(genereLe)}
+          />
+        )}
 
-      {/* D241 (amende D173, M1 de l'audit UX du 10/11/2026) — un SECOND
+        {typeof motif === "string" && estCleTraduction(motif) ? (
+          <BandeauMotif motif={motif}>{t(motif)}</BandeauMotif>
+        ) : null}
+
+        {/* D241 (amende D173, M1 de l'audit UX du 10/11/2026) — un SECOND
           bandeau, distinct de celui ci-dessus : « Terminer » réussit
           toujours (vert ci-dessus), et cet avertissement ambre ne s'ajoute
           que si l'alerte de fin d'intervention n'a pu atteindre personne. */}
-      {typeof alerte === "string" && estCleTraduction(alerte) ? (
-        <Message ton="avertissement" titre={t(alerte)} />
-      ) : null}
+        {typeof alerte === "string" && estCleTraduction(alerte) ? (
+          <Message ton="avertissement" titre={t(alerte)} />
+        ) : null}
 
-      {/* LE GESTE PRINCIPAL, EN TÊTE (point 1, 9G5-TERRAIN-ERGONOMIE) — à 375
+        {/* LE GESTE PRINCIPAL, EN TÊTE (point 1, 9G5-TERRAIN-ERGONOMIE) — à 375
           px, « Démarrer l'intervention » restait sous la ligne de flottaison,
           après Référence, Panne, Machine et Contact : visible seulement après
           un défilement. La section Compteur, seule à porter ce geste, vient
           maintenant juste après les bandeaux, avant tout le reste de la
           fiche. */}
-      <section className="border-app-bord flex flex-col gap-3 border-b px-4 py-3.5">
-        <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
-          {t("terrain.compteur")}
-        </h2>
+        <section className="border-app-bord flex flex-col gap-3 border-b px-4 py-3.5">
+          <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
+            {t("terrain.compteur")}
+          </h2>
 
-        {/*
+          {/*
           `2 h 15` — et `0 min` quand rien n'a été mesuré, jamais un tiret
           (D88 appliqué à une durée) : un tiret dirait « on ne sait pas », ici
           on sait, et la réponse est zéro. QUAND LE COMPTEUR TOURNE ICI
@@ -531,288 +541,290 @@ export default async function PageInterventionTerrain({
           minutes fermées + segment en cours, `HH:MM:SS` qui défile — plutôt
           que la seule mesure des segments fermés.
         */}
-        <p className="text-28 font-semibold tabular-nums">
-          {ici && enCours !== null ? (
-            <CompteurVivant
-              depart={enCours.segment.debut}
-              minutesFermees={mesure.minutes}
-              instantServeur={new Date(genereLe)}
-            />
-          ) : (
-            enDuree(mesure.minutes)
-          )}
-        </p>
-        <p className="text-app-encre-faible text-16 font-medium">
-          {/* TROIS CAS, PAS DEUX (point 7, 9G5-TERRAIN-ERGONOMIE) —
+          <p className="text-28 font-semibold tabular-nums">
+            {ici && enCours !== null ? (
+              <CompteurVivant
+                depart={enCours.segment.debut}
+                minutesFermees={mesure.minutes}
+                instantServeur={new Date(genereLe)}
+              />
+            ) : (
+              enDuree(mesure.minutes)
+            )}
+          </p>
+          <p className="text-app-encre-faible text-16 font-medium">
+            {/* TROIS CAS, PAS DEUX (point 7, 9G5-TERRAIN-ERGONOMIE) —
               « Temps mesuré, hors compteur en cours. » restait affiché
               quand RIEN ne tourne nulle part pour cette personne (ni ici,
               ni ailleurs) : la clause « hors compteur en cours » devient
               alors obscure, puisqu'aucun compteur n'est en cours à exclure.
               Elle ne reste que quand `ailleurs` justifie vraiment
               l'exclusion. */}
-          {ici && enCours !== null
-            ? t("terrain.compteur.ferme_et_en_cours")
-            : ailleurs !== null
-              ? t("terrain.compteur.ferme")
-              : t("terrain.compteur.ferme_rien_en_cours")}
-        </p>
-
-        {ici && enCours !== null ? (
-          <p className="text-app-rouge-encre bg-app-rouge-fond rounded-md px-3 py-2 text-16 font-bold">
-            {t("terrain.compteur.tourne_depuis")}{" "}
-            {heureLocale(enCours.segment.debut, fiche.fuseau)}
+            {ici && enCours !== null
+              ? t("terrain.compteur.ferme_et_en_cours")
+              : ailleurs !== null
+                ? t("terrain.compteur.ferme")
+                : t("terrain.compteur.ferme_rien_en_cours")}
           </p>
-        ) : null}
 
-        {ailleurs !== null ? (
-          // LE REFUS PREND LA PLACE DE L'ACTION, avec sa raison — jamais un
-          // bouton grisé, qui laisse croire qu'il suffirait d'insister.
-          <p className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3 py-2 text-16 font-bold">
-            {t("terrain.compteur.ailleurs")}{" "}
-            <Link
-              href={`/terrain/${ailleurs.interventionId}`}
-              className={CLASSES_LIEN}
-            >
-              {t("terrain.compteur.aller")}
-            </Link>
-          </p>
-        ) : !ici && verdictDemarrer.refuse ? (
-          // MÊME RÉGIME : le refus de DÉMARRER (D8, D160) prend lui aussi la
-          // place du bouton — une À planifier déplanifiée n'a rien à démarrer.
-          // Ne concerne jamais `ici` : un compteur déjà ouvert ICI s'arrête
-          // toujours, quel que soit le statut.
-          <p className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3 py-2 text-16 font-bold">
-            {estCleTraduction(verdictDemarrer.cle)
-              ? t(verdictDemarrer.cle)
-              : verdictDemarrer.cle}
-          </p>
-        ) : (
-          <BoutonCompteurTerrain
-            interventionId={id}
-            utilisateurId={contexte.utilisateurId}
-            societeId={contexte.societeId}
-            statut={statut}
-            ici={ici}
-            enPause={enPause}
-            fuseau={fiche.fuseau}
-            instantServeur={new Date(genereLe)}
-          />
-        )}
-      </section>
+          {ici && enCours !== null ? (
+            <p className="text-app-rouge-encre bg-app-rouge-fond rounded-md px-3 py-2 text-16 font-bold">
+              {t("terrain.compteur.tourne_depuis")}{" "}
+              {heureLocale(enCours.segment.debut, fiche.fuseau)}
+            </p>
+          ) : null}
 
-      {/* « J'ATTENDS UNE PIÈCE » (9K13-TERRAIN-ATTENTE-PIECE) — juste après
-          le compteur, même emplacement que le geste principal : se vide
-          elle-même (`null`) hors `en_cours`/`suspendue`. */}
-      <BoutonSuspendreTerrain
-        interventionId={id}
-        utilisateurId={contexte.utilisateurId}
-        societeId={contexte.societeId}
-        statut={statut}
-        motifSuspension={ligne.motif_suspension}
-        pieceAttendueRef={ligne.piece_attendue_ref}
-        dateDispoPrevue={ligne.date_dispo_prevue?.toISOString() ?? null}
-      />
-
-      <section className="border-app-bord border-b px-4 py-3.5">
-        <dl className="grid grid-cols-[104px_1fr] gap-x-3 gap-y-2.5 text-16 font-medium">
-          <Ligne
-            libelle={t("intervention.reference")}
-            valeur={referenceAffichee(ligne)}
-          />
-          <Ligne
-            libelle={t("intervention.reference_client")}
-            valeur={ligne.reference_client}
-          />
-          <Ligne libelle={mot("site")} valeur={fiche.lieu} />
-          <Ligne libelle={t("site.adresse")} valeur={adresseSite} />
-          <Ligne
-            libelle={t("intervention.type")}
-            valeur={libelleDuType(ligne.type)}
-          />
-          <Ligne
-            libelle={t("terrain.creneau")}
-            valeur={creneauDeLaFiche(ligne, fiche.fuseau)}
-          />
-        </dl>
-        {itineraire === null ? null : (
-          <Button
-            asChild
-            variant="outline"
-            size="lg"
-            className="mt-3 w-full text-16"
-          >
-            <a href={itineraire}>{t("terrain.itineraire")}</a>
-          </Button>
-        )}
-      </section>
-
-      {consignesAcces === null ? null : (
-        <section className="border-app-bord flex flex-col gap-2 border-b px-4 py-3.5">
-          <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
-            {t("site.consignes_acces")}
-          </h2>
-          <p className="text-16 font-medium">{consignesAcces}</p>
-        </section>
-      )}
-
-      {ligne.description === null ? null : (
-        <section className="border-app-bord flex flex-col gap-2 border-b px-4 py-3.5">
-          <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
-            {t("intervention.panne_signalee")}
-          </h2>
-          <p className="text-16 font-medium">{ligne.description}</p>
-        </section>
-      )}
-
-      {machinesAffichees.length === 0 ? null : (
-        <section className="border-app-bord flex flex-col gap-2 border-b px-4 py-3.5">
-          <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
-            {t("intervention.machine")}
-          </h2>
-          <ul className="flex flex-col gap-2 text-16 font-medium">
-            {machinesAffichees.map((machine) => (
-              <li key={machine.libelle} className="flex flex-col gap-0.5">
-                <span>{machine.libelle}</span>
-                {machine.anneeFabrication === null ? null : (
-                  <span className="text-app-encre-faible text-16 font-medium">
-                    {t("machine.champ.annee_fabrication")}
-                    {t("ponctuation.deux_points")}
-                    {machine.anneeFabrication}
-                  </span>
-                )}
-                <span className="text-app-encre-faible text-16 font-medium">
-                  {t("machine.garantie.libelle")}
-                  {t("ponctuation.deux_points")}
-                  {machine.garantieLibelle}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {contact === null ? null : (
-        <section className="border-app-bord flex flex-col gap-2 border-b px-4 py-3.5">
-          <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
-            {t("intervention.contact_sur_place")}
-          </h2>
-          <p className="text-16 font-medium">{contact.nom}</p>
-          {contact.numeros.length === 0 ? (
-            <p className="text-app-encre-faible text-16 font-medium">
-              {t("terrain.contact_sans_numero")}
+          {ailleurs !== null ? (
+            // LE REFUS PREND LA PLACE DE L'ACTION, avec sa raison — jamais un
+            // bouton grisé, qui laisse croire qu'il suffirait d'insister.
+            <p className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3 py-2 text-16 font-bold">
+              {t("terrain.compteur.ailleurs")}{" "}
+              <Link
+                href={`/terrain/${ailleurs.interventionId}`}
+                className={CLASSES_LIEN}
+              >
+                {t("terrain.compteur.aller")}
+              </Link>
+            </p>
+          ) : !ici && verdictDemarrer.refuse ? (
+            // MÊME RÉGIME : le refus de DÉMARRER (D8, D160) prend lui aussi la
+            // place du bouton — une À planifier déplanifiée n'a rien à démarrer.
+            // Ne concerne jamais `ici` : un compteur déjà ouvert ICI s'arrête
+            // toujours, quel que soit le statut.
+            <p className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre rounded-md border px-3 py-2 text-16 font-bold">
+              {estCleTraduction(verdictDemarrer.cle)
+                ? t(verdictDemarrer.cle)
+                : verdictDemarrer.cle}
             </p>
           ) : (
-            <p className="flex flex-wrap gap-3">
-              {contact.numeros.map((numero) => (
-                <a
-                  key={numero}
-                  href={`tel:${numero}`}
-                  className={`inline-flex items-center text-16 font-bold max-[900px]:min-h-11 ${CLASSES_LIEN}`}
-                >
-                  {numero}
-                </a>
-              ))}
-            </p>
-          )}
-        </section>
-      )}
-
-      {checklist === null || !checklist.disponible ? null : (
-        <ChecklistTerrain
-          interventionId={id}
-          utilisateurId={contexte.utilisateurId}
-          societeId={contexte.societeId}
-          checklistModeleLibelle={checklist.checklistModeleLibelle}
-          points={pointsChecklist}
-        />
-      )}
-
-      <RapportTerrainAutomatique
-        interventionId={id}
-        utilisateurId={contexte.utilisateurId}
-        societeId={contexte.societeId}
-        statut={statut}
-        minutesConnues={mesure.minutes}
-        // LE SEGMENT OUVERT DE LA SEULE PERSONNE CONNECTÉE (9F4H6, point 5)
-        // — voir `segmentOuvertDeLaPersonne` : `mesure.ouvert` ferait porter
-        // ce prop sur le segment d'un RENFORT si c'est le seul ouvert ici.
-        segmentOuvertConnu={segmentOuvertDeLaPersonne(ici, enCours)}
-        rapportInitial={{
-          commentaire_technicien: rapportTexte?.commentaire_technicien ?? null,
-          suite_a_donner: rapportTexte?.suite_a_donner ?? null,
-        }}
-        prestations={prestationsAProposer.map((prestation) => ({
-          id: prestation.id,
-          libelle: prestation.libelle,
-        }))}
-        prestationsInitiales={[...idsRealises]}
-        aucunePrestationPourCeType={
-          prestationsActives.length > 0 && prestationsAProposer.length === 0
-        }
-        afficherPieces={aSectionPiecesRemplacees(
-          ligne.type as TypeIntervention,
-        )}
-        piecesInitiales={pieces ?? []}
-        conditionsFacturation={conditionsFacturation}
-        dejaSignee={signature !== null}
-        afficherTerminer={ligne.statut === "en_cours"}
-        verdictTerminerRefuseCle={
-          verdictTerminer.refuse ? verdictTerminer.cle : null
-        }
-        checklistPourTerminer={
-          checklist === null || !checklist.disponible
-            ? null
-            : {
-                points: pointsChecklist.map((point) => ({
-                  id: point.id,
-                  section: point.section,
-                  libelle: point.libelle,
-                  obligatoire: point.obligatoire,
-                })),
-                reponsesInitiales: Object.fromEntries(
-                  pointsChecklist
-                    .filter((point) => point.valeurInitiale !== null)
-                    .map((point) => [point.id, point.valeurInitiale]),
-                ),
-              }
-        }
-        sectionPhotos={
-          <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
-            <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
-              {t("terrain.photos.titre")}
-            </h2>
-            {(photos ?? []).length === 0 ? (
-              <p className="text-app-encre-faible text-16 font-bold">
-                {t("terrain.photos.aucune")}
-              </p>
-            ) : (
-              <ul className="grid grid-cols-3 gap-2">
-                {(photos ?? []).map((photo) => (
-                  <li key={photo.id} className="flex flex-col gap-1">
-                    {/* eslint-disable-next-line @next/next/no-img-element -- octets servis par une route applicative */}
-                    <img
-                      src={`/api/documents/${photo.id}/octets`}
-                      alt={photo.libelle}
-                      className="border-app-bord aspect-square rounded border object-cover"
-                    />
-                    <span className="text-app-encre-faible truncate text-16 font-bold">
-                      {photo.libelle}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <PhotosTerrain
-              action={`/api/terrain/${id}/photos`}
-              libelleAjouter={t("terrain.photos.ajouter")}
+            <BoutonCompteurTerrain
               interventionId={id}
               utilisateurId={contexte.utilisateurId}
               societeId={contexte.societeId}
+              statut={statut}
+              ici={ici}
+              enPause={enPause}
+              fuseau={fiche.fuseau}
+              instantServeur={new Date(genereLe)}
             />
+          )}
+        </section>
+
+        {/* « J'ATTENDS UNE PIÈCE » (9K13-TERRAIN-ATTENTE-PIECE) — juste après
+          le compteur, même emplacement que le geste principal : se vide
+          elle-même (`null`) hors `en_cours`/`suspendue`. */}
+        <BoutonSuspendreTerrain
+          interventionId={id}
+          utilisateurId={contexte.utilisateurId}
+          societeId={contexte.societeId}
+          statut={statut}
+          motifSuspension={ligne.motif_suspension}
+          pieceAttendueRef={ligne.piece_attendue_ref}
+          dateDispoPrevue={ligne.date_dispo_prevue?.toISOString() ?? null}
+        />
+
+        <section className="border-app-bord border-b px-4 py-3.5">
+          <dl className="grid grid-cols-[104px_1fr] gap-x-3 gap-y-2.5 text-16 font-medium">
+            <Ligne
+              libelle={t("intervention.reference")}
+              valeur={referenceAffichee(ligne)}
+            />
+            <Ligne
+              libelle={t("intervention.reference_client")}
+              valeur={ligne.reference_client}
+            />
+            <Ligne libelle={mot("site")} valeur={fiche.lieu} />
+            <Ligne libelle={t("site.adresse")} valeur={adresseSite} />
+            <Ligne
+              libelle={t("intervention.type")}
+              valeur={libelleDuType(ligne.type)}
+            />
+            <Ligne
+              libelle={t("terrain.creneau")}
+              valeur={creneauDeLaFiche(ligne, fiche.fuseau)}
+            />
+          </dl>
+          {itineraire === null ? null : (
+            <Button
+              asChild
+              variant="outline"
+              size="lg"
+              className="mt-3 w-full text-16"
+            >
+              <a href={itineraire}>{t("terrain.itineraire")}</a>
+            </Button>
+          )}
+        </section>
+
+        {consignesAcces === null ? null : (
+          <section className="border-app-bord flex flex-col gap-2 border-b px-4 py-3.5">
+            <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
+              {t("site.consignes_acces")}
+            </h2>
+            <p className="text-16 font-medium">{consignesAcces}</p>
           </section>
-        }
-      />
-    </main>
+        )}
+
+        {ligne.description === null ? null : (
+          <section className="border-app-bord flex flex-col gap-2 border-b px-4 py-3.5">
+            <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
+              {t("intervention.panne_signalee")}
+            </h2>
+            <p className="text-16 font-medium">{ligne.description}</p>
+          </section>
+        )}
+
+        {machinesAffichees.length === 0 ? null : (
+          <section className="border-app-bord flex flex-col gap-2 border-b px-4 py-3.5">
+            <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
+              {t("intervention.machine")}
+            </h2>
+            <ul className="flex flex-col gap-2 text-16 font-medium">
+              {machinesAffichees.map((machine) => (
+                <li key={machine.libelle} className="flex flex-col gap-0.5">
+                  <span>{machine.libelle}</span>
+                  {machine.anneeFabrication === null ? null : (
+                    <span className="text-app-encre-faible text-16 font-medium">
+                      {t("machine.champ.annee_fabrication")}
+                      {t("ponctuation.deux_points")}
+                      {machine.anneeFabrication}
+                    </span>
+                  )}
+                  <span className="text-app-encre-faible text-16 font-medium">
+                    {t("machine.garantie.libelle")}
+                    {t("ponctuation.deux_points")}
+                    {machine.garantieLibelle}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {contact === null ? null : (
+          <section className="border-app-bord flex flex-col gap-2 border-b px-4 py-3.5">
+            <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
+              {t("intervention.contact_sur_place")}
+            </h2>
+            <p className="text-16 font-medium">{contact.nom}</p>
+            {contact.numeros.length === 0 ? (
+              <p className="text-app-encre-faible text-16 font-medium">
+                {t("terrain.contact_sans_numero")}
+              </p>
+            ) : (
+              <p className="flex flex-wrap gap-3">
+                {contact.numeros.map((numero) => (
+                  <a
+                    key={numero}
+                    href={`tel:${numero}`}
+                    className={`inline-flex items-center text-16 font-bold max-[900px]:min-h-11 ${CLASSES_LIEN}`}
+                  >
+                    {numero}
+                  </a>
+                ))}
+              </p>
+            )}
+          </section>
+        )}
+
+        {checklist === null || !checklist.disponible ? null : (
+          <ChecklistTerrain
+            interventionId={id}
+            utilisateurId={contexte.utilisateurId}
+            societeId={contexte.societeId}
+            checklistModeleLibelle={checklist.checklistModeleLibelle}
+            points={pointsChecklist}
+          />
+        )}
+
+        <RapportTerrainAutomatique
+          interventionId={id}
+          utilisateurId={contexte.utilisateurId}
+          societeId={contexte.societeId}
+          statut={statut}
+          minutesConnues={mesure.minutes}
+          // LE SEGMENT OUVERT DE LA SEULE PERSONNE CONNECTÉE (9F4H6, point 5)
+          // — voir `segmentOuvertDeLaPersonne` : `mesure.ouvert` ferait porter
+          // ce prop sur le segment d'un RENFORT si c'est le seul ouvert ici.
+          segmentOuvertConnu={segmentOuvertDeLaPersonne(ici, enCours)}
+          rapportInitial={{
+            commentaire_technicien:
+              rapportTexte?.commentaire_technicien ?? null,
+            suite_a_donner: rapportTexte?.suite_a_donner ?? null,
+          }}
+          prestations={prestationsAProposer.map((prestation) => ({
+            id: prestation.id,
+            libelle: prestation.libelle,
+          }))}
+          prestationsInitiales={[...idsRealises]}
+          aucunePrestationPourCeType={
+            prestationsActives.length > 0 && prestationsAProposer.length === 0
+          }
+          afficherPieces={aSectionPiecesRemplacees(
+            ligne.type as TypeIntervention,
+          )}
+          piecesInitiales={pieces ?? []}
+          conditionsFacturation={conditionsFacturation}
+          dejaSignee={signature !== null}
+          afficherTerminer={ligne.statut === "en_cours"}
+          verdictTerminerRefuseCle={
+            verdictTerminer.refuse ? verdictTerminer.cle : null
+          }
+          checklistPourTerminer={
+            checklist === null || !checklist.disponible
+              ? null
+              : {
+                  points: pointsChecklist.map((point) => ({
+                    id: point.id,
+                    section: point.section,
+                    libelle: point.libelle,
+                    obligatoire: point.obligatoire,
+                  })),
+                  reponsesInitiales: Object.fromEntries(
+                    pointsChecklist
+                      .filter((point) => point.valeurInitiale !== null)
+                      .map((point) => [point.id, point.valeurInitiale]),
+                  ),
+                }
+          }
+          sectionPhotos={
+            <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
+              <h2 className="text-app-encre-faible text-[12px] font-bold tracking-[0.6px] uppercase">
+                {t("terrain.photos.titre")}
+              </h2>
+              {(photos ?? []).length === 0 ? (
+                <p className="text-app-encre-faible text-16 font-bold">
+                  {t("terrain.photos.aucune")}
+                </p>
+              ) : (
+                <ul className="grid grid-cols-3 gap-2">
+                  {(photos ?? []).map((photo) => (
+                    <li key={photo.id} className="flex flex-col gap-1">
+                      {/* eslint-disable-next-line @next/next/no-img-element -- octets servis par une route applicative */}
+                      <img
+                        src={`/api/documents/${photo.id}/octets`}
+                        alt={photo.libelle}
+                        className="border-app-bord aspect-square rounded border object-cover"
+                      />
+                      <span className="text-app-encre-faible truncate text-16 font-bold">
+                        {photo.libelle}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <PhotosTerrain
+                action={`/api/terrain/${id}/photos`}
+                libelleAjouter={t("terrain.photos.ajouter")}
+                interventionId={id}
+                utilisateurId={contexte.utilisateurId}
+                societeId={contexte.societeId}
+              />
+            </section>
+          }
+        />
+      </main>
+    </BarreActionTerrain>
   );
 }
 

@@ -50,6 +50,7 @@ import {
   signalerChecklistSauterAuPoint,
 } from "@/lib/terrain/file-saisies";
 
+import { DeclencheurBarreAction } from "./barre-action-terrain";
 import { CompteurVivant } from "./compteur-vivant";
 
 /**
@@ -2434,15 +2435,21 @@ export function RapportTerrainAutomatique({
             </p>
           ) : (
             <>
-              <Button
-                type="button"
-                size="lg"
-                className="w-full text-16"
-                disabled={enEnvoiTerminer}
-                onClick={() => setConfirmationTerminerOuverte(true)}
-              >
-                {t("terrain.terminer.bouton")}
-              </Button>
+              {/* BLEU PLEIN, LE RESTE DE LA LARGEUR DE LA BARRE FIXE (point
+                  1, 9L04G) — aux côtés de « Suspendre », posé AVANT lui
+                  dans la fiche (`<BoutonSuspendreTerrain>` plus haut dans
+                  `page.tsx`) : le portail conserve cet ordre de montage. */}
+              <DeclencheurBarreAction>
+                <Button
+                  type="button"
+                  size="lg"
+                  className="h-14 flex-1 text-16"
+                  disabled={enEnvoiTerminer}
+                  onClick={() => setConfirmationTerminerOuverte(true)}
+                >
+                  {t("terrain.terminer.bouton")}
+                </Button>
+              </DeclencheurBarreAction>
               {messageTerminer === null ? null : (
                 <p
                   role="status"

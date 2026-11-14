@@ -15,6 +15,8 @@ import {
   nouvelleOperation,
 } from "@/lib/terrain/file-saisies";
 
+import { DeclencheurBarreAction } from "./barre-action-terrain";
+
 const CLASSES_CHAMP =
   "border-input bg-background w-full min-w-0 rounded-md border px-3 py-2 font-normal";
 
@@ -200,15 +202,21 @@ export function BoutonSuspendreTerrain({
   return (
     <Dialogue
       declencheur={(ouvrir) => (
-        <Button
-          type="button"
-          variant="outline"
-          size="lg"
-          className="w-full text-16"
-          onClick={ouvrir}
-        >
-          {t("terrain.suspendre.bouton")}
-        </Button>
+        // BOUTON TEXTE BLEU, DANS LA BARRE FIXE (point 1, 9L04G) — la
+        // feuille de saisie (référence/date) qu'il ouvre est INCHANGÉE ;
+        // seul son déclencheur quitte sa place d'origine pour porter dans
+        // `BarreActionTerrain`, aux côtés de « Terminer ».
+        <DeclencheurBarreAction>
+          <Button
+            type="button"
+            variant="ghost"
+            size="lg"
+            className="text-app-bleu-plein h-14 px-3 text-16 font-semibold"
+            onClick={ouvrir}
+          >
+            {t("terrain.suspendre.bouton")}
+          </Button>
+        </DeclencheurBarreAction>
       )}
       titre={t("terrain.suspendre.bouton")}
       enfants={() => (

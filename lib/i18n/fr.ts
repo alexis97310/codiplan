@@ -3196,6 +3196,10 @@ export const fr = {
   // Ma journée et sur la fiche d'une AUTRE intervention, jamais celle où il
   // tourne (elle porte déjà `terrain.compteur.tourne_depuis`).
   "terrain.compteur.bandeau_prefixe": "Compteur en marche depuis",
+  // LA BARRE D'ACTION FIXE DE LA FICHE (9L04G, décision d'Alexis du
+  // 13/11/2026) — `aria-label` du groupe de boutons, jamais lu autrement
+  // qu'au clavier ou par un lecteur d'écran.
+  "terrain.barre_action.libelle": "Actions de l'intervention",
   "terrain.heures": "h",
   "terrain.minutes": "min",
 

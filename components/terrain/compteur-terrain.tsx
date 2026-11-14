@@ -24,6 +24,7 @@ import {
 } from "@/lib/terrain/file-saisies";
 import { instantAppareilCale } from "@/lib/terrain/heure-calee";
 
+import { DeclencheurBarreAction } from "./barre-action-terrain";
 import { CompteurVivant } from "./compteur-vivant";
 import { heureLocale } from "./presentation";
 
@@ -294,53 +295,68 @@ export function BoutonCompteurTerrain({
     }
   }
 
-  return (
-    <>
-      {confirmationReouvertureOuverte ? (
-        <div className="flex flex-col gap-2">
-          <p className="text-16 font-bold">
-            {t("terrain.compteur.reouverture.titre")}
-          </p>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="lg"
-              className="flex-1 text-16"
-              onClick={() => setConfirmationReouvertureOuverte(false)}
-            >
-              {t("terrain.compteur.reouverture.non")}
-            </Button>
-            <Button
-              type="button"
-              size="lg"
-              className="flex-1 text-16"
-              disabled={enEnvoi}
-              onClick={() => {
-                setConfirmationReouvertureOuverte(false);
-                void onClick();
-              }}
-            >
-              {t("terrain.compteur.reouverture.oui")}
-            </Button>
-          </div>
-        </div>
-      ) : (
+  // LA BARRE FIXE REÇOIT CE BOUTON HORS « EN COURS » SEULEMENT (point 1,
+  // 9L04G) — « Mettre en pause »/« Reprendre le compteur » (`en_cours`) n'a
+  // jamais été nommé dans la barre par Alexis le 13/11 ; ce bouton-là reste
+  // donc ici, à sa place d'origine, juste après l'en-tête de la fiche.
+  // « Démarrer » (avant) et la réouverture (D220, « Terminée ») y portent
+  // seuls — les messages ci-dessous (refus, hors réseau) restent EN PLACE,
+  // en contexte, jamais dans la barre.
+  const boutonOuReouverture = confirmationReouvertureOuverte ? (
+    <div className="flex flex-col gap-2">
+      <p className="text-16 font-bold">
+        {t("terrain.compteur.reouverture.titre")}
+      </p>
+      <div className="flex gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="lg"
+          className="h-14 flex-1 text-16"
+          onClick={() => setConfirmationReouvertureOuverte(false)}
+        >
+          {t("terrain.compteur.reouverture.non")}
+        </Button>
         <Button
           type="button"
           size="lg"
-          className="w-full text-16"
+          className="h-14 flex-1 text-16"
           disabled={enEnvoi}
           onClick={() => {
-            if (reouvertureDuneIntervention) {
-              setConfirmationReouvertureOuverte(true);
-              return;
-            }
+            setConfirmationReouvertureOuverte(false);
             void onClick();
           }}
         >
-          {libelle}
+          {t("terrain.compteur.reouverture.oui")}
         </Button>
+      </div>
+    </div>
+  ) : (
+    <Button
+      type="button"
+      size="lg"
+      className={
+        statut === "en_cours" ? "w-full text-16" : "h-14 w-full text-16"
+      }
+      disabled={enEnvoi}
+      onClick={() => {
+        if (reouvertureDuneIntervention) {
+          setConfirmationReouvertureOuverte(true);
+          return;
+        }
+        void onClick();
+      }}
+    >
+      {libelle}
+    </Button>
+  );
+
+  return (
+    <>
+      {statut === "en_cours" ? (
+        boutonOuReouverture
+      ) : (
+        <DeclencheurBarreAction>{boutonOuReouverture}</DeclencheurBarreAction>
       )}
       {refusServeur === null ? null : (
         <p
