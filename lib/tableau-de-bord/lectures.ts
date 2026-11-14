@@ -44,8 +44,14 @@ export async function techniciensAccesAOuvrir(
   contexte: ContexteSession,
   client?: PrismaClient,
 ): Promise<readonly LigneAccesAOuvrir[]> {
+  // `accesInterneActif` (9L04K-REACTIVER-ACCES-INTERNE, mesuré par 9L03C) —
+  // un technicien dont l'accès a été RETIRÉ n'a pas besoin qu'on lui « ouvre »
+  // un accès : c'est un geste distinct (« Rétablir l'accès »), jamais celui
+  // que cette tuile annonce. Sans ce filtre, une personne retirée avant
+  // d'avoir jamais reçu de lien (`etat.etat === "aucun"`) grossissait cette
+  // tuile comme n'importe quel technicien simplement pas encore ouvert.
   const techniciens = (await listerLesTechniciens(contexte, client)).filter(
-    (technicien) => technicien.actif,
+    (technicien) => technicien.actif && technicien.accesInterneActif,
   );
   if (techniciens.length === 0) {
     return [];
