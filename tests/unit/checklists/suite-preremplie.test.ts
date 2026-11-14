@@ -59,9 +59,9 @@ describe("suiteAvecLignes", () => {
   });
 
   it("n'ajoute pas en double une ligne déjà présente, parmi plusieurs", () => {
-    expect(
-      suiteAvecLignes("Avant.\nLigne 1", ["Ligne 1", "Ligne 2"]),
-    ).toBe("Avant.\nLigne 1\nLigne 2");
+    expect(suiteAvecLignes("Avant.\nLigne 1", ["Ligne 1", "Ligne 2"])).toBe(
+      "Avant.\nLigne 1\nLigne 2",
+    );
   });
 });
 

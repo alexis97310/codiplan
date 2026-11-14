@@ -867,10 +867,9 @@ export function RapportTerrainAutomatique({
   // LES POINTS ACTUELLEMENT NON CONFORMES, MÊME DISCIPLINE (point 3, 9L04F)
   // — commande l'apparition du lien « Reprendre la non-conformité de la
   // checklist », relu par `relire()` au même rythme que `pointsManquantsAffiches`.
-  const [pointsNonConformesAffiches, setPointsNonConformesAffiches] =
-    useState<readonly PointNonConformePourReprise[]>(() =>
-      nonConformesDepuisFile([], checklistPourTerminer),
-    );
+  const [pointsNonConformesAffiches, setPointsNonConformesAffiches] = useState<
+    readonly PointNonConformePourReprise[]
+  >(() => nonConformesDepuisFile([], checklistPourTerminer));
   // « Phrases types » (point 2, 9L04F) — liste ouverte/fermée, et position
   // du curseur dans le commentaire AU MOMENT DE L'OUVERTURE : l'ouverture de
   // la liste déplace le focus, donc `selectionStart` doit être relevé avant,
@@ -2227,7 +2226,7 @@ export function RapportTerrainAutomatique({
           <button
             type="button"
             onClick={ouvrirPhrasesTypes}
-            className="text-app-terrain-encre-secondaire self-start text-13 font-medium underline"
+            className="text-app-terrain-encre-secondaire self-start text-16 font-medium underline"
           >
             {t("terrain.rapport.phrases_types.lien")}
           </button>
@@ -2249,7 +2248,7 @@ export function RapportTerrainAutomatique({
             <button
               type="button"
               onClick={reprendreLesNonConformites}
-              className="text-app-terrain-encre-secondaire self-start text-13 font-medium underline"
+              className="text-app-terrain-encre-secondaire self-start text-16 font-medium underline"
             >
               {t("terrain.rapport.reprendre_non_conformites")}
             </button>

@@ -291,7 +291,7 @@ describe("retouches typographiques du 30/09/2026 (D143)", () => {
       );
     });
 
-    it("chaque <Button des 7 fichiers du terrain porte text-16 — 21 au total (constat du 30/09/2026, étendu par 9DE-TP-CY1, redistribué par 9EWB-PHOTOS-EN-BASE, 9F4-TERRAIN-ENREGISTREMENT-AUTO, 9F4H3-HORS-RESEAU-ENVOYER, 9F4H6C-FILE-ROBUSTESSE, D219, D220, 9I7B puis 9K11-LIBELLES-SUITES-ITINERAIRE (voir `tests/unit/ui/composants-base.test.tsx`))", () => {
+    it("chaque <Button des 7 fichiers du terrain porte text-16 — 22 au total (constat du 30/09/2026, étendu par 9DE-TP-CY1, redistribué par 9EWB-PHOTOS-EN-BASE, 9F4-TERRAIN-ENREGISTREMENT-AUTO, 9F4H3-HORS-RESEAU-ENVOYER, 9F4H6C-FILE-ROBUSTESSE, D219, D220, 9I7B, 9K11-LIBELLES-SUITES-ITINERAIRE puis 9L04F-TERRAIN-RAPPORT-PHRASES-TYPES (voir `tests/unit/ui/composants-base.test.tsx`))", () => {
       let total = 0;
       for (const chemin of FICHIERS_TERRAIN) {
         const f = FICHIERS.find((x) => x.chemin === chemin);
@@ -319,9 +319,11 @@ describe("retouches typographiques du 30/09/2026 (D143)", () => {
       // « Retirer cette pièce » : 18 + 2 = 20. PUIS 9K11-LIBELLES-SUITES-
       // ITINERAIRE — le bouton « Itinéraire » sous l'adresse du site :
       // 20 + 1 = 21. PUIS 9L04E-TERRAIN-PHOTOS-EPUREES — `photos-terrain.
-      // tsx` passe d'un `<Button>` à huit : 21 + 7 = 28.
+      // tsx` passe d'un `<Button>` à huit : 21 + 7 = 28. PUIS
+      // 9L04F-TERRAIN-RAPPORT-PHRASES-TYPES — la liste des phrases types
+      // ajoute « Fermer » : 28 + 1 = 29.
       // Même arithmétique que `composants-base.test.tsx`.
-      expect(total).toBe(28);
+      expect(total).toBe(29);
     });
   });
 

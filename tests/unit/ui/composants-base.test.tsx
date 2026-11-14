@@ -399,7 +399,10 @@ describe('tous les boutons du terrain portent size="lg" (décision du 30/09/2026
     // « Confirmer »/déclencheur (3, réutilisé pour Supprimer ET pour
     // Retirer de la file), une étiquette rapide (`.map`, un seul littéral
     // pour les quatre), « Enregistrer » la légende, « Retirer »/
-    // « Réessayer » sur un échec (2), « Fermer » — 21 + 7 = 28.
-    expect(total).toBe(28);
+    // « Réessayer » sur un échec (2), « Fermer » — 21 + 7 = 28. PUIS
+    // 9L04F-TERRAIN-RAPPORT-PHRASES-TYPES : la liste des phrases types, dans
+    // `rapport-automatique.tsx`, ajoute « Fermer » — 28 + 1 = 29. Voir
+    // `tests/unit/ui/retouches-2a.test.ts`, même population.
+    expect(total).toBe(29);
   });
 });

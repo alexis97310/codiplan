@@ -26,11 +26,7 @@ export function texteAvecPhraseInseree(
   phrase: string,
   position: number | null,
 ): string {
-  if (
-    position === null ||
-    position < 0 ||
-    position > texteActuel.length
-  ) {
+  if (position === null || position < 0 || position > texteActuel.length) {
     return texteActuel.length === 0 ? phrase : `${texteActuel}\n${phrase}`;
   }
   return `${texteActuel.slice(0, position)}${phrase}${texteActuel.slice(position)}`;

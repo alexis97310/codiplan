@@ -36,9 +36,9 @@ describe("texteAvecPhraseInseree", () => {
   });
 
   it("ajoute la phrase en fin de texte, sur une nouvelle ligne, quand la position est inconnue", () => {
-    expect(
-      texteAvecPhraseInseree("Déjà écrit.", "Pièce remplacée", null),
-    ).toBe("Déjà écrit.\nPièce remplacée");
+    expect(texteAvecPhraseInseree("Déjà écrit.", "Pièce remplacée", null)).toBe(
+      "Déjà écrit.\nPièce remplacée",
+    );
   });
 
   it("ajoute la phrase seule quand le texte est vide et la position inconnue", () => {
@@ -48,8 +48,6 @@ describe("texteAvecPhraseInseree", () => {
   });
 
   it("se replie en fin de texte quand la position dépasse la longueur du texte", () => {
-    expect(texteAvecPhraseInseree("Court", "Suite", 99)).toBe(
-      "Court\nSuite",
-    );
+    expect(texteAvecPhraseInseree("Court", "Suite", 99)).toBe("Court\nSuite");
   });
 });
