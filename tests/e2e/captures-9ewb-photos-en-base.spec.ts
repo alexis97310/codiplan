@@ -164,9 +164,7 @@ for (const largeur of [375, 1280] as const) {
       mimeType: "image/png",
       buffer: Buffer.from("ceci n'est pas un PNG"),
     });
-    await expect(
-      page.getByText(fr["terrain.photos.etat_echec"]),
-    ).toBeVisible();
+    await expect(page.getByText(fr["terrain.photos.etat_echec"])).toBeVisible();
     await capturer(page, "bloc-echec", largeur);
   });
 }

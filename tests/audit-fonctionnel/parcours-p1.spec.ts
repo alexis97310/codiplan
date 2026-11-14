@@ -188,13 +188,9 @@ test("le technicien démarre le compteur, rapporte, photographie et signe", asyn
     ),
   );
   // ENVOI AUTOMATIQUE À LA SÉLECTION (9L04E-TERRAIN-PHOTOS-EPUREES).
-  await page
-    .locator('input[type="file"][capture]')
-    .setInputFiles(cheminPhoto);
+  await page.locator('input[type="file"][capture]').setInputFiles(cheminPhoto);
   await expect(page).toHaveURL(new RegExp(`/terrain/${interventionId}$`));
-  await expect(
-    page.getByText(fr["terrain.photos.etat_envoyee"]),
-  ).toBeVisible();
+  await expect(page.getByText(fr["terrain.photos.etat_envoyee"])).toBeVisible();
 
   await page
     .getByRole("button", { name: fr["terrain.signature.option_signee"] })

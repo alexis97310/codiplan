@@ -123,9 +123,7 @@ test("une photo se dépose et s'affiche", async ({ page }) => {
     new RegExp(`/terrain/${SCENE.rapportTravaillee}$`),
   );
   await expect(page.getByText(fr["terrain.photos.aucune"])).toHaveCount(0);
-  await expect(
-    page.getByText(fr["terrain.photos.etat_envoyee"]),
-  ).toBeVisible();
+  await expect(page.getByText(fr["terrain.photos.etat_envoyee"])).toBeVisible();
 });
 
 test("un SVG est refusé, nommé — jamais une page muette (9EWB-PHOTOS-EN-BASE)", async ({

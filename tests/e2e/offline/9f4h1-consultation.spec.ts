@@ -205,9 +205,7 @@ test("journée et fiche se consultent sans réseau depuis la copie, le bandeau r
   // `<label>` (9L04E-TERRAIN-PHOTOS-EPUREES) — jamais `role="button"` —, le
   // texte visible suffit à prouver leur présence.
   await expect(page.getByText(fr["terrain.photos.prendre"])).toBeVisible();
-  await expect(
-    page.getByText(fr["terrain.photos.bibliotheque"]),
-  ).toBeVisible();
+  await expect(page.getByText(fr["terrain.photos.bibliotheque"])).toBeVisible();
   await expect(
     page.getByRole("button", { name: fr["terrain.signature.option_signee"] }),
   ).toBeVisible();
