@@ -234,7 +234,7 @@ test("375 px — la barre reste fixe au défilement, la feuille a 2 manques, un 
     });
     await expect(suspendre).toBeVisible();
     await expect(terminer).toBeVisible();
-    await capturer(page, "barre-fixe-en-cours-haut");
+    await capturer(page, "fiche-en-cours-haut-apres");
 
     // LA BARRE RESTE FIXE AU DÉFILEMENT — même position à l'écran avant et
     // après un grand défilement du contenu (point 1).
@@ -243,7 +243,7 @@ test("375 px — la barre reste fixe au défilement, la feuille a 2 manques, un 
     await page.waitForTimeout(100);
     const positionApres = await terminer.boundingBox();
     expect(positionApres?.y).toBe(positionAvant?.y);
-    await capturer(page, "barre-fixe-en-cours-bas");
+    await capturer(page, "fiche-en-cours-bas-apres");
 
     // LA FEUILLE A EXACTEMENT DEUX MANQUES (signature, checklist) — le
     // commentaire, déjà écrit par la scène, n'en est pas un (point 2, 9K27
@@ -264,7 +264,7 @@ test("375 px — la barre reste fixe au défilement, la feuille a 2 manques, un 
         name: fr["terrain.terminer.confirmation.oui"],
       }),
     ).toBeDisabled();
-    await capturer(page, "feuille-deux-manques");
+    await capturer(page, "feuille-terminer-manques-apres");
 
     // LE LIEN REFERME LA FEUILLE, DÉPLIE LA RUBRIQUE ET Y POSE LE FOCUS —
     // pas seulement un défilement (point 2, 9L04G).
@@ -272,7 +272,7 @@ test("375 px — la barre reste fixe au défilement, la feuille a 2 manques, un 
     const pointChecklist = page.locator(`#checklist-point-${scene.pointId}`);
     await expect(pointChecklist).toBeVisible();
     await expect(pointChecklist).toBeFocused();
-    await capturer(page, "checklist-point-atteint");
+    await capturer(page, "point-atteint-apres");
 
     const boutonConforme = page.getByRole("button", {
       name: fr["checklist.terrain.option_conforme"],
@@ -322,7 +322,7 @@ test("375 px — la barre reste fixe au défilement, la feuille a 2 manques, un 
     await expect(
       page.getByText(fr["statut.terminee"], { exact: true }),
     ).toBeVisible();
-    await capturer(page, "termine-sans-trait-avec-motif");
+    await capturer(page, "termine-sans-trait-avec-motif-apres");
   } finally {
     await nettoyerSceneTerminer(client, scene);
   }
@@ -428,7 +428,7 @@ test("375 px — « Suspendre » depuis la barre fixe, avec pièce ; la barre se
     await page
       .getByLabel(fr["intervention.suspension.date_dispo"])
       .fill("2026-12-20");
-    await capturer(page, "suspendre-feuille-remplie");
+    await capturer(page, "feuille-suspendre-apres");
     await page
       .getByRole("button", { name: fr["terrain.suspendre.enregistrer"] })
       .click();
@@ -441,7 +441,7 @@ test("375 px — « Suspendre » depuis la barre fixe, avec pièce ; la barre se
     await expect(
       page.getByRole("group", { name: fr["terrain.barre_action.libelle"] }),
     ).toBeHidden();
-    await capturer(page, "suspendre-barre-vide");
+    await capturer(page, "suspendre-barre-vide-apres");
 
     const ligne = await client.intervention.findUniqueOrThrow({
       where: { id: scene.interventionId },
