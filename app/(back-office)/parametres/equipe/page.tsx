@@ -1491,6 +1491,34 @@ function BoutonRetirerAcces({
   );
 }
 
+/**
+ * « RÉTABLIR L'ACCÈS » (9L04K-REACTIVER-ACCES-INTERNE) — symétrique de
+ * `BoutonRetirerAcces`, même forme (`onglet` voyage dans le formulaire pour
+ * le même retour).
+ */
+function BoutonRetablirAcces({
+  utilisateurId,
+  onglet,
+}: {
+  readonly utilisateurId: string;
+  readonly onglet?: "bureau";
+}) {
+  return (
+    <form method="post" action={`/api/equipe/${utilisateurId}/retablir-acces`}>
+      {onglet === undefined ? null : (
+        <input type="hidden" name="onglet" value={onglet} />
+      )}
+      <BoutonAvecConfirmation
+        libelle={t("equipe.retablir_acces")}
+        variant="outline"
+        texteConfirmation={t("equipe.retablir_acces.confirmation")}
+        boutonConfirmer={t("equipe.retablir_acces.confirmer")}
+        boutonRevenir={t("equipe.retablir_acces.revenir")}
+      />
+    </form>
+  );
+}
+
 /** Le geste de la ligne — même règle que `BlocAcces` : rien quand l'accès est déjà actif. */
 function GesteAccesBureau({
   compte,
@@ -1501,13 +1529,13 @@ function GesteAccesBureau({
   readonly etat: EtatAccesBureau;
   readonly exclusif: boolean;
 }) {
-  // L'ACCÈS A ÉTÉ RETIRÉ (9L03C) : aucun autre geste n'a de sens — envoyer ou
-  // copier un lien rouvrirait une voie que l'administrateur vient de fermer.
-  // Le badge « Accès retiré » est déjà montré par la cellule « Accès » :
-  // rien à répéter ici. Ré-accorder l'accès passe par le chemin de
-  // création/modification du compte, pas par ici.
+  // L'ACCÈS A ÉTÉ RETIRÉ (9L03C) : envoyer ou copier un lien rouvrirait une
+  // voie que l'administrateur vient de fermer — mais « Rétablir l'accès »
+  // (9L04K), lui, a tout son sens ici : c'est le seul geste proposé.
   if (!compte.accesInterneActif) {
-    return null;
+    return (
+      <BoutonRetablirAcces utilisateurId={compte.utilisateurId} onglet="bureau" />
+    );
   }
   if (etat.etat === "actif") {
     return (
@@ -1687,12 +1715,11 @@ function GesteAccesTechnicien({
   readonly etat: EtatAcces;
   readonly exclusif: boolean;
 }) {
-  // L'ACCÈS A ÉTÉ RETIRÉ (9L03C) — même garde que `GesteAccesBureau`, et le
-  // même partage avec la cellule « Accès » qui porte déjà le badge : rien
-  // d'autre n'a de sens, et c'est distinct du badge « Inactif » du planning
-  // (`technicien.actif`), déjà montré par ailleurs sur cette ligne.
+  // L'ACCÈS A ÉTÉ RETIRÉ (9L03C) — même garde que `GesteAccesBureau`, et
+  // même geste de rétablissement (9L04K) ; distinct du badge « Inactif » du
+  // planning (`technicien.actif`), déjà montré par ailleurs sur cette ligne.
   if (!technicien.accesInterneActif) {
-    return null;
+    return <BoutonRetablirAcces utilisateurId={technicien.utilisateurId} />;
   }
   if (etat.etat === "actif") {
     return (

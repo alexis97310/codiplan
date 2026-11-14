@@ -177,3 +177,95 @@ export async function retirerAccesInterne(
 
   return { accepte: true };
 }
+
+/**
+ * RÉTABLIT L'ACCÈS D'UN COMPTE INTERNE DONT LA LIGNE `utilisateur_societe`
+ * EST INACTIVE (9L04K-REACTIVER-ACCES-INTERNE, décision d'Alexis du
+ * 10/11/2026 puis du 13/11/2026 — « Ré-accorder l'accès = réactiver la ligne
+ * par le chemin existant »).
+ *
+ * ## LE BOUTON DIRECT DE LA LIGNE « ACCÈS RETIRÉ », PAS LE FORMULAIRE DE
+ * CRÉATION
+ *
+ * Ce geste est le symétrique de `retirerAccesInterne` ci-dessus : il pose
+ * `actif = true` sur la MÊME ligne, sans rien changer d'autre — ni le rôle
+ * (déjà porté par la ligne), ni la fiche `technicien` (jamais touchée par le
+ * retrait, voir son en-tête, D196). C'est le chemin du bouton « Rétablir
+ * l'accès » de l'écran Équipe. Le chemin de CRÉATION (`creerCompteDeBureau`,
+ * `lib/auth/acces-bureau.ts`, et `creerTechnicien`/`habiliterEtRattacherDans`,
+ * `lib/techniciens/depot.ts`) réactive aussi une ligne inactive quand le
+ * formulaire est resoumis pour la même adresse — mais lui applique le RÔLE
+ * demandé par ce formulaire, ce que ce geste-ci ne fait jamais.
+ *
+ * ## AUCUNE TRACE AU JOURNAL D'ACCÈS — MESURÉ, PAS CORRIGÉ
+ *
+ * Voir la passation de ce lot : la seule valeur d'`EvenementAcces`
+ * disponible pour UN GESTE DE CE SENS (`retrait_acces_interne`) nomme
+ * explicitement le geste INVERSE — l'enum l'engage « un seul geste, un seul
+ * événement » — et en ajouter une neuve est une migration, hors territoire de
+ * ce lot. L'écriture elle-même reste tracée : `utilisateur_societe` est dans
+ * le périmètre audité par déclencheur (I8, `journal_audit`), auteur et
+ * avant/après compris — ce geste n'est donc pas invisible, seul
+ * `journal_acces` ne le nomme pas.
+ *
+ * ## LA SESSION NE SE ROUVRE PAS TOUTE SEULE
+ *
+ * `retirerAccesInterne` ferme des sessions ; ce geste n'en rouvre aucune —
+ * la personne se reconnecte normalement, par son lien d'accès habituel
+ * (inchangé, jamais réémis ici).
+ */
+export type MotifRefusRetablissementAcces = "introuvable" | "deja_membre";
+
+export type ResultatRetablissementAcces =
+  | { readonly accepte: true }
+  | { readonly accepte: false; readonly motif: MotifRefusRetablissementAcces };
+
+/** Ce que le geste refuse pour une raison qui n'est PAS un motif nommé. */
+export class RefusRetablissementAcces extends Error {}
+
+function exigerCapaciteRetablissementAcces(
+  contexteAdmin: ContexteSession,
+): void {
+  const role = contexteAdmin.role;
+  if (role === null || !peut(role, "administrer_utilisateurs")) {
+    throw new RefusRetablissementAcces(
+      `Le rôle « ${role ?? "aucun"} » ne peut pas rétablir l'accès d'un ` +
+        "compte interne : réservé à l'administrateur de la société ou à " +
+        "la direction (D37/D199).",
+    );
+  }
+}
+
+export async function retablirAccesInterne(
+  contexteAdmin: ContexteSession,
+  utilisateurId: string,
+  client: PrismaClient = clientParDefaut,
+): Promise<ResultatRetablissementAcces> {
+  const societeId = exigerSocieteActive(contexteAdmin);
+  exigerCapaciteRetablissementAcces(contexteAdmin);
+
+  const cible = await avecSociete(client, societeId, (tx) =>
+    tx.utilisateurSociete.findFirst({
+      where: { utilisateur_id: utilisateurId, societe_id: societeId },
+      select: { id: true, actif: true },
+    }),
+  );
+  if (cible === null) {
+    return { accepte: false, motif: "introuvable" };
+  }
+  if (cible.actif) {
+    return { accepte: false, motif: "deja_membre" };
+  }
+
+  await avecContexteApplicatif(
+    contexteAdmin,
+    (tx) =>
+      tx.utilisateurSociete.updateMany({
+        where: { id: cible.id },
+        data: { actif: true },
+      }),
+    client,
+  );
+
+  return { accepte: true };
+}

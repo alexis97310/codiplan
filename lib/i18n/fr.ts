@@ -7565,6 +7565,20 @@ export const fr = {
     "Cette personne est la seule à administrer les utilisateurs de cette société : son accès ne peut pas être retiré.",
   "equipe.acces_retire": "Accès retiré",
 
+  // ── RÉTABLIR L'ACCÈS D'UN COMPTE INTERNE (9L04K-REACTIVER-ACCES-INTERNE)
+  // — symétrique de la famille ci-dessus, même discipline (une seule
+  // famille de clés pour les deux onglets d'Équipe).
+  "equipe.retablir_acces": "Rétablir l'accès",
+  "equipe.retablir_acces.confirmation":
+    "La personne retrouve l'accès à cette société, avec son rôle actuel. Elle devra utiliser son lien d'accès habituel pour se connecter.",
+  "equipe.retablir_acces.confirmer": "Oui, rétablir l'accès",
+  "equipe.retablir_acces.revenir": "Annuler",
+  "equipe.retablir_acces.reussi": "Accès rétabli.",
+  "equipe.retablir_acces.refus.introuvable":
+    "Ce compte ne fait pas partie de l'équipe active.",
+  "equipe.retablir_acces.refus.deja_membre":
+    "L'accès de cette personne est déjà actif.",
+
   // ── L'ÉCRAN « ÉQUIPE ET ACCÈS » (D196, 9ET-COMPTES-BUREAU-2) ─────────────
   //
   // Maquette `maquette-toutes-pages.html:4607-4716`. `equipe.titre` continue
