@@ -684,14 +684,31 @@ describe("un lot de PRESTATIONS écrit des prestations, et AUCUN montant", () =>
     if (!resultat.applique) return;
     expect(resultat.creations).toBe(2);
 
+    // 9L04J, D255 — REMPLACE le scalaire `famille_id` : la famille vit
+    // désormais dans `prestation_famille_materiel`, jointe par son code.
     const [sans] = await clientOwner().$queryRawUnsafe<
-      Array<{ famille_id: string | null; duree_standard_min: number | null }>
+      Array<{ duree_standard_min: number | null }>
     >(
-      `SELECT "famille_id", "duree_standard_min" FROM "prestation"
+      `SELECT "duree_standard_min" FROM "prestation"
         WHERE "societe_id" = '${SOCIETE_A}' AND "code" = 'R6-A'`,
     );
-    expect(sans.famille_id).toBeNull();
     expect(sans.duree_standard_min).toBe(60);
+    expect(
+      await compter(
+        "prestation_famille_materiel",
+        `"prestation_id" = (SELECT "id" FROM "prestation" WHERE "societe_id" = '${SOCIETE_A}' AND "code" = 'R6-A')`,
+      ),
+    ).toBe(0);
+
+    const famillesDeB = await clientOwner().$queryRawUnsafe<
+      Array<{ code: string }>
+    >(
+      `SELECT f."code" FROM "prestation" p
+         JOIN "prestation_famille_materiel" pfm ON pfm."prestation_id" = p."id"
+         JOIN "famille_materiel" f ON f."id" = pfm."famille_id"
+        WHERE p."societe_id" = '${SOCIETE_A}' AND p."code" = 'R6-B'`,
+    );
+    expect(famillesDeB.map((f) => f.code)).toEqual(["COMP"]);
     expect(await compter("prestation", `"code" = 'R6-C'`)).toBe(0);
   });
 

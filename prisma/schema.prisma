@@ -229,6 +229,7 @@ model Societe {
   campagnes_vgp                VgpCampagne[]                     @ignore
   interventionPrestations      InterventionPrestation[]          @ignore
   prestationTypesIntervention  PrestationTypeIntervention[]      @ignore
+  prestationFamillesMateriel   PrestationFamilleMateriel[]        @ignore
   interventionSignatures       InterventionSignature[]           @ignore
   interventionPauses           InterventionPause[]
   piecesRemplacees             InterventionPieceRemplacee[]
@@ -3307,12 +3308,6 @@ model Prestation {
   code    String
   libelle String
 
-  /// La famille visée, FACULTATIVE : un déplacement, un diagnostic ou une
-  /// formation ne visent aucune famille de matériel. Chaînée sur le COUPLE
-  /// (société, famille) — sans la société dans la clé, le verrou serait muet là
-  /// où le cloisonnement doit mordre.
-  famille_id String? @db.Uuid
-
   /// LA DURÉE STANDARD, en minutes. NULLE quand personne ne l'a estimée — ce
   /// qui est l'état ordinaire d'un catalogue qu'on remplit, et qui ne se
   /// confond pas avec zéro, lequel dirait « instantané ». Strictement positive
@@ -3336,7 +3331,6 @@ model Prestation {
   modifie_le DateTime @updatedAt
 
   societe      Societe                      @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  famille      FamilleMateriel?             @relation(fields: [societe_id, famille_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
   /// Les fois où cette prestation a été déclarée réalisée (BON-2). PAS
   /// `@ignore` (9L04A-MEMOIRE-BUILD-CAUSE, D246) — mesuré à tort comme non
   /// lue en ne vérifiant que CE champ : `@ignore` ici retire aussi
@@ -3348,11 +3342,17 @@ model Prestation {
   /// Les types d'intervention où elle est PROPOSÉE au technicien (9K29).
   /// VIDE = tous les types — voir le docblock de `PrestationTypeIntervention`.
   types        PrestationTypeIntervention[]
+  /// Les familles de matériel qu'elle vise (9L04J, D255). VIDE = générale,
+  /// proposée sur TOUTE machine — voir le docblock de
+  /// `PrestationFamilleMateriel`. **REMPLACE l'ancien `famille_id` scalaire**
+  /// de L1-12 (D109/D113) : amende le même raisonnement que D243/D246 pour
+  /// la même raison — une prestation vise zéro, une ou plusieurs familles à
+  /// la fois sans pouvoir se dédoubler par code.
+  familles     PrestationFamilleMateriel[]
 
   @@unique([societe_id, code])
   /// Cible du chaînage composite que `intervention_prestation` pose (BON-2).
   @@unique([societe_id, id])
-  @@index([societe_id, famille_id])
   @@map("prestation")
 }
 
@@ -3405,6 +3405,57 @@ model PrestationTypeIntervention {
   @@unique([prestation_id, type_intervention])
   @@index([societe_id, prestation_id])
   @@map("prestation_type_intervention")
+}
+
+/// LES FAMILLES DE MATÉRIEL QU'UNE PRESTATION PEUT VISER (9L04J, décision
+/// d'Alexis du 13/11/2026 : « Filtrer par matériel »). **VIDE = générale,
+/// proposée sur TOUTE machine** — aucune prestation existante ne disparaît du
+/// terrain le jour de cette migration ; dès qu'une ligne existe ici, la
+/// prestation n'est proposée QUE pour les machines des familles listées. Une
+/// prestation déjà déclarée réalisée sur une intervention
+/// (`InterventionPrestation`) reste affichée même si elle ne serait plus
+/// proposée — ce n'est pas cette table qui le garantit, c'est la règle pure de
+/// `lib/prestations/regle-famille.ts`, même discipline que `regle-type.ts`
+/// (9K29).
+///
+/// **REMPLACE l'ancien `Prestation.famille_id` scalaire** (L1-12, D109/D113) :
+/// la migration qui crée cette table reprend d'abord les lignes non nulles de
+/// l'ancienne colonne, puis la supprime — même geste que D246 pour
+/// `checklist_modele.type_intervention`. Une colonne nullable scalaire portait
+/// déjà « zéro ou une famille » ; une table de relation est nécessaire pour
+/// « zéro, une OU PLUSIEURS À LA FOIS SANS POUVOIR SE DÉDOUBLER » — même
+/// raisonnement que D243/D246, étendu ici à `famille_id` pour la MÊME raison :
+/// le filtre par matériel s'applique désormais EN PLUS du filtre par type
+/// (les deux se composent, jamais l'un à la place de l'autre).
+///
+/// Forme de politique « filiation » (D103), comme `prestation_type_
+/// intervention` : une fille est visible si son parent (`prestation`) l'est,
+/// et aucune clause de société propre n'est ajoutée — les DEUX clés
+/// étrangères composites (vers `prestation` ET vers `famille_materiel`)
+/// l'empêchent déjà de dériver.
+model PrestationFamilleMateriel {
+  id         String @id @db.Uuid
+  societe_id String @db.Uuid
+
+  prestation_id String @db.Uuid
+  famille_id    String @db.Uuid
+
+  cree_le DateTime @default(now())
+
+  societe    Societe @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  /// `Cascade` : une ligne « cette prestation vise cette famille » n'a aucune
+  /// vie propre sans sa prestation (même raisonnement que `prestation_type_
+  /// intervention` vers `prestation`, D103).
+  prestation Prestation      @relation(fields: [societe_id, prestation_id], references: [societe_id, id], onDelete: Cascade, onUpdate: Restrict)
+  /// `Restrict` : une famille qu'une prestation vise ne s'efface pas sous
+  /// elle — même raisonnement que l'ancien `Prestation.famille_id` qu'elle
+  /// remplace.
+  famille    FamilleMateriel @relation(fields: [societe_id, famille_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+
+  /// La même famille ne se coche pas deux fois sur la même prestation.
+  @@unique([prestation_id, famille_id])
+  @@index([societe_id, prestation_id])
+  @@map("prestation_famille_materiel")
 }
 
 model Forfait {
@@ -3550,7 +3601,10 @@ model FamilleMateriel {
   modeles           ModeleMateriel[]
   sous_types        SousTypeMateriel[]
   forfaits          Forfait[]
-  prestations       Prestation[]
+  /// Les prestations qui la visent, via la table de liaison (9L04J, D255) —
+  /// REMPLACE l'ancienne relation directe `Prestation[]` du scalaire
+  /// `famille_id`, retirée par la même migration.
+  prestations       PrestationFamilleMateriel[]
   /// PAS `@ignore` sur `campagnes_vgp` (9L04A-MEMOIRE-BUILD-CAUSE, D246) —
   /// mesuré à tort comme non lue en ne vérifiant que ce champ : `@ignore`
   /// ici retire aussi `VgpCampagne.famille` (même relation, deux sens) du

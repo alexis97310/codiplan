@@ -393,6 +393,12 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
       // I1, donc auditée à sa naissance. « Qui a limité cette prestation à
       // tel type, et depuis quelle liste » est une question de litige au
       // même titre qu'un changement de durée standard.
+      // `prestation_famille_materiel` s'y ajoute au ticket 9L04J-PRESTATIONS-
+      // PAR-MATERIEL, et par le même chemin : première catégorie de I1, donc
+      // auditée à sa naissance. « Qui a limité cette prestation à telle
+      // famille de matériel, et depuis quelle liste » est une question de
+      // litige au même titre qu'un changement de durée standard.
+      "prestation_famille_materiel",
       "prestation_type_intervention",
       // `segment_travail` s'y ajoute à R5-02, et par le même chemin : première
       // catégorie de I1, donc auditée à sa naissance. **Elle le mérite plus que

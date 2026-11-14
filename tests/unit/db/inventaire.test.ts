@@ -93,6 +93,7 @@ function ligne(surcharge: Partial<LigneInventaire> = {}): LigneInventaire {
       checklist_reponse_photo: 0,
       prestation_type_intervention: 0,
       checklist_modele_type_intervention: 0,
+      prestation_famille_materiel: 0,
     },
     ...surcharge,
   };
@@ -158,6 +159,7 @@ function inventaire(surcharge: Partial<Inventaire> = {}): Inventaire {
         checklist_reponse_photo: 0,
         prestation_type_intervention: 0,
         checklist_modele_type_intervention: 0,
+        prestation_famille_materiel: 0,
       },
     }),
   ];
@@ -255,6 +257,9 @@ describe("inventaire à plat", () => {
       // entrée le jour où elle est née.
       prestation_type_intervention: 0,
       checklist_modele_type_intervention: 0,
+      // 9L04J-PRESTATIONS-PAR-MATERIEL — même chemin : la table est entrée
+      // le jour où elle est née.
+      prestation_famille_materiel: 0,
     });
   });
 

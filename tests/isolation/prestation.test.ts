@@ -65,15 +65,28 @@ async function ecrire(
       );
       await tx.$executeRawUnsafe(
         `INSERT INTO "prestation" ("id", "societe_id", "code", "libelle",
-           "famille_id", "duree_standard_min", "modifie_le")
-         VALUES ($1::uuid, $2::uuid, $3, $4, $5::uuid, $6, now())`,
+           "duree_standard_min", "modifie_le")
+         VALUES ($1::uuid, $2::uuid, $3, $4, $5, now())`,
         id,
         societeId,
         colonnes.code ?? "ENT-PONT",
         colonnes.libelle ?? "Entretien annuel pont élévateur",
-        colonnes.familleId ?? null,
         colonnes.duree ?? null,
       );
+      // LA FAMILLE (9L04J, D255) — REMPLACE l'ancienne colonne scalaire :
+      // une ligne de la table de liaison, posée dans la MÊME transaction,
+      // jamais une seconde écriture séparée.
+      if (colonnes.familleId !== undefined && colonnes.familleId !== null) {
+        await tx.$executeRawUnsafe(
+          `INSERT INTO "prestation_famille_materiel"
+             ("id", "societe_id", "prestation_id", "famille_id")
+           VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid)`,
+          uuidv7(),
+          societeId,
+          id,
+          colonnes.familleId,
+        );
+      }
       if (!garder) {
         throw new Annulation();
       }
@@ -120,9 +133,13 @@ describe("LA FAMILLE NE PEUT PAS VENIR D'UNE AUTRE SOCIÉTÉ", () => {
   it("une famille de la société A est refusée à une prestation de B", async () => {
     // *Sans la société dans la clé, le verrou serait muet là où le
     // cloisonnement doit mordre* — et les contrôles d'intégrité référentielle
-    // contournent les politiques RLS par construction.
+    // contournent les politiques RLS par construction. 9L04J, D255 : la
+    // contrainte vit désormais sur `prestation_famille_materiel`, jamais sur
+    // `prestation` directement.
     const motif = await ecrire(SOCIETE_B, { familleId: FAMILLE_A });
-    expect(motif).toContain("prestation_famille_fkey");
+    expect(motif).toContain(
+      "prestation_famille_materiel_societe_id_famille_id_fkey",
+    );
   });
 
   it("LE CAS QUI DOIT RESTER VERT — la même famille passe pour SA société", async () => {

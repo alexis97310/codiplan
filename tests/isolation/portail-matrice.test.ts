@@ -224,6 +224,9 @@ const CLASSIFICATION_LECTURE: Record<string, ClassificationLecture> = {
   // société active la lit EN ENTIER, sans filtre client) : l'EXISTS de la
   // filiation hérite donc de cette même largeur, jamais « client ».
   prestation_type_intervention: "societe",
+  // AJOUTÉE AU TICKET 9L04J — même raisonnement, même largeur : forme
+  // « filiation » sur `prestation`, classée « societe » ci-dessus.
+  prestation_famille_materiel: "societe",
 
   // RÉFÉRENTIELS DE PLATEFORME (D4) — lecture ouverte à TOUTES les sociétés,
   // pas seulement la sienne : hors du périmètre de confidentialité CLIENT

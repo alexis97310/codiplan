@@ -92,11 +92,11 @@ const saisieSite = (libelle: string, clientId = CLIENT_A1) => ({
 const saisiePrestation = (code: string) => ({
   code,
   libelle: `Prestation ${code}`,
-  famille_id: null,
   duree_standard_min: null,
   checklist_type: null,
   actif: true,
   types: [],
+  familles: [],
 });
 
 describe("`creerSiteDans` écrit SOUS les politiques, pas à côté", () => {

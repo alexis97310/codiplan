@@ -2646,6 +2646,18 @@ export const TABLES_FILIATION = [
     parent: "checklist_modele",
     cle: "checklist_modele_id",
   },
+  // `prestation_famille_materiel` REJOINT LA FILIATION au ticket 9L04J-
+  // PRESTATIONS-PAR-MATERIEL, 13/11/2026. Même raisonnement que
+  // `prestation_type_intervention` ci-dessus (D103) : un rattachement (les
+  // familles de matériel où une prestation est proposée) est visible si sa
+  // prestation l'est, et aucune clause de société n'y est ajoutée — les DEUX
+  // clés étrangères composites (vers `prestation` ET vers `famille_materiel`)
+  // l'empêchent déjà de dériver.
+  {
+    table: "prestation_famille_materiel",
+    parent: "prestation",
+    cle: "prestation_id",
+  },
 ] as const;
 
 /** Les entrées que l'arbitrage autorise. Recopiées : c'est la doctrine. */
@@ -2684,6 +2696,9 @@ const FILIATION_ARBITREE = [
   // Ticket 9K30A-CHECKLIST-GABARITS-VALIDES, 12/11/2026 — les types
   // d'intervention où un modèle de checklist est proposé.
   "checklist_modele_type_intervention",
+  // Ticket 9L04J-PRESTATIONS-PAR-MATERIEL, 13/11/2026 — les familles de
+  // matériel où une prestation du catalogue est proposée.
+  "prestation_famille_materiel",
 ];
 
 /** Écarts de la liste « filiation » — additions comme retraits. */
