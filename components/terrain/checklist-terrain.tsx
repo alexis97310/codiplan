@@ -9,6 +9,14 @@ import {
   type PointPourCompletude,
   type ReponsePourCompletude,
 } from "@/lib/checklists/completude";
+import {
+  detailNonConformeDe,
+  detailNonConformeVide,
+  libelleSuiteNonConformite,
+  valeurConformeDe,
+  type DetailNonConforme,
+  type SuiteNonConformiteChecklist,
+} from "@/lib/checklists/non-conformite";
 import { ligneNonConforme } from "@/lib/checklists/suite-preremplie";
 import { t } from "@/lib/i18n/fr";
 import {
@@ -75,8 +83,14 @@ export type PointChecklistEcran = {
   readonly typeReponse: string;
   readonly unite: string | null;
   readonly choix: readonly string[];
-  /** La réponse déjà connue du serveur — `null` si ce point n'a pas encore de réponse. */
-  readonly valeurInitiale: string | number | boolean | null;
+  /**
+   * La réponse déjà connue du serveur — `null` si ce point n'a pas encore de
+   * réponse. `conforme_non_conforme_sans_objet` PORTE L'OBJET
+   * `DetailNonConforme` (9L04I-CHECKLIST-NON-CONFORME-DETAIL) DÈS que la
+   * suite ou le commentaire porte une valeur, voir `lib/checklists/
+   * non-conformite.ts` — la simple chaîne sinon, comme les autres types.
+   */
+  readonly valeurInitiale: string | number | boolean | DetailNonConforme | null;
 };
 
 /** Le MAXIMUM d'options que les segments pleine largeur portent — au-delà, le menu déroulant. */
@@ -125,7 +139,7 @@ function completudeDe(
     .filter((point) => estRepondu(valeurs[point.id]))
     .map((point) => ({
       checklistPointId: point.id,
-      nonConforme: valeurs[point.id] === "non_conforme",
+      nonConforme: valeurConformeDe(valeurs[point.id]) === "non_conforme",
     }));
   return etatDeCompletude(pointsPourCompletude, reponsesPourCompletude);
 }
@@ -311,6 +325,224 @@ function PastillesConformite({
   );
 }
 
+/** « Pièce à commander · ne redémarre pas sous 6 bar » — le résumé replié (point 2, 9L04I). */
+function resumeNonConformite(
+  suite: SuiteNonConformiteChecklist | null,
+  commentaire: string | null,
+): string {
+  const partieSuite = suite === null ? null : libelleSuiteNonConformite(suite);
+  if (partieSuite !== null && commentaire !== null) {
+    return `${partieSuite}${t("ponctuation.separateur")}${commentaire}`;
+  }
+  return partieSuite ?? commentaire ?? "";
+}
+
+/**
+ * LES TROIS SEGMENTS DE LA SUITE À DONNER (9L04I-CHECKLIST-NON-CONFORME-
+ * DETAIL) — TROIS ÉLÉMENTS ÉCRITS À PART, même motif que `PastillesConformite`
+ * (voir son docblock) : jamais un tableau `.map()` sur une liste de paires
+ * valeur/libellé.
+ */
+function SegmentsSuite({
+  valeur,
+  onChange,
+}: {
+  readonly valeur: SuiteNonConformiteChecklist | null;
+  readonly onChange: (valeur: SuiteNonConformiteChecklist | null) => void;
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label={t("checklist.non_conformite.suite_titre")}
+      className="bg-app-terrain-champ-fond flex w-full gap-1 rounded-md p-1"
+    >
+      <button
+        type="button"
+        role="radio"
+        aria-checked={valeur === "regle_sur_place"}
+        onClick={() =>
+          onChange(valeur === "regle_sur_place" ? null : "regle_sur_place")
+        }
+        className={
+          valeur === "regle_sur_place"
+            ? "bg-app-bleu-plein text-app-bleu-plein-encre h-11 flex-1 rounded-md text-16 font-semibold"
+            : "text-app-terrain-encre h-11 flex-1 rounded-md text-16 font-medium"
+        }
+      >
+        {t("checklist.non_conformite.regle_sur_place")}
+      </button>
+      <button
+        type="button"
+        role="radio"
+        aria-checked={valeur === "piece_a_commander"}
+        onClick={() =>
+          onChange(valeur === "piece_a_commander" ? null : "piece_a_commander")
+        }
+        className={
+          valeur === "piece_a_commander"
+            ? "bg-app-bleu-plein text-app-bleu-plein-encre h-11 flex-1 rounded-md text-16 font-semibold"
+            : "text-app-terrain-encre h-11 flex-1 rounded-md text-16 font-medium"
+        }
+      >
+        {t("checklist.non_conformite.piece_a_commander")}
+      </button>
+      <button
+        type="button"
+        role="radio"
+        aria-checked={valeur === "a_revoir"}
+        onClick={() => onChange(valeur === "a_revoir" ? null : "a_revoir")}
+        className={
+          valeur === "a_revoir"
+            ? "bg-app-bleu-plein text-app-bleu-plein-encre h-11 flex-1 rounded-md text-16 font-semibold"
+            : "text-app-terrain-encre h-11 flex-1 rounded-md text-16 font-medium"
+        }
+      >
+        {t("checklist.non_conformite.a_revoir")}
+      </button>
+    </div>
+  );
+}
+
+/** LE COMMENTAIRE LIBRE DU DÉTAIL NON CONFORME (point 1, 9L04I) — facultatif. */
+function ChampCommentaireNonConforme({
+  valeur,
+  onChange,
+}: {
+  readonly valeur: string | null;
+  readonly onChange: (valeur: string | null) => void;
+}) {
+  return (
+    <label className="flex w-full flex-col gap-1">
+      <span className="sr-only">
+        {t("checklist.non_conformite.commentaire_titre")}
+      </span>
+      <textarea
+        value={valeur ?? ""}
+        placeholder={t("checklist.non_conformite.commentaire_placeholder")}
+        maxLength={500}
+        rows={2}
+        onChange={(e) =>
+          onChange(e.target.value.length === 0 ? null : e.target.value)
+        }
+        className="bg-app-terrain-champ-fond text-app-terrain-encre w-full rounded-md border-none px-2 py-1.5 text-16 font-medium"
+      />
+    </label>
+  );
+}
+
+/**
+ * LE DÉTAIL D'UN POINT NON CONFORME (9L04I-CHECKLIST-NON-CONFORME-DETAIL) —
+ * remplace `PastillesConformite` seule pour `conforme_non_conforme_sans_objet`.
+ * Choisir « non conforme » OUVRE sous le point la suite, le commentaire et
+ * « Ajouter une photo » (même chemin que les photos de point, 9K28) ; la
+ * saisie SE REPLIE en une ligne rouge qui la résume dès qu'elle porte déjà une
+ * valeur — toucher la ligne la rouvre (point 2 du ticket). Changer la réponse
+ * vers conforme ou sans objet (ou la retirer) EFFACE la suite et le
+ * commentaire, avec confirmation si l'un des deux n'est pas vide.
+ */
+function ChampNonConformite({
+  point,
+  valeur,
+  onChange,
+  photo,
+}: {
+  readonly point: PointChecklistEcran;
+  readonly valeur: unknown;
+  readonly onChange: (valeur: unknown) => void;
+  readonly photo: {
+    readonly interventionId: string;
+    readonly utilisateurId: string;
+    readonly societeId: string;
+    readonly sansSession: boolean;
+  };
+}) {
+  const conforme = valeurConformeDe(valeur);
+  const detail = detailNonConformeDe(valeur);
+  const [ouvert, setOuvert] = useState(
+    () => conforme === "non_conforme" && detailNonConformeVide(detail),
+  );
+  const conformeAnterieurRef = useRef(conforme);
+
+  useEffect(() => {
+    if (
+      conformeAnterieurRef.current !== "non_conforme" &&
+      conforme === "non_conforme"
+    ) {
+      setOuvert(true);
+    }
+    conformeAnterieurRef.current = conforme;
+  }, [conforme]);
+
+  function changerConforme(nouvelle: unknown): void {
+    if (nouvelle !== "non_conforme" && !detailNonConformeVide(detail)) {
+      const confirme = window.confirm(
+        t("checklist.non_conformite.confirmation_effacement"),
+      );
+      if (!confirme) {
+        return;
+      }
+    }
+    onChange(nouvelle);
+  }
+
+  function changerDetail(partiel: {
+    readonly suite?: SuiteNonConformiteChecklist | null;
+    readonly commentaire?: string | null;
+  }): void {
+    const nouveauDetail = { ...detail, ...partiel };
+    if (detailNonConformeVide(nouveauDetail)) {
+      onChange("non_conforme");
+      return;
+    }
+    onChange({
+      conforme: "non_conforme",
+      suite: nouveauDetail.suite,
+      commentaire: nouveauDetail.commentaire,
+    });
+  }
+
+  return (
+    <div
+      className={
+        conforme === "non_conforme"
+          ? "flex w-full flex-col items-end gap-2"
+          : "flex flex-col items-end gap-2"
+      }
+    >
+      <PastillesConformite valeur={conforme} onChange={changerConforme} />
+      {conforme !== "non_conforme" ? null : ouvert ? (
+        <div className="flex w-full flex-col gap-2">
+          <SegmentsSuite
+            valeur={detail.suite}
+            onChange={(suite) => changerDetail({ suite })}
+          />
+          <ChampCommentaireNonConforme
+            valeur={detail.commentaire}
+            onChange={(commentaire) => changerDetail({ commentaire })}
+          />
+          <PhotosTerrain
+            action={`/api/terrain/${photo.interventionId}/photos`}
+            libelleAjouter={t("checklist.terrain.ajouter_photo")}
+            interventionId={photo.interventionId}
+            utilisateurId={photo.utilisateurId}
+            societeId={photo.societeId}
+            sansSession={photo.sansSession}
+            checklistPointId={point.id}
+          />
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOuvert(true)}
+          className="text-app-rouge-encre w-full text-right text-14 font-medium"
+        >
+          {resumeNonConformite(detail.suite, detail.commentaire)}
+        </button>
+      )}
+    </div>
+  );
+}
+
 /** LA COCHE RONDE « FAIT » (point 3, 9L04D) — remplace la case native. */
 function CocheRonde({
   libelle,
@@ -394,7 +626,14 @@ function champDuType(
 ): ReactNode {
   switch (point.typeReponse) {
     case "conforme_non_conforme_sans_objet":
-      return <PastillesConformite valeur={valeur} onChange={onChange} />;
+      return (
+        <ChampNonConformite
+          point={point}
+          valeur={valeur}
+          onChange={onChange}
+          photo={photo}
+        />
+      );
     case "valeur_mesuree":
       return (
         <label className="flex items-center gap-2">
@@ -514,9 +753,14 @@ function PointLigne({
 }) {
   // Choix, texte et photo veulent leur propre largeur : le libellé garde sa
   // ligne, la commande suit sur la ligne suivante, pleine largeur (point 3).
+  // UN POINT NON CONFORME (9L04I) rejoint ce régime SEULEMENT pendant qu'il
+  // l'est — conforme ou sans objet, les pastilles restent compactes, à côté
+  // du libellé, comme avant ce lot.
   const surSaPropreLigne =
-    point.typeReponse === "choix_dans_une_liste" &&
-    point.choix.length <= MAX_OPTIONS_SEGMENTS;
+    (point.typeReponse === "choix_dans_une_liste" &&
+      point.choix.length <= MAX_OPTIONS_SEGMENTS) ||
+    (point.typeReponse === "conforme_non_conforme_sans_objet" &&
+      valeurConformeDe(valeur) === "non_conforme");
 
   return (
     <div

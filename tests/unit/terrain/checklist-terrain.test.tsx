@@ -5,7 +5,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   ChecklistTerrain,
@@ -14,6 +14,13 @@ import {
 import { fr } from "@/lib/i18n";
 
 import { installerIndexedDBFactice } from "./aide-indexeddb-factice";
+
+// LE DÉTAIL NON CONFORME (9L04I) MONTE `PhotosTerrain`, QUI APPELLE
+// `useRouter()` (`router.refresh()` après un envoi) — hors d'un routeur Next
+// monté, ce qui n'est jamais le cas sous Vitest/jsdom.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: vi.fn() }),
+}));
 
 /**
  * LA FICHE TERRAIN « ÉPURÉE » (9L04D-TERRAIN-CHECKLIST-EPUREE) — aucune
@@ -204,6 +211,169 @@ describe("la case « fait » — une coche ronde, jamais la case native (point 3
 
     fireEvent.click(coche);
     await waitFor(() => expect(coche).toHaveAttribute("aria-checked", "false"));
+  });
+});
+
+describe("le détail d'un point non conforme (9L04I-CHECKLIST-NON-CONFORME-DETAIL)", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("choisir « non conforme » ouvre la suite, le commentaire et « Ajouter une photo »", async () => {
+    scene([point({ id: "p1" }), point({ id: "p2", libelle: "Autre point" })]);
+
+    fireEvent.click(
+      within(ligneDuPoint("p1")).getByRole("button", {
+        name: fr["checklist.terrain.non_conforme"],
+      }),
+    );
+
+    await waitFor(() =>
+      expect(within(ligneDuPoint("p1")).getAllByRole("radio")).toHaveLength(3),
+    );
+    expect(
+      within(ligneDuPoint("p1")).getByRole("button", {
+        name: fr["checklist.terrain.ajouter_photo"],
+      }),
+    ).toBeVisible();
+  });
+
+  it("choisir une suite, puis écrire un commentaire — les deux facultatifs, les deux indépendants", async () => {
+    scene([point({ id: "p1" }), point({ id: "p2", libelle: "Autre point" })]);
+
+    fireEvent.click(
+      within(ligneDuPoint("p1")).getByRole("button", {
+        name: fr["checklist.terrain.non_conforme"],
+      }),
+    );
+
+    const segmentPiece = await waitFor(() =>
+      within(ligneDuPoint("p1")).getByRole("radio", {
+        name: fr["checklist.non_conformite.piece_a_commander"],
+      }),
+    );
+    fireEvent.click(segmentPiece);
+    await waitFor(() =>
+      expect(segmentPiece).toHaveAttribute("aria-checked", "true"),
+    );
+
+    const commentaire = within(ligneDuPoint("p1")).getByPlaceholderText(
+      fr["checklist.non_conformite.commentaire_placeholder"],
+    );
+    fireEvent.change(commentaire, {
+      target: { value: "Ne redémarre pas sous 6 bar" },
+    });
+    await waitFor(() =>
+      expect(commentaire).toHaveValue("Ne redémarre pas sous 6 bar"),
+    );
+  });
+
+  it("une réponse déjà non conforme AVEC détail arrive REPLIÉE — toucher la ligne la rouvre", async () => {
+    // Un second point JAMAIS répondu garde la rubrique ouverte (point 4,
+    // 9L04D) — sans lui, la rubrique (complète dès le montage) se replierait
+    // elle-même, retirant p1 du document avant toute assertion.
+    scene([
+      point({
+        id: "p1",
+        valeurInitiale: {
+          conforme: "non_conforme",
+          suite: "piece_a_commander",
+          commentaire: "Ne redémarre pas sous 6 bar",
+        },
+      }),
+      point({ id: "p2", libelle: "Autre point" }),
+    ]);
+
+    // REPLIÉE — aucun segment, aucun champ commentaire tant qu'on ne l'a pas
+    // rouverte. La ligne résumée est le QUATRIÈME bouton (les trois pastilles
+    // d'abord) — jamais interrogée par son nom, qui porterait le commentaire
+    // de la fixture (L0-11, même convention que le reste de ce fichier).
+    expect(within(ligneDuPoint("p1")).queryAllByRole("radio")).toHaveLength(0);
+    const boutons = within(ligneDuPoint("p1")).getAllByRole("button");
+    const ligneResume = boutons[boutons.length - 1]!;
+    expect(ligneResume).toHaveTextContent(
+      fr["checklist.non_conformite.piece_a_commander"],
+    );
+
+    fireEvent.click(ligneResume);
+    await waitFor(() =>
+      expect(within(ligneDuPoint("p1")).getAllByRole("radio")).toHaveLength(3),
+    );
+  });
+
+  it("changer vers « conforme » avec un détail NON VIDE demande confirmation ; refusée, la réponse et le détail restent", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(false);
+    scene([
+      point({
+        id: "p1",
+        valeurInitiale: {
+          conforme: "non_conforme",
+          suite: "a_revoir",
+          commentaire: null,
+        },
+      }),
+      point({ id: "p2", libelle: "Autre point" }),
+    ]);
+
+    const boutonConforme = within(ligneDuPoint("p1")).getByRole("button", {
+      name: fr["checklist.terrain.option_conforme"],
+    });
+    fireEvent.click(boutonConforme);
+
+    expect(window.confirm).toHaveBeenCalledTimes(1);
+    // REFUSÉE — la pastille « non conforme » reste pressée, le détail reste.
+    expect(
+      within(ligneDuPoint("p1")).getByRole("button", {
+        name: fr["checklist.terrain.non_conforme"],
+      }),
+    ).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("changer vers « conforme » avec un détail NON VIDE, confirmée, efface le détail", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    scene([
+      point({
+        id: "p1",
+        valeurInitiale: {
+          conforme: "non_conforme",
+          suite: "a_revoir",
+          commentaire: null,
+        },
+      }),
+      point({ id: "p2", libelle: "Autre point" }),
+    ]);
+
+    const boutonConforme = within(ligneDuPoint("p1")).getByRole("button", {
+      name: fr["checklist.terrain.option_conforme"],
+    });
+    fireEvent.click(boutonConforme);
+
+    await waitFor(() =>
+      expect(boutonConforme).toHaveAttribute("aria-pressed", "true"),
+    );
+    expect(within(ligneDuPoint("p1")).queryAllByRole("radio")).toHaveLength(0);
+  });
+
+  it("changer vers « sans objet » SANS détail ne demande AUCUNE confirmation", async () => {
+    const confirmSpy = vi.spyOn(window, "confirm");
+    scene([point({ id: "p1" }), point({ id: "p2", libelle: "Autre point" })]);
+
+    fireEvent.click(
+      within(ligneDuPoint("p1")).getByRole("button", {
+        name: fr["checklist.terrain.non_conforme"],
+      }),
+    );
+    await waitFor(() =>
+      expect(within(ligneDuPoint("p1")).getAllByRole("radio")).toHaveLength(3),
+    );
+
+    fireEvent.click(
+      within(ligneDuPoint("p1")).getByRole("button", {
+        name: fr["checklist.terrain.option_sans_objet"],
+      }),
+    );
+
+    expect(confirmSpy).not.toHaveBeenCalled();
   });
 });
 

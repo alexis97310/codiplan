@@ -5172,6 +5172,25 @@ export const fr = {
   // la différence JSON générique, seulement par une photo déjà déposée.
   "checklist.refus.photo_hors_formulaire":
     "Ce point se répond par une photo, pas par cette saisie.",
+  // 9L04I-CHECKLIST-NON-CONFORME-DETAIL — la suite et le commentaire ne
+  // valent que pour un point NON CONFORME (même règle que la contrainte
+  // `checklist_reponse_detail_non_conforme` en base).
+  "checklist.refus.detail_hors_non_conforme":
+    "La suite à donner et le commentaire ne valent que pour un point non conforme.",
+
+  // ── LE DÉTAIL D'UN POINT NON CONFORME (9L04I-CHECKLIST-NON-CONFORME-
+  // DETAIL, décision d'Alexis du 13/11/2026) — partagé par la saisie
+  // terrain, les bons (CK8) et la fiche bureau (CK9), qui lisent les MÊMES
+  // trois clés pour nommer la suite donnée. ───────────────────────────────
+  "checklist.non_conformite.regle_sur_place": "Réglé sur place",
+  "checklist.non_conformite.piece_a_commander": "Pièce à commander",
+  "checklist.non_conformite.a_revoir": "À revoir",
+  "checklist.non_conformite.suite_titre": "Suite à donner",
+  "checklist.non_conformite.commentaire_titre": "Commentaire",
+  "checklist.non_conformite.commentaire_placeholder":
+    "Commentaire (facultatif)",
+  "checklist.non_conformite.confirmation_effacement":
+    "Changer cette réponse effacera la suite à donner et le commentaire déjà saisis. Continuer ?",
 
   // ── LA TUILE DU BON (9K24-CHECKLIST-BONS, CK8) ───────────────────────────
   "checklist.bon.titre": "Checklist",
