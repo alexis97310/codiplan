@@ -14,7 +14,10 @@ import {
 } from "@/lib/checklists/completude";
 import {
   libelleDuPoint,
+  lignesReprise,
+  type PointNonConformePourReprise,
   suiteAvecLigne,
+  suiteAvecLignes,
 } from "@/lib/checklists/suite-preremplie";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { minutesDepuisMillisecondes } from "@/lib/interventions/compteur";
@@ -31,6 +34,10 @@ import {
   terminerActiviteTerrain,
 } from "@/lib/terrain/activite-saisie";
 import { cleBrouillon } from "@/lib/terrain/brouillon";
+import {
+  phrasesTypesTerrain,
+  texteAvecPhraseInseree,
+} from "@/lib/terrain/phrases-types";
 import {
   ajouterSaisie,
   type DetailChecklistNonConforme,
@@ -515,6 +522,47 @@ function obligatoiresManquantsDepuisFile(
 }
 
 /**
+ * LES POINTS ACTUELLEMENT NON CONFORMES, DEPUIS LA COPIE LOCALE ET LA FILE
+ * (point 3, 9L04F-TERRAIN-RAPPORT-PHRASES-TYPES) — même discipline que
+ * `obligatoiresManquantsDepuisFile` : une saisie `checklist` déjà en file
+ * prend le pas, point par point, sur la réponse connue du serveur. Sert au
+ * lien « Reprendre la non-conformité de la checklist » : absent de l'écran
+ * tant que ce tableau est vide.
+ */
+function nonConformesDepuisFile(
+  entreesCompteur: readonly EntreeFile[],
+  checklistPourTerminer: {
+    readonly points: readonly (PointPourCompletude & {
+      readonly typeReponse: string;
+    })[];
+    readonly reponsesInitiales: Readonly<Record<string, unknown>>;
+  } | null,
+): readonly PointNonConformePourReprise[] {
+  if (checklistPourTerminer === null) {
+    return [];
+  }
+  const gesteChecklistEnFile = entreesCompteur.find(
+    (e): e is EntreeFile & { readonly geste: GesteChecklist } =>
+      e.geste.type === "checklist",
+  );
+  const valeursFusionnees: Readonly<Record<string, unknown>> = {
+    ...checklistPourTerminer.reponsesInitiales,
+    ...gesteChecklistEnFile?.geste.difference,
+  };
+  return checklistPourTerminer.points
+    .filter(
+      (point) =>
+        point.typeReponse === "conforme_non_conforme_sans_objet" &&
+        valeursFusionnees[point.id] === "non_conforme",
+    )
+    .map((point) => ({
+      id: point.id,
+      section: point.section,
+      libelle: point.libelle,
+    }));
+}
+
+/**
  * LE POINT DU POINTEUR, À L'ÉCHELLE DE LA RÉSOLUTION DU CANEVAS (point 5,
  * 9G5-TERRAIN-ERGONOMIE) — le canevas de signature est désormais FLUIDE
  * (largeur CSS = largeur disponible), mais sa résolution de dessin
@@ -717,10 +765,15 @@ export function RapportTerrainAutomatique({
    * alors un tableau vide). `points` porte `obligatoire` ; `reponsesInitiales`
    * est la réponse déjà connue du SERVEUR (ou de la copie locale hors
    * réseau) au moment du rendu — la file (une saisie `checklist` en attente)
-   * est relue séparément, au moment du clic, jamais ici.
+   * est relue séparément, au moment du clic, jamais ici. `typeReponse` sert
+   * ICI à « Reprendre la non-conformité de la checklist » (9L04F) : seul un
+   * point `conforme_non_conforme_sans_objet` peut être non conforme, jamais
+   * une réponse libre qui porterait accidentellement ce mot.
    */
   readonly checklistPourTerminer: {
-    readonly points: readonly PointPourCompletude[];
+    readonly points: readonly (PointPourCompletude & {
+      readonly typeReponse: string;
+    })[];
     readonly reponsesInitiales: Readonly<Record<string, unknown>>;
   } | null;
   readonly sectionPhotos: ReactNode;
@@ -811,6 +864,19 @@ export function RapportTerrainAutomatique({
   const [pointsManquantsAffiches, setPointsManquantsAffiches] = useState<
     readonly PointObligatoireManquant[]
   >(() => obligatoiresManquantsDepuisFile([], checklistPourTerminer));
+  // LES POINTS ACTUELLEMENT NON CONFORMES, MÊME DISCIPLINE (point 3, 9L04F)
+  // — commande l'apparition du lien « Reprendre la non-conformité de la
+  // checklist », relu par `relire()` au même rythme que `pointsManquantsAffiches`.
+  const [pointsNonConformesAffiches, setPointsNonConformesAffiches] =
+    useState<readonly PointNonConformePourReprise[]>(() =>
+      nonConformesDepuisFile([], checklistPourTerminer),
+    );
+  // « Phrases types » (point 2, 9L04F) — liste ouverte/fermée, et position
+  // du curseur dans le commentaire AU MOMENT DE L'OUVERTURE : l'ouverture de
+  // la liste déplace le focus, donc `selectionStart` doit être relevé avant,
+  // pas au clic sur une phrase.
+  const [phrasesTypesOuvertes, setPhrasesTypesOuvertes] = useState(false);
+  const positionCurseurCommentaireRef = useRef<number | null>(null);
   // LE TEMPS AFFICHÉ DANS LA FEUILLE DE CONFIRMATION, EN DIRECT (M3) — les
   // minutes déjà FERMÉES (serveur + file) et le DÉBUT du segment encore
   // ouvert, s'il y en a un ; `null` si rien ne tourne. `CompteurVivant` fait
@@ -1488,6 +1554,11 @@ export function RapportTerrainAutomatique({
         setPointsManquantsAffiches(
           obligatoiresManquantsDepuisFile(entrees, checklistPourTerminer),
         );
+        // LE LIEN « REPRENDRE LA NON-CONFORMITÉ DE LA CHECKLIST », À JOUR
+        // SANS ATTENDRE UN RECHARGEMENT (point 3, 9L04F) — même discipline.
+        setPointsNonConformesAffiches(
+          nonConformesDepuisFile(entrees, checklistPourTerminer),
+        );
         const mesureAffichage = mesureCompteurDeLaFile(
           entrees,
           segmentOuvertConnu,
@@ -2102,6 +2173,37 @@ export function RapportTerrainAutomatique({
     });
   }
 
+  /**
+   * « Phrases types » (point 2, 9L04F) — relève la position du curseur
+   * AVANT d'ouvrir la liste : l'ouvrir déplace le focus, donc la relever au
+   * clic sur une phrase donnerait toujours la fin du texte.
+   */
+  function ouvrirPhrasesTypes(): void {
+    positionCurseurCommentaireRef.current =
+      commentaireTextareaRef.current?.selectionStart ?? null;
+    setPhrasesTypesOuvertes(true);
+  }
+
+  /** Choisir une phrase type — l'insère, referme la liste, reste modifiable. */
+  function choisirPhraseType(phrase: string): void {
+    const nouveauCommentaire = texteAvecPhraseInseree(
+      commentaireRef.current,
+      phrase,
+      positionCurseurCommentaireRef.current,
+    );
+    onChangeCommentaire(nouveauCommentaire);
+    setPhrasesTypesOuvertes(false);
+  }
+
+  /** « Reprendre la non-conformité de la checklist » (point 3, 9L04F). */
+  function reprendreLesNonConformites(): void {
+    const nouvelleSuite = suiteAvecLignes(
+      suiteRef.current,
+      lignesReprise(pointsNonConformesAffiches),
+    );
+    onChangeSuite(nouvelleSuite);
+  }
+
   return (
     <>
       <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">
@@ -2109,7 +2211,7 @@ export function RapportTerrainAutomatique({
           {t("terrain.rapport.titre")}
         </h2>
         <label className="flex flex-col gap-1">
-          <span className="text-16 font-bold">
+          <span className="text-app-terrain-encre text-16 font-medium">
             {t("terrain.rapport.commentaire_libelle")}
           </span>
           <textarea
@@ -2120,11 +2222,18 @@ export function RapportTerrainAutomatique({
             onChange={(e) => onChangeCommentaire(e.target.value)}
             onBlur={() => void envoyerRapport()}
             placeholder={t("terrain.rapport.commentaire_placeholder")}
-            className="border-app-bord bg-app-surface rounded-md border px-2 py-1.5 text-16 font-bold"
+            className="bg-app-terrain-champ-fond text-app-terrain-encre rounded-md border-none px-2 py-1.5 text-16 font-medium"
           />
+          <button
+            type="button"
+            onClick={ouvrirPhrasesTypes}
+            className="text-app-terrain-encre-secondaire self-start text-13 font-medium underline"
+          >
+            {t("terrain.rapport.phrases_types.lien")}
+          </button>
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-16 font-bold">
+          <span className="text-app-terrain-encre text-16 font-medium">
             {t("terrain.rapport.suite_libelle")}
           </span>
           <textarea
@@ -2134,8 +2243,17 @@ export function RapportTerrainAutomatique({
             onChange={(e) => onChangeSuite(e.target.value)}
             onBlur={() => void envoyerRapport()}
             placeholder={t("terrain.rapport.suite_placeholder")}
-            className="border-app-bord bg-app-surface rounded-md border px-2 py-1.5 text-16 font-bold"
+            className="bg-app-terrain-champ-fond text-app-terrain-encre rounded-md border-none px-2 py-1.5 text-16 font-medium"
           />
+          {pointsNonConformesAffiches.length === 0 ? null : (
+            <button
+              type="button"
+              onClick={reprendreLesNonConformites}
+              className="text-app-terrain-encre-secondaire self-start text-13 font-medium underline"
+            >
+              {t("terrain.rapport.reprendre_non_conformites")}
+            </button>
+          )}
         </label>
         <Indicateur
           etat={etatRapport}
@@ -2143,6 +2261,44 @@ export function RapportTerrainAutomatique({
           texteEchec={t("terrain.rapport.refus")}
         />
       </section>
+
+      {!phrasesTypesOuvertes ? null : (
+        // LA LISTE DES PHRASES TYPES, PLEIN ÉCRAN (point 2, 9L04F) — même
+        // patron que la feuille de confirmation de « Terminer » : un
+        // `<div role="dialog">` fixe, jamais une navigation.
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="terrain-phrases-types-titre"
+          className="bg-app-surface fixed inset-0 z-[60] flex flex-col gap-3 overflow-y-auto p-4"
+        >
+          <h2 id="terrain-phrases-types-titre" className="text-18 font-bold">
+            {t("terrain.rapport.phrases_types.titre")}
+          </h2>
+          <ul className="flex flex-col gap-1">
+            {phrasesTypesTerrain().map((phrase) => (
+              <li key={phrase}>
+                <button
+                  type="button"
+                  className="w-full rounded-md px-2 py-2 text-left text-16 font-medium"
+                  onClick={() => choisirPhraseType(phrase)}
+                >
+                  {phrase}
+                </button>
+              </li>
+            ))}
+          </ul>
+          <Button
+            type="button"
+            variant="secondary"
+            size="lg"
+            className="mt-auto w-full text-16"
+            onClick={() => setPhrasesTypesOuvertes(false)}
+          >
+            {t("terrain.rapport.phrases_types.fermer")}
+          </Button>
+        </div>
+      )}
 
       {!afficherPieces ? null : (
         <section className="bg-app-surface border-app-bord flex flex-col gap-3 rounded-lg border px-4 py-3.5">

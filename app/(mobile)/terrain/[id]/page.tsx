@@ -800,6 +800,7 @@ export default async function PageInterventionTerrain({
                     section: point.section,
                     libelle: point.libelle,
                     obligatoire: point.obligatoire,
+                    typeReponse: point.typeReponse,
                   })),
                   reponsesInitiales: Object.fromEntries(
                     pointsChecklist

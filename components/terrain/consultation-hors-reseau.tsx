@@ -590,6 +590,7 @@ function Fiche({
                   section: point.section,
                   libelle: point.libelle,
                   obligatoire: point.obligatoire,
+                  typeReponse: point.typeReponse,
                 })),
                 reponsesInitiales: Object.fromEntries(
                   checklist.points

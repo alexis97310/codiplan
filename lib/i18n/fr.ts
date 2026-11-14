@@ -3227,6 +3227,25 @@ export const fr = {
     "Ce qu'il reste à faire ou à surveiller…",
   "terrain.rapport.enregistre": "Rapport enregistré.",
   "terrain.rapport.refus": "Le rapport n'a pas pu être enregistré. Réessayez.",
+
+  // ── LES PHRASES TYPES (décision d'Alexis du 13/11/2026, 9L04F-TERRAIN-
+  // RAPPORT-PHRASES-TYPES) — fixes pour l'instant ; voir `phrasesTypesTerrain`
+  // (`lib/terrain/phrases-types.ts`), seul endroit qui les énumère ensemble.
+  "terrain.rapport.phrases_types.lien": "Phrases types",
+  "terrain.rapport.phrases_types.titre": "Phrases types",
+  "terrain.rapport.phrases_types.fermer": "Fermer",
+  "terrain.rapport.phrases_types.phrase_1": "Contrôle effectué, RAS",
+  "terrain.rapport.phrases_types.phrase_2": "Pièce remplacée",
+  "terrain.rapport.phrases_types.phrase_3": "Réglage effectué",
+  "terrain.rapport.phrases_types.phrase_4": "Client informé",
+
+  // ── REPRENDRE LA NON-CONFORMITÉ DE LA CHECKLIST (même ticket, point 3) —
+  // une ligne par point non conforme, au même format que l'ajout
+  // automatique de CK5 (9K21), voir `lignesReprise`
+  // (`lib/checklists/suite-preremplie.ts`).
+  "terrain.rapport.reprendre_non_conformites":
+    "Reprendre la non-conformité de la checklist",
+
   // ── REFUS NOMMÉS DES PIÈCES (9I7B2, correctif de revue) — jamais avalées
   // en silence : ni le type non autorisé, ni un champ malformé.
   "terrain.rapport.pieces_type_refuse":

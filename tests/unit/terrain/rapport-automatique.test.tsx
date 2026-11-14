@@ -141,6 +141,7 @@ type ProprietesScene = Partial<{
       readonly section: string;
       readonly libelle: string;
       readonly obligatoire: boolean;
+      readonly typeReponse: string;
     }[];
     readonly reponsesInitiales: Readonly<Record<string, unknown>>;
   } | null;

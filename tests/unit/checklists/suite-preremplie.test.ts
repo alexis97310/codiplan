@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import { t } from "@/lib/i18n/fr";
 import {
+  lignesReprise,
   ligneNonConforme,
   suiteAvecLigne,
+  suiteAvecLignes,
 } from "@/lib/checklists/suite-preremplie";
 
 /**
@@ -46,5 +48,37 @@ describe("suiteAvecLigne", () => {
     expect(
       suiteAvecLigne("Texte du technicien.", "Freins : Non conforme"),
     ).toBe("Texte du technicien.\nFreins : Non conforme");
+  });
+});
+
+describe("suiteAvecLignes", () => {
+  it("ajoute plusieurs lignes à une suite vide", () => {
+    expect(suiteAvecLignes("", ["Ligne 1", "Ligne 2"])).toBe(
+      "Ligne 1\nLigne 2",
+    );
+  });
+
+  it("n'ajoute pas en double une ligne déjà présente, parmi plusieurs", () => {
+    expect(
+      suiteAvecLignes("Avant.\nLigne 1", ["Ligne 1", "Ligne 2"]),
+    ).toBe("Avant.\nLigne 1\nLigne 2");
+  });
+});
+
+describe("lignesReprise", () => {
+  it("compose une ligne par point, au même format que ligneNonConforme", () => {
+    expect(
+      lignesReprise([
+        { id: "p1", section: "Sécurité", libelle: "Freins" },
+        { id: "p2", section: "Sécurité", libelle: "Pneus" },
+      ]),
+    ).toEqual([
+      ligneNonConforme("Sécurité", "Freins"),
+      ligneNonConforme("Sécurité", "Pneus"),
+    ]);
+  });
+
+  it("rend un tableau vide quand aucun point n'est non conforme", () => {
+    expect(lignesReprise([])).toEqual([]);
   });
 });
