@@ -6,6 +6,7 @@ import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 
 import {
+  DetailNonConformeBon,
   libelleRenduChecklist,
   resumeChecklistBon,
 } from "@/components/interventions/bon-tuiles";
@@ -2241,6 +2242,12 @@ function TuileChecklistFiche({
                           />
                         ))}
                       </div>
+                    )}
+                    {point.rendu.nature !== "conforme" ? null : (
+                      <DetailNonConformeBon
+                        rendu={point.rendu}
+                        libellePoint={point.libelle}
+                      />
                     )}
                     <p className="text-app-encre-faible text-12 font-bold">
                       {point.auteur}

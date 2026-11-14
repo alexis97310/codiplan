@@ -3,6 +3,7 @@ import { Fragment } from "react";
 import { Carte } from "@/components/ui/carte";
 import { type JourLocal } from "@/lib/calendar/fuseau";
 import { type RenduReponseChecklistBon } from "@/lib/checklists/depot";
+import { libelleSuiteNonConformite } from "@/lib/checklists/non-conformite";
 import { t } from "@/lib/i18n/fr";
 import { mot, motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 import {
@@ -286,6 +287,54 @@ export function libelleRenduChecklist(
 }
 
 /**
+ * LA SUITE, LE COMMENTAIRE ET LES PHOTOS D'UN POINT NON CONFORME (9L04I-
+ * CHECKLIST-NON-CONFORME-DETAIL) — `null` si rien des trois (FACULTATIFS) ;
+ * partagée par `TuileChecklist` (bon) et `TuileChecklistFiche` (fiche
+ * bureau, `app/(back-office)/interventions/[id]/page.tsx`), même raison que
+ * `libelleRenduChecklist`/`resumeChecklistBon` ci-dessus.
+ */
+export function DetailNonConformeBon({
+  rendu,
+  libellePoint,
+}: {
+  readonly rendu: Extract<
+    RenduReponseChecklistBon,
+    { readonly nature: "conforme" }
+  >;
+  readonly libellePoint: string;
+}) {
+  if (
+    rendu.valeur !== "non_conforme" ||
+    (rendu.suite === null &&
+      rendu.commentaire === null &&
+      rendu.documentIds.length === 0)
+  ) {
+    return null;
+  }
+  return (
+    <div className="mt-1 flex flex-col gap-1">
+      {rendu.suite === null ? null : (
+        <p>{libelleSuiteNonConformite(rendu.suite)}</p>
+      )}
+      {rendu.commentaire === null ? null : <p>{rendu.commentaire}</p>}
+      {rendu.documentIds.length === 0 ? null : (
+        <span className="flex flex-wrap gap-2">
+          {rendu.documentIds.map((documentId) => (
+            // eslint-disable-next-line @next/next/no-img-element -- octets servis par une route applicative
+            <img
+              key={documentId}
+              src={`/api/documents/${documentId}/octets`}
+              alt={libellePoint}
+              className="border-app-bord aspect-square w-16 rounded border object-cover"
+            />
+          ))}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/**
  * LA TUILE CHECKLIST (9K24-CHECKLIST-BONS, CK8) — `null` : AUCUNE tuile, pas
  * de tuile vide (voir `BonIntervention.checklist`). Impression : chaque
  * SECTION évite de se couper (`break-inside: avoid`, `app/globals.css`,
@@ -349,6 +398,12 @@ export function TuileChecklist({ bon }: { readonly bon: BonIntervention }) {
                         />
                       ))}
                     </span>
+                  )}
+                  {point.rendu.nature !== "conforme" ? null : (
+                    <DetailNonConformeBon
+                      rendu={point.rendu}
+                      libellePoint={point.libelle}
+                    />
                   )}
                 </li>
               ))}
