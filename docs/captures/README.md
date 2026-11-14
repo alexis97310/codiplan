@@ -4,8 +4,8 @@
 
 | | |
 |---|---|
-| **Commit photographié** | `ad4feee9c1eedd48c8cf6da7b88b50e4cd338688` (`ad4feee`) — lu dans `git rev-parse HEAD` au moment de la prise, jamais de mémoire |
-| **Date de la prise** | 2026-09-27 21:17 UTC — lue à l'horloge, jamais déduite |
+| **Commit photographié** | `6d207f061ad258910f70e8ced9528b033956c49d` (`6d207f0`) — lu dans `git rev-parse HEAD` au moment de la prise, jamais de mémoire |
+| **Date de la prise** | 2026-11-14 23:02 UTC — lue à l'horloge, jamais déduite |
 | **Base** | un PostgreSQL 16 local et jetable, rempli par `pnpm db:seed` — aucune donnée réelle (I9) |
 | **Compte** | l'identité de démonstration du seed |
 
@@ -70,7 +70,7 @@ BASE=http://127.0.0.1:3100 COURRIEL=… MOT_DE_PASSE=… \
 pnpm captures:etat
 ```
 
-Elle compare `ad4feee` à `HEAD` sur les chemins ci-dessous et rend l'un de **trois** verdicts. Le troisième est celui qu'on oublie : dans un clone tronqué (`--depth`), l'empreinte photographiée n'existe pas, et *« je ne sais pas » se lirait « rien n'a changé »* — le silence qui a exactement la forme du succès. Elle sort en **1** dans ce cas, et en **0** dès que la question est répondue, quelle que soit la réponse : *un écran qui change entre deux prises est le cours ordinaire du travail, pas une faute, et rougir là-dessus ferait un contrôle qu'on apprend à ne plus lire.*
+Elle compare `6d207f0` à `HEAD` sur les chemins ci-dessous et rend l'un de **trois** verdicts. Le troisième est celui qu'on oublie : dans un clone tronqué (`--depth`), l'empreinte photographiée n'existe pas, et *« je ne sais pas » se lirait « rien n'a changé »* — le silence qui a exactement la forme du succès. Elle sort en **1** dans ce cas, et en **0** dès que la question est répondue, quelle que soit la réponse : *un écran qui change entre deux prises est le cours ordinaire du travail, pas une faute, et rougir là-dessus ferait un contrôle qu'on apprend à ne plus lire.*
 
 | Chemin | | Pourquoi un changement ici change l'image |
 |---|---|---|
@@ -90,39 +90,26 @@ Chaque écran porte un **témoin** : un texte qui doit s'y trouver. Si la page n
 
 ### Refusées à cette prise
 
-- `portail--clair--1280.png : Error: session absente — Error: aucun COURRIEL_PORTAIL / MOT_DE_PASSE_PORTAIL fourni : un compte portail n'a AUCUNE ligne dans `utilisateur_societe` (D10), donc aucun compte interne ne peut atteindre cet écran.
+- `portail--clair--1280.png : Error: session absente — Error: la connexion du compte portail n'a pas abouti : http://127.0.0.1:3100/connexion?motif=auth.refus
   Cet écran demande un compte PORTAIL, distinct du compte interne qui sert au reste de la prise de vue : `COURRIEL_PORTAIL` et `MOT_DE_PASSE_PORTAIL`. Sans eux, le refus dit qu'il manque une identité, jamais que l'écran est cassé. ET AUCUN COMPTE PORTAIL NE PEUT EN RECEVOIR AUJOURD'HUI (mesuré le 10/09/2026) : le seul émetteur d'un lien de premier accès est le geste d'amorçage, qui EXIGE une habilitation dans `utilisateur_societe` — et un compte portail n'en a aucune, par D10. Refus littéral : « L'identité portail@example.test n'est pas habilitée sur la société … ». La chaîne d'ENTRÉE du portail est donc murée un cran au-dessus de ce que D92 a ouvert : D92 a rendu le rattachement LISIBLE, rien ne rend le compte CONNECTABLE. C'est un arbitrage, pas un ticket.`
-- `portail--clair--390.png : Error: session absente — Error: aucun COURRIEL_PORTAIL / MOT_DE_PASSE_PORTAIL fourni : un compte portail n'a AUCUNE ligne dans `utilisateur_societe` (D10), donc aucun compte interne ne peut atteindre cet écran.
+- `portail--clair--1024.png : Error: session absente — Error: la connexion du compte portail n'a pas abouti : http://127.0.0.1:3100/connexion?motif=auth.refus
   Cet écran demande un compte PORTAIL, distinct du compte interne qui sert au reste de la prise de vue : `COURRIEL_PORTAIL` et `MOT_DE_PASSE_PORTAIL`. Sans eux, le refus dit qu'il manque une identité, jamais que l'écran est cassé. ET AUCUN COMPTE PORTAIL NE PEUT EN RECEVOIR AUJOURD'HUI (mesuré le 10/09/2026) : le seul émetteur d'un lien de premier accès est le geste d'amorçage, qui EXIGE une habilitation dans `utilisateur_societe` — et un compte portail n'en a aucune, par D10. Refus littéral : « L'identité portail@example.test n'est pas habilitée sur la société … ». La chaîne d'ENTRÉE du portail est donc murée un cran au-dessus de ce que D92 a ouvert : D92 a rendu le rattachement LISIBLE, rien ne rend le compte CONNECTABLE. C'est un arbitrage, pas un ticket.`
-- `terrain--clair--1280.png : Error: session absente — Error: aucun COURRIEL_TERRAIN / MOT_DE_PASSE_TERRAIN fourni : `/terrain` renvoie au planning tout rôle dont l'accès au planning est COMPLET, et le compte qui sert au reste de la prise de vue en fait partie.
-  Cet écran demande un compte TECHNICIEN — `COURRIEL_TERRAIN` et `MOT_DE_PASSE_TERRAIN` —, et la raison est l'inverse de celle du portail : le compte qui sert au reste de la prise de vue a un accès COMPLET au planning, et `/terrain` le renvoie au back-office. Ce compte-là est CONNECTABLE, lui : un technicien porte une ligne dans `utilisateur_societe`, donc l'amorçage sait lui émettre un lien de premier accès.`
-- `terrain--clair--390.png : Error: session absente — Error: aucun COURRIEL_TERRAIN / MOT_DE_PASSE_TERRAIN fourni : `/terrain` renvoie au planning tout rôle dont l'accès au planning est COMPLET, et le compte qui sert au reste de la prise de vue en fait partie.
-  Cet écran demande un compte TECHNICIEN — `COURRIEL_TERRAIN` et `MOT_DE_PASSE_TERRAIN` —, et la raison est l'inverse de celle du portail : le compte qui sert au reste de la prise de vue a un accès COMPLET au planning, et `/terrain` le renvoie au back-office. Ce compte-là est CONNECTABLE, lui : un technicien porte une ligne dans `utilisateur_societe`, donc l'amorçage sait lui émettre un lien de premier accès.`
-- `terrain-intervention--clair--1280.png : Error: session absente — Error: aucun COURRIEL_TERRAIN / MOT_DE_PASSE_TERRAIN fourni : `/terrain` renvoie au planning tout rôle dont l'accès au planning est COMPLET, et le compte qui sert au reste de la prise de vue en fait partie.
-  Même compte que `terrain`, et un refus de plus lui est propre : la journée du technicien de démonstration peut être VIDE aujourd'hui — le semis pose ses interventions sur la semaine, pas sur le jour de la prise. Un jour sans intervention est un état légitime de l'écran, pas une panne.`
-- `terrain-intervention--clair--390.png : Error: session absente — Error: aucun COURRIEL_TERRAIN / MOT_DE_PASSE_TERRAIN fourni : `/terrain` renvoie au planning tout rôle dont l'accès au planning est COMPLET, et le compte qui sert au reste de la prise de vue en fait partie.
-  Même compte que `terrain`, et un refus de plus lui est propre : la journée du technicien de démonstration peut être VIDE aujourd'hui — le semis pose ses interventions sur la semaine, pas sur le jour de la prise. Un jour sans intervention est un état légitime de l'écran, pas une panne.`
-- `arrivee--clair--1280.png : Error: « arrivee » devait atteindre /arrivee et a atteint /planning : ce n'est pas l'écran attendu, et la capture est refusée.`
-- `arrivee--clair--390.png : Error: « arrivee » ne porte pas son témoin « société » : ce n'est pas l'écran attendu, et la capture est refusée. Atteint : /planning — vu : « Aller au contenu Planning des interventions EXPLOITATION Planning des interventions Semaine 40 — du 28 au 3/10/2026 Crée »`
-- `client-detail--clair--1280.png : Error: « client-detail » ne porte pas son témoin « Dernières interventions » : ce n'est pas l'écran attendu, et la capture est refusée. Atteint : /clients/0192f0a0-1000-7000-8000-000000000001 — vu : « Aller au contenu CODIPLAN SAV EXPLOITATION Tableau de bord Planning Demandes Interventions Absences CLIENTS & PARC Clien »
-  Cet écran n'existe que si le référentiel porte au moins un client. Sur une base sans semis de démonstration, le refus est LÉGITIME et dit exactement cela — il ne se confond pas avec un écran cassé.`
-- `client-detail--clair--390.png : Error: « client-detail » ne porte pas son témoin « Dernières interventions » : ce n'est pas l'écran attendu, et la capture est refusée. Atteint : /clients/0192f0a0-1000-7000-8000-000000000001 — vu : « Aller au contenu Atelier Ducos Clients › Atelier Ducos CLIENTS & PARC Atelier Ducos DEMO-001 + Site + Intervention ← Tou »
-  Cet écran n'existe que si le référentiel porte au moins un client. Sur une base sans semis de démonstration, le refus est LÉGITIME et dit exactement cela — il ne se confond pas avec un écran cassé.`
-
-### Retirées à cette prise
-
-Ces images ne correspondent plus à aucun écran photographié. **Elles sont supprimées plutôt que laissées** : une image que le README ne décrit plus se relit quand même comme une preuve de ce que l'application affiche.
-
-- `arrivee--clair--1280.png`
-- `arrivee--clair--390.png`
-- `client-detail--clair--1280.png`
-- `client-detail--clair--390.png`
-- `terrain--clair--1280.png`
-- `terrain--clair--390.png`
+- `portail--clair--390.png : Error: session absente — Error: la connexion du compte portail n'a pas abouti : http://127.0.0.1:3100/connexion?motif=auth.refus
+  Cet écran demande un compte PORTAIL, distinct du compte interne qui sert au reste de la prise de vue : `COURRIEL_PORTAIL` et `MOT_DE_PASSE_PORTAIL`. Sans eux, le refus dit qu'il manque une identité, jamais que l'écran est cassé. ET AUCUN COMPTE PORTAIL NE PEUT EN RECEVOIR AUJOURD'HUI (mesuré le 10/09/2026) : le seul émetteur d'un lien de premier accès est le geste d'amorçage, qui EXIGE une habilitation dans `utilisateur_societe` — et un compte portail n'en a aucune, par D10. Refus littéral : « L'identité portail@example.test n'est pas habilitée sur la société … ». La chaîne d'ENTRÉE du portail est donc murée un cran au-dessus de ce que D92 a ouvert : D92 a rendu le rattachement LISIBLE, rien ne rend le compte CONNECTABLE. C'est un arbitrage, pas un ticket.`
+- `portail--clair--375.png : Error: session absente — Error: la connexion du compte portail n'a pas abouti : http://127.0.0.1:3100/connexion?motif=auth.refus
+  Cet écran demande un compte PORTAIL, distinct du compte interne qui sert au reste de la prise de vue : `COURRIEL_PORTAIL` et `MOT_DE_PASSE_PORTAIL`. Sans eux, le refus dit qu'il manque une identité, jamais que l'écran est cassé. ET AUCUN COMPTE PORTAIL NE PEUT EN RECEVOIR AUJOURD'HUI (mesuré le 10/09/2026) : le seul émetteur d'un lien de premier accès est le geste d'amorçage, qui EXIGE une habilitation dans `utilisateur_societe` — et un compte portail n'en a aucune, par D10. Refus littéral : « L'identité portail@example.test n'est pas habilitée sur la société … ». La chaîne d'ENTRÉE du portail est donc murée un cran au-dessus de ce que D92 a ouvert : D92 a rendu le rattachement LISIBLE, rien ne rend le compte CONNECTABLE. C'est un arbitrage, pas un ticket.`
+- `demande-detail--clair--1280.png : Error: le registre ne porte aucun lien de demande : il n'y a rien à détailler, et la capture est refusée plutôt que prise sur une page d'erreur.
+  Cet écran n'existe que si le registre porte au moins une demande. Sur une base sans semis de démonstration, le refus est LÉGITIME et dit exactement cela — il ne se confond pas avec un écran cassé.`
+- `demande-detail--clair--1024.png : Error: le registre ne porte aucun lien de demande : il n'y a rien à détailler, et la capture est refusée plutôt que prise sur une page d'erreur.
+  Cet écran n'existe que si le registre porte au moins une demande. Sur une base sans semis de démonstration, le refus est LÉGITIME et dit exactement cela — il ne se confond pas avec un écran cassé.`
+- `demande-detail--clair--390.png : Error: le registre ne porte aucun lien de demande : il n'y a rien à détailler, et la capture est refusée plutôt que prise sur une page d'erreur.
+  Cet écran n'existe que si le registre porte au moins une demande. Sur une base sans semis de démonstration, le refus est LÉGITIME et dit exactement cela — il ne se confond pas avec un écran cassé.`
+- `demande-detail--clair--375.png : Error: le registre ne porte aucun lien de demande : il n'y a rien à détailler, et la capture est refusée plutôt que prise sur une page d'erreur.
+  Cet écran n'existe que si le registre porte au moins une demande. Sur une base sans semis de démonstration, le refus est LÉGITIME et dit exactement cela — il ne se confond pas avec un écran cassé.`
 
 ## Les images
 
-Chaque écran est photographié à **1280 px** (poste de travail) et **390 px** (téléphone). Le nom se lit `écran--thème--largeur.png`.
+Chaque écran est photographié à **1280 px** (poste de travail), **1024 px** (poste de travail), **390 px** (téléphone), **375 px** (téléphone). Le nom se lit `écran--thème--largeur.png`.
 **IL N'Y A PLUS QU'UNE IMAGE PAR ÉCRAN ET PAR LARGEUR, et c'est un RETRAIT, pas une omission.** La prise de vue en faisait deux — « clair » et « sombre » —, et *mesuré le 14/09/2026 par `cmp` sur les 100 images commises : les 50 paires étaient IDENTIQUES, octet pour octet.* `lib/theme/apparence.ts` dit qu'il n'y a **PAS d'apparence sombre** : le viewer basculait un thème qui n'existe pas, et le résultat était rangé sous deux noms. **Une seconde image qui ne peut pas différer de la première a la forme d'une preuve et n'en porte aucune** — le §9 du 06/09, appliqué à un fichier plutôt qu'à une ligne de rapport.
 *Le segment `clair` reste dans le nom* : la consigne est retirée **jusqu'à nouvel ordre**, et renommer 50 images couperait leur historique pour le rétablir le jour venu. **Réouverture : le jour où `lib/theme/apparence.ts` déclare une apparence sombre** — `THEMES` reçoit sa seconde entrée, et les paires divergent d'elles-mêmes.
 
@@ -135,56 +122,989 @@ Chaque écran est photographié à **1280 px** (poste de travail) et **390 px** 
 | Fichier | Ce qu'on y voit |
 |---|---|
 | `enrolement--clair--1280.png` | L'activation du second facteur, où atterrit un rôle sensible avant tout le reste. — thème clair, poste de travail. |
+| `enrolement--clair--1024.png` | L'activation du second facteur, où atterrit un rôle sensible avant tout le reste. — thème clair, poste de travail. |
 | `enrolement--clair--390.png` | L'activation du second facteur, où atterrit un rôle sensible avant tout le reste. — thème clair, téléphone. |
+| `enrolement--clair--375.png` | L'activation du second facteur, où atterrit un rôle sensible avant tout le reste. — thème clair, téléphone. |
 | `arrivee-sans-societe--clair--1280.png` | L'arrivée d'un compte habilité sur PLUSIEURS sociétés, avant d'en avoir choisi une : le sélecteur, et aucune société active. — thème clair, poste de travail. |
+| `arrivee-sans-societe--clair--1024.png` | L'arrivée d'un compte habilité sur PLUSIEURS sociétés, avant d'en avoir choisi une : le sélecteur, et aucune société active. — thème clair, poste de travail. |
 | `arrivee-sans-societe--clair--390.png` | L'arrivée d'un compte habilité sur PLUSIEURS sociétés, avant d'en avoir choisi une : le sélecteur, et aucune société active. — thème clair, téléphone. |
+| `arrivee-sans-societe--clair--375.png` | L'arrivée d'un compte habilité sur PLUSIEURS sociétés, avant d'en avoir choisi une : le sélecteur, et aucune société active. — thème clair, téléphone. |
+| `terrain--clair--1280.png` | La journée du technicien — SES interventions, à lui, aujourd'hui. Aucun montant, aucune grille, aucun collègue. — thème clair, poste de travail. |
+| `terrain--clair--1024.png` | La journée du technicien — SES interventions, à lui, aujourd'hui. Aucun montant, aucune grille, aucun collègue. — thème clair, poste de travail. |
+| `terrain--clair--390.png` | La journée du technicien — SES interventions, à lui, aujourd'hui. Aucun montant, aucune grille, aucun collègue. — thème clair, téléphone. |
+| `terrain--clair--375.png` | La journée du technicien — SES interventions, à lui, aujourd'hui. Aucun montant, aucune grille, aucun collègue. — thème clair, téléphone. |
+| `terrain-intervention--clair--1280.png` | Une intervention vue du terrain, et son compteur — le temps mesuré, et un seul bouton : démarrer, ou mettre en pause. — thème clair, poste de travail. |
+| `terrain-intervention--clair--1024.png` | Une intervention vue du terrain, et son compteur — le temps mesuré, et un seul bouton : démarrer, ou mettre en pause. — thème clair, poste de travail. |
+| `terrain-intervention--clair--390.png` | Une intervention vue du terrain, et son compteur — le temps mesuré, et un seul bouton : démarrer, ou mettre en pause. — thème clair, téléphone. |
+| `terrain-intervention--clair--375.png` | Une intervention vue du terrain, et son compteur — le temps mesuré, et un seul bouton : démarrer, ou mettre en pause. — thème clair, téléphone. |
 | `connexion-code--clair--1280.png` | Le défi du second facteur, entre le mot de passe et la session. — thème clair, poste de travail. |
+| `connexion-code--clair--1024.png` | Le défi du second facteur, entre le mot de passe et la session. — thème clair, poste de travail. |
 | `connexion-code--clair--390.png` | Le défi du second facteur, entre le mot de passe et la session. — thème clair, téléphone. |
+| `connexion-code--clair--375.png` | Le défi du second facteur, entre le mot de passe et la session. — thème clair, téléphone. |
 | `accueil--clair--1280.png` | La page d'accueil. — thème clair, poste de travail. |
+| `accueil--clair--1024.png` | La page d'accueil. — thème clair, poste de travail. |
 | `accueil--clair--390.png` | La page d'accueil. — thème clair, téléphone. |
+| `accueil--clair--375.png` | La page d'accueil. — thème clair, téléphone. |
 | `connexion--clair--1280.png` | La page de connexion. — thème clair, poste de travail. |
+| `connexion--clair--1024.png` | La page de connexion. — thème clair, poste de travail. |
 | `connexion--clair--390.png` | La page de connexion. — thème clair, téléphone. |
+| `connexion--clair--375.png` | La page de connexion. — thème clair, téléphone. |
 | `premier-acces--clair--1280.png` | Le choix du premier mot de passe — **la seule porte d'une base neuve**. Le jeton de l'URL est factice : l'écran rend son formulaire sans le valider. — thème clair, poste de travail. |
+| `premier-acces--clair--1024.png` | Le choix du premier mot de passe — **la seule porte d'une base neuve**. Le jeton de l'URL est factice : l'écran rend son formulaire sans le valider. — thème clair, poste de travail. |
 | `premier-acces--clair--390.png` | Le choix du premier mot de passe — **la seule porte d'une base neuve**. Le jeton de l'URL est factice : l'écran rend son formulaire sans le valider. — thème clair, téléphone. |
+| `premier-acces--clair--375.png` | Le choix du premier mot de passe — **la seule porte d'une base neuve**. Le jeton de l'URL est factice : l'écran rend son formulaire sans le valider. — thème clair, téléphone. |
 | `sante--clair--1280.png` | L'état de l'installation, **sans compte**. — thème clair, poste de travail. |
+| `sante--clair--1024.png` | L'état de l'installation, **sans compte**. — thème clair, poste de travail. |
 | `sante--clair--390.png` | L'état de l'installation, **sans compte**. — thème clair, téléphone. |
+| `sante--clair--375.png` | L'état de l'installation, **sans compte**. — thème clair, téléphone. |
+| `arrivee--clair--1280.png` | La page d'arrivée — qui vous êtes, pour quelle société. — thème clair, poste de travail. |
+| `arrivee--clair--1024.png` | La page d'arrivée — qui vous êtes, pour quelle société. — thème clair, poste de travail. |
+| `arrivee--clair--390.png` | La page d'arrivée — qui vous êtes, pour quelle société. — thème clair, téléphone. |
+| `arrivee--clair--375.png` | La page d'arrivée — qui vous êtes, pour quelle société. — thème clair, téléphone. |
 | `planning--clair--1280.png` | Le planning : la charge par technicien, la file d'attente et les interventions posées. — thème clair, poste de travail. |
+| `planning--clair--1024.png` | Le planning : la charge par technicien, la file d'attente et les interventions posées. — thème clair, poste de travail. |
 | `planning--clair--390.png` | Le planning : la charge par technicien, la file d'attente et les interventions posées. — thème clair, téléphone. |
+| `planning--clair--375.png` | Le planning : la charge par technicien, la file d'attente et les interventions posées. — thème clair, téléphone. |
 | `planning-jour--clair--1280.png` | La vue JOUR du planning : une colonne par technicien ACTIF, occupé ou non — c'est l'écran qui montre les trous. — thème clair, poste de travail. |
+| `planning-jour--clair--1024.png` | La vue JOUR du planning : une colonne par technicien ACTIF, occupé ou non — c'est l'écran qui montre les trous. — thème clair, poste de travail. |
 | `planning-jour--clair--390.png` | La vue JOUR du planning : une colonne par technicien ACTIF, occupé ou non — c'est l'écran qui montre les trous. — thème clair, téléphone. |
+| `planning-jour--clair--375.png` | La vue JOUR du planning : une colonne par technicien ACTIF, occupé ou non — c'est l'écran qui montre les trous. — thème clair, téléphone. |
 | `tableau-de-bord--clair--1280.png` | Le tableau de bord : les décisions et alertes du jour, sans remplacer le planning. — thème clair, poste de travail. |
+| `tableau-de-bord--clair--1024.png` | Le tableau de bord : les décisions et alertes du jour, sans remplacer le planning. — thème clair, poste de travail. |
 | `tableau-de-bord--clair--390.png` | Le tableau de bord : les décisions et alertes du jour, sans remplacer le planning. — thème clair, téléphone. |
+| `tableau-de-bord--clair--375.png` | Le tableau de bord : les décisions et alertes du jour, sans remplacer le planning. — thème clair, téléphone. |
 | `interventions--clair--1280.png` | Le registre des interventions — un écran d'exploitation resté hors de la prise de vue (CG9, constat C-A3). — thème clair, poste de travail. |
+| `interventions--clair--1024.png` | Le registre des interventions — un écran d'exploitation resté hors de la prise de vue (CG9, constat C-A3). — thème clair, poste de travail. |
 | `interventions--clair--390.png` | Le registre des interventions — un écran d'exploitation resté hors de la prise de vue (CG9, constat C-A3). — thème clair, téléphone. |
+| `interventions--clair--375.png` | Le registre des interventions — un écran d'exploitation resté hors de la prise de vue (CG9, constat C-A3). — thème clair, téléphone. |
 | `imports-rapport--clair--1280.png` | Le rapport de contrôle d'un import : ce qui sera créé, ce qui sera modifié, ce qui est rejeté et pourquoi — AVANT toute écriture (I6). — thème clair, poste de travail. |
+| `imports-rapport--clair--1024.png` | Le rapport de contrôle d'un import : ce qui sera créé, ce qui sera modifié, ce qui est rejeté et pourquoi — AVANT toute écriture (I6). — thème clair, poste de travail. |
 | `imports-rapport--clair--390.png` | Le rapport de contrôle d'un import : ce qui sera créé, ce qui sera modifié, ce qui est rejeté et pourquoi — AVANT toute écriture (I6). — thème clair, téléphone. |
+| `imports-rapport--clair--375.png` | Le rapport de contrôle d'un import : ce qui sera créé, ce qui sera modifié, ce qui est rejeté et pourquoi — AVANT toute écriture (I6). — thème clair, téléphone. |
 | `imports--clair--1280.png` | Les imports Excel : le dépôt d'un classeur, ce qu'on sait appliquer et ce qu'on ne sait que contrôler, et le journal des chargements. — thème clair, poste de travail. |
+| `imports--clair--1024.png` | Les imports Excel : le dépôt d'un classeur, ce qu'on sait appliquer et ce qu'on ne sait que contrôler, et le journal des chargements. — thème clair, poste de travail. |
 | `imports--clair--390.png` | Les imports Excel : le dépôt d'un classeur, ce qu'on sait appliquer et ce qu'on ne sait que contrôler, et le journal des chargements. — thème clair, téléphone. |
+| `imports--clair--375.png` | Les imports Excel : le dépôt d'un classeur, ce qu'on sait appliquer et ce qu'on ne sait que contrôler, et le journal des chargements. — thème clair, téléphone. |
 | `intervention-creation--clair--1280.png` | La création d'une intervention depuis le planning. — thème clair, poste de travail. |
+| `intervention-creation--clair--1024.png` | La création d'une intervention depuis le planning. — thème clair, poste de travail. |
 | `intervention-creation--clair--390.png` | La création d'une intervention depuis le planning. — thème clair, téléphone. |
+| `intervention-creation--clair--375.png` | La création d'une intervention depuis le planning. — thème clair, téléphone. |
 | `intervention-detail--clair--1280.png` | Le détail d'une intervention, et les actions que son statut autorise. — thème clair, poste de travail. |
+| `intervention-detail--clair--1024.png` | Le détail d'une intervention, et les actions que son statut autorise. — thème clair, poste de travail. |
 | `intervention-detail--clair--390.png` | Le détail d'une intervention, et les actions que son statut autorise. — thème clair, téléphone. |
+| `intervention-detail--clair--375.png` | Le détail d'une intervention, et les actions que son statut autorise. — thème clair, téléphone. |
 | `parc--clair--1280.png` | Le parc machines — le résumé compté SUR LES LIGNES RENDUES, jamais par une seconde requête. — thème clair, poste de travail. |
+| `parc--clair--1024.png` | Le parc machines — le résumé compté SUR LES LIGNES RENDUES, jamais par une seconde requête. — thème clair, poste de travail. |
 | `parc--clair--390.png` | Le parc machines — le résumé compté SUR LES LIGNES RENDUES, jamais par une seconde requête. — thème clair, téléphone. |
+| `parc--clair--375.png` | Le parc machines — le résumé compté SUR LES LIGNES RENDUES, jamais par une seconde requête. — thème clair, téléphone. |
 | `clients--clair--1280.png` | Le référentiel client — UN SEUL compteur, celui qui nomme un geste (RG-IMP-05, D29). — thème clair, poste de travail. |
+| `clients--clair--1024.png` | Le référentiel client — UN SEUL compteur, celui qui nomme un geste (RG-IMP-05, D29). — thème clair, poste de travail. |
 | `clients--clair--390.png` | Le référentiel client — UN SEUL compteur, celui qui nomme un geste (RG-IMP-05, D29). — thème clair, téléphone. |
+| `clients--clair--375.png` | Le référentiel client — UN SEUL compteur, celui qui nomme un geste (RG-IMP-05, D29). — thème clair, téléphone. |
 | `client-creation--clair--1280.png` | La création d'une fiche — la société vient de la session, jamais d'une saisie. — thème clair, poste de travail. |
+| `client-creation--clair--1024.png` | La création d'une fiche — la société vient de la session, jamais d'une saisie. — thème clair, poste de travail. |
 | `client-creation--clair--390.png` | La création d'une fiche — la société vient de la session, jamais d'une saisie. — thème clair, téléphone. |
-| `absences--clair--1280.png` | Les blocages d'agenda — une personne, une période, et RIEN d'autre (R3-14). Aucun créneau n'est proposé (D106). — thème clair, poste de travail. |
-| `absences--clair--390.png` | Les blocages d'agenda — une personne, une période, et RIEN d'autre (R3-14). Aucun créneau n'est proposé (D106). — thème clair, téléphone. |
+| `client-creation--clair--375.png` | La création d'une fiche — la société vient de la session, jamais d'une saisie. — thème clair, téléphone. |
+| `client-detail--clair--1280.png` | La fiche d'un client — ses lieux, ses dernières interventions, et le bloc Contacts qui NOMME son absence (D88). — thème clair, poste de travail. |
+| `client-detail--clair--1024.png` | La fiche d'un client — ses lieux, ses dernières interventions, et le bloc Contacts qui NOMME son absence (D88). — thème clair, poste de travail. |
+| `client-detail--clair--390.png` | La fiche d'un client — ses lieux, ses dernières interventions, et le bloc Contacts qui NOMME son absence (D88). — thème clair, téléphone. |
+| `client-detail--clair--375.png` | La fiche d'un client — ses lieux, ses dernières interventions, et le bloc Contacts qui NOMME son absence (D88). — thème clair, téléphone. |
+| `absences--clair--1280.png` | Les absences — une personne, une période, et RIEN d'autre (R3-14). Aucun créneau n'est proposé (D106). — thème clair, poste de travail. |
+| `absences--clair--1024.png` | Les absences — une personne, une période, et RIEN d'autre (R3-14). Aucun créneau n'est proposé (D106). — thème clair, poste de travail. |
+| `absences--clair--390.png` | Les absences — une personne, une période, et RIEN d'autre (R3-14). Aucun créneau n'est proposé (D106). — thème clair, téléphone. |
+| `absences--clair--375.png` | Les absences — une personne, une période, et RIEN d'autre (R3-14). Aucun créneau n'est proposé (D106). — thème clair, téléphone. |
 | `sites--clair--1280.png` | Les lieux d'intervention, avec leur RATTACHEMENT à côté du temps de trajet (D56). — thème clair, poste de travail. |
+| `sites--clair--1024.png` | Les lieux d'intervention, avec leur RATTACHEMENT à côté du temps de trajet (D56). — thème clair, poste de travail. |
 | `sites--clair--390.png` | Les lieux d'intervention, avec leur RATTACHEMENT à côté du temps de trajet (D56). — thème clair, téléphone. |
+| `sites--clair--375.png` | Les lieux d'intervention, avec leur RATTACHEMENT à côté du temps de trajet (D56). — thème clair, téléphone. |
 | `parametres-trajets--clair--1280.png` | Les temps de trajet par zone — des DÉFAUTS qui se règlent, et la cascade rend son ORIGINE (D107). — thème clair, poste de travail. |
+| `parametres-trajets--clair--1024.png` | Les temps de trajet par zone — des DÉFAUTS qui se règlent, et la cascade rend son ORIGINE (D107). — thème clair, poste de travail. |
 | `parametres-trajets--clair--390.png` | Les temps de trajet par zone — des DÉFAUTS qui se règlent, et la cascade rend son ORIGINE (D107). — thème clair, téléphone. |
+| `parametres-trajets--clair--375.png` | Les temps de trajet par zone — des DÉFAUTS qui se règlent, et la cascade rend son ORIGINE (D107). — thème clair, téléphone. |
 | `parametres--clair--1280.png` | La porte des écrans de paramétrage (R3-08) — elle ne lit aucune base et ne compte rien. — thème clair, poste de travail. |
+| `parametres--clair--1024.png` | La porte des écrans de paramétrage (R3-08) — elle ne lit aucune base et ne compte rien. — thème clair, poste de travail. |
 | `parametres--clair--390.png` | La porte des écrans de paramétrage (R3-08) — elle ne lit aucune base et ne compte rien. — thème clair, téléphone. |
+| `parametres--clair--375.png` | La porte des écrans de paramétrage (R3-08) — elle ne lit aucune base et ne compte rien. — thème clair, téléphone. |
 | `vgp--clair--1280.png` | Le registre des vérifications périodiques. CODIPLAN n'affirme JAMAIS la conformité : il dit ce qu'on lui a dit (D88). — thème clair, poste de travail. |
+| `vgp--clair--1024.png` | Le registre des vérifications périodiques. CODIPLAN n'affirme JAMAIS la conformité : il dit ce qu'on lui a dit (D88). — thème clair, poste de travail. |
 | `vgp--clair--390.png` | Le registre des vérifications périodiques. CODIPLAN n'affirme JAMAIS la conformité : il dit ce qu'on lui a dit (D88). — thème clair, téléphone. |
+| `vgp--clair--375.png` | Le registre des vérifications périodiques. CODIPLAN n'affirme JAMAIS la conformité : il dit ce qu'on lui a dit (D88). — thème clair, téléphone. |
 | `vgp-a-determiner--clair--1280.png` | Les familles dont l'assujettissement n'a pas été tranché — une case décochée serait indiscernable d'une famille jamais examinée. — thème clair, poste de travail. |
+| `vgp-a-determiner--clair--1024.png` | Les familles dont l'assujettissement n'a pas été tranché — une case décochée serait indiscernable d'une famille jamais examinée. — thème clair, poste de travail. |
 | `vgp-a-determiner--clair--390.png` | Les familles dont l'assujettissement n'a pas été tranché — une case décochée serait indiscernable d'une famille jamais examinée. — thème clair, téléphone. |
+| `vgp-a-determiner--clair--375.png` | Les familles dont l'assujettissement n'a pas été tranché — une case décochée serait indiscernable d'une famille jamais examinée. — thème clair, téléphone. |
 | `parametres-agences--clair--1280.png` | Les horaires d'ouverture, réglés **par agence** — I7, jamais un calendrier global. — thème clair, poste de travail. |
+| `parametres-agences--clair--1024.png` | Les horaires d'ouverture, réglés **par agence** — I7, jamais un calendrier global. — thème clair, poste de travail. |
 | `parametres-agences--clair--390.png` | Les horaires d'ouverture, réglés **par agence** — I7, jamais un calendrier global. — thème clair, téléphone. |
+| `parametres-agences--clair--375.png` | Les horaires d'ouverture, réglés **par agence** — I7, jamais un calendrier global. — thème clair, téléphone. |
 | `parametres-forfaits--clair--1280.png` | Le catalogue des forfaits et leur RANG (D86). Il naît vide : les valeurs sont à l'exploitation. — thème clair, poste de travail. |
+| `parametres-forfaits--clair--1024.png` | Le catalogue des forfaits et leur RANG (D86). Il naît vide : les valeurs sont à l'exploitation. — thème clair, poste de travail. |
 | `parametres-forfaits--clair--390.png` | Le catalogue des forfaits et leur RANG (D86). Il naît vide : les valeurs sont à l'exploitation. — thème clair, téléphone. |
+| `parametres-forfaits--clair--375.png` | Le catalogue des forfaits et leur RANG (D86). Il naît vide : les valeurs sont à l'exploitation. — thème clair, téléphone. |
 | `parametres-prestations--clair--1280.png` | Le catalogue des prestations (R3-15) — une durée, jamais un taux (D109, D113). Il naît vide : les valeurs sont à l'exploitation. — thème clair, poste de travail. |
+| `parametres-prestations--clair--1024.png` | Le catalogue des prestations (R3-15) — une durée, jamais un taux (D109, D113). Il naît vide : les valeurs sont à l'exploitation. — thème clair, poste de travail. |
 | `parametres-prestations--clair--390.png` | Le catalogue des prestations (R3-15) — une durée, jamais un taux (D109, D113). Il naît vide : les valeurs sont à l'exploitation. — thème clair, téléphone. |
+| `parametres-prestations--clair--375.png` | Le catalogue des prestations (R3-15) — une durée, jamais un taux (D109, D113). Il naît vide : les valeurs sont à l'exploitation. — thème clair, téléphone. |
+| `demandes--clair--1280.png` | Le registre des demandes — de la plus ancienne à la plus récente, avant qualification. — thème clair, poste de travail. |
+| `demandes--clair--1024.png` | Le registre des demandes — de la plus ancienne à la plus récente, avant qualification. — thème clair, poste de travail. |
+| `demandes--clair--390.png` | Le registre des demandes — de la plus ancienne à la plus récente, avant qualification. — thème clair, téléphone. |
+| `demandes--clair--375.png` | Le registre des demandes — de la plus ancienne à la plus récente, avant qualification. — thème clair, téléphone. |
+| `intervention-bon--clair--1280.png` | Le bon d'intervention imprimable. — thème clair, poste de travail. |
+| `intervention-bon--clair--1024.png` | Le bon d'intervention imprimable. — thème clair, poste de travail. |
+| `intervention-bon--clair--390.png` | Le bon d'intervention imprimable. — thème clair, téléphone. |
+| `intervention-bon--clair--375.png` | Le bon d'intervention imprimable. — thème clair, téléphone. |
+| `parc-detail--clair--1280.png` | La fiche d'une machine — son identité, son historique, ses documents. — thème clair, poste de travail. |
+| `parc-detail--clair--1024.png` | La fiche d'une machine — son identité, son historique, ses documents. — thème clair, poste de travail. |
+| `parc-detail--clair--390.png` | La fiche d'une machine — son identité, son historique, ses documents. — thème clair, téléphone. |
+| `parc-detail--clair--375.png` | La fiche d'une machine — son identité, son historique, ses documents. — thème clair, téléphone. |
+| `site-detail--clair--1280.png` | La fiche d'un site — ses interlocuteurs et son équipement. — thème clair, poste de travail. |
+| `site-detail--clair--1024.png` | La fiche d'un site — ses interlocuteurs et son équipement. — thème clair, poste de travail. |
+| `site-detail--clair--390.png` | La fiche d'un site — ses interlocuteurs et son équipement. — thème clair, téléphone. |
+| `site-detail--clair--375.png` | La fiche d'un site — ses interlocuteurs et son équipement. — thème clair, téléphone. |
+| `site-creation--clair--1280.png` | La création d'un lieu d'intervention. — thème clair, poste de travail. |
+| `site-creation--clair--1024.png` | La création d'un lieu d'intervention. — thème clair, poste de travail. |
+| `site-creation--clair--390.png` | La création d'un lieu d'intervention. — thème clair, téléphone. |
+| `site-creation--clair--375.png` | La création d'un lieu d'intervention. — thème clair, téléphone. |
+| `parametres-equipe--clair--1280.png` | Les techniciens de la société active : créer, rattacher, désactiver. — thème clair, poste de travail. |
+| `parametres-equipe--clair--1024.png` | Les techniciens de la société active : créer, rattacher, désactiver. — thème clair, poste de travail. |
+| `parametres-equipe--clair--390.png` | Les techniciens de la société active : créer, rattacher, désactiver. — thème clair, téléphone. |
+| `parametres-equipe--clair--375.png` | Les techniciens de la société active : créer, rattacher, désactiver. — thème clair, téléphone. |
+| `parametres-materiel--clair--1280.png` | Le référentiel matériel — familles et modèles. — thème clair, poste de travail. |
+| `parametres-materiel--clair--1024.png` | Le référentiel matériel — familles et modèles. — thème clair, poste de travail. |
+| `parametres-materiel--clair--390.png` | Le référentiel matériel — familles et modèles. — thème clair, téléphone. |
+| `parametres-materiel--clair--375.png` | Le référentiel matériel — familles et modèles. — thème clair, téléphone. |
+| `parametres-habilitations--clair--1280.png` | Le référentiel des qualifications requises pour intervenir. — thème clair, poste de travail. |
+| `parametres-habilitations--clair--1024.png` | Le référentiel des qualifications requises pour intervenir. — thème clair, poste de travail. |
+| `parametres-habilitations--clair--390.png` | Le référentiel des qualifications requises pour intervenir. — thème clair, téléphone. |
+| `parametres-habilitations--clair--375.png` | Le référentiel des qualifications requises pour intervenir. — thème clair, téléphone. |
+| `parametres-societe--clair--1280.png` | La charte de la société active. — thème clair, poste de travail. |
+| `parametres-societe--clair--1024.png` | La charte de la société active. — thème clair, poste de travail. |
+| `parametres-societe--clair--390.png` | La charte de la société active. — thème clair, téléphone. |
+| `parametres-societe--clair--375.png` | La charte de la société active. — thème clair, téléphone. |
+| `agence-detail--clair--1280.png` | Les plages d'ouverture d'un calendrier d'agence. — thème clair, poste de travail. |
+| `agence-detail--clair--1024.png` | Les plages d'ouverture d'un calendrier d'agence. — thème clair, poste de travail. |
+| `agence-detail--clair--390.png` | Les plages d'ouverture d'un calendrier d'agence. — thème clair, téléphone. |
+| `agence-detail--clair--375.png` | Les plages d'ouverture d'un calendrier d'agence. — thème clair, téléphone. |
+| `agence-creation--clair--1280.png` | La création d'un établissement. — thème clair, poste de travail. |
+| `agence-creation--clair--1024.png` | La création d'un établissement. — thème clair, poste de travail. |
+| `agence-creation--clair--390.png` | La création d'un établissement. — thème clair, téléphone. |
+| `agence-creation--clair--375.png` | La création d'un établissement. — thème clair, téléphone. |
+| `forfait-detail--clair--1280.png` | La fiche d'un forfait du catalogue. — thème clair, poste de travail. |
+| `forfait-detail--clair--1024.png` | La fiche d'un forfait du catalogue. — thème clair, poste de travail. |
+| `forfait-detail--clair--390.png` | La fiche d'un forfait du catalogue. — thème clair, téléphone. |
+| `forfait-detail--clair--375.png` | La fiche d'un forfait du catalogue. — thème clair, téléphone. |
+
+## Mesure
+
+**Une observation, pas une porte** : la mesure ne fait pas échouer le script, comme un refus de capture (voir plus haut). Seuils lus, jamais inventés : texte < 12 px (D138) ; cible < 32×32 px au bureau hors lien dans le texte (spec ergonomie-graphisme-usage-2026-09-28.md §10 :963) ; cible < 44×44 px au terrain (spec §10 :964, CDC §13.4) ; défilement horizontal de la page (spec §10 :965, PR-10) ; erreur de console (spec §10 :966) ; taille hors 12/13/14/15/16/18/24/28 px (spec §3.2, D138, D143) ; texte de 12-13 px et graisse < 700 (décision du 30/09/2026, point 11) ; texte du terrain < 16 px (décision du 30/09/2026, point 8).
+
+| Écran | Largeur | Textes < 12 px | Cibles sous le seuil | Débordement | Erreurs | Hors échelle | Petits textes légers | Terrain < 16 px |
+|---|---|---|---|---|---|---|---|---|
+| `enrolement` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `enrolement` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `enrolement` | 390 | 0 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `enrolement` | 375 | 0 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `arrivee-sans-societe` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `arrivee-sans-societe` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `arrivee-sans-societe` | 390 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `arrivee-sans-societe` | 375 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `terrain` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 13 |
+| `terrain` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 13 |
+| `terrain` | 390 | 0 | 1 | 0 | 0 | 0 | 0 | 13 |
+| `terrain` | 375 | 0 | 1 | 0 | 0 | 0 | 0 | 13 |
+| `terrain-intervention` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 17 |
+| `terrain-intervention` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 17 |
+| `terrain-intervention` | 390 | 0 | 3 | 0 | 0 | 0 | 0 | 17 |
+| `terrain-intervention` | 375 | 0 | 3 | 0 | 0 | 0 | 0 | 17 |
+| `connexion-code` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `connexion-code` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `connexion-code` | 390 | 0 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `connexion-code` | 375 | 0 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `accueil` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `accueil` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `accueil` | 390 | 0 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `accueil` | 375 | 0 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `connexion` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `connexion` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `connexion` | 390 | 0 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `connexion` | 375 | 0 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `premier-acces` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `premier-acces` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `premier-acces` | 390 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `premier-acces` | 375 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `sante` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `sante` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `sante` | 390 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `sante` | 375 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `arrivee` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `arrivee` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `arrivee` | 390 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `arrivee` | 375 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `planning` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `planning` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `planning` | 390 | 0 | 9 | 0 | 0 | 0 | 0 | 0 |
+| `planning` | 375 | 0 | 9 | 0 | 0 | 0 | 0 | 0 |
+| `planning-jour` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `planning-jour` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `planning-jour` | 390 | 0 | 9 | 0 | 0 | 0 | 0 | 0 |
+| `planning-jour` | 375 | 0 | 9 | 0 | 0 | 0 | 0 | 0 |
+| `tableau-de-bord` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `tableau-de-bord` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `tableau-de-bord` | 390 | 0 | 13 | 0 | 0 | 0 | 0 | 0 |
+| `tableau-de-bord` | 375 | 0 | 13 | 0 | 0 | 0 | 0 | 0 |
+| `interventions` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `interventions` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `interventions` | 390 | 0 | 7 | 0 | 0 | 0 | 0 | 0 |
+| `interventions` | 375 | 0 | 7 | 0 | 0 | 0 | 0 | 0 |
+| `imports-rapport` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `imports-rapport` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `imports-rapport` | 390 | 0 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `imports-rapport` | 375 | 0 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `imports` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `imports` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `imports` | 390 | 0 | 2 | 0 | 0 | 0 | 0 | 0 |
+| `imports` | 375 | 0 | 2 | 0 | 0 | 0 | 0 | 0 |
+| `intervention-creation` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `intervention-creation` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `intervention-creation` | 390 | 0 | 6 | 0 | 0 | 0 | 0 | 0 |
+| `intervention-creation` | 375 | 0 | 6 | 0 | 0 | 0 | 0 | 0 |
+| `intervention-detail` | 1280 | 0 | 0 | 0 | 0 | 0 | 18 | 0 |
+| `intervention-detail` | 1024 | 0 | 0 | 0 | 0 | 0 | 18 | 0 |
+| `intervention-detail` | 390 | 0 | 2 | 0 | 0 | 0 | 18 | 0 |
+| `intervention-detail` | 375 | 0 | 2 | 0 | 0 | 0 | 18 | 0 |
+| `parc` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `parc` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `parc` | 390 | 0 | 2 | 0 | 0 | 0 | 0 | 0 |
+| `parc` | 375 | 0 | 2 | 0 | 0 | 0 | 0 | 0 |
+| `clients` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `clients` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `clients` | 390 | 0 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `clients` | 375 | 0 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `client-creation` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `client-creation` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `client-creation` | 390 | 0 | 3 | 0 | 0 | 0 | 0 | 0 |
+| `client-creation` | 375 | 0 | 3 | 0 | 0 | 0 | 0 | 0 |
+| `client-detail` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `client-detail` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `client-detail` | 390 | 0 | 7 | 0 | 0 | 0 | 0 | 0 |
+| `client-detail` | 375 | 0 | 7 | 0 | 0 | 0 | 0 | 0 |
+| `absences` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `absences` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `absences` | 390 | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
+| `absences` | 375 | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
+| `sites` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `sites` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `sites` | 390 | 0 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `sites` | 375 | 0 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `parametres-trajets` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `parametres-trajets` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `parametres-trajets` | 390 | 0 | 6 | 0 | 0 | 0 | 0 | 0 |
+| `parametres-trajets` | 375 | 0 | 6 | 0 | 0 | 0 | 0 | 0 |
+| `parametres` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `parametres` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `parametres` | 390 | 0 | 6 | 0 | 0 | 0 | 0 | 0 |
+| `parametres` | 375 | 0 | 6 | 0 | 0 | 0 | 0 | 0 |
+| `vgp` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `vgp` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `vgp` | 390 | 0 | 22 | 0 | 0 | 0 | 0 | 0 |
+| `vgp` | 375 | 0 | 22 | 0 | 0 | 0 | 0 | 0 |
+| `vgp-a-determiner` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `vgp-a-determiner` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `vgp-a-determiner` | 390 | 0 | 3 | 0 | 0 | 0 | 0 | 0 |
+| `vgp-a-determiner` | 375 | 0 | 3 | 0 | 0 | 0 | 0 | 0 |
+| `parametres-agences` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `parametres-agences` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `parametres-agences` | 390 | 0 | 7 | 0 | 0 | 0 | 0 | 0 |
+| `parametres-agences` | 375 | 0 | 7 | 0 | 0 | 0 | 0 | 0 |
+| `parametres-forfaits` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `parametres-forfaits` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `parametres-forfaits` | 390 | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
+| `parametres-forfaits` | 375 | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
+| `parametres-prestations` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `parametres-prestations` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `parametres-prestations` | 390 | 0 | 15 | 0 | 0 | 0 | 0 | 0 |
+| `parametres-prestations` | 375 | 0 | 15 | 0 | 0 | 0 | 0 | 0 |
+| `demandes` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `demandes` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `demandes` | 390 | 0 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `demandes` | 375 | 0 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `intervention-bon` | 1280 | 0 | 0 | 0 | 0 | 0 | 10 | 0 |
+| `intervention-bon` | 1024 | 0 | 0 | 0 | 0 | 0 | 10 | 0 |
+| `intervention-bon` | 390 | 0 | 4 | 0 | 0 | 0 | 10 | 0 |
+| `intervention-bon` | 375 | 0 | 4 | 0 | 0 | 0 | 10 | 0 |
+| `parc-detail` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `parc-detail` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `parc-detail` | 390 | 0 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `parc-detail` | 375 | 0 | 1 | 0 | 0 | 0 | 0 | 0 |
+| `site-detail` | 1280 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
+| `site-detail` | 1024 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
+| `site-detail` | 390 | 0 | 17 | 0 | 0 | 0 | 1 | 0 |
+| `site-detail` | 375 | 0 | 17 | 0 | 0 | 0 | 1 | 0 |
+| `site-creation` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `site-creation` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `site-creation` | 390 | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
+| `site-creation` | 375 | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
+| `parametres-equipe` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `parametres-equipe` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `parametres-equipe` | 390 | 0 | 31 | 0 | 0 | 0 | 0 | 0 |
+| `parametres-equipe` | 375 | 0 | 31 | 0 | 0 | 0 | 0 | 0 |
+| `parametres-materiel` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `parametres-materiel` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `parametres-materiel` | 390 | 0 | 5 | 0 | 0 | 0 | 0 | 0 |
+| `parametres-materiel` | 375 | 0 | 5 | 0 | 0 | 0 | 0 | 0 |
+| `parametres-habilitations` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `parametres-habilitations` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `parametres-habilitations` | 390 | 0 | 112 | 0 | 0 | 0 | 0 | 0 |
+| `parametres-habilitations` | 375 | 0 | 112 | 0 | 0 | 0 | 0 | 0 |
+| `parametres-societe` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `parametres-societe` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `parametres-societe` | 390 | 0 | 3 | 0 | 0 | 0 | 0 | 0 |
+| `parametres-societe` | 375 | 0 | 3 | 0 | 0 | 0 | 0 | 0 |
+| `agence-detail` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `agence-detail` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `agence-detail` | 390 | 0 | 37 | 0 | 0 | 0 | 0 | 0 |
+| `agence-detail` | 375 | 0 | 37 | 0 | 0 | 0 | 0 | 0 |
+| `agence-creation` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `agence-creation` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `agence-creation` | 390 | 0 | 2 | 0 | 0 | 0 | 0 | 0 |
+| `agence-creation` | 375 | 0 | 2 | 0 | 0 | 0 | 0 | 0 |
+| `forfait-detail` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `forfait-detail` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `forfait-detail` | 390 | 0 | 3 | 0 | 0 | 0 | 0 | 0 |
+| `forfait-detail` | 375 | 0 | 3 | 0 | 0 | 0 | 0 | 0 |
+
+**`enrolement` à 390 px — cibles sous le seuil (5 premières) :**
+
+  - button.text-muted-foreground.hover:text-foreground — 108×20px — « Se déconnecter »
+
+**`enrolement` à 375 px — cibles sous le seuil (5 premières) :**
+
+  - button.text-muted-foreground.hover:text-foreground — 108×20px — « Se déconnecter »
+
+**`terrain` à 1280 px — textes du terrain sous 16 px (5 premiers) :**
+
+  - span.text-app-encre-faible.block — 12px — « SAV »
+  - span.min-w-0.flex-1 — 13px — « CODIMA Nouvelle-Calédonie »
+  - button.text-app-encre-faible.hover:bg-app-fond — 13px — « Se déconnecter »
+  - span.bg-app-marque.text-app-marque-encre — 12px — « DG »
+  - h2.text-app-encre-faible.text-13 — 13px — « AUJOURD'HUI »
+
+**`terrain` à 1024 px — textes du terrain sous 16 px (5 premiers) :**
+
+  - span.text-app-encre-faible.block — 12px — « SAV »
+  - span.min-w-0.flex-1 — 13px — « CODIMA Nouvelle-Calédonie »
+  - button.text-app-encre-faible.hover:bg-app-fond — 13px — « Se déconnecter »
+  - span.bg-app-marque.text-app-marque-encre — 12px — « DG »
+  - h2.text-app-encre-faible.text-13 — 13px — « AUJOURD'HUI »
+
+**`terrain` à 390 px — cibles sous le seuil (5 premières) :**
+
+  - a.flex.flex-shrink-0 — 123×38px — « CODIPLAN SAV »
+
+**`terrain` à 390 px — textes du terrain sous 16 px (5 premiers) :**
+
+  - span.text-app-encre-faible.block — 12px — « SAV »
+  - span.min-w-0.flex-1 — 13px — « CODIMA Nouvelle-Calédonie »
+  - button.text-app-encre-faible.hover:bg-app-fond — 13px — « Se déconnecter »
+  - span.bg-app-marque.text-app-marque-encre — 12px — « DG »
+  - h2.text-app-encre-faible.text-13 — 13px — « AUJOURD'HUI »
+
+**`terrain` à 375 px — cibles sous le seuil (5 premières) :**
+
+  - a.flex.flex-shrink-0 — 123×38px — « CODIPLAN SAV »
+
+**`terrain` à 375 px — textes du terrain sous 16 px (5 premiers) :**
+
+  - span.text-app-encre-faible.block — 12px — « SAV »
+  - span.min-w-0.flex-1 — 13px — « CODIMA Nouvelle-Calédonie »
+  - button.text-app-encre-faible.hover:bg-app-fond — 13px — « Se déconnecter »
+  - span.bg-app-marque.text-app-marque-encre — 12px — « DG »
+  - h2.text-app-encre-faible.text-13 — 13px — « AUJOURD'HUI »
+
+**`terrain-intervention` à 1280 px — textes du terrain sous 16 px (5 premiers) :**
+
+  - span.text-app-encre-faible.block — 12px — « SAV »
+  - span.min-w-0.flex-1 — 13px — « CODIMA Nouvelle-Calédonie »
+  - button.text-app-encre-faible.hover:bg-app-fond — 13px — « Se déconnecter »
+  - span.bg-app-marque.text-app-marque-encre — 12px — « DG »
+  - span.inline-grid.h-[22px] — 12px — « P1 — critique »
+
+**`terrain-intervention` à 1024 px — textes du terrain sous 16 px (5 premiers) :**
+
+  - span.text-app-encre-faible.block — 12px — « SAV »
+  - span.min-w-0.flex-1 — 13px — « CODIMA Nouvelle-Calédonie »
+  - button.text-app-encre-faible.hover:bg-app-fond — 13px — « Se déconnecter »
+  - span.bg-app-marque.text-app-marque-encre — 12px — « DG »
+  - span.inline-grid.h-[22px] — 12px — « P1 — critique »
+
+**`terrain-intervention` à 390 px — cibles sous le seuil (5 premières) :**
+
+  - a.flex.flex-shrink-0 — 123×38px — « CODIPLAN SAV »
+  - input#_R_q8lbsnpfebrb_.text-16.font-bold — 324×23px — «  »
+  - input#_R_q8lbsnpfebrbH1_.border-app-bord.bg-app-surface — 324×37px — «  »
+
+**`terrain-intervention` à 390 px — textes du terrain sous 16 px (5 premiers) :**
+
+  - span.text-app-encre-faible.block — 12px — « SAV »
+  - span.min-w-0.flex-1 — 13px — « CODIMA Nouvelle-Calédonie »
+  - button.text-app-encre-faible.hover:bg-app-fond — 13px — « Se déconnecter »
+  - span.bg-app-marque.text-app-marque-encre — 12px — « DG »
+  - span.inline-grid.h-[22px] — 12px — « P1 — critique »
+
+**`terrain-intervention` à 375 px — cibles sous le seuil (5 premières) :**
+
+  - a.flex.flex-shrink-0 — 123×38px — « CODIPLAN SAV »
+  - input#_R_q8lbsnpfebrb_.text-16.font-bold — 309×23px — «  »
+  - input#_R_q8lbsnpfebrbH1_.border-app-bord.bg-app-surface — 309×37px — «  »
+
+**`terrain-intervention` à 375 px — textes du terrain sous 16 px (5 premiers) :**
+
+  - span.text-app-encre-faible.block — 12px — « SAV »
+  - span.min-w-0.flex-1 — 13px — « CODIMA Nouvelle-Calédonie »
+  - button.text-app-encre-faible.hover:bg-app-fond — 13px — « Se déconnecter »
+  - span.bg-app-marque.text-app-marque-encre — 12px — « DG »
+  - span.inline-grid.h-[22px] — 12px — « P1 — critique »
+
+**`connexion-code` à 390 px — cibles sous le seuil (5 premières) :**
+
+  - button.text-app-marque.flex — 180×20px — « Retour à la connexion »
+
+**`connexion-code` à 375 px — cibles sous le seuil (5 premières) :**
+
+  - button.text-app-marque.flex — 180×20px — « Retour à la connexion »
+
+**`accueil` à 390 px — cibles sous le seuil (5 premières) :**
+
+  - a.text-app-marque.text-sm — 160×20px — « Mot de passe oublié ? »
+
+**`accueil` à 375 px — cibles sous le seuil (5 premières) :**
+
+  - a.text-app-marque.text-sm — 160×20px — « Mot de passe oublié ? »
+
+**`connexion` à 390 px — cibles sous le seuil (5 premières) :**
+
+  - a.text-app-marque.text-sm — 160×20px — « Mot de passe oublié ? »
+
+**`connexion` à 375 px — cibles sous le seuil (5 premières) :**
+
+  - a.text-app-marque.text-sm — 160×20px — « Mot de passe oublié ? »
+
+**`planning` à 390 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - select.border-app-bord.max-w-[160px] — 127×27px — « Tous Non affectées D. Garnier J. Lemaîtr »
+  - select.border-app-bord.max-w-[160px] — 125×27px — « Tous P1 — critique P2 — haute P3 — norma »
+  - select.border-app-bord.max-w-[160px] — 160×27px — « Tous Préventif sous contrat Préventif ho »
+  - select.border-app-bord.max-w-[160px] — 109×27px — « Tous À planifier Planifiée Affectée En c »
+
+**`planning` à 375 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - select.border-app-bord.max-w-[160px] — 127×27px — « Tous Non affectées D. Garnier J. Lemaîtr »
+  - select.border-app-bord.max-w-[160px] — 125×27px — « Tous P1 — critique P2 — haute P3 — norma »
+  - select.border-app-bord.max-w-[160px] — 160×27px — « Tous Préventif sous contrat Préventif ho »
+  - select.border-app-bord.max-w-[160px] — 109×27px — « Tous À planifier Planifiée Affectée En c »
+
+**`planning-jour` à 390 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - select.border-app-bord.max-w-[160px] — 127×27px — « Tous Non affectées D. Garnier J. Lemaîtr »
+  - select.border-app-bord.max-w-[160px] — 125×27px — « Tous P1 — critique P2 — haute P3 — norma »
+  - select.border-app-bord.max-w-[160px] — 160×27px — « Tous Préventif sous contrat Préventif ho »
+  - select.border-app-bord.max-w-[160px] — 109×27px — « Tous À planifier Planifiée Affectée En c »
+
+**`planning-jour` à 375 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - select.border-app-bord.max-w-[160px] — 127×27px — « Tous Non affectées D. Garnier J. Lemaîtr »
+  - select.border-app-bord.max-w-[160px] — 125×27px — « Tous P1 — critique P2 — haute P3 — norma »
+  - select.border-app-bord.max-w-[160px] — 160×27px — « Tous Préventif sous contrat Préventif ho »
+  - select.border-app-bord.max-w-[160px] — 109×27px — « Tous À planifier Planifiée Affectée En c »
+
+**`tableau-de-bord` à 390 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - a.text-app-marque.text-12 — 126×17px — « Indicateurs du mois »
+  - button — 37×20px — « Filtrer »
+  - a — 18×18px — «  »
+  - a.border-app-bord.shrink-0 — 96×31px — « Déplacer… »
+
+**`tableau-de-bord` à 375 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - a.text-app-marque.text-12 — 126×17px — « Indicateurs du mois »
+  - button — 37×20px — « Filtrer »
+  - a — 18×18px — «  »
+  - a.border-app-bord.shrink-0 — 96×31px — « Déplacer… »
+
+**`interventions` à 390 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - a.text-app-marque.underline — 57×20px — « Exporter »
+  - summary.cursor-pointer.text-[12px] — 324×17px — « Plus de filtres »
+  - input — 13×13px — «  »
+  - a.rounded-md.border — 73×29px — « Confort »
+
+**`interventions` à 375 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - a.text-app-marque.underline — 57×20px — « Exporter »
+  - summary.cursor-pointer.text-[12px] — 309×17px — « Plus de filtres »
+  - input — 13×13px — «  »
+  - a.rounded-md.border — 73×29px — « Confort »
+
+**`imports-rapport` à 390 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+
+**`imports-rapport` à 375 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+
+**`imports` à 390 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - input#classeur.sr-only — 1×1px — «  »
+
+**`imports` à 375 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - input#classeur.sr-only — 1×1px — «  »
+
+**`intervention-creation` à 390 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - input.peer.sr-only — 1×1px — «  »
+  - input.peer.sr-only — 1×1px — «  »
+  - input.peer.sr-only — 1×1px — «  »
+  - input.peer.sr-only — 1×1px — «  »
+
+**`intervention-creation` à 375 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - input.peer.sr-only — 1×1px — «  »
+  - input.peer.sr-only — 1×1px — «  »
+  - input.peer.sr-only — 1×1px — «  »
+  - input.peer.sr-only — 1×1px — «  »
+
+**`intervention-detail` à 1280 px — petits textes légers (5 premiers) :**
+
+  - a.text-app-marque.underline — 13px/600 — « Ancien client »
+  - a.text-app-marque.underline — 13px/600 — « Ancien chantier (démonstration, inactif) »
+  - dd.font-semibold.break-words — 13px/600 — « Poindimié »
+  - dd.font-semibold.break-words — 13px/600 — « — »
+  - dd.font-semibold.break-words — 13px/600 — « Local-000002 »
+
+**`intervention-detail` à 1024 px — petits textes légers (5 premiers) :**
+
+  - a.text-app-marque.underline — 13px/600 — « Ancien client »
+  - a.text-app-marque.underline — 13px/600 — « Ancien chantier (démonstration, inactif) »
+  - dd.font-semibold.break-words — 13px/600 — « Poindimié »
+  - dd.font-semibold.break-words — 13px/600 — « — »
+  - dd.font-semibold.break-words — 13px/600 — « Local-000002 »
+
+**`intervention-detail` à 390 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - a.text-app-encre-faible.text-13 — 142×19px — « ← Retour au planning »
+
+**`intervention-detail` à 390 px — petits textes légers (5 premiers) :**
+
+  - a.text-app-marque.underline — 13px/600 — « Ancien client »
+  - a.text-app-marque.underline — 13px/600 — « Ancien chantier (démonstration, inactif) »
+  - dd.font-semibold.break-words — 13px/600 — « Poindimié »
+  - dd.font-semibold.break-words — 13px/600 — « — »
+  - dd.font-semibold.break-words — 13px/600 — « Local-000002 »
+
+**`intervention-detail` à 375 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - a.text-app-encre-faible.text-13 — 142×19px — « ← Retour au planning »
+
+**`intervention-detail` à 375 px — petits textes légers (5 premiers) :**
+
+  - a.text-app-marque.underline — 13px/600 — « Ancien client »
+  - a.text-app-marque.underline — 13px/600 — « Ancien chantier (démonstration, inactif) »
+  - dd.font-semibold.break-words — 13px/600 — « Poindimié »
+  - dd.font-semibold.break-words — 13px/600 — « — »
+  - dd.font-semibold.break-words — 13px/600 — « Local-000002 »
+
+**`parc` à 390 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - a.text-app-marque.underline — 138×20px — « Scanner un QR code »
+
+**`parc` à 375 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - a.text-app-marque.underline — 138×20px — « Scanner un QR code »
+
+**`clients` à 390 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+
+**`clients` à 375 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+
+**`client-creation` à 390 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - a.text-app-encre-faible.text-13 — 120×19px — « ← Tous les clients »
+  - a.text-app-encre-faible.text-13 — 54×19px — « Annuler »
+
+**`client-creation` à 375 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - a.text-app-encre-faible.text-13 — 120×19px — « ← Tous les clients »
+  - a.text-app-encre-faible.text-13 — 54×19px — « Annuler »
+
+**`client-detail` à 390 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - a.text-app-marque.underline — 316×20px — « Tout voir »
+  - input — 13×13px — «  »
+  - input — 13×13px — «  »
+  - input — 13×13px — «  »
+
+**`client-detail` à 375 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - a.text-app-marque.underline — 301×20px — « Tout voir »
+  - input — 13×13px — «  »
+  - input — 13×13px — «  »
+  - input — 13×13px — «  »
+
+**`absences` à 390 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - a.text-app-marque.text-12 — 56×17px — « Planning »
+  - a.border-app-bord.rounded-md — 28×33px — « ‹ »
+  - a.border-app-bord.rounded-md — 28×33px — « › »
+
+**`absences` à 375 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - a.text-app-marque.text-12 — 56×17px — « Planning »
+  - a.border-app-bord.rounded-md — 28×33px — « ‹ »
+  - a.border-app-bord.rounded-md — 28×33px — « › »
+
+**`sites` à 390 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+
+**`sites` à 375 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+
+**`parametres-trajets` à 390 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - input#trajet-etroit-grand_noumea.border-app-bord.bg-app-surface — 80×29px — «  »
+  - input#trajet-etroit-sud.border-app-bord.bg-app-surface — 80×29px — «  »
+  - input#trajet-etroit-cote_est.border-app-bord.bg-app-surface — 80×29px — «  »
+  - input#trajet-etroit-cote_ouest.border-app-bord.bg-app-surface — 80×29px — «  »
+
+**`parametres-trajets` à 375 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - input#trajet-etroit-grand_noumea.border-app-bord.bg-app-surface — 80×29px — «  »
+  - input#trajet-etroit-sud.border-app-bord.bg-app-surface — 80×29px — «  »
+  - input#trajet-etroit-cote_est.border-app-bord.bg-app-surface — 80×29px — «  »
+  - input#trajet-etroit-cote_ouest.border-app-bord.bg-app-surface — 80×29px — «  »
+
+**`parametres` à 390 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - button.text-app-bleu-encre.shrink-0 — 55×17px — « Modifier »
+  - a.text-app-bleu-encre.self-start — 106×19px — « Changer le logo »
+  - a.ml-[48px].inline-flex — 140×21px — « 3 accès à ouvrir »
+  - a.ml-[48px].inline-flex — 141×21px — « 1 lot à appliquer »
+
+**`parametres` à 375 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - button.text-app-bleu-encre.shrink-0 — 55×17px — « Modifier »
+  - a.text-app-bleu-encre.self-start — 106×19px — « Changer le logo »
+  - a.ml-[48px].inline-flex — 140×21px — « 3 accès à ouvrir »
+  - a.ml-[48px].inline-flex — 141×21px — « 1 lot à appliquer »
+
+**`vgp` à 390 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - a.text-app-marque.underline — 57×20px — « Exporter »
+  - a.text-app-marque.underline — 143×20px — « NUS-SPL-2022-0007 »
+  - summary.text-app-encre-faible.cursor-pointer — 324×17px — « Voir le motif »
+  - a.border-app-bord.rounded-md — 324×27px — « Enregistrer »
+
+**`vgp` à 375 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - a.text-app-marque.underline — 57×20px — « Exporter »
+  - a.text-app-marque.underline — 143×20px — « NUS-SPL-2022-0007 »
+  - summary.text-app-encre-faible.cursor-pointer — 309×17px — « Voir le motif »
+  - a.border-app-bord.rounded-md — 309×27px — « Enregistrer »
+
+**`vgp-a-determiner` à 390 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - a.text-app-encre-faible.text-13 — 136×19px — « ← Retour au registre »
+  - a.text-app-marque.underline — 324×20px — « Décider → »
+
+**`vgp-a-determiner` à 375 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - a.text-app-encre-faible.text-13 — 136×19px — « ← Retour au registre »
+  - a.text-app-marque.underline — 309×20px — « Décider → »
+
+**`parametres-agences` à 390 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - input#pas-carte-01a1dc4b-bae8-72c2-be22-3476003e6610.border-app-bord.bg-app-surface — 80×29px — «  »
+  - a.text-app-marque.underline — 324×20px — « Modifier »
+  - input#pas-carte-01a1dc4b-bae8-72c2-be22-3476003e6610.border-app-bord.bg-app-surface — 80×29px — «  »
+  - a.text-app-marque.underline — 324×20px — « Modifier »
+
+**`parametres-agences` à 375 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - input#pas-carte-01a1dc4b-bae8-72c2-be22-3476003e6610.border-app-bord.bg-app-surface — 80×29px — «  »
+  - a.text-app-marque.underline — 309×20px — « Modifier »
+  - input#pas-carte-01a1dc4b-bae8-72c2-be22-3476003e6610.border-app-bord.bg-app-surface — 80×29px — «  »
+  - a.text-app-marque.underline — 309×20px — « Modifier »
+
+**`parametres-forfaits` à 390 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - button.bg-app-marque.text-app-marque-encre — 100×31px — « Continuer »
+  - input — 13×13px — «  »
+  - button.bg-app-marque.text-app-marque-encre — 109×31px — « Enregistrer »
+
+**`parametres-forfaits` à 375 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - button.bg-app-marque.text-app-marque-encre — 100×31px — « Continuer »
+  - input — 13×13px — «  »
+  - button.bg-app-marque.text-app-marque-encre — 109×31px — « Enregistrer »
+
+**`parametres-prestations` à 390 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - input#nouvelle-code.border-app-bord.bg-app-surface — 144×29px — «  »
+  - input#nouvelle-libelle.border-app-bord.bg-app-surface — 256×29px — «  »
+  - select#nouvelle-famille.border-app-bord.bg-app-surface — 189×28px — « Aucune famille Accessoires de levage Com »
+  - input#nouvelle-duree.border-app-bord.bg-app-surface — 144×29px — «  »
+
+**`parametres-prestations` à 375 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - input#nouvelle-code.border-app-bord.bg-app-surface — 144×29px — «  »
+  - input#nouvelle-libelle.border-app-bord.bg-app-surface — 256×29px — «  »
+  - select#nouvelle-famille.border-app-bord.bg-app-surface — 189×28px — « Aucune famille Accessoires de levage Com »
+  - input#nouvelle-duree.border-app-bord.bg-app-surface — 144×29px — «  »
+
+**`demandes` à 390 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+
+**`demandes` à 375 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+
+**`intervention-bon` à 1280 px — petits textes légers (5 premiers) :**
+
+  - dd.font-semibold.break-words — 13px/600 — « Atelier Ducos »
+  - dd.font-semibold.break-words — 13px/600 — « Atelier sous contrat (démonstration) »
+  - dd.font-semibold.break-words — 13px/600 — « Nouméa »
+  - dd.font-semibold.break-words — 13px/600 — « — »
+  - dd.font-semibold.break-words — 13px/600 — « Aucune machine n'est rattachée à cette i »
+
+**`intervention-bon` à 1024 px — petits textes légers (5 premiers) :**
+
+  - dd.font-semibold.break-words — 13px/600 — « Atelier Ducos »
+  - dd.font-semibold.break-words — 13px/600 — « Atelier sous contrat (démonstration) »
+  - dd.font-semibold.break-words — 13px/600 — « Nouméa »
+  - dd.font-semibold.break-words — 13px/600 — « — »
+  - dd.font-semibold.break-words — 13px/600 — « Aucune machine n'est rattachée à cette i »
+
+**`intervention-bon` à 390 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - a.text-app-marque.text-[13px] — 152×19px — « ← Fiche Local-000005 »
+  - a.text-app-marque — 183×17px — « Version client · sans montant »
+  - a.text-app-encre-faible — 98×17px — « Version interne »
+
+**`intervention-bon` à 390 px — petits textes légers (5 premiers) :**
+
+  - dd.font-semibold.break-words — 13px/600 — « Atelier Ducos »
+  - dd.font-semibold.break-words — 13px/600 — « Atelier sous contrat (démonstration) »
+  - dd.font-semibold.break-words — 13px/600 — « Nouméa »
+  - dd.font-semibold.break-words — 13px/600 — « — »
+  - dd.font-semibold.break-words — 13px/600 — « Aucune machine n'est rattachée à cette i »
+
+**`intervention-bon` à 375 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - a.text-app-marque.text-[13px] — 152×19px — « ← Fiche Local-000005 »
+  - a.text-app-marque — 183×17px — « Version client · sans montant »
+  - a.text-app-encre-faible — 98×17px — « Version interne »
+
+**`intervention-bon` à 375 px — petits textes légers (5 premiers) :**
+
+  - dd.font-semibold.break-words — 13px/600 — « Atelier Ducos »
+  - dd.font-semibold.break-words — 13px/600 — « Atelier sous contrat (démonstration) »
+  - dd.font-semibold.break-words — 13px/600 — « Nouméa »
+  - dd.font-semibold.break-words — 13px/600 — « — »
+  - dd.font-semibold.break-words — 13px/600 — « Aucune machine n'est rattachée à cette i »
+
+**`parc-detail` à 390 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+
+**`parc-detail` à 375 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+
+**`site-detail` à 1280 px — petits textes légers (5 premiers) :**
+
+  - span.font-normal — 13px/400 — « Badge visiteur à l'accueil. EPI obligato »
+
+**`site-detail` à 1024 px — petits textes légers (5 premiers) :**
+
+  - span.font-normal — 13px/400 — « Badge visiteur à l'accueil. EPI obligato »
+
+**`site-detail` à 390 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - a.text-app-marque.underline — 55×20px — « Modifier »
+  - a.text-app-marque.underline — 316×19px — « Local-000001 »
+  - a.text-app-marque.underline — 316×19px — « Local-000031 »
+  - a.text-app-marque.underline — 316×19px — « Local-000026 »
+
+**`site-detail` à 390 px — petits textes légers (5 premiers) :**
+
+  - span.font-normal — 13px/400 — « Badge visiteur à l'accueil. EPI obligato »
+
+**`site-detail` à 375 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - a.text-app-marque.underline — 55×20px — « Modifier »
+  - a.text-app-marque.underline — 301×19px — « Local-000001 »
+  - a.text-app-marque.underline — 301×19px — « Local-000031 »
+  - a.text-app-marque.underline — 301×19px — « Local-000026 »
+
+**`site-detail` à 375 px — petits textes légers (5 premiers) :**
+
+  - span.font-normal — 13px/400 — « Badge visiteur à l'accueil. EPI obligato »
+
+**`site-creation` à 390 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - a.text-app-encre-faible.text-13 — 107×19px — « ← Tous les sites »
+  - input — 13×13px — «  »
+  - a.text-app-encre-faible.text-13 — 54×19px — « Annuler »
+
+**`site-creation` à 375 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - a.text-app-encre-faible.text-13 — 107×19px — « ← Tous les sites »
+  - input — 13×13px — «  »
+  - a.text-app-encre-faible.text-13 — 54×19px — « Annuler »
+
+**`parametres-equipe` à 390 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - a.text-app-marque.text-13 — 121×19px — « Affiche à imprimer »
+  - summary.cursor-pointer.text-[13px] — 316×19px — « Modifier — D. Garnier »
+  - select#01a1dc4b-bd45-770f-9b22-4a6932f29bb3-agence.border-app-bord.bg-app-surface — 239×28px — «  »
+  - select#01a1dc4b-bd45-770f-9b22-4a6932f29bb3-statut.border-app-bord.bg-app-surface — 176×28px — «  »
+
+**`parametres-equipe` à 375 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - a.text-app-marque.text-13 — 121×19px — « Affiche à imprimer »
+  - summary.cursor-pointer.text-[13px] — 301×19px — « Modifier — D. Garnier »
+  - select#01a1dc4b-bd45-770f-9b22-4a6932f29bb3-agence.border-app-bord.bg-app-surface — 239×28px — «  »
+  - select#01a1dc4b-bd45-770f-9b22-4a6932f29bb3-statut.border-app-bord.bg-app-surface — 176×28px — «  »
+
+**`parametres-materiel` à 390 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - a.text-app-marque.underline — 324×20px — « 1 modèle »
+  - a.text-app-marque.underline — 324×20px — « 1 modèle »
+  - a.text-app-marque.underline — 324×20px — « 1 modèle »
+  - a.text-app-marque.underline — 324×20px — « 2 modèles »
+
+**`parametres-materiel` à 375 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - a.text-app-marque.underline — 309×20px — « 1 modèle »
+  - a.text-app-marque.underline — 309×20px — « 1 modèle »
+  - a.text-app-marque.underline — 309×20px — « 1 modèle »
+  - a.text-app-marque.underline — 309×20px — « 2 modèles »
+
+**`parametres-habilitations` à 390 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - input#nouvelle-code.border-app-bord.bg-app-surface — 144×29px — «  »
+  - input#nouvelle-libelle.border-app-bord.bg-app-surface — 256×29px — «  »
+  - input#nouvelle-duree.border-app-bord.bg-app-surface — 144×29px — «  »
+  - a.text-app-marque.text-[12px] — 55×17px — « Modifier »
+
+**`parametres-habilitations` à 375 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - input#nouvelle-code.border-app-bord.bg-app-surface — 144×29px — «  »
+  - input#nouvelle-libelle.border-app-bord.bg-app-surface — 256×29px — «  »
+  - input#nouvelle-duree.border-app-bord.bg-app-surface — 144×29px — «  »
+  - a.text-app-marque.text-[12px] — 55×17px — « Modifier »
+
+**`parametres-societe` à 390 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - input#logo.sr-only — 1×1px — «  »
+  - input — 13×13px — «  »
+
+**`parametres-societe` à 375 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - input#logo.sr-only — 1×1px — «  »
+  - input — 13×13px — «  »
+
+**`agence-detail` à 390 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - input#debut-01a1dc4b-baea-7174-abd4-a23ac451aeda.border-app-bord.bg-app-surface — 112×30px — «  »
+  - input#fin-01a1dc4b-baea-7174-abd4-a23ac451aeda.border-app-bord.bg-app-surface — 112×30px — «  »
+  - input#debut-01a1dc4b-baeb-77f8-8864-d5e5ed385647.border-app-bord.bg-app-surface — 112×30px — «  »
+  - input#fin-01a1dc4b-baeb-77f8-8864-d5e5ed385647.border-app-bord.bg-app-surface — 112×30px — «  »
+
+**`agence-detail` à 375 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - input#debut-01a1dc4b-baea-7174-abd4-a23ac451aeda.border-app-bord.bg-app-surface — 112×30px — «  »
+  - input#fin-01a1dc4b-baea-7174-abd4-a23ac451aeda.border-app-bord.bg-app-surface — 112×30px — «  »
+  - input#debut-01a1dc4b-baeb-77f8-8864-d5e5ed385647.border-app-bord.bg-app-surface — 112×30px — «  »
+  - input#fin-01a1dc4b-baeb-77f8-8864-d5e5ed385647.border-app-bord.bg-app-surface — 112×30px — «  »
+
+**`agence-creation` à 390 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - a.text-app-encre-faible.text-13 — 54×19px — « Annuler »
+
+**`agence-creation` à 375 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - a.text-app-encre-faible.text-13 — 54×19px — « Annuler »
+
+**`forfait-detail` à 390 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - input — 13×13px — «  »
+  - button.bg-app-marque.text-app-marque-encre — 109×31px — « Enregistrer »
+
+**`forfait-detail` à 375 px — cibles sous le seuil (5 premières) :**
+
+  - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
+  - input — 13×13px — «  »
+  - button.bg-app-marque.text-app-marque-encre — 109×31px — « Enregistrer »

@@ -234,7 +234,10 @@ const ECRANS: readonly Ecran[] = [
     chemin: "/connexion",
     quoi: "La page de connexion.",
     authentifie: false,
-    temoin: "Connexion",
+    // Témoin corrigé (9L04L) : le titre affiché est « Se connecter »
+    // (`connexion.titre_page`) ; « Connexion » nu n'est plus qu'un titre de
+    // document, absent du corps rendu.
+    temoin: "Se connecter",
   },
   {
     // **LA SEULE PORTE D'UNE BASE NEUVE** (D65) : le seed n'attribue aucun mot
@@ -446,7 +449,10 @@ const ECRANS: readonly Ecran[] = [
     decouvrir: premierLienDeClient,
     quoi: "La fiche d'un client — ses lieux, ses dernières interventions, et le bloc Contacts qui NOMME son absence (D88).",
     authentifie: true,
-    temoin: "Dernières interventions",
+    // Témoin corrigé (9L04L) : la fiche client titre désormais cette
+    // section « Historique des interventions » ; l'ancien libellé
+    // n'existe plus dans le dictionnaire.
+    temoin: "Historique des interventions",
     refusConnu:
       "Cet écran n'existe que si le référentiel porte au moins un client. " +
       "Sur une base sans semis de démonstration, le refus est LÉGITIME et dit " +
@@ -496,7 +502,10 @@ const ECRANS: readonly Ecran[] = [
     chemin: "/parametres",
     quoi: "La porte des écrans de paramétrage (R3-08) — elle ne lit aucune base et ne compte rien.",
     authentifie: true,
-    temoin: "Sociétés & tarifs",
+    // Témoin corrigé (9L04L) : « nav.societes_tarifs » dit désormais
+    // « Paramètres », comme le titre de la page — texte repris partout.
+    // Pris sur le sous-titre, propre à cet écran.
+    temoin: "Ce qui se règle une fois et sert partout",
   },
   {
     // **LE REGISTRE DES VGP** (lot 9, D88). Ce qu'une image montre ici et
@@ -506,7 +515,12 @@ const ECRANS: readonly Ecran[] = [
     chemin: "/vgp",
     quoi: "Le registre des vérifications périodiques. CODIPLAN n'affirme JAMAIS la conformité : il dit ce qu'on lui a dit (D88).",
     authentifie: true,
-    temoin: "Registre des v\u00e9rifications p\u00e9riodiques",
+    // T\u00e9moin corrig\u00e9 (9L04L) : vgp.titre a chang\u00e9 pour
+    // « Vérifications périodiques (VGP) », et l'ancien texte
+    // n'existe plus nulle part. Pris sur le sous-titre, propre à cet
+    // écran, plutôt que sur un titre nu qui se reformule encore
+    // plus souvent.
+    temoin: "Ce qu'on nous a dit, et quand on nous l'a dit",
   },
   {
     // TROIS valeurs sur la famille, jamais une case à cocher : une famille
@@ -525,11 +539,19 @@ const ECRANS: readonly Ecran[] = [
     temoin: "horaires d'ouverture",
   },
   {
+    // Chemin et témoin corrigés (9L04L) : `/parametres/forfaits` n'a plus de
+    // page propre (seul `/parametres/forfaits/[id]` existe encore,
+    // `app/(back-office)/parametres/forfaits/presentation.ts`) — le
+    // catalogue vit désormais sur `/parametres/tarifs`, qui liste aussi le
+    // taux horaire et les règles de facturation. Le témoin « Forfaits » nu
+    // ne distinguait rien : il matche le lien de la barre de navigation sur
+    // CHAQUE écran du back-office, et la capture précédente photographiait
+    // en réalité la page de l'ancien chemin sous ce seul nom générique.
     nom: "parametres-forfaits",
-    chemin: "/parametres/forfaits",
+    chemin: "/parametres/tarifs",
     quoi: "Le catalogue des forfaits et leur RANG (D86). Il naît vide : les valeurs sont à l'exploitation.",
     authentifie: true,
-    temoin: "Forfaits",
+    temoin: "Un tarif ne se modifie jamais",
   },
   {
     // **L'ÉCRAN NÉ AVEC R3-15**, sixième porte de « Sociétés & tarifs ». Ce
@@ -621,7 +643,9 @@ const ECRANS: readonly Ecran[] = [
     quoi: "Le défi du second facteur, entre le mot de passe et la session.",
     authentifie: true,
     passe: "defi-second-facteur",
-    temoin: "Code à six chiffres",
+    // Témoin corrigé (9L04L) : `connexion.code.champ_accessible` écrit « 6 »
+    // en chiffre, jamais « six » en lettres.
+    temoin: "Code à 6 chiffres",
     refusConnu:
       "Cet écran n'existe QUE pendant un défi : il demande une connexion qui " +
       "s'arrête là, sans saisir le code. Si le compte ne porte pas de second " +
@@ -638,7 +662,8 @@ const ECRANS: readonly Ecran[] = [
     chemin: "/demandes",
     quoi: "Le registre des demandes — de la plus ancienne à la plus récente, avant qualification.",
     authentifie: true,
-    temoin: "Les demandes ouvertes",
+    // Témoin corrigé (9L04L) : le sous-titre actuel de l'écran.
+    temoin: "Chaque demande devient une intervention, ou se clôt avec un motif",
   },
   {
     nom: "demande-detail",
@@ -700,7 +725,8 @@ const ECRANS: readonly Ecran[] = [
     chemin: "/parametres/equipe",
     quoi: "Les techniciens de la société active : créer, rattacher, désactiver.",
     authentifie: true,
-    temoin: "Les techniciens de la société active",
+    // Témoin corrigé (9L04L) : le sous-titre actuel de l'écran.
+    temoin: "Qui travaille dans la société, et qui peut se connecter",
   },
   {
     nom: "parametres-materiel",
@@ -721,7 +747,11 @@ const ECRANS: readonly Ecran[] = [
     chemin: "/parametres/societe",
     quoi: "La charte de la société active.",
     authentifie: true,
-    temoin: "L'identité affichée de la société active",
+    // Témoin corrigé (9L04L) : cette page ne porte plus que le logo, les
+    // montants et les relances — « l'identité de la société » a migré
+    // vers /parametres (la page d'accueil des paramètres). Pris sur un
+    // texte propre au logo, seul contenu stable de CET écran.
+    temoin: "Enregistrer le logo",
   },
   {
     nom: "agence-detail",
@@ -741,24 +771,22 @@ const ECRANS: readonly Ecran[] = [
     authentifie: true,
     temoin: "Nouvel établissement",
   },
+  // « agence-modification » RETIRÉ (9L04L) : `/parametres/agences/
+  // [agenceId]/modifier` n'existe plus — l'édition est désormais un
+  // formulaire EN LIGNE sur la fiche (`app/(back-office)/parametres/
+  // agences/[agenceId]/page.tsx`, action `…/modifier`), déjà photographiée
+  // sous « agence-detail ». Un second écran photographierait la même page.
   {
-    nom: "agence-modification",
-    chemin: "/parametres/agences",
-    decouvrir: premierLienDeModificationAgence,
-    quoi: "La modification d'un établissement.",
-    authentifie: true,
-    temoin: "Modifier un établissement",
-    refusConnu:
-      "Cet écran n'existe que si le tableau porte au moins une agence. Sur " +
-      "une base sans semis de démonstration, le refus est LÉGITIME.",
-  },
-  {
+    // Chemin et témoin corrigés (9L04L), même raison que « parametres-
+    // forfaits » ci-dessus : le catalogue d'où partir est `/parametres/
+    // tarifs`, et « Retour au catalogue » n'existe plus dans le
+    // dictionnaire — la fiche porte aujourd'hui le fil d'Ariane « Tarifs ».
     nom: "forfait-detail",
-    chemin: "/parametres/forfaits",
+    chemin: "/parametres/tarifs",
     decouvrir: premierLienDeForfait,
     quoi: "La fiche d'un forfait du catalogue.",
     authentifie: true,
-    temoin: "Retour au catalogue",
+    temoin: "Un forfait ne se supprime pas",
     refusConnu:
       "Cet écran n'existe que si le catalogue porte au moins un forfait. " +
       "Sur une base sans semis de démonstration, le refus est LÉGITIME.",
@@ -951,7 +979,9 @@ async function premierLienDeMachine(page: Page): Promise<string> {
     .evaluateAll((elements) =>
       elements
         .map((element) => element.getAttribute("href") ?? "")
-        .filter((href) => href !== "/parc/nouvelle"),
+        .filter(
+          (href) => href !== "/parc/nouvelle" && href !== "/parc/scanner",
+        ),
     );
   if (chemins.length === 0) {
     throw new Error(
@@ -983,25 +1013,51 @@ async function premierLienDeDemande(page: Page): Promise<string> {
 /**
  * LE BON D'UNE INTERVENTION — deux sauts : le registre mène à la fiche, la
  * fiche mène au bon, et lui seul dit si `peutGenererLeBon` l'autorise.
+ *
+ * **ELLE OUVRE L'ONGLET « TOUTES »** (9L04L) : l'onglet PAR DÉFAUT du
+ * registre est « À planifier » (décision 13, 05/10/2026) — `cloturee` et
+ * `terminee`, les deux seuls statuts que `peutGenererLeBon` accepte, n'y
+ * paraissent JAMAIS. Sans `?vue=toutes`, le registre par défaut ne porte
+ * parfois qu'UNE SEULE ligne, et presque toujours une `planifiee`.
+ *
+ * **ELLE ESSAIE PLUSIEURS FICHES, PAS SEULEMENT LA PREMIÈRE** : même sur
+ * « Toutes », la majorité des lignes reste `planifiee` — statut majoritaire
+ * du semis —, et `peutGenererLeBon` les refuse TOUJOURS. S'arrêter au
+ * premier essai refusait la capture même quand d'autres fiches, plus bas
+ * dans le registre, portaient un bon généré.
  */
 async function premierLienDeBon(page: Page): Promise<string> {
-  const cheminIntervention = await premierLienDIntervention(page);
-  await page.goto(`${BASE}${cheminIntervention}`, {
+  await page.goto(`${BASE}/interventions?vue=toutes`, {
     waitUntil: "networkidle",
   });
   const chemins = await page
-    .locator('a[href$="/bon"]')
+    .locator('a[href^="/interventions/"]')
     .evaluateAll((elements) =>
-      elements.map((element) => element.getAttribute("href") ?? ""),
+      elements
+        .map((element) => element.getAttribute("href") ?? "")
+        .filter(
+          (href) =>
+            href !== "/interventions/nouvelle" && href !== "/interventions",
+        ),
     );
-  if (chemins.length === 0) {
-    throw new Error(
-      "la fiche découverte ne propose pas de bon imprimable " +
-        "(`peutGenererLeBon` refuse ce statut) : la capture est refusée " +
-        "plutôt que prise sur une page d'erreur.",
-    );
+  for (const cheminIntervention of chemins) {
+    await page.goto(`${BASE}${cheminIntervention}`, {
+      waitUntil: "networkidle",
+    });
+    const liensBon = await page
+      .locator('a[href$="/bon"]')
+      .evaluateAll((elements) =>
+        elements.map((element) => element.getAttribute("href") ?? ""),
+      );
+    if (liensBon.length > 0) {
+      return liensBon[0]!;
+    }
   }
-  return chemins[0];
+  throw new Error(
+    "aucune des fiches examinées ne propose de bon imprimable " +
+      "(`peutGenererLeBon` refuse leur statut) : la capture est refusée " +
+      "plutôt que prise sur une page d'erreur.",
+  );
 }
 
 /** LE PREMIER LIEN DE FORFAIT rendu par le catalogue. */
@@ -1044,22 +1100,6 @@ async function premierLienDeCalendrierAgence(page: Page): Promise<string> {
   return chemins[0];
 }
 
-/** LE PREMIER LIEN « MODIFIER » D'UNE AGENCE. */
-async function premierLienDeModificationAgence(page: Page): Promise<string> {
-  const chemins = await page
-    .locator('a[href^="/parametres/agences/"][href$="/modifier"]')
-    .evaluateAll((elements) =>
-      elements.map((element) => element.getAttribute("href") ?? ""),
-    );
-  if (chemins.length === 0) {
-    throw new Error(
-      "le tableau ne porte aucun lien de modification d'agence : il n'y a " +
-        "rien à détailler, et la capture est refusée plutôt que prise sur " +
-        "une page d'erreur.",
-    );
-  }
-  return chemins[0];
-}
 
 function empreinte(): { court: string; long: string } {
   const long = execFileSync("git", ["rev-parse", "HEAD"], {
@@ -1207,9 +1247,19 @@ async function seConnecterAvec(
     await page.waitForLoadState("networkidle");
 
     // Le défi de second facteur, quand le compte est déjà enrôlé.
+    //
+    // **LE BOUTON SE DÉSIGNE PAR SON FORMULAIRE, jamais par `button[type=
+    // "submit"]` seul** (mesuré ici, 9L04L) : `/connexion/code` porte TROIS
+    // boutons de ce type — « Retour à la connexion » (déconnexion, premier
+    // dans le DOM), « Vérifier » (le bon), « Utiliser » (code de secours).
+    // `page.click` sur le sélecteur nu prend le PREMIER, qui déconnecte sans
+    // jamais présenter le code — la connexion échoue alors en silence, et
+    // elle le fait à CHAQUE essai, jamais seulement au premier.
     if (page.url().includes("/connexion/code") && secretActive !== "") {
       await page.fill('input[name="code"]', await codeCourant(secretActive));
-      await page.click('button[type="submit"]');
+      await page
+        .locator('form[action="/api/session/code"] button[type="submit"]')
+        .click();
       await page.waitForLoadState("networkidle");
     }
     const cleRevelee = await activerSecondFacteur(page, identite.motDePasse);
