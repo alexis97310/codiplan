@@ -191,6 +191,14 @@ test("journée et fiche se consultent sans réseau depuis la copie, le bandeau r
     // ne s'affiche qu'une fois une ligne ajoutée ; .count() vaut 0 sinon.
     fr["terrain.pieces.ajouter"],
     fr["terrain.pieces.retirer"],
+    // 9L04F-TERRAIN-RAPPORT-PHRASES-TYPES (point 2-3) : « Phrases types »
+    // est toujours affiché sous le commentaire, geste utilisable hors réseau
+    // (insère une phrase sans appel réseau). « Reprendre la non-conformité
+    // de la checklist » ne s'affiche que s'il existe un point non
+    // conforme ; .count() vaut 0 sinon, même discipline que
+    // `terrain.pieces.retirer` ci-dessus.
+    fr["terrain.rapport.phrases_types.lien"],
+    fr["terrain.rapport.reprendre_non_conformites"],
   ];
   let comptesNommes = 0;
   for (const nom of nomsBoutonsAttendus) {
