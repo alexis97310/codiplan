@@ -111,3 +111,82 @@ commentaire propres à CHAQUE non-conformité, pas un texte unique), deux pistes
 - ou remplacer le texte libre par cette structure, et faire de `lignesReprise` une simple PROJECTION
   d'affichage de cette dernière (la signature resterait valide, son corps changerait).
 Rien dans ce lot ne verrouille l'un ou l'autre choix.
+
+## 7. Reprise 9L04FA — rebase, cause mesurée, et sa portée réelle
+
+Branche `9L04FA-REPRISE-RAPPORT-PHRASES-TYPES`, partie d'`origin/main` (tip `df1c83985`,
+9L04EA-REPRISE-PHOTOS-EPUREES). Les 3 commits de `9L04F-TERRAIN-RAPPORT-PHRASES-TYPES-garde`
+reportés par cherry-pick, dans l'ordre, sans modification de leur contenu propre — seuls les
+conflits de fusion avec le code publié depuis ont demandé une résolution :
+
+- **`app/(mobile)/terrain/[id]/page.tsx`** (commit point 1-3) : conflit de fusion purement
+  TEXTUEL, pas sémantique — 9L04D/9L04E/9L04EA ont réindenté toute cette portion de fichier
+  (ajout de `<BarreActionTerrain>` autour de `<main>`, déplacement de `ChecklistTerrain`/
+  `RapportTerrainAutomatique`/`sectionPhotos` plus loin dans l'arbre JSX), et par coïncidence
+  les props finales de `BoutonCompteurTerrain` (ours) et de `PhotosTerrain` (theirs) partagent
+  les mêmes noms (`interventionId`, `utilisateurId`, `societeId`, `statut`, …), ce qui a fait
+  gonfler le hunk de fusion sur ~100 lignes sans rapport. Le changement RÉEL de ce commit pour
+  ce fichier : une seule ligne, `typeReponse: point.typeReponse,` dans le mapping de
+  `checklistPourTerminer.points` — résolu en prenant `--ours` en bloc puis en réappliquant
+  cette seule ligne, au même endroit logique (la structure a bougé, pas le besoin).
+- **`tests/unit/ui/composants-base.test.tsx` / `tests/unit/ui/retouches-2a.test.ts`** (commit
+  point 5) : les deux gardiens comptent, en commentaire narratif ET en assertion, le nombre
+  total de `<Button>` littéraux posés dans `app/`/`components/` ; `9L04F-…-garde` les avait
+  incrémentés depuis sa propre base (21 → 22, le « Fermer » de la liste de phrases types), mais
+  `9L04E-TERRAIN-PHOTOS-EPUREES`, publié après, les avait déjà incrémentés depuis la MÊME base
+  pour une raison différente (21 → 28, `photos-terrain.tsx`). Les deux additions sont
+  indépendantes et s'accumulent : **21 + 7 (9L04E) + 1 (9L04F) = 29**. Comptes et commentaires
+  mis à jour en conséquence dans les deux fichiers.
+
+### La cause mesurée par le pilote, et sa portée réelle
+
+Le contrat de recalage nommait `tests/e2e/offline/9f4h1-consultation.spec.ts:104`,
+`expect(getByRole('button')).toHaveCount(7)` recevant `8`. Une fois la branche rebasée, ce
+mécanisme n'existe plus tel que décrit : la scène ne compare jamais à un total figé depuis
+`9F4H4BA-REPRISE-9F4H4B` (correctif antérieur au point de divergence de `9L04F-…-garde`) — elle
+réconcilie `page.getByRole("button")` contre une liste NOMMÉE (`nomsBoutonsAttendus`), chaque
+nom compté séparément puis sommé. Le défaut réel, une fois la liste de boutons du rapport
+enrichie par ce lot, est donc que cette liste ne nommait pas les deux boutons neufs : la somme
+restait inférieure au total réel, et l'assertion aurait échoué (pas accidentellement passé).
+Corrigé en ajoutant à `nomsBoutonsAttendus` (commit séparé de cette reprise, voir le journal
+git) :
+- `fr["terrain.rapport.phrases_types.lien"]` — toujours affiché sous le commentaire, geste
+  utilisable hors réseau (insère une phrase sans appel réseau, 9L04F point 2).
+- `fr["terrain.rapport.reprendre_non_conformites"]` — affiché seulement s'il existe un point
+  non conforme, même discipline que `terrain.pieces.retirer` déjà dans la liste (`.count()`
+  vaut 0 sinon, ce qui est le cas dans cette scène : aucune checklist non conforme n'y est
+  posée).
+
+### Recherche de la même famille (point 3 du contrat)
+
+Localisateurs cherchés dans `tests/e2e/**` qui comptent des boutons sans portée ou pourraient
+rencontrer l'écran modifié (`rapport-automatique.tsx`, `consultation-hors-reseau.tsx`,
+`[id]/page.tsx`) :
+- `tests/e2e/offline/9f4h4-ouverture-a-froid.spec.ts:472`,
+  `tests/e2e/9ewe-tarifs-page-unique.spec.ts:238`,
+  `tests/e2e/absences-ecourter-etat.spec.ts:268` — chacun vérifie `toHaveCount(0)` sur un état
+  où AUCUNE fiche de rapport ne monte (copie absente, ou écran sans rapport) : sans rapport, le
+  nouveau bouton ne peut pas apparaître. Inchangés.
+- `tests/e2e/9l04i-checklist-non-conforme-detail.spec.ts` et
+  `tests/e2e/9l04m-checklist-retrait-reponse.spec.ts` — `.getByRole("button").last()`, mais
+  scopé sur `ligneDuPoint(...)` (une seule ligne de checklist), jamais sur la section rapport où
+  vivent les boutons neufs. Inchangés.
+- Aucun autre `getByText`/`getByRole` NON exact sur « Phrases types » ou « Fermer » (seule
+  collision : `captures-pg-b3-trouver-creneau-fiche.spec.ts:150`, un `<button>` « Fermer » sur
+  un écran de recherche de créneau sans rapport, jamais co-monté avec celui-ci).
+
+### Captures
+
+Aucune refaite : aucun écran de ce ticket n'a changé de rendu dans cette reprise (seul un
+localisateur de test). Rejouer les scènes offline/rapport a régénéré par effet de bord 64 PNG
+dans des tickets sans rapport (dates affichées, antialiasing), dont les 4 propres à ce ticket
+— remis à l'état committé (`git checkout --/git clean -f` sur `*.png`), pas commités, même
+discipline que la reprise 9L04EA.
+
+### Vérification finale
+
+`pnpm typecheck` vert. E2E ciblées (`CI=1 --workers=1`) : `tests/e2e/offline/`, la famille
+`*rapport*`, `9l04f-terrain-rapport-phrases-types.spec.ts`,
+`tests/e2e/tous-les-ecrans-rendent.spec.ts` — 124 tests, 120 passés, 4 ignorés (inchangé).
+`pnpm test:isolation` — 2255 tests passés. `CI=1 pnpm verify` (format:check + typecheck + lint +
+test + test:isolation + build) **vert**.
