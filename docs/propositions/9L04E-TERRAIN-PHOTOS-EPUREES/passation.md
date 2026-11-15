@@ -25,7 +25,7 @@ auteur, jusqu'à « Terminer », derrière confirmation).
   (suppression par l'auteur réel) échouait systématiquement avec le refus « pas l'auteur », y compris pour
   le vrai auteur : la lecture sous ce rôle rend toujours zéro ligne. **D'où la seule migration de ce lot** :
   `Document.depose_par` (nullable, sans relation Prisma, même famille que `Notification.destinataire_id`,
-  D39), posée à la création, jamais recalculée. Voir D254 (`docs/arbitrages.md`) et le docblock de la
+  D39), posée à la création, jamais recalculée. Voir D258 (`docs/arbitrages.md`) et le docblock de la
   migration `20261114100000_photo_depose_par_9l04e`.
 - **La contrainte `document_libelle_non_vide`** (migration `20260913100000_documents_l8`) interdit la
   chaîne vide en base. Puisque la légende n'est plus saisie au dépôt, `deposerPhotoIntervention` garde son
