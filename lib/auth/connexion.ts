@@ -3,9 +3,17 @@ import { APIError } from "better-auth/api";
 import { z } from "zod";
 
 import { prisma as clientParDefaut } from "@/lib/db/client";
+import { uuidv7 } from "@/lib/db/uuid";
 
 import { auth, type Auth } from "./config";
 import { avecDesignationAuth } from "./lecture-identite";
+import {
+  enregistrerEchec,
+  identifiantConnexion,
+  reinitialiserEchecs,
+  verrouille,
+  type SujetLimiteur,
+} from "./limiteur-connexion";
 import { avecPlancherDeDuree, motifRefusUniforme } from "./reponse-uniforme";
 
 /**
@@ -104,20 +112,65 @@ function indisponible(): ResultatConnexion {
 }
 
 /**
+ * JOURNALISE le refus temporisé — SEULEMENT quand le courriel présenté
+ * correspond à un compte réel (D258). `journal_acces.utilisateur_id` est
+ * `NOT NULL` : il n'existe aucune ligne à écrire pour un courriel qui ne
+ * désigne personne, et c'est sans conséquence pour D35 — la réponse HTTP ne
+ * change pas, seul le journal, que l'appelant ne lit jamais, se tait ou parle.
+ */
+async function journaliserRefusTemporise(
+  identifiant: string,
+  client: PrismaClient,
+): Promise<void> {
+  const compte = await avecDesignationAuth(client).utilisateur.findUnique({
+    where: { email: identifiant },
+    select: { id: true },
+  });
+  if (compte === null) {
+    return;
+  }
+  await avecDesignationAuth(client).journalAcces.create({
+    data: {
+      id: uuidv7(),
+      utilisateur_id: compte.id,
+      evenement: "connexion_temporisee",
+    },
+  });
+}
+
+/**
  * Tente d'ouvrir une session, et rend toujours la main au même moment.
  *
  * L'entrée est `unknown` à dessein : la validation Zod fait partie du chemin
  * chronométré. Une adresse malformée rejetée avant le plancher répondrait plus
  * vite que le reste, et cet écart-là se mesure aussi bien qu'un autre.
+ *
+ * `adresseIp` alimente le second volet du limiteur de tentatives (D258) —
+ * `null` quand elle n'a pas pu être lue, ce qui dégrade proprement vers la
+ * seule limite par compte.
  */
 export async function tenterConnexion(
   entree: unknown,
   instance: Auth = auth(),
   client: PrismaClient = clientParDefaut,
+  adresseIp: string | null = null,
 ): Promise<ResultatConnexion> {
   return avecPlancherDeDuree(async () => {
     const demande = schemaDemandeConnexion.safeParse(entree);
     if (!demande.success) {
+      return refus();
+    }
+
+    const sujet: SujetLimiteur = {
+      identifiant: identifiantConnexion(demande.data.email),
+      adresseIp,
+    };
+
+    // LE VERROU SE VÉRIFIE AVANT TOUT APPEL À LA BIBLIOTHÈQUE (D258) : verrouillé,
+    // le mot de passe n'est jamais vérifié et aucun échec de plus n'est posé —
+    // sans quoi la fenêtre glisserait sans fin et le verrou ne lèverait jamais.
+    if (await verrouille(sujet, client)) {
+      await journaliserRefusTemporise(sujet.identifiant, client);
       return refus();
     }
 
@@ -135,6 +188,7 @@ export async function tenterConnexion(
         asResponse: true,
       });
       if (brute.status !== 200) {
+        await enregistrerEchec(sujet, client);
         return refus();
       }
       cookies = brute.headers.getSetCookie?.() ?? [];
@@ -146,18 +200,22 @@ export async function tenterConnexion(
       // pas de ce ressort : distinguée depuis TR-31, elle rend `indisponible`
       // plutôt que le refus uniforme.
       if (erreur instanceof APIError) {
+        await enregistrerEchec(sujet, client);
         return refus();
       }
       return indisponible();
     }
 
     if (schemaSecondFacteur.safeParse(reponse).success) {
-      // Atteignable seulement avec le bon mot de passe : ne dit rien à un tiers.
+      // Atteignable seulement avec le bon mot de passe : ne dit rien à un
+      // tiers, et le mot de passe est confirmé — la série d'échecs est rompue.
+      await reinitialiserEchecs(sujet.identifiant, client);
       return { issue: "second_facteur_requis", cookies };
     }
 
     const ouverte = schemaSessionOuverte.safeParse(reponse);
     if (!ouverte.success) {
+      await enregistrerEchec(sujet, client);
       return refus();
     }
 
@@ -196,6 +254,10 @@ export async function tenterConnexion(
       });
       return refus();
     }
+
+    // Connexion réussie : la série d'échecs est rompue (décision d'Alexis du
+    // 10/11/2026).
+    await reinitialiserEchecs(sujet.identifiant, client);
 
     return {
       issue: "session",

@@ -2,6 +2,7 @@ import type { PrismaClient } from "@prisma/client";
 
 import { designationsReportees, retenirDesignations } from "./echange";
 import {
+  VARIABLE_SESSION_ADRESSE_IP,
   VARIABLE_SESSION_AUTH_EMAIL,
   VARIABLE_SESSION_AUTH_IDENTIFIANT,
   VARIABLE_SESSION_AUTH_JETON,
@@ -38,6 +39,7 @@ import {
  * | `compte` | identifiant d'utilisateur | `app.authentification_utilisateur_id` |
  * | `verification` | identifiant opaque | `app.authentification_identifiant` |
  * | `second_facteur` | identifiant d'utilisateur | `app.authentification_utilisateur_id` |
+ * | `tentative_connexion` | courriel saisi, ou adresse de l'appelant | `app.authentification_email`, `app.adresse_ip` (D258) |
  *
  * ## CE QUE LA TRACE MONTRE DE `getSession`, ET LA CAUSE ENFIN ISOLÉE (L1-02e)
  *
@@ -235,6 +237,24 @@ export const CLES_DESIGNATION: Readonly<
     creation: [
       { champ: "utilisateur_id", variable: VARIABLE_SESSION_AUTH_UTILISATEUR },
     ],
+  },
+  // ── `tentative_connexion` (D258, 9L07-CONNEXION-TENTATIVES-LIMITEES) ────
+  //
+  // Sixième table de la troisième catégorie de I1. Elle RÉUTILISE deux
+  // variables déjà posées ailleurs plutôt que d'en ouvrir deux de plus :
+  // `app.authentification_email` désigne déjà `utilisateur` par le courriel
+  // que l'appelant vient de saisir (L1-02c) — exactement notre cas, puisque
+  // `identifiant` porte ce même courriel, compte réel ou non (D35).
+  // `app.adresse_ip` est déjà posée par `lib/db/rls.ts` (chapitre 11.2) :
+  // une adresse n'étant pas un secret, rien n'empêche qu'elle serve
+  // aussi de désignation — seul compte qu'elle ne rende jamais plus que ce
+  // que l'appelant savait déjà.
+  tentativeConnexion: {
+    ou: [
+      { champ: "identifiant", variable: VARIABLE_SESSION_AUTH_EMAIL },
+      { champ: "adresse_ip", variable: VARIABLE_SESSION_ADRESSE_IP },
+    ],
+    creation: [{ champ: "identifiant", variable: VARIABLE_SESSION_AUTH_EMAIL }],
   },
 };
 

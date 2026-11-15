@@ -1,5 +1,6 @@
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { tenterConnexion } from "@/lib/auth/connexion";
+import { extraireAdresseIp } from "@/lib/auth/limiteur-connexion";
 import {
   basculerSociete,
   habilitationsDuCompte,
@@ -29,10 +30,15 @@ import { champ, redirection, redirectionAvecMotif } from "../reponses";
  */
 async function traiter(requete: Request): Promise<Response> {
   const formulaire = await requete.formData();
-  const resultat = await tenterConnexion({
-    email: champ(formulaire, "email"),
-    motDePasse: champ(formulaire, "motDePasse"),
-  });
+  const resultat = await tenterConnexion(
+    {
+      email: champ(formulaire, "email"),
+      motDePasse: champ(formulaire, "motDePasse"),
+    },
+    undefined,
+    undefined,
+    extraireAdresseIp(requete.headers),
+  );
 
   if (resultat.issue === "refus") {
     return redirectionAvecMotif("/connexion", "auth.refus");

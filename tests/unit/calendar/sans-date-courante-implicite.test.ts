@@ -81,6 +81,14 @@ const REPERTOIRES = ["app", "components", "lib", "prisma", "scripts"];
  * fuseau ne le borne, aucun écran ne l'affiche, aucune règle ne compare son
  * jour local à celui d'une agence. C'est le point de passage unique pour
  * `lib/auth/lien-d-acces.ts`, qui n'a donc besoin d'aucune exemption à lui.
+ *
+ * `lib/auth/limiteur-connexion.ts` (9L07, D258) — MÊME raisonnement :
+ * `maintenant()` n'y sert qu'à bâtir le début d'une fenêtre GLISSANTE de
+ * quinze minutes, comparée à `survenue_le` (`timestamptz`) — un INSTANT,
+ * jamais une date calendaire. Aucun `getHours`, aucun formatage, rien
+ * d'interprété localement ; et le défaut EST injectable — les scénarios
+ * d'isolation avancent l'horloge pour éprouver la levée du verrou sans
+ * attendre quinze minutes réelles, ce que `maintenant(fuseau)` ne permet pas.
  */
 const EXEMPTS_FICHIERS = [
   "lib/calendar/fuseau.ts",
@@ -89,6 +97,7 @@ const EXEMPTS_FICHIERS = [
   "lib/terrain/file-saisies.ts",
   "lib/terrain/compteur-vivant.ts",
   "lib/auth/instant-acceptation.ts",
+  "lib/auth/limiteur-connexion.ts",
 ];
 
 const MARQUEURS: readonly RegExp[] = [
