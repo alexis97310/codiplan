@@ -139,3 +139,108 @@ en production.
 Check-lists, prestations et barre d'action non touchées — seules les DEUX lignes d'appel à `PhotosTerrain`
 dans `checklist-terrain.tsx` ont changé (prop `afficherExistantes`, retrait de `libelleAjouter`), aucune
 logique de checklist elle-même.
+
+## 7. Reprise 9L04EA — rebase, cause mesurée, et ce que ce lot a trouvé en plus
+
+Branche `9L04EA-REPRISE-PHOTOS-EPUREES`, partie d'`origin/main` (qui portait entre-temps 9L04I-CHECKLIST-
+NON-CONFORME-DETAIL, 9L04K-REACTIVER-ACCES-INTERNE, 9L06-COMPTEUR-MINUTE-COMMENCEE, 9L04M-CHECKLIST-
+RETRAIT-REPONSE). Les 7 commits de `9L04E-TERRAIN-PHOTOS-EPUREES-garde` reportés par cherry-pick, dans
+l'ordre, sans modification de leur contenu propre — seuls les conflits de fusion avec le code publié
+depuis ont demandé une résolution :
+
+- **`lib/db/migrations-attendues.ts` / `prisma/schema.prisma`** : fusion triviale, les deux lignées
+  ajoutaient des entrées différentes.
+- **`tests/unit/auth/porte.test.ts`** : 114 (base commune) → 115 d'un côté (9L04K), 116 de l'autre
+  (9L04E) ; les deux additions combinées donnent 117.
+- **`docs/arbitrages.md`** : D254 était déjà pris par 9L04I au moment du cherry-pick (même jour,
+  13/11/2026, deux lots distincts) — la décision de 9L04E (légende facultative après l'envoi,
+  suppression par l'auteur jusqu'à « Terminer », D254 dans la version `-garde`) devient **D258**, suivant
+  libre sur `origin/main`, et sa propre passation (§1 ci-dessus) corrigée en conséquence.
+- **`app/(mobile)/terrain/[id]/page.tsx`** : conflit de structure (un autre lot a posé `BarreActionTerrain`
+  autour de `<main>` entre-temps) — résolu à la main en conservant la structure actuelle et en appliquant
+  SEULEMENT le changement de fond de 9L04E : la grille de photos codée en dur et l'ancien appel à
+  `PhotosTerrain` remplacés par le nouvel appel (`photosExistantes`, `interventionOuverte`), dans la
+  section « Photos » existante.
+
+### La cause mesurée du recalage, et sa portée réelle
+
+`tests/e2e/captures-9ewb-photos-en-base.spec.ts:131` (« capture — bloc photo avant envoi, à 1280px ») :
+`getByText(fr["terrain.photos.titre"])` résout deux éléments dès qu'une photo d'un test PRÉCÉDENT de la
+même scène sérielle existe déjà (le fichier partage une seule intervention entre ses 7 tests) — le `<h2>`
+titre de la rubrique ET le `<h2 id=…>` du dialogue natif `<dialog>` d'une vignette (TOUJOURS dans le DOM,
+même fermé — `getByText` lit le texte brut sans filtrer sur l'accessibilité, contrairement à `getByRole`)
+portent la MÊME traduction. Corrigé par `getByRole("heading", { name: … })`, qui exclut un `<dialog>` sans
+`open` (hors de l'arbre d'accessibilité). Le recalage touchait donc une photo d'un test antérieur dans la
+MÊME scène, pas un défaut de rendu du premier test lui-même.
+
+### Ce que la recherche de la même famille a trouvé EN PLUS (non listé par le contrat de recalage)
+
+En rejouant la scène ci-dessus et sa famille, trois défauts RÉELS et DISTINCTS sont apparus — aucun n'était
+nommé par `tickets/recales/9L04E-TERRAIN-PHOTOS-EPUREES.md` (fichier absent de ce poste au moment de cette
+reprise ; la seule source disponible était ce passation-ci et les commits eux-mêmes) :
+
+1. **Défaut de compilation** (`pnpm build` dans `pnpm verify`, PAS vu par `tsc` seul avant que le serveur
+   e2e ne tente de compiler) : `components/terrain/checklist-terrain.tsx` gardait un second appel à
+   `PhotosTerrain` avec `libelleAjouter` (le point non conforme AVEC détail, 9L04I — publié après le
+   merge-base de 9L04E, donc jamais vu par ce lot) ; la prop a disparu avec la réécriture. Corrigé comme
+   l'autre appel du même fichier (`afficherExistantes={false}`, pas de `libelleAjouter`).
+2. **Même défaut, côté scènes** : `tests/e2e/9l04i-checklist-non-conforme-detail.spec.ts` et
+   `9l04m-checklist-retrait-reponse.spec.ts` référençaient `fr["checklist.terrain.ajouter_photo"]`
+   (retirée) — ET gardaient `formulaireDuPoint` scopé sur un `<form>` disparu avec la soumission native
+   (9L04E l'avait déjà corrigé dans `9k28a-point-photo-hors-reseau.spec.ts`, jamais dans ces deux fichiers,
+   publiés après coup). Passés au marqueur `data-checklist-point-id`, et la séquence
+   `setInputFiles`+clic-bouton remplacée par l'envoi automatique + assertion sur l'état « Envoyée ».
+3. **Un vrai blocage e2e, pas une histoire de locator imprécis** :
+   `9l04m-checklist-retrait-reponse.spec.ts`, « refuse NOMMÉMENT le retrait d'une réponse qui porte une
+   photo » — `getByRole("button").last()` visait jadis le bouton « Ajouter une photo » (disparu) et
+   résolvait désormais le champ fichier caché de la bibliothèque, hors d'atteinte d'un clic réel (la scène
+   retentait le clic jusqu'au timeout, 30 s × 2 tentatives). Mesuré : `detailNonConformeVide`
+   (`lib/checklists/non-conformite.ts`) ne regarde QUE la suite et le commentaire, jamais la photo — la
+   section reste DÉPLIÉE après rechargement même avec une seule photo déposée, donc rien à « rouvrir ». Le
+   clic retiré ; la pastille « Non conforme » reste atteignable directement, même règle prouvée (retrait
+   refusé, réponse intacte).
+4. **Un défaut DISTINCT, pré-existant, révélé par la même réécriture** : `captures-9ewb-photos-en-
+   base.spec.ts`, « le bon porte la photo déposée » — ce test visite `/interventions/[id]/bon` sous un
+   compte TECHNICIEN, qui en est redirigé vers `/terrain/[id]` depuis D221 (9G8-TERRAIN-CONFIRMATIONS-ET-
+   ACCES, 21/10/2026, antérieur à cette scène du 14/10/2026) : il a donc TOUJOURS testé la page terrain,
+   jamais le vrai bon back-office. Il « passait » parce que l'ANCIENNE grille de la page terrain portait
+   `alt={photo.libelle}` sur chaque miniature ; la nouvelle vignette (9L04E) pose `alt=""` (décoratif, la
+   légende est un texte à côté). Assertion déplacée sur le `src` du document (`img[src*="/api/documents/"]`),
+   qui prouve la même chose (une photo déjà déposée, pas une tentative locale, s'affiche) sans dépendre de
+   l'alt. **À signaler à Alexis** : ce test n'a jamais capturé le vrai bon pour un technicien ; soit le
+   compte de la scène change pour un rôle back-office, soit le test est renommé pour dire ce qu'il mesure
+   réellement.
+5. **Un second test unitaire corrigé deux fois** : `tests/unit/terrain/checklist-terrain.test.tsx` avait le
+   même bouton disparu ; la première correction (`getByRole("button", { name: … })`) passait l'intention
+   mais PAS l'épreuve — jsdom ne porte pas la correspondance HTML-AAM qui donne un rôle `button` implicite à
+   `input[type=file]` dans un vrai navigateur (mesuré : l'épreuve e2e équivalente, sous Chromium, passe avec
+   exactement ce rôle). `getByLabelText` corrige, en vérifiant l'association au `<label>` plutôt qu'un rôle
+   calculé différemment selon le moteur.
+
+### Flake observé, non corrigé (pas de cause mesurée, donc pas de délai changé)
+
+`tests/e2e/9l04e-terrain-photos-epurees.spec.ts`, le test de bout en bout : `page.waitForResponse` posé
+APRÈS `page.goto` peut manquer la réponse `/api/terrain/instantane` si elle revient avant l'enregistrement
+du guetteur — observé une fois sur trois exécutions complètes de ce fichier, toujours rattrapé par la
+retentative (`retries: 1` sous CI, déjà configuré, inchangé). Non touché : la cause réelle (l'ordre
+`goto` → `waitForResponse`) est dans du code déjà publié par 9L04E lui-même, hors périmètre de cette
+reprise, et CLAUDE.md §5 interdit d'assouplir une épreuve sans cause mesurée.
+
+### Captures
+
+Les captures 375 px de 9L04E lui-même (`docs/propositions/9L04E-TERRAIN-PHOTOS-EPUREES/captures/`) ne sont
+PAS redevenues : aucun écran de CE ticket n'a changé de rendu dans cette reprise, seuls des localisateurs de
+test et un appel de composant dans `checklist-terrain.tsx` (point non conforme AVEC détail, écran de
+9L04I) l'ont été. Rejouer les scènes de cette famille a régénéré par effet de bord 33 PNG dans des tickets
+sans rapport (dates affichées, antialiasing) — remis à l'état d'avant cette session (commit dédié), pour ne
+pas polluer leur historique avec un bruit non intentionnel. Si Alexis veut les captures de 9L04I à jour
+avec le nouveau bloc photo (bouton « Ajouter une photo » → « Prendre une photo »/« Choisir dans la
+bibliothèque »), elles restent à refaire sous le ticket 9L04I, pas sous celui-ci.
+
+### Vérification finale
+
+`CI=1 pnpm verify` (format:check + typecheck + lint + test [5876 tests] + test:isolation [2255 tests] +
+build) **vert**, rejoué deux fois. `pnpm test:isolation` seul avait d'abord montré un échec
+(`performance-equipe.test.ts`, profondeur 48 pour un plafond de 46) — rejoué seul, passé ; rejoué dans la
+suite complète, repassé vert aux deux tentatives suivantes : un aléa de charge machine (plusieurs
+Playwright tournaient en parallèle sur ce poste), jamais un défaut du code.
