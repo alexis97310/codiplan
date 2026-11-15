@@ -1132,6 +1132,14 @@ function valeursDeLaSaisie(saisie: SaisieReponsePoint): {
  * point qui n'existe pas dans la version déjà figée (par un autre appareil,
  * sur une AUTRE version) est refusé — `checklist.refus.point_hors_version`.
  *
+ * **LE VRAI RETRAIT** (9L04M-CHECKLIST-RETRAIT-REPONSE, D257) — une entrée
+ * dont `valeur` est `null` SUPPRIME la réponse déjà écrite pour ce point
+ * (`GRANT DELETE`, migration de ce lot), jamais une septième valeur passée à
+ * `validerReponsePoint`. Refusée NOMMÉMENT, pour la différence ENTIÈRE, si
+ * la réponse visée porte au moins une photo (`checklist_reponse_photo`, I6 —
+ * `checklist.refus.reponse_porte_photos`) ; silencieuse (aucune ligne à
+ * retirer) si le point n'avait encore aucune réponse.
+ *
  * `null` si l'intervention n'est pas visible OU que ce technicien n'y est pas
  * affecté (D35, D50, même refus que `enregistrerRapportTexte`).
  */
@@ -1194,10 +1202,19 @@ export async function enregistrerReponses(
         readonly point: (typeof points)[number];
         readonly saisie: SaisieReponsePoint;
       }[] = [];
+      // UN RETRAIT (`valeur: null`, 9L04M-CHECKLIST-RETRAIT-REPONSE, D257) —
+      // jamais passé à `validerReponsePoint`, qui le refuserait comme toute
+      // valeur hors du type du point : c'est un geste À PART, pas une
+      // cinquième forme de saisie.
+      const aRetirer: { readonly point: (typeof points)[number] }[] = [];
       for (const entree of difference) {
         const point = pointsParId.get(entree.checklistPointId);
         if (point === undefined) {
           return { refuse: true, cle: "checklist.refus.point_hors_version" };
+        }
+        if (entree.valeur === null) {
+          aRetirer.push({ point });
+          continue;
         }
         const verdict = validerReponsePoint(
           { typeReponse: point.type_reponse, choix: point.choix },
@@ -1207,6 +1224,34 @@ export async function enregistrerReponses(
           return { refuse: true, cle: verdict.cle };
         }
         validees.push({ point, saisie: verdict.saisie });
+      }
+
+      // TOUT OU RIEN (I6) — une réponse qui porte au moins une photo ne se
+      // retire jamais par ce geste (I6, immutabilité de `checklist_reponse_
+      // photo`) : le refus porte sur la DIFFÉRENCE ENTIÈRE, avant qu'aucune
+      // ligne ne soit écrite, exactement comme un point hors version.
+      const pointIdsARetirer = aRetirer.map(({ point }) => point.id);
+      if (pointIdsARetirer.length > 0) {
+        const reponsesExistantes = await tx.checklistReponse.findMany({
+          where: {
+            intervention_id: interventionId,
+            checklist_point_id: { in: pointIdsARetirer },
+          },
+          select: { id: true },
+        });
+        const photosParReponseId = await photosParReponse(
+          tx,
+          reponsesExistantes.map((reponse) => reponse.id),
+        );
+        const unePhoto = reponsesExistantes.some(
+          (reponse) => (photosParReponseId.get(reponse.id)?.length ?? 0) > 0,
+        );
+        if (unePhoto) {
+          return {
+            refuse: true,
+            cle: "checklist.refus.reponse_porte_photos",
+          };
+        }
       }
 
       for (const { point, saisie } of validees) {
@@ -1246,10 +1291,22 @@ export async function enregistrerReponses(
         });
       }
 
-      // UNE RÉPONSE MODIFIÉE ANNULE SA VALIDATION (RG-INT-03, D135) — même
-      // motif que `enregistrerRapportTexte` : la réponse fait partie de ce
-      // qu'un responsable juge en validant le rapport.
-      if (validees.length > 0) {
+      // LE VRAI RETRAIT (9L04M, D257) — la ligne disparaît, la suite et le
+      // commentaire d'un point non conforme (9L04I) partent avec elle :
+      // aucune colonne à effacer séparément, c'est la MÊME ligne.
+      if (pointIdsARetirer.length > 0) {
+        await tx.checklistReponse.deleteMany({
+          where: {
+            intervention_id: interventionId,
+            checklist_point_id: { in: pointIdsARetirer },
+          },
+        });
+      }
+
+      // UNE RÉPONSE MODIFIÉE OU RETIRÉE ANNULE SA VALIDATION (RG-INT-03,
+      // D135) — même motif que `enregistrerRapportTexte` : la réponse fait
+      // partie de ce qu'un responsable juge en validant le rapport.
+      if (validees.length > 0 || pointIdsARetirer.length > 0) {
         await tx.intervention.updateMany({
           where: { id: interventionId },
           data: { rapport_valide_par: null, rapport_valide_le: null },

@@ -5177,6 +5177,11 @@ export const fr = {
   // `checklist_reponse_detail_non_conforme` en base).
   "checklist.refus.detail_hors_non_conforme":
     "La suite à donner et le commentaire ne valent que pour un point non conforme.",
+  // 9L04M-CHECKLIST-RETRAIT-REPONSE — une réponse qui porte au moins une
+  // photo ne se retire jamais par le second appui (I6, immutabilité de
+  // checklist_reponse_photo).
+  "checklist.refus.reponse_porte_photos":
+    "Cette réponse porte des photos ; elle ne peut pas être retirée.",
 
   // ── LE DÉTAIL D'UN POINT NON CONFORME (9L04I-CHECKLIST-NON-CONFORME-
   // DETAIL, décision d'Alexis du 13/11/2026) — partagé par la saisie
