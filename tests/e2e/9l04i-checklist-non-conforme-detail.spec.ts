@@ -257,11 +257,11 @@ async function capturer(page: Page, nom: string): Promise<void> {
   });
 }
 
-/** Le `<form>` `PhotosTerrain` embarqué AU POINT, par son champ caché — même patron que 9k28a. */
+// LE `<form>` A DISPARU AVEC LA SOUMISSION NATIVE (9L04E-TERRAIN-PHOTOS-
+// EPUREES, qui envoie par `fetch`) — même marqueur que 9k28a-point-photo-
+// hors-reseau.spec.ts.
 function formulaireDuPoint(page: Page, pointId: string) {
-  return page.locator("form").filter({
-    has: page.locator(`input[name="checklist_point_id"][value="${pointId}"]`),
-  });
+  return page.locator(`[data-checklist-point-id="${pointId}"]`);
 }
 
 function ligneDuPoint(page: Page, pointId: string) {
@@ -294,14 +294,16 @@ test("en ligne — non conforme ouvre la suite, le commentaire et la photo ; env
     .getByPlaceholder(fr["checklist.non_conformite.commentaire_placeholder"])
     .fill("Ne redémarre pas sous 6 bar");
 
+  // ENVOI AUTOMATIQUE À LA SÉLECTION (9L04E-TERRAIN-PHOTOS-EPUREES) — plus
+  // de bouton « Ajouter une photo » séparé ; deux champs fichier cachés,
+  // distingués par `[capture]`.
   const formulairePoint = formulaireDuPoint(page, POINT_EN_LIGNE);
   await formulairePoint
-    .locator('input[type="file"]')
+    .locator('input[type="file"][capture]')
     .setInputFiles(fichierPhotoDEpreuve());
-  await formulairePoint
-    .getByRole("button", { name: fr["checklist.terrain.ajouter_photo"] })
-    .click();
-  await expect(page.getByText(fr["terrain.photos.enregistree"])).toBeVisible();
+  await expect(
+    formulairePoint.getByText(fr["terrain.photos.etat_envoyee"]),
+  ).toBeVisible();
 
   await capturer(page, "point-ouvert-rempli");
 

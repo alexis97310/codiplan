@@ -219,7 +219,7 @@ describe("le détail d'un point non conforme (9L04I-CHECKLIST-NON-CONFORME-DETAI
     vi.restoreAllMocks();
   });
 
-  it("choisir « non conforme » ouvre la suite, le commentaire et « Ajouter une photo »", async () => {
+  it("choisir « non conforme » ouvre la suite, le commentaire et « Prendre une photo »", async () => {
     scene([point({ id: "p1" }), point({ id: "p2", libelle: "Autre point" })]);
 
     fireEvent.click(
@@ -231,9 +231,12 @@ describe("le détail d'un point non conforme (9L04I-CHECKLIST-NON-CONFORME-DETAI
     await waitFor(() =>
       expect(within(ligneDuPoint("p1")).getAllByRole("radio")).toHaveLength(3),
     );
+    // PLUS DE BOUTON « AJOUTER UNE PHOTO » SÉPARÉ (9L04E-TERRAIN-PHOTOS-
+    // EPUREES) — le champ fichier caché, étiqueté par son `<label>`, porte
+    // le rôle `button` (HTML-AAM : `input[type=file]`).
     expect(
       within(ligneDuPoint("p1")).getByRole("button", {
-        name: fr["checklist.terrain.ajouter_photo"],
+        name: fr["terrain.photos.prendre"],
       }),
     ).toBeVisible();
   });

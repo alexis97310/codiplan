@@ -128,7 +128,15 @@ for (const largeur of [375, 1280] as const) {
     await page.setViewportSize({ width: largeur, height: 1000 });
     await ouvrirLaSessionDuTerrain(page);
     await page.goto(`/terrain/${INTERVENTION_ID}`);
-    await expect(page.getByText(fr["terrain.photos.titre"])).toBeVisible();
+    // `getByText` SEUL RÉSOUT DEUX ÉLÉMENTS dès qu'une photo d'un test
+    // précédent existe déjà (même intervention, scène sérielle) : le titre
+    // de la rubrique ET le `<h2>` du dialogue de détail d'une vignette
+    // (natif, toujours dans le DOM même fermé) portent la MÊME traduction
+    // (9L04EA, reprise de 9L04E-TERRAIN-PHOTOS-EPUREES). Le rôle `heading`
+    // ne vise que le premier.
+    await expect(
+      page.getByRole("heading", { name: fr["terrain.photos.titre"] }),
+    ).toBeVisible();
     await capturer(page, "bloc-avant-envoi", largeur);
   });
 
@@ -188,7 +196,16 @@ test("le bon porte la photo déposée", async ({ page }) => {
 
   await ouvrirLaSessionDuTerrain(page);
   await page.goto(`/interventions/${INTERVENTION_ID}/bon`);
-  await expect(page.locator("img[alt='capture-9ewb.png']")).toBeVisible();
+  // CETTE PAGE REDIRIGE DÉJÀ VERS `/terrain/${id}` POUR UN TECHNICIEN (D221,
+  // 9G8-TERRAIN-CONFIRMATIONS-ET-ACCES, antérieur à cette scène) — non lié à
+  // 9L04E. La vignette d'une photo confirmée (`donnees.genre === "existante"`)
+  // y porte désormais `alt=""` (décoratif, la légende est un texte à côté,
+  // 9L04E-TERRAIN-PHOTOS-EPUREES) : l'ancien `img[alt='capture-9ewb.png']`
+  // ne matche plus rien. Le `src` vers le document reste le signal fiable
+  // qu'une photo DÉJÀ DÉPOSÉE (pas une tentative locale) s'affiche.
+  await expect(
+    page.locator('img[src*="/api/documents/"]').first(),
+  ).toBeVisible();
 
   for (const largeur of [375, 1280] as const) {
     await page.setViewportSize({ width: largeur, height: 1000 });
