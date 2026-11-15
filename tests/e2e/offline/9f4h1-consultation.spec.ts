@@ -180,6 +180,11 @@ test("journée et fiche se consultent sans réseau depuis la copie, le bandeau r
     fr["terrain.compteur.demarrer"],
     fr["terrain.compteur.pause"],
     fr["terrain.compteur.reprendre"],
+    // 9L04H-TERRAIN-RECAPITULATIF-SIGNATURE (point 1-2) : « Voir le
+    // récapitulatif » est toujours affiché en tête de la rubrique
+    // Signature, geste utilisable hors réseau (il relit la copie locale,
+    // jamais le réseau) — vérifié juste après la réconciliation ci-dessous.
+    fr["terrain.recapitulatif.ouvrir"],
     fr["terrain.signature.option_signee"],
     fr["terrain.signature.option_absent"],
     fr["terrain.signature.option_refus"],
@@ -208,6 +213,23 @@ test("journée et fiche se consultent sans réseau depuis la copie, le bandeau r
   await expect(page.getByRole("button")).toHaveCount(
     comptesNommes + comptesFichier,
   );
+  // LE RÉCAPITULATIF SE LIT DEPUIS LA COPIE LOCALE, SANS RÉSEAU (9L04H-
+  // TERRAIN-RECAPITULATIF-SIGNATURE) — ouvert ICI, hors réseau, puis refermé
+  // avant les vérifications suivantes.
+  await page
+    .getByRole("button", { name: fr["terrain.recapitulatif.ouvrir"] })
+    .click();
+  const dialogueRecapitulatif = page.getByRole("dialog", {
+    name: fr["terrain.recapitulatif.titre"],
+  });
+  await expect(dialogueRecapitulatif).toBeVisible();
+  await expect(
+    dialogueRecapitulatif.getByText(fr["terrain.recapitulatif.sous_titre"]),
+  ).toBeVisible();
+  await dialogueRecapitulatif
+    .getByRole("button", { name: fr["terrain.recapitulatif.fermer"] })
+    .click();
+  await expect(dialogueRecapitulatif).toHaveCount(0);
   // Les trois gestes qui ne dépendent jamais de l'état de l'intervention.
   // « Prendre une photo »/« Choisir dans la bibliothèque » sont des
   // `<label>` (9L04E-TERRAIN-PHOTOS-EPUREES) — jamais `role="button"` —, le
