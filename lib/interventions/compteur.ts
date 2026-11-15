@@ -10,10 +10,25 @@
  * bougé, ce que ce dépôt refuse partout (D85, `lib/vgp/information.ts`,
  * `lib/demandes/accuse.ts`).
  *
- * **Il n'arrondit RIEN.** L'arrondi au quart d'heure supérieur et le plancher
- * d'une heure vivent dans `lib/tarification/valorisation.ts`, une seule fois,
- * sur l'intervention entière (RG-TAR-05, D83, D89). *Arrondir ici ferait deux
- * lectures d'un même critère, et la seconde déciderait du prix* (§9, 01/09).
+ * **Il ne fait AUCUN arrondi DE PRIX.** L'arrondi au quart d'heure supérieur
+ * et le plancher d'une heure vivent dans `lib/tarification/valorisation.ts`,
+ * une seule fois, sur l'intervention entière (RG-TAR-05, D83, D89). *Arrondir
+ * ici ferait deux lectures d'un même critère, et la seconde déciderait du
+ * prix* (§9, 01/09).
+ *
+ * **LA TRONCATURE (`minutesDepuisMillisecondes`) EST UNE CONTRAINTE DE BASE,
+ * PAS (PLUS) UN CHOIX DE CE MODULE** (9L06-COMPTEUR-MINUTE-COMMENCEE, D256) —
+ * Alexis a décidé le 10/11/2026 que toute minute commencée devrait compter
+ * (1 s mesurerait 1, jamais 0). Ce module ne peut PAS appliquer cette partie
+ * de la décision seul : le déclencheur SQL qui garde `temps_mesure_min`
+ * (`intervention_temps_mesure_du_compteur`,
+ * `prisma/migrations/20260915060000_les_deux_temps_d120/migration.sql`)
+ * REFUSE toute valeur différente de `floor(secondes / 60)` — une migration
+ * est nécessaire pour changer le CÔTÉ BASE, et ce lot n'avait pas mandat
+ * d'en poser une. CE QUI EST CORRIGÉ ICI, sans toucher la base : la
+ * troncature ne se fait plus SEGMENT PAR SEGMENT (voir
+ * `minutesDepuisMillisecondes`) — elle reste, pour l'instant, une troncature
+ * sur le TOTAL, pas « toute minute commencée ».
  *
  * ## DEUX GESTES, ET NON TROIS — « pause » et « arrêt » ne diffèrent pas ENCORE
  *
@@ -48,7 +63,7 @@ export type Segment = {
  * en sachant qu'il affiche une durée vivante.
  */
 export type Mesure = {
-  /** Minutes fermées, arrondies à la minute INFÉRIEURE : on ne facture pas une seconde. */
+  /** Minutes fermées, TRONQUÉES — voir `minutesDepuisMillisecondes`. */
   readonly minutes: number;
   /** Le segment qui tourne, s'il y en a un. */
   readonly ouvert: Segment | null;
@@ -85,14 +100,34 @@ export function segmentOuvertDeLaPersonne(
 }
 
 /**
- * La mesure d'un ensemble de segments.
+ * UNE DURÉE MESURÉE (millisecondes), RENDUE EN MINUTES — TRONQUÉE, et SUR LE
+ * TOTAL, JAMAIS SEGMENT PAR SEGMENT.
  *
- * **Les minutes sont tronquées, jamais arrondies** : deux segments de 30 s
- * feraient une minute si chacun s'arrondissait, et ce serait un arrondi que
- * personne n'a décidé, en plus de celui de RG-TAR-05. *La troncature à la
- * minute est une conversion d'unité ; l'arrondi est une règle de prix, et elle
- * a sa maison.*
+ * **Ce que corrige ce lot (9L06-COMPTEUR-MINUTE-COMMENCEE, D256)** : trois
+ * segments de 20 s (60 s au total) doivent mesurer UNE minute ; les
+ * arrondir chacun séparément en mesurait trois fois ZÉRO, pour un total
+ * pourtant plein — mesuré dans `mesureCompteurDeLaFile`
+ * (`components/terrain/rapport-automatique.tsx`), qui additionnait des
+ * minutes déjà tronquées une à une plutôt que des millisecondes. Tout
+ * appelant qui recompose cette mesure à partir de plusieurs segments doit
+ * additionner les MILLISECONDES avant d'appeler cette fonction, jamais
+ * après avoir déjà arrondi chaque morceau — c'est ce que `mesurer`
+ * fait déjà ci-dessous, et ce que `mesureCompteurDeLaFile` fait désormais.
+ *
+ * **Ce que ce lot NE corrige PAS, faute de mandat pour migrer** : Alexis a
+ * décidé le 10/11/2026 que toute minute COMMENCÉE devrait compter (1 s
+ * mesurerait 1, jamais 0) — voir le docblock de tête du fichier. Cette
+ * fonction reste une TRONCATURE (`Math.floor`), parce que le déclencheur SQL
+ * qui garde `temps_mesure_min` l'exige encore mot pour mot ; la changer ici
+ * sans changer la base ferait refuser EN BASE tout arrêt de compteur dont la
+ * durée n'est pas un multiple exact de la minute — une régression, pas une
+ * correction.
  */
+export function minutesDepuisMillisecondes(millisecondes: number): number {
+  return Math.floor(millisecondes / 60_000);
+}
+
+/** La mesure d'un ensemble de segments — voir `minutesDepuisMillisecondes`. */
 export function mesurer(segments: readonly Segment[]): Mesure {
   const fermes = segments.filter(
     (s): s is Segment & { fin: Date } => s.fin !== null,
@@ -102,7 +137,7 @@ export function mesurer(segments: readonly Segment[]): Mesure {
     0,
   );
   return {
-    minutes: Math.floor(millisecondes / 60_000),
+    minutes: minutesDepuisMillisecondes(millisecondes),
     ouvert: segmentOuvert(segments),
     segmentsFermes: fermes.length,
   };

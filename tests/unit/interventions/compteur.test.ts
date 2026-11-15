@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   mesurer,
+  minutesDepuisMillisecondes,
   peutArreter,
   peutDemarrer,
   segmentOuvert,
@@ -93,6 +94,57 @@ describe("ce que les segments mesurent", () => {
       segmentsFermes: 0,
     });
     expect(segmentOuvert([])).toBeNull();
+  });
+});
+
+/**
+ * TRONQUÉ, SUR LE TOTAL, JAMAIS SEGMENT PAR SEGMENT (9L06-COMPTEUR-MINUTE-
+ * COMMENCEE, décision d'Alexis du 10/11/2026, D256) — `mesurer` délègue sa
+ * conversion millisecondes → minutes à cette seule fonction ;
+ * `mesureCompteurDeLaFile` (`components/terrain/rapport-automatique.tsx`)
+ * aussi, éprouvée à part. Voir son docblock (`lib/interventions/
+ * compteur.ts`) : « toute minute commencée compte » reste une décision NON
+ * appliquée ici, faute de mandat pour migrer le déclencheur SQL qui garde
+ * `temps_mesure_min` — ce que cette fonction corrige est seulement
+ * l'arrondi SEGMENT PAR SEGMENT.
+ */
+describe("minutesDepuisMillisecondes — tronqué, jamais segment par segment", () => {
+  it("0 ms : 0", () => {
+    expect(minutesDepuisMillisecondes(0)).toBe(0);
+  });
+
+  it("1 s : 0 (toujours tronqué — pas encore « toute minute commencée », voir le docblock)", () => {
+    expect(minutesDepuisMillisecondes(1_000)).toBe(0);
+  });
+
+  it("59 s : 0", () => {
+    expect(minutesDepuisMillisecondes(59_000)).toBe(0);
+  });
+
+  it("60 s : 1", () => {
+    expect(minutesDepuisMillisecondes(60_000)).toBe(1);
+  });
+
+  it("61 s : 1", () => {
+    expect(minutesDepuisMillisecondes(61_000)).toBe(1);
+  });
+
+  it("trois segments de 20 s (60 s au total) : UNE minute, jamais trois fois zéro", () => {
+    const debut = T(8);
+    const vingtSecondesPlusTard = (depart: Date): Date =>
+      new Date(depart.getTime() + 20_000);
+    const a = debut;
+    const finA = vingtSecondesPlusTard(a);
+    const b = new Date(finA.getTime() + 5 * 60_000);
+    const finB = vingtSecondesPlusTard(b);
+    const c = new Date(finB.getTime() + 5 * 60_000);
+    const finC = vingtSecondesPlusTard(c);
+    const mesure = mesurer([
+      segment(a, finA, "a"),
+      segment(b, finB, "b"),
+      segment(c, finC, "c"),
+    ]);
+    expect(mesure.minutes).toBe(1);
   });
 });
 

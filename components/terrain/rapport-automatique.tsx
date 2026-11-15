@@ -17,6 +17,7 @@ import {
   suiteAvecLigne,
 } from "@/lib/checklists/suite-preremplie";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
+import { minutesDepuisMillisecondes } from "@/lib/interventions/compteur";
 import {
   manquesPourTerminer,
   peutTerminer,
@@ -435,7 +436,7 @@ function memeEnsemble(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {
  * compteur qui tourne, alors que le serveur, lui, mesurera un temps réel dès
  * l'envoi.
  */
-function mesureCompteurDeLaFile(
+export function mesureCompteurDeLaFile(
   entrees: readonly EntreeFile[],
   segmentOuvertConnu: { readonly debut: string } | null,
 ): {
@@ -450,7 +451,16 @@ function mesureCompteurDeLaFile(
    */
   readonly debutSegmentOuvert: string | null;
 } {
-  let minutes = 0;
+  // SUR LE TOTAL DES MILLISECONDES, JAMAIS SEGMENT PAR SEGMENT
+  // (9L06-COMPTEUR-MINUTE-COMMENCEE, décision d'Alexis du 10/11/2026, D256) —
+  // voir le docblock de `minutesDepuisMillisecondes` (`lib/interventions/
+  // compteur.ts`), qui reste une TRONCATURE (pas encore « toute minute
+  // commencée », faute de mandat pour migrer le déclencheur SQL qui garde
+  // `temps_mesure_min` — voir ce même docblock). Ce qui est corrigé ICI :
+  // arrondir CHAQUE segment avant de les additionner mesurait zéro plusieurs
+  // pauses/reprises de quelques secondes chacune, pour un total pourtant
+  // plein ; cette fonction additionne désormais les millisecondes d'abord.
+  let millisecondes = 0;
   let debut: string | null = segmentOuvertConnu?.debut ?? null;
   for (const entree of entrees) {
     if (entree.geste.type !== "compteur") {
@@ -459,15 +469,16 @@ function mesureCompteurDeLaFile(
     if (entree.geste.action === "demarrer") {
       debut = entree.instantAppareil;
     } else if (debut !== null) {
-      minutes += Math.floor(
-        (new Date(entree.instantAppareil).getTime() -
-          new Date(debut).getTime()) /
-          60_000,
-      );
+      millisecondes +=
+        new Date(entree.instantAppareil).getTime() - new Date(debut).getTime();
       debut = null;
     }
   }
-  return { minutes, segmentOuvert: debut !== null, debutSegmentOuvert: debut };
+  return {
+    minutes: minutesDepuisMillisecondes(millisecondes),
+    segmentOuvert: debut !== null,
+    debutSegmentOuvert: debut,
+  };
 }
 
 /**
@@ -804,11 +815,18 @@ export function RapportTerrainAutomatique({
   // minutes déjà FERMÉES (serveur + file) et le DÉBUT du segment encore
   // ouvert, s'il y en a un ; `null` si rien ne tourne. `CompteurVivant` fait
   // défiler le second à partir du premier, jamais une estimation figée.
+  //
+  // EXTRAIT EN PRIMITIVE (9L06-COMPTEUR-MINUTE-COMMENCEE, D256) — l'effet
+  // `relire()` plus bas en dépend ; `segmentOuvertConnu` lui-même, un objet
+  // littéral recomposé à chaque rendu serveur, romprait la vérification
+  // statique des dépendances (`react-hooks/exhaustive-deps` : « expression
+  // complexe »).
+  const debutSegmentOuvertConnu = segmentOuvertConnu?.debut ?? null;
   const [minutesFermeesAffichees, setMinutesFermeesAffichees] =
     useState(minutesConnues);
   const [debutSegmentOuvertAffiche, setDebutSegmentOuvertAffiche] = useState<
     string | null
-  >(segmentOuvertConnu?.debut ?? null);
+  >(debutSegmentOuvertConnu);
 
   // JAMAIS DE RAFRAÎCHISSEMENT AUTOMATIQUE PENDANT UNE SAISIE DU RAPPORT
   // (point 2, 9F4H5-TERRAIN-VIVANT) — « attente » est le debounce qui
@@ -1481,8 +1499,25 @@ export function RapportTerrainAutomatique({
     relire();
     window.addEventListener(EVENEMENT_FILE_MODIFIEE, relire);
     return () => window.removeEventListener(EVENEMENT_FILE_MODIFIEE, relire);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- `checklistPourTerminer`/`segmentOuvertConnu`/`minutesConnues` sont les props du rendu COURANT, jamais réécrits par une saisie ; seuls l'identité de la fiche et la session doivent réabonner cet écouteur.
-  }, [interventionId, utilisateurId, societeId]);
+    // `segmentOuvertConnu`/`minutesConnues` SONT DES DÉPENDANCES, PAS UNE
+    // EXCEPTION (9L06-COMPTEUR-MINUTE-COMMENCEE, décision d'Alexis du
+    // 10/11/2026, D256) — le commentaire précédent affirmait qu'aucune
+    // saisie ne les réécrit ; un « Démarrer » EN LIGNE (`BoutonCompteurTerrain`)
+    // en réécrit un, par `router.refresh()`, SANS passer par la file — ni
+    // `EVENEMENT_FILE_MODIFIEE` ni ce montage ne rejouaient alors `relire()`,
+    // et la feuille de confirmation gardait le `debutSegmentOuvertAffiche`
+    // (donc le temps affiché) du rendu D'AVANT ce démarrage : `null`, donc
+    // « Temps mesuré : 0 min » statique au lieu du compteur qui défile —
+    // quelle que soit la durée réellement écoulée depuis. `checklistPourTerminer`
+    // reste hors dépendances : aucune saisie observée ne le réécrit hors file.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `checklistPourTerminer` seul reste exclu, voir ci-dessus.
+  }, [
+    interventionId,
+    utilisateurId,
+    societeId,
+    debutSegmentOuvertConnu,
+    minutesConnues,
+  ]);
 
   // UN « DÉMARRER » RÉUSSI EN LIGNE (D220, décision d'Alexis du 21/10/2026,
   // défaut mesuré : la REPRISE d'une intervention « terminée » laissait

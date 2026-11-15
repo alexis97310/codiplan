@@ -8758,3 +8758,33 @@ Elle ne rouvre pas la liste `EvenementAcces` : le jour où une valeur de réacti
 > Le jour où une valeur `EvenementAcces` de réactivation existe (migration dédiée, décidée pour elle-même), `retablirAccesInterne` et la branche « réactivation » de `creerCompteDeBureau`/`habiliterEtRattacherDans` se relisent pour y écrire une trace — cette décision suppose aujourd'hui qu'ils ne le font pas, et que `journal_audit` (I8) suffit à ne pas rendre le geste invisible. Le jour où une lecture de `utilisateur_societe` AUTRE que `techniciensAccesAOuvrir` se révèle, elle aussi, compter une ligne inactive comme s'il fallait lui ouvrir un accès, cette décision se relit pour l'y ajouter.
 
 Portée : `lib/auth/retrait-acces.ts` (`retablirAccesInterne`, créé), `lib/auth/acces-bureau.ts` (`creerCompteDeBureau`), `lib/techniciens/depot.ts` (`habiliterEtRattacherDans`), `lib/tableau-de-bord/lectures.ts` (`techniciensAccesAOuvrir`), `app/api/equipe/[id]/retablir-acces/route.ts` (créé), `app/(back-office)/parametres/equipe/page.tsx`, `lib/i18n/fr.ts`, `tests/unit/auth/porte.test.ts`, `tests/unit/equipe/retablir-acces-route.test.ts`, `tests/unit/techniciens/depot.test.ts`, `tests/isolation/9l04k-reactiver-acces-interne.test.ts`, `tests/e2e/captures-9l04k-reactiver-acces.spec.ts`.
+
+## D256 — TOUTE MINUTE COMMENCÉE PAR LE COMPTEUR COMPTE, SUR LE TOTAL DE L'INTERVENTION, JAMAIS SEGMENT PAR SEGMENT (décision d'Alexis du 10/11/2026 ; 9L06-COMPTEUR-MINUTE-COMMENCEE)
+
+### CE QUI A ÉTÉ MESURÉ
+
+Alexis, mesuré le 10/11/2026 : en terminant une intervention, le temps final affiché peut être « 0 », qu'un compteur ait tourné moins d'une minute OU plus d'une minute. Deux défauts distincts, cherchés séparément.
+
+**Le premier, confirmé partout où le compteur convertit une durée en minutes** : `mesurer` (`lib/interventions/compteur.ts`) et `mesureCompteurDeLaFile` (`components/terrain/rapport-automatique.tsx`) tronquaient à la minute INFÉRIEURE (`Math.floor`) — un compteur arrêté après 45 s mesurait 0, et `peutTerminer` pouvait refuser l'intervention pour « temps manquant » malgré un travail réel. `mesureCompteurDeLaFile`, de surcroît, arrondissait CHAQUE segment séparément avant de les additionner : trois pauses/reprises de 20 s chacune (60 s au total) mesuraient trois fois zéro plutôt qu'une minute pleine.
+
+**Le second, propre à `mesurer`, NE reproduit PAS** : `Math.floor` d'une durée d'au moins 60 s ne rend jamais 0, et une épreuve de bout en bout (démarrer, attendre réellement plus de deux minutes, terminer — en ligne puis hors réseau) confirme que le temps PERSISTÉ (`intervention.temps_mesure_min`) n'est jamais tombé à zéro pour un compteur de plus d'une minute, ni avant ni après la correction du premier défaut.
+
+**Un troisième défaut, RÉEL, découvert PENDANT cette même épreuve hors réseau** : la feuille de confirmation de « Terminer » affichait « Temps mesuré : 0 min » — jamais le compteur qui défile — chaque fois qu'une coupure réseau survenait APRÈS un geste compteur réussi EN LIGNE (un « Démarrer », par exemple) et AVANT toute écriture dans la file locale. `RapportTerrainAutomatique` ne relisait les props `segmentOuvertConnu`/`minutesConnues` qu'au montage et sur l'évènement de modification de la file — jamais quand ces props changent par un simple `router.refresh()`, ce qu'un geste compteur réussi EN LIGNE déclenche sans jamais toucher à la file. Ce défaut-ci était indépendant de la durée écoulée : il touchait l'AFFICHAGE de la feuille, jamais le temps réellement envoyé au serveur ni ce qui est persisté — le serveur referme le segment ouvert et mesure sur les VRAIS segments en base, indifférent à ce que l'écran montrait.
+
+### LA DÉCISION
+
+**1. Toute minute commencée par le compteur compte.** Une nouvelle fonction, `minutesDepuisMillisecondes` (`lib/interventions/compteur.ts`), remplace la troncature : 1 s mesure 1 minute, 59 s mesurent 1, 60 s mesurent 1, 61 s mesurent 2. `mesurer` et `mesureCompteurDeLaFile` l'appellent toutes deux, sur le TOTAL des millisecondes de leurs segments — jamais en additionnant des minutes déjà arrondies séparément. Ceci n'est PAS un arrondi de prix (RG-TAR-05, D83, D89 restent à leur place dans `lib/tarification/valorisation.ts`, sur l'intervention entière) : c'est une conversion d'unité de mesure, qui dit combien de minutes un compteur a occupées, jamais combien sont dues.
+
+**2. La feuille de confirmation de « Terminer » relit son temps affiché dès que `segmentOuvertConnu`/`minutesConnues` changent**, pas seulement au montage ou sur un évènement de file — ces deux props entrent dans les dépendances de l'effet qui recalcule `minutesFermeesAffichees`/`debutSegmentOuvertAffiche`.
+
+**3. Cette décision ne change rien à la facturation.** La première heure reste due dès la première minute (D224) ; aucune minute « commencée » supplémentaire par cette correction ne change ce plancher, déjà au-dessus d'une minute dans tous les cas réels.
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+Elle ne rouvre pas l'arrondi de prix (RG-TAR-05) : celui-ci reste au quart d'heure supérieur, une seule fois, dans `lib/tarification/valorisation.ts`, sur l'intervention entière — jamais ici. Elle ne répond pas à la question « un temps mesuré de 0 (compteur jamais lancé) doit-il permettre de terminer ? » : `peutTerminer` continue de refuser un temps mesuré nul ou négatif (`intervention.refus.temps_manquant`), inchangé par ce lot, et cette question reste ouverte, non tranchée ici.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où une AUTRE lecture convertit une durée mesurée par le compteur en minutes (hors `lib/tarification/valorisation.ts`, qui a sa propre règle), cette décision se relit : elle suppose que `minutesDepuisMillisecondes` est la SEULE conversion, et qu'aucune autre ne retombe dans la troncature ni dans l'arrondi segment par segment qu'elle corrige.
+
+Portée : `lib/interventions/compteur.ts` (`minutesDepuisMillisecondes`, créé ; `mesurer`), `components/terrain/rapport-automatique.tsx` (`mesureCompteurDeLaFile`, l'effet qui relit la feuille de confirmation), `tests/unit/interventions/compteur.test.ts`, `tests/unit/terrain/rapport-automatique.test.tsx`, `tests/e2e/9l06-compteur-minute-commencee.spec.ts`.

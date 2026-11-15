@@ -8,10 +8,12 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  mesureCompteurDeLaFile,
   positionCanevas,
   RapportTerrainAutomatique,
   type PrestationOption,
 } from "@/components/terrain/rapport-automatique";
+import type { EntreeFile } from "@/lib/terrain/file-saisies";
 import { fr } from "@/lib/i18n";
 import { envoyerFile } from "@/lib/terrain/envoi-file";
 import {
@@ -1902,5 +1904,115 @@ describe("la résolution de dessin du canevas suit la taille réellement affich�
     );
 
     mesure.mockRestore();
+  });
+});
+
+/**
+ * TRONQUÉ, SUR LE TOTAL — JAMAIS SEGMENT PAR SEGMENT (9L06-COMPTEUR-MINUTE-
+ * COMMENCEE, décision d'Alexis du 10/11/2026, D256) — voir le docblock de
+ * `minutesDepuisMillisecondes` (`lib/interventions/compteur.ts`) : « toute
+ * minute commencée compte » reste NON appliqué, faute de mandat pour migrer
+ * le déclencheur SQL qui garde `temps_mesure_min`. Ce que ce lot corrige ICI
+ * est seulement l'arrondi SEGMENT PAR SEGMENT, qui mesurait zéro plusieurs
+ * pauses/reprises courtes pour un total pourtant plein.
+ */
+describe("mesureCompteurDeLaFile — tronqué, jamais segment par segment", () => {
+  const BASE: Omit<EntreeFile, "id" | "instantAppareil" | "geste"> = {
+    interventionId: INTERVENTION_ID,
+    utilisateurId: UTILISATEUR_ID,
+    societeId: SOCIETE_ID,
+    motifRefus: null,
+  };
+
+  function demarrer(id: string, instantAppareil: string): EntreeFile {
+    return {
+      ...BASE,
+      id,
+      instantAppareil,
+      geste: { type: "compteur", action: "demarrer" },
+    };
+  }
+
+  function arreter(id: string, instantAppareil: string): EntreeFile {
+    return {
+      ...BASE,
+      id,
+      instantAppareil,
+      geste: { type: "compteur", action: "arreter" },
+    };
+  }
+
+  it("rien en file, aucun segment connu : 0 minute, rien d'ouvert", () => {
+    expect(mesureCompteurDeLaFile([], null)).toEqual({
+      minutes: 0,
+      segmentOuvert: false,
+      debutSegmentOuvert: null,
+    });
+  });
+
+  it("59 s en file : 0 minute (toujours tronqué, un seul segment)", () => {
+    const resultat = mesureCompteurDeLaFile(
+      [
+        demarrer("a", "2026-11-10T08:00:00.000Z"),
+        arreter("b", "2026-11-10T08:00:59.000Z"),
+      ],
+      null,
+    );
+    expect(resultat.minutes).toBe(0);
+    expect(resultat.segmentOuvert).toBe(false);
+  });
+
+  it("61 s en file : 1 minute", () => {
+    const resultat = mesureCompteurDeLaFile(
+      [
+        demarrer("a", "2026-11-10T08:00:00.000Z"),
+        arreter("b", "2026-11-10T08:01:01.000Z"),
+      ],
+      null,
+    );
+    expect(resultat.minutes).toBe(1);
+  });
+
+  /**
+   * LA RÉGRESSION QUE CE LOT CORRIGE : trois cycles démarrer/arrêter de 25 s
+   * (75 s au total) mesurent UNE minute. AVANT ce lot, chaque cycle était
+   * arrondi À PART (`Math.floor(25_000 / 60_000) === 0`) et la somme de
+   * trois zéros valait zéro — un total pourtant plus long qu'une minute
+   * pleine.
+   */
+  it("trois cycles démarrer/arrêter de 25 s (75 s au total) : UNE minute, jamais trois fois zéro", () => {
+    const resultat = mesureCompteurDeLaFile(
+      [
+        demarrer("a1", "2026-11-10T08:00:00.000Z"),
+        arreter("a2", "2026-11-10T08:00:25.000Z"),
+        demarrer("b1", "2026-11-10T08:05:00.000Z"),
+        arreter("b2", "2026-11-10T08:05:25.000Z"),
+        demarrer("c1", "2026-11-10T08:10:00.000Z"),
+        arreter("c2", "2026-11-10T08:10:25.000Z"),
+      ],
+      null,
+    );
+    expect(resultat.minutes).toBe(1);
+    expect(resultat.segmentOuvert).toBe(false);
+  });
+
+  it("un segment déjà connu du serveur (ICI, SSR) referme sur un 'arrêter' de la file, total conservé", () => {
+    const resultat = mesureCompteurDeLaFile(
+      [arreter("a", "2026-11-10T08:01:30.000Z")],
+      { debut: "2026-11-10T08:00:00.000Z" },
+    );
+    expect(resultat.minutes).toBe(1);
+    expect(resultat.segmentOuvert).toBe(false);
+    expect(resultat.debutSegmentOuvert).toBeNull();
+  });
+
+  it("un 'démarrer' sans 'arrêter' reste ouvert, et ne compte pour AUCUNE minute ici — le serveur le mesurera", () => {
+    const resultat = mesureCompteurDeLaFile(
+      [demarrer("a", "2026-11-10T08:00:00.000Z")],
+      null,
+    );
+    expect(resultat.minutes).toBe(0);
+    expect(resultat.segmentOuvert).toBe(true);
+    expect(resultat.debutSegmentOuvert).toBe("2026-11-10T08:00:00.000Z");
   });
 });
