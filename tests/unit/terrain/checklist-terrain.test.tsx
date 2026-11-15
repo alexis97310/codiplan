@@ -232,12 +232,14 @@ describe("le détail d'un point non conforme (9L04I-CHECKLIST-NON-CONFORME-DETAI
       expect(within(ligneDuPoint("p1")).getAllByRole("radio")).toHaveLength(3),
     );
     // PLUS DE BOUTON « AJOUTER UNE PHOTO » SÉPARÉ (9L04E-TERRAIN-PHOTOS-
-    // EPUREES) — le champ fichier caché, étiqueté par son `<label>`, porte
-    // le rôle `button` (HTML-AAM : `input[type=file]`).
+    // EPUREES) — le champ fichier caché, étiqueté par son `<label>`. jsdom
+    // ne porte pas la correspondance HTML-AAM qui donnerait un rôle `button`
+    // à `input[type=file]` dans un vrai navigateur (mesuré : `getByRole`
+    // échoue ici bien que l'épreuve e2e équivalente passe) — `getByLabelText`
+    // vérifie directement l'association au `<label>`, sans dépendre d'un
+    // rôle implicite que ce moteur ne calcule pas.
     expect(
-      within(ligneDuPoint("p1")).getByRole("button", {
-        name: fr["terrain.photos.prendre"],
-      }),
+      within(ligneDuPoint("p1")).getByLabelText(fr["terrain.photos.prendre"]),
     ).toBeVisible();
   });
 
