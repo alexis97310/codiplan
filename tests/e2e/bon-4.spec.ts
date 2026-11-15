@@ -173,8 +173,13 @@ test("le terrain signe avec un nom et une qualité, et le bon les imprime", asyn
   await page
     .getByRole("radio", { name: fr["terrain.signature.qualite.autre"] })
     .click();
+  // `getByLabel` SEUL RÉSOUT DEUX ÉLÉMENTS — le groupe de segments garde le
+  // même `aria-label` que la saisie libre qu'il ouvre (même libellé, voulu,
+  // voir le docblock de `SegmentsChoix`) ; `getByRole("textbox", …)`
+  // désambiguïse, même patron que le test unitaire
+  // (`tests/unit/terrain/rapport-automatique.test.tsx`).
   await page
-    .getByLabel(fr["terrain.signature.qualite_libelle"])
+    .getByRole("textbox", { name: fr["terrain.signature.qualite_libelle"] })
     .fill(fr["bon4.e2e.signataire_qualite"]);
 
   // Voir `rapport-terrain.spec.ts` : les événements sont DISPATCHÉS
