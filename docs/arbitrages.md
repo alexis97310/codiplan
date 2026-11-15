@@ -8864,3 +8864,33 @@ Elle ne touche pas au rattachement d'une prestation à un SOUS-TYPE structuré (
 > Le jour où une prestation doit viser un SOUS-TYPE plutôt qu'une famille entière (gabarit plus fin que celui mesuré au 13/11/2026), cette décision se relit : elle suppose aujourd'hui que la famille est le grain suffisant, faute d'un besoin mesuré au niveau du sous-type.
 
 Portée : `prisma/schema.prisma` (`PrestationFamilleMateriel`, `Prestation.familles`, `FamilleMateriel.prestations`), `prisma/migrations/20261115030000_prestations_par_famille_materiel_9l04j/`, `lib/db/migrations-attendues.ts`, `lib/prestations/saisie.ts`, `lib/prestations/depot.ts`, `lib/prestations/regle-famille.ts` (créé), `lib/machines/depot.ts` (`DonneesMateriel.familleId`), `lib/imports/modeles.ts`, `lib/imports/application.ts`, `lib/imports/annulation.ts`, `app/(back-office)/parametres/prestations/page.tsx`, `app/api/parametres/prestations/saisie-recue.ts`, `app/(mobile)/terrain/[id]/page.tsx`, `app/api/terrain/instantane/route.ts` (`FicheJSON.familleMachineId`), `components/terrain/consultation-hors-reseau.tsx`, `components/terrain/rapport-automatique.tsx`, `lib/i18n/fr.ts`, `tests/isolation/prestations.test.ts`, `tests/unit/prestations/`, `tests/unit/terrain/rapport-automatique.test.tsx`, `tests/e2e/9l04j-prestations-par-materiel.spec.ts`.
+
+## D260 — CINQ ÉCHECS DE MOT DE PASSE SUR UN COMPTE OU UNE ADRESSE DÉCLENCHENT UN REFUS TEMPORISÉ DE QUINZE MINUTES ; `tentative_connexion` ENTRE DANS LA TROISIÈME CATÉGORIE DE I1 (décision d'Alexis du 10/11/2026 ; 9L07-CONNEXION-TENTATIVES-LIMITEES)
+
+### CE QUI A ÉTÉ MESURÉ
+
+Sur `81894e0` : `/api/session/connexion` (`app/api/session/connexion/route.ts`, `lib/auth/connexion.ts`) ne portait qu'un plancher de durée commun à tous les refus (D35) — aucune limite au nombre d'essais. Le limiteur intégré à la bibliothèque d'authentification (`lib/auth/config.ts`) est tenu en mémoire du processus : sur un hébergement sans état, où deux requêtes successives peuvent atterrir sur deux processus différents, il ne protège rien.
+
+### LA DÉCISION
+
+**1. Cinq échecs de mot de passe sur un même compte, dans une fenêtre glissante de quinze minutes, déclenchent un refus de MÊME FORME qu'un refus ordinaire** (D35) — aucun message ne distingue « verrouillé » de « mot de passe faux », même présenté avec le bon mot de passe. La même limite s'applique par adresse de l'appelant, quand elle est connue. Les deux constantes (`SEUIL_ECHECS_CONNEXION = 5`, `FENETRE_ECHECS_CONNEXION_SECONDES = 900`) vivent dans `lib/auth/limiteur-connexion.ts`, citent cette décision, et ne sont jamais des réglages inventés.
+
+**2. Le compteur est une TABLE, `tentative_connexion` — une ligne par échec, jamais un compteur réarmé.** Le refus doit se comporter identiquement pour un compte inexistant et pour un compte réel (D35) ; `identifiant` porte donc le courriel TEL QUE SAISI, normalisé, qu'il désigne ou non un compte. Une ligne vieillit seule et sort seule de la fenêtre glissante — aucune tâche planifiée de remise à zéro n'est nécessaire, et ce ticket n'en ouvre pas.
+
+**3. `tentative_connexion` entre dans la TROISIÈME catégorie de I1** — pas de `societe_id`, purgeable, au même titre que `session`, `compte`, `verification`, `second_facteur` et `journal_acces`. Sa forme est « désignation », et elle RÉUTILISE deux variables de session déjà posées ailleurs — `app.authentification_email` (désigne déjà `utilisateur` par le courriel saisi, L1-02c) et `app.adresse_ip` (déjà posée pour le journal d'audit, chapitre 11.2) — plutôt que d'en ouvrir deux de plus. `lib/auth/lecture-identite.ts` porte une entrée `tentativeConnexion` de plus dans `CLES_DESIGNATION`, couverte sans code neuf par le gardien qui dérive sa population de cette liste (`tests/unit/auth/formes-d-appel.test.ts`).
+
+**4. Le verrou se vérifie AVANT tout appel à la bibliothèque d'authentification.** Vérifier le mot de passe pendant un verrouillage, et compter l'échec, ferait glisser la fenêtre sans fin tant que quelqu'un continuerait d'essayer — le verrou ne lèverait jamais. Verrouillé, aucune ligne n'est ajoutée ; les cinq lignes déjà posées sortent seules de la fenêtre quinze minutes après la dernière d'entre elles, et la connexion redevient alors possible avec le bon mot de passe.
+
+**5. Une connexion qui franchit l'étape du mot de passe — ouverture de session ou second facteur requis — remet le compteur à zéro pour ce compte.** Le second facteur garde ses propres règles de verrouillage (D62), inchangées.
+
+**6. Le journal d'accès reçoit un événement `connexion_temporisee`, SEULEMENT quand le courriel présenté correspond à un compte réel.** `journal_acces.utilisateur_id` est `NOT NULL` : il n'existe aucune ligne à écrire pour un courriel qui ne désigne personne. Cette asymétrie ne fuite rien (D35) — la réponse HTTP est identique dans les deux cas ; seul le journal, que l'appelant ne lit jamais, se tait ou parle.
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+Elle ne touche pas au second facteur (D62, SEUIL_ECHECS_SECOND_FACTEUR) : deux mécanismes distincts, deux compteurs distincts, la même forme de refus temporisé mais des seuils et des tables qui ne se mélangent jamais. Elle n'ajoute aucune tâche planifiée de purge : une ligne de `tentative_connexion` ne sert plus à rien passé la fenêtre, mais elle n'est retirée ni par une tâche ni par une politique de rétention — ce sera, s'il y a lieu, une question du chapitre 22 (lot 7).
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où une tentative de connexion doit être comptée ou refusée PENDANT le verrouillage lui-même (par exemple pour prolonger la fenêtre à chaque nouvel essai), cette décision se relit : elle suppose aujourd'hui qu'aucune ligne n'est ajoutée tant que `verrouille` rend vrai, et que la fenêtre glissante expire donc seule, sans jamais être repoussée par les essais qui suivent le verrouillage.
+
+Portée : `prisma/migrations/20261115040000_limite_connexion_tentatives_9l07/`, `prisma/schema.prisma` (`TentativeConnexion`, `EvenementAcces.connexion_temporisee`), `lib/db/migrations-attendues.ts`, `lib/auth/limiteur-connexion.ts` (créé), `lib/auth/connexion.ts` (`tenterConnexion`), `lib/auth/lecture-identite.ts` (`CLES_DESIGNATION.tentativeConnexion`), `app/api/session/connexion/route.ts`, `docs/constitution/invariants.md` §3, `tests/unit/db/categories-i1.test.ts`, `tests/isolation/limiteur-connexion.test.ts`.
