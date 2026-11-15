@@ -395,20 +395,13 @@ describe("une réponse modifiée remet à zéro la validation du rapport (RG-INT
   });
 });
 
-describe("un RETRAIT (`valeur: null`) — MESURÉ, pas encore possible (9L04D-TERRAIN-CHECKLIST-EPUREE)", () => {
-  it("refuse nommément, et la réponse déjà écrite reste intacte", async () => {
-    // LE TÉMOIN DU POINT 3 DE 9L04D : « un second appui sur la pastille
-    // choisie RETIRE la réponse — mesure que la suppression d'une réponse
-    // existe côté serveur [...] sinon dis-le ». Mesuré : NON. La migration
-    // `20261109080000_checklists_socle_9k08` n'accorde que SELECT, INSERT,
-    // UPDATE sur `checklist_reponse` au rôle applicatif — AUCUN DELETE. Une
-    // ligne déjà écrite ne peut donc être effacée que par une migration qui
-    // accorderait ce privilège (et, sous RLS, une politique pour lui), ce
-    // qu'aucun ticket de ce lot n'ouvre (passation : « AUCUNE migration »).
-    // `enregistrerReponses` refuse donc `valeur: null` comme toute valeur
-    // hors du type du point — `checklist.refus.valeur_invalide` — plutôt que
-    // d'écrire une colonne vide : la contrainte `checklist_reponse_valeur_
-    // unique` (`num_nonnulls` = 1) l'aurait refusée de toute façon.
+describe("un RETRAIT (`valeur: null`) — RÉEL, LA LIGNE DISPARAÎT (9L04M-CHECKLIST-RETRAIT-REPONSE, D257)", () => {
+  // LE TÉMOIN DU POINT 3 DE 9L04D RÉOUVERT PAR 9L04M : un second appui sur
+  // la pastille choisie retire désormais la réponse CÔTÉ SERVEUR — la
+  // migration `20261115020000_checklist_reponse_retrait_9l04m` accorde
+  // `DELETE` sur `checklist_reponse` au rôle applicatif, et la politique
+  // `cloisonnement_filiation` (9K08, sans clause `FOR`) le couvrait déjà.
+  it("retire la réponse déjà écrite ; elle ne revient pas à une relecture", async () => {
     const { modeleId, versionId } = await poserModeleEtVersion(
       SOCIETE_A,
       "ISO-RETRAIT",
@@ -443,16 +436,304 @@ describe("un RETRAIT (`valeur: null`) — MESURÉ, pas encore possible (9L04D-TE
             [{ checklistPointId: pointId, valeur: null }],
             clientApp(),
           );
+          expect(retrait).toEqual({ id: interventionId });
+
+          const apres = await clientOwner().checklistReponse.findMany({
+            where: { intervention_id: interventionId },
+          });
+          expect(apres).toHaveLength(0);
+        },
+      );
+    } finally {
+      await supprimerModele(modeleId);
+    }
+  });
+
+  it("silencieux — retirer un point jamais répondu n'écrit ni n'efface rien", async () => {
+    const { modeleId, versionId } = await poserModeleEtVersion(
+      SOCIETE_A,
+      "ISO-RETRAIT-VIDE",
+    );
+    const pointId = await poserPoint(SOCIETE_A, versionId, "case_faite", false);
+    try {
+      await surUneInterventionJetable(
+        {
+          societeId: SOCIETE_A,
+          clientId: CLIENT_A1,
+          siteId: SITE_A1_S1,
+          agenceId: AGENCE_A,
+          technicienId: TECHNICIEN_A,
+        },
+        async (interventionId) => {
+          const retrait = await enregistrerReponses(
+            TERRAIN_A,
+            interventionId,
+            [{ checklistPointId: pointId, valeur: null }],
+            clientApp(),
+          );
+          expect(retrait).toEqual({ id: interventionId });
+          const apres = await clientOwner().checklistReponse.findMany({
+            where: { intervention_id: interventionId },
+          });
+          expect(apres).toHaveLength(0);
+        },
+      );
+    } finally {
+      await supprimerModele(modeleId);
+    }
+  });
+
+  it("un point OBLIGATOIRE retiré redevient MANQUANT pour « Terminer »", async () => {
+    const { modeleId, versionId } = await poserModeleEtVersion(
+      SOCIETE_A,
+      "ISO-RETRAIT-OBLIGATOIRE",
+    );
+    const pointId = await poserPoint(SOCIETE_A, versionId, "case_faite", true);
+    try {
+      await surUneInterventionJetable(
+        {
+          societeId: SOCIETE_A,
+          clientId: CLIENT_A1,
+          siteId: SITE_A1_S1,
+          agenceId: AGENCE_A,
+          technicienId: TECHNICIEN_A,
+        },
+        async (interventionId) => {
+          await enregistrerReponses(
+            TERRAIN_A,
+            interventionId,
+            [{ checklistPointId: pointId, valeur: true }],
+            clientApp(),
+          );
+          const avant = await checklistDeLIntervention(
+            TERRAIN_A,
+            interventionId,
+            clientApp(),
+          );
+          expect(
+            avant && "disponible" in avant && avant.disponible
+              ? avant.completude.obligatoiresManquants
+              : null,
+          ).toEqual([]);
+
+          await enregistrerReponses(
+            TERRAIN_A,
+            interventionId,
+            [{ checklistPointId: pointId, valeur: null }],
+            clientApp(),
+          );
+          const apres = await checklistDeLIntervention(
+            TERRAIN_A,
+            interventionId,
+            clientApp(),
+          );
+          const manquants =
+            apres && "disponible" in apres && apres.disponible
+              ? apres.completude.obligatoiresManquants
+              : null;
+          expect(manquants?.map((p) => p.id)).toEqual([pointId]);
+        },
+      );
+    } finally {
+      await supprimerModele(modeleId);
+    }
+  });
+
+  it("une réponse RETIRÉE annule aussi la validation du rapport (RG-INT-03, D135)", async () => {
+    const { modeleId, versionId } = await poserModeleEtVersion(
+      SOCIETE_A,
+      "ISO-RETRAIT-VALIDATION",
+    );
+    const pointId = await poserPoint(SOCIETE_A, versionId, "case_faite", false);
+    try {
+      await surUneInterventionJetable(
+        {
+          societeId: SOCIETE_A,
+          clientId: CLIENT_A1,
+          siteId: SITE_A1_S1,
+          agenceId: AGENCE_A,
+          technicienId: TECHNICIEN_A,
+        },
+        async (interventionId) => {
+          await enregistrerReponses(
+            TERRAIN_A,
+            interventionId,
+            [{ checklistPointId: pointId, valeur: true }],
+            clientApp(),
+          );
+          await clientOwner().$executeRawUnsafe(
+            `UPDATE "intervention"
+               SET "rapport_valide_par" = '${UTILISATEUR_INTERNE_A}', "rapport_valide_le" = now()
+             WHERE "id" = '${interventionId}'`,
+          );
+
+          await enregistrerReponses(
+            TERRAIN_A,
+            interventionId,
+            [{ checklistPointId: pointId, valeur: null }],
+            clientApp(),
+          );
+
+          const apres = await clientOwner().intervention.findUnique({
+            where: { id: interventionId },
+            select: { rapport_valide_par: true, rapport_valide_le: true },
+          });
+          expect(apres?.rapport_valide_par).toBeNull();
+          expect(apres?.rapport_valide_le).toBeNull();
+        },
+      );
+    } finally {
+      await supprimerModele(modeleId);
+    }
+  });
+
+  it("refuse NOMMÉMENT le retrait d'une réponse qui porte au moins une photo (I6) ; la ligne reste intacte", async () => {
+    const { modeleId, versionId } = await poserModeleEtVersion(
+      SOCIETE_A,
+      "ISO-RETRAIT-PHOTO",
+    );
+    const pointId = await poserPoint(
+      SOCIETE_A,
+      versionId,
+      "conforme_non_conforme_sans_objet",
+      false,
+    );
+    try {
+      await surUneInterventionJetable(
+        {
+          societeId: SOCIETE_A,
+          clientId: CLIENT_A1,
+          siteId: SITE_A1_S1,
+          agenceId: AGENCE_A,
+          technicienId: TECHNICIEN_A,
+        },
+        async (interventionId) => {
+          await enregistrerReponses(
+            TERRAIN_A,
+            interventionId,
+            [{ checklistPointId: pointId, valeur: "non_conforme" }],
+            clientApp(),
+          );
+          const reponse = await clientOwner().checklistReponse.findFirst({
+            where: { intervention_id: interventionId },
+            select: { id: true },
+          });
+          const documentId = uuidv7();
+          await clientOwner().$executeRawUnsafe(
+            `INSERT INTO "document"
+               ("id", "societe_id", "intervention_id", "classe", "libelle", "nom_fichier", "type_mime", "taille_octets", "empreinte", "objet_cle", "modifie_le")
+             VALUES ('${documentId}', '${SOCIETE_A}', '${interventionId}', 'interne', 'Photo', 'photo.jpg', 'image/jpeg', 7, '${"9".repeat(64)}', 'objet-9l04m', now())`,
+          );
+          await clientOwner().$executeRawUnsafe(
+            `INSERT INTO "checklist_reponse_photo"
+               ("id", "societe_id", "checklist_reponse_id", "document_id")
+             VALUES ('${uuidv7()}', '${SOCIETE_A}', '${reponse!.id}', '${documentId}')`,
+          );
+
+          try {
+            const retrait = await enregistrerReponses(
+              TERRAIN_A,
+              interventionId,
+              [{ checklistPointId: pointId, valeur: null }],
+              clientApp(),
+            );
+            expect(retrait).toEqual({
+              refuse: true,
+              cle: "checklist.refus.reponse_porte_photos",
+            });
+
+            const apres = await clientOwner().checklistReponse.findMany({
+              where: { intervention_id: interventionId },
+            });
+            expect(apres).toHaveLength(1);
+            expect(apres[0]?.valeur_conforme).toBe("non_conforme");
+          } finally {
+            // `document` (RESTRICT vers l'intervention) bloquerait le
+            // nettoyage de `surUneInterventionJetable` sinon — retiré avant
+            // de rendre la main, jamais laissé pour la table réelle.
+            await clientOwner().$executeRawUnsafe(
+              `DELETE FROM "checklist_reponse_photo" WHERE "document_id" = '${documentId}'`,
+            );
+            await clientOwner().$executeRawUnsafe(
+              `DELETE FROM "document" WHERE "id" = '${documentId}'`,
+            );
+          }
+        },
+      );
+    } finally {
+      await supprimerModele(modeleId);
+    }
+  });
+
+  it("refuse NOMMÉMENT le retrait sur une intervention FIGÉE — même refus que l'écriture", async () => {
+    const { modeleId, versionId } = await poserModeleEtVersion(
+      SOCIETE_A,
+      "ISO-RETRAIT-FIGEE",
+    );
+    const pointId = await poserPoint(SOCIETE_A, versionId, "case_faite", false);
+    try {
+      await surUneInterventionJetable(
+        {
+          societeId: SOCIETE_A,
+          clientId: CLIENT_A1,
+          siteId: SITE_A1_S1,
+          agenceId: AGENCE_A,
+          technicienId: TECHNICIEN_A,
+          statut: "cloturee",
+        },
+        async (interventionId) => {
+          const retrait = await enregistrerReponses(
+            TERRAIN_A,
+            interventionId,
+            [{ checklistPointId: pointId, valeur: null }],
+            clientApp(),
+          );
           expect(retrait).toEqual({
             refuse: true,
-            cle: "checklist.refus.valeur_invalide",
+            cle: "intervention.refus.cloturee_figee",
           });
+        },
+      );
+    } finally {
+      await supprimerModele(modeleId);
+    }
+  });
+
+  it("un technicien d'une AUTRE société ne retire rien — même refus que l'intervention invisible (D35, D50)", async () => {
+    const { modeleId, versionId } = await poserModeleEtVersion(
+      SOCIETE_A,
+      "ISO-RETRAIT-SOCIETE-B",
+    );
+    const pointId = await poserPoint(SOCIETE_A, versionId, "case_faite", false);
+    try {
+      await surUneInterventionJetable(
+        {
+          societeId: SOCIETE_A,
+          clientId: CLIENT_A1,
+          siteId: SITE_A1_S1,
+          agenceId: AGENCE_A,
+          technicienId: TECHNICIEN_A,
+        },
+        async (interventionId) => {
+          await enregistrerReponses(
+            TERRAIN_A,
+            interventionId,
+            [{ checklistPointId: pointId, valeur: true }],
+            clientApp(),
+          );
+
+          const retrait = await enregistrerReponses(
+            COMPLET_B,
+            interventionId,
+            [{ checklistPointId: pointId, valeur: null }],
+            clientApp(),
+          );
+          expect(retrait).toBeNull();
 
           const apres = await clientOwner().checklistReponse.findMany({
             where: { intervention_id: interventionId },
           });
           expect(apres).toHaveLength(1);
-          expect(apres[0]?.valeur_conforme).toBe("non_conforme");
         },
       );
     } finally {

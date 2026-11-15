@@ -387,6 +387,63 @@ describe("la forme « filiation » (D103, D235) : checklist_reponse sur interven
     expect(politique?.qual).not.toContain("perimetre_sites");
     expect(politique?.with_check).not.toContain("client_id");
   });
+
+  it("JUMEAU (9L04M-CHECKLIST-RETRAIT-REPONSE, D257) — GRANT DELETE existe, et la MÊME politique le cloisonne à l'intervention VISIBLE", async () => {
+    const [privilege] = await clientOwner().$queryRawUnsafe<
+      Array<{ a: boolean }>
+    >(
+      `SELECT has_table_privilege('codiplan_app', '"checklist_reponse"', 'DELETE') AS a`,
+    );
+    expect(privilege?.a).toBe(true);
+
+    const { modeleId, pointId } = await poserModeleVersionPoint(
+      SOCIETE_A,
+      "RAW-DELETE-A",
+    );
+    try {
+      const idA = await poserReponse(
+        INTERVENTION_A1,
+        pointId,
+        UTILISATEUR_INTERNE_A,
+      );
+      try {
+        // SOUS LA SOCIÉTÉ B : l'intervention A1 n'est pas visible, donc le
+        // sous-SELECT du `USING` de `cloisonnement_filiation` ne la retrouve
+        // pas — le DELETE affecte ZÉRO ligne, silencieusement, EXACTEMENT
+        // comme un SELECT sous ce même contexte ne la rendrait pas.
+        const effaceesSousB = await clientApp().$transaction(async (tx) => {
+          await tx.$executeRawUnsafe(
+            `SELECT set_config('app.societe_id', '${SOCIETE_B}', true)`,
+          );
+          return tx.$executeRawUnsafe(
+            `DELETE FROM "checklist_reponse" WHERE "id" = '${idA}'`,
+          );
+        });
+        expect(effaceesSousB).toBe(0);
+
+        // SOUS LA SOCIÉTÉ A : la MÊME ligne, visible, se supprime bel et
+        // bien — le privilège ET la politique travaillent ensemble, jamais
+        // l'un sans l'autre. Le COMPTE affecté (1), jamais une relecture
+        // sous le propriétaire (L1-02d) : zéro n'y distinguerait pas
+        // « absente » de « masquée ».
+        const effaceesSousA = await clientApp().$transaction(async (tx) => {
+          await tx.$executeRawUnsafe(
+            `SELECT set_config('app.societe_id', '${SOCIETE_A}', true)`,
+          );
+          return tx.$executeRawUnsafe(
+            `DELETE FROM "checklist_reponse" WHERE "id" = '${idA}'`,
+          );
+        });
+        expect(effaceesSousA).toBe(1);
+      } finally {
+        await clientOwner().$executeRawUnsafe(
+          `DELETE FROM "checklist_reponse" WHERE "id" = '${idA}'`,
+        );
+      }
+    } finally {
+      await supprimerModele(modeleId);
+    }
+  });
 });
 
 describe("9K18-CHECKLIST-DOMAINE — les cinq types de réponse, les contraintes neuves", () => {
