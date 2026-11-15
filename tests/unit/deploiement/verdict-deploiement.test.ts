@@ -355,6 +355,7 @@ describe("la route et le contrôle ne peuvent pas diverger en silence", () => {
       },
       societes: { lisible: false, motif: "…" },
       comptes: { lisible: false, motif: "…" },
+      fonctionsIdentite: { ok: true, detail: null },
     };
   }
 

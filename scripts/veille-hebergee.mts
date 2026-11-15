@@ -84,6 +84,15 @@ import {
 } from "./lib/contraintes-non-validees";
 import { sqlDecompteAPlat } from "./lib/tables-comptees";
 import { verifierRoleApplicatif } from "../lib/db/garde-role";
+import {
+  SQL_FONCTIONS_IDENTITE,
+  etatsFonctionsIdentite,
+  type LigneFonctionIdentite,
+} from "../lib/db/exemption-fonctions-identite";
+import {
+  ecartsExemptionFonctionsIdentite,
+  rapportExemptionFonctionsIdentite,
+} from "./lib/exemption-fonctions-identite";
 
 /**
  * VEILLE DE LA BASE HÉBERGÉE — le détectif, à échéance fixe et en lecture seule.
@@ -384,6 +393,14 @@ async function observer(prisma: Prisma.TransactionClient): Promise<void> {
     // quoi le gabarit affirmait une cause qu'il n'avait jamais mesurée.
     const tentatives =
       await prisma.$queryRawUnsafe<TentativeMigration[]>(SQL_TENTATIVES);
+    // DÉCISION D'ALEXIS DU 10/11/2026 : le propriétaire des deux fonctions
+    // SECURITY DEFINER d'identité (D226, D233) reste-t-il exempté des
+    // politiques, avec les réglages posés par leur migration ? La mesure est
+    // partagée avec `/api/sante` (R3-01) — voir `lib/db/exemption-fonctions-
+    // identite.ts`.
+    const fonctionsIdentite = await prisma.$queryRawUnsafe<
+      LigneFonctionIdentite[]
+    >(SQL_FONCTIONS_IDENTITE);
 
     // ── LA LECTURE, et non plus seulement le CATALOGUE (11/09/2026) ─────────
     //
@@ -537,6 +554,21 @@ async function observer(prisma: Prisma.TransactionClient): Promise<void> {
             (table) => `${table}=${temoinsLecture[table]}`,
           ).join(", ")}\n`,
         ecarts: ecartsTemoinLecture(temoinsLecture),
+      },
+      {
+        // DÉCISION D'ALEXIS DU 10/11/2026 : le propriétaire des deux
+        // fonctions SECURITY DEFINER d'identité (D226, D233) reste-t-il
+        // exempté ? Sans cette alarme, le jour où il cesse de l'être, les
+        // deux fonctions restent sûres (elles lèvent plutôt que de filtrer
+        // en silence) mais chaque appel applicatif refuse désormais, sans
+        // qu'aucune alarme ne le dise.
+        nom: "exemption des fonctions d'identité",
+        rapport: rapportExemptionFonctionsIdentite(
+          etatsFonctionsIdentite(fonctionsIdentite),
+        ),
+        ecarts: ecartsExemptionFonctionsIdentite(
+          etatsFonctionsIdentite(fonctionsIdentite),
+        ),
       },
       {
         // LA LECTURE elle-même — le contrôle qui ne tournait qu'au moment

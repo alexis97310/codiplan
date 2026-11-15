@@ -1,5 +1,11 @@
 import { PrismaClient } from "@prisma/client";
 
+import {
+  SQL_FONCTIONS_IDENTITE,
+  etatsFonctionsIdentite,
+  exemptionFonctionsIdentiteOk,
+  type LigneFonctionIdentite,
+} from "./exemption-fonctions-identite";
 import { MIGRATIONS_ATTENDUES } from "./migrations-attendues";
 
 /**
@@ -54,7 +60,35 @@ export type EtatSante = {
   readonly migrations: Reponse;
   readonly societes: Decompte;
   readonly comptes: Decompte;
+  readonly fonctionsIdentite: Reponse;
 };
+
+/**
+ * LE PROPRIÉTAIRE DES DEUX FONCTIONS D'IDENTITÉ (D226, D233) RESTE-T-IL
+ * EXEMPTÉ ? Décision d'Alexis du 10/11/2026.
+ *
+ * Lecture encapsulée séparément du reste : un échec ici (catalogue
+ * inattendu, fonction renommée) ne doit pas faire passer `baseJointe` ou
+ * `migrations` pour en panne — ce sont deux questions distinctes. Et le
+ * motif ne nomme ni rôle ni réglage : cette page est SANS COMPTE (D50).
+ */
+async function lireFonctionsIdentite(prisma: PrismaClient): Promise<Reponse> {
+  try {
+    const lignes = await prisma.$queryRawUnsafe<LigneFonctionIdentite[]>(
+      SQL_FONCTIONS_IDENTITE,
+    );
+    const ok = exemptionFonctionsIdentiteOk(etatsFonctionsIdentite(lignes));
+    return {
+      ok,
+      detail: ok
+        ? null
+        : "Le propriétaire d'une fonction d'identité n'est plus exempté " +
+          "des politiques, ou ses réglages ont changé.",
+    };
+  } catch {
+    return { ok: false, detail: null };
+  }
+}
 
 /**
  * Réécrit un échec en une phrase SANS hôte, sans port, sans nom de base.
@@ -256,6 +290,7 @@ export async function lireSante(): Promise<EtatSante> {
       migrations: { ok: false, detail: null },
       societes: decompteNonLisible(),
       comptes: decompteNonLisible(),
+      fonctionsIdentite: { ok: false, detail: null },
     };
   }
 
@@ -306,6 +341,7 @@ export async function lireSante(): Promise<EtatSante> {
     // que le décompte passe par un agrégat que la politique laisse compter.
     const societes = decompteNonLisible();
     const comptes = decompteNonLisible();
+    const fonctionsIdentite = await lireFonctionsIdentite(prisma);
 
     return {
       baseJointe: { ok: true, detail: null },
@@ -337,6 +373,7 @@ export async function lireSante(): Promise<EtatSante> {
           },
       societes,
       comptes,
+      fonctionsIdentite,
     };
   } catch (erreur: unknown) {
     return {
@@ -345,6 +382,7 @@ export async function lireSante(): Promise<EtatSante> {
       migrations: { ok: false, detail: null },
       societes: decompteNonLisible(),
       comptes: decompteNonLisible(),
+      fonctionsIdentite: { ok: false, detail: null },
     };
   } finally {
     await prisma.$disconnect().catch(() => undefined);
@@ -423,6 +461,7 @@ export function reponseMachine(
   readonly baseJointe: Reponse;
   readonly roleApplicatif: Reponse;
   readonly migrations: Reponse;
+  readonly fonctionsIdentite: { readonly ok: boolean };
 } {
   return {
     ok: etat.baseJointe.ok && etat.roleApplicatif.ok && etat.migrations.ok,
@@ -430,6 +469,10 @@ export function reponseMachine(
     baseJointe: etat.baseJointe,
     roleApplicatif: etat.roleApplicatif,
     migrations: etat.migrations,
+    // SANS AUCUN DÉTAIL, à la différence des trois champs ci-dessus : cette
+    // route est SANS COMPTE, et le détail nommerait un rôle ou un réglage
+    // (décision d'Alexis du 10/11/2026).
+    fonctionsIdentite: { ok: etat.fonctionsIdentite.ok },
   };
 }
 

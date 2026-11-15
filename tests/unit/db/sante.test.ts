@@ -7,7 +7,7 @@ import { TABLES_CLOISONNEES } from "@/scripts/lib/inventaire";
 
 import { RACINE } from "../outils/fichiers-source";
 
-import { lireSante } from "@/lib/db/sante";
+import { lireSante, reponseMachine, type EtatSante } from "@/lib/db/sante";
 
 /**
  * LE JUMEAU DE LA PAGE DE SANTÉ — *avec une base injoignable, elle s'affiche
@@ -51,6 +51,10 @@ describe("la page de santé ne tombe pas avec ce qu'elle surveille", () => {
       // ce qui serait la conclusion opposée à la vraie (§9, 06/09).
       expect(etat.societes.lisible).toBe(false);
       expect(etat.comptes.lisible).toBe(false);
+      // D226, D233, décision d'Alexis du 10/11/2026 : une base injoignable
+      // ne dit rien de plus sur l'exemption de ces deux fonctions qu'elle ne
+      // peut pas lire — jamais un vrai par défaut.
+      expect(etat.fonctionsIdentite.ok).toBe(false);
     } finally {
       process.env.DATABASE_URL = avant;
     }
@@ -134,5 +138,41 @@ describe("la sonde ne publie aucun décompte d'une table cloisonnée", () => {
     // CONSTRUIRE : la sonde ne compte rien, donc elle n'appelle aucun `count`.
     expect(source).toContain("decompteNonLisible()");
     expect(source).not.toMatch(/\.count\s*\(|count\s*\(\s*\*\s*\)/i);
+  });
+});
+
+/**
+ * `fonctionsIdentite` DANS `/api/sante` — SANS AUCUN DÉTAIL (D226, D233,
+ * décision d'Alexis du 10/11/2026). Cette route est SANS COMPTE : un motif
+ * nommerait un rôle ou un réglage, ce que ni elle ni la page `/sante` ne
+ * doivent jamais rendre (D50).
+ */
+describe("reponseMachine ne rend qu'un booléen pour fonctionsIdentite", () => {
+  const etatDeBase: EtatSante = {
+    baseJointe: { ok: true, detail: null },
+    roleApplicatif: { ok: true, detail: null },
+    migrations: { ok: true, detail: null },
+    societes: { lisible: false, motif: "non lisible" },
+    comptes: { lisible: false, motif: "non lisible" },
+    fonctionsIdentite: {
+      ok: false,
+      detail: "un motif qui ne doit jamais atteindre /api/sante",
+    },
+  };
+
+  it("ne porte que `ok`, jamais `detail`", () => {
+    const reponse = reponseMachine(etatDeBase, null);
+    expect(reponse.fonctionsIdentite).toEqual({ ok: false });
+    expect(JSON.stringify(reponse)).not.toContain(
+      "un motif qui ne doit jamais atteindre",
+    );
+  });
+
+  it("rend `ok: true` quand la mesure l'est", () => {
+    const reponse = reponseMachine(
+      { ...etatDeBase, fonctionsIdentite: { ok: true, detail: null } },
+      null,
+    );
+    expect(reponse.fonctionsIdentite).toEqual({ ok: true });
   });
 });
