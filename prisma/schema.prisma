@@ -1156,12 +1156,13 @@ model UtilisateurClientSite {
 //
 // Aucune de ces tables ne porte de `societe_id`. Elles forment la TROISIÈME
 // catégorie de I1 — les tables techniques d'authentification (D34, D39) : liste
-// close, `session`, `compte`, `verification`, `second_facteur`, `journal_acces`.
+// close, `session`, `compte`, `verification`, `second_facteur`, `journal_acces`,
+// `tentative_connexion` (D258, 9L07-CONNEXION-TENTATIVES-LIMITEES).
 // Elles portent la trace technique, pas la donnée métier, et l'authentification
 // doit pouvoir chercher un compte avant qu'aucune société ne soit active.
 //
 // `utilisateur` n'en fait PAS partie : elle relève de la QUATRIÈME catégorie,
-// à elle seule (D39). Ces cinq tables-ci sont purgeables — une session expire,
+// à elle seule (D39). Ces six tables-ci sont purgeables — une session expire,
 // une vérification se consomme, un second facteur se révoque ; une identité est
 // durable. Voir I1 et
 // docs/decisions/2026-08-20-authentification-et-deux-connexions.md.
@@ -1262,6 +1263,25 @@ model SecondFacteur {
   @@map("second_facteur")
 }
 
+/// Échecs de connexion par mot de passe (D258, décision d'Alexis du
+/// 10/11/2026 ; 9L07-CONNEXION-TENTATIVES-LIMITEES). Troisième catégorie de
+/// I1 — pas de `societe_id`, purgeable. `identifiant` porte le courriel TEL
+/// QUE SAISI, normalisé (`trim().toLowerCase()`), qu'il corresponde ou non à
+/// un compte réel : c'est ce qui rend le comportement identique pour un
+/// compte inconnu et pour un compte existant (D35). Une ligne par échec, pas
+/// de compteur : la fenêtre glissante de quinze minutes se calcule en
+/// comptant les lignes récentes, jamais en relisant une horloge mémorisée.
+model TentativeConnexion {
+  id          String    @id @db.Uuid
+  identifiant String
+  adresse_ip  String?
+  survenue_le DateTime  @default(now())
+
+  @@index([identifiant, survenue_le])
+  @@index([adresse_ip, survenue_le])
+  @@map("tentative_connexion")
+}
+
 /// Événements d'accès journalisés (D32, dernier alinéa).
 enum EvenementAcces {
   bascule_societe
@@ -1298,6 +1318,13 @@ enum EvenementAcces {
   /// un seul geste, un seul événement, comme les autres entrées de cette
   /// énumération nomment un GESTE et jamais ses deux écritures séparément.
   retrait_acces_interne
+  /// REFUS TEMPORISÉ D'UNE CONNEXION PAR MOT DE PASSE (D258, décision
+  /// d'Alexis du 10/11/2026 ; 9L07-CONNEXION-TENTATIVES-LIMITEES). N'est
+  /// journalisé QUE lorsque le courriel présenté correspond à un compte
+  /// réel — `journal_acces.utilisateur_id` est `NOT NULL` — jamais quand il
+  /// ne correspond à rien. Cette asymétrie ne fuite rien (D35) : elle ne
+  /// change pas la réponse HTTP, identique dans les deux cas.
+  connexion_temporisee
 }
 
 /// Journal des accès — distinct du `journal_audit` du ticket L0-10, qui portera

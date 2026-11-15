@@ -1049,7 +1049,9 @@ dans la table `parite` ci-dessous.*
 
 **journal_acces** — horodatage, utilisateur, événement, `societe_id_source`, `societe_id_cible`, rôle, détail. *Les deux colonnes de société sont **informatives et nullables** : elles répondent à « qui a tenté d'accéder à mes données » et ne filtrent JAMAIS (D34).* Elle porte les basculements de société, les requêtes de consolidation, **l'ouverture d'une identité** (D65) et **le déverrouillage d'un second facteur** (D66).
 
-*Les quatre tables `session`, `compte`, `verification` et `second_facteur` sont la **troisième catégorie de I1** — techniques d'authentification, sans aucun `societe_id`, cloisonnées par la forme « désignation » (D34, D59). `journal_acces` les rejoint par sa catégorie et s'en distingue par sa nature : c'est une **trace**, pas un matériau d'authentification.*
+**tentative_connexion** — identifiant, adresse IP, survenue le (D258). Une ligne par échec de mot de passe ; `identifiant` porte le courriel **tel que saisi**, compte réel ou non — c'est ce qui rend le refus identique dans les deux cas (D35). Cinq échecs dans une fenêtre glissante de quinze minutes, par compte ou par adresse, déclenchent un refus temporisé de même forme qu'un refus ordinaire.
+
+*Les cinq tables `session`, `compte`, `verification`, `second_facteur` et `tentative_connexion` sont la **troisième catégorie de I1** — techniques d'authentification, sans aucun `societe_id`, cloisonnées par la forme « désignation » (D34, D59, D258). `journal_acces` les rejoint par sa catégorie et s'en distingue par sa nature : c'est une **trace**, pas un matériau d'authentification.*
 
 #### Le rapport de terrain, ajouté le 22/09/2026 (ticket 17-BON-2)
 

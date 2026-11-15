@@ -147,6 +147,10 @@ const CLASSIFICATION_LECTURE: Record<string, ClassificationLecture> = {
   // d'aucune clause de client non plus — un balayage nu y rend zéro pour le
   // même motif que les quatre tables ci-dessus.
   journal_acces: "fermee",
+  // Même motif, D258 : désignée par le courriel saisi ou l'adresse de
+  // l'appelant, jamais par une clause de société ou de client. Un balayage
+  // nu sous un contexte portail y rend zéro.
+  tentative_connexion: "fermee",
 
   // RATTACHEMENT (D92) puis HABILITATION (L1-02b) — ancrées sur le compte
   // (`app.utilisateur_id`) ou son habilitation parente.

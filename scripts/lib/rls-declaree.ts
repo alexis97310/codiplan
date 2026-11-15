@@ -77,6 +77,9 @@ export const TABLES_RLS_FORCEE = [
   "verification",
   "second_facteur",
   "journal_acces",
+  // Sixième table de la troisième catégorie, D258 (9L07-CONNEXION-
+  // TENTATIVES-LIMITEES) : mêmes raisons que ses cinq voisines ci-dessus.
+  "tentative_connexion",
 ] as const;
 
 /**

@@ -124,6 +124,15 @@ export const EXEMPTIONS_DECOMPTE: readonly ExemptionDecompte[] = [
       "société INFORMATIVES et nullables, qui ne filtrent jamais : les " +
       "compter par société ferait d'elles un critère.",
   },
+  {
+    table: "tentative_connexion",
+    motif: "sans_societe",
+    justification:
+      "troisième catégorie de I1 (D258) — trace technique d'authentification, " +
+      "lue AVANT qu'une société soit connue, et cloisonnée par désignation. " +
+      "`identifiant` porte le courriel saisi, compte réel ou non (D35) : " +
+      "aucune société ne s'en déduit.",
+  },
 ] as const;
 
 /**

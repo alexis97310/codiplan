@@ -75,6 +75,7 @@ const TECHNIQUES_AUTHENTIFICATION = [
   "verification",
   "second_facteur",
   "journal_acces",
+  "tentative_connexion",
 ];
 
 const IDENTITE_PLATEFORME = ["utilisateur"];
