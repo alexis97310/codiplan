@@ -366,11 +366,17 @@ test("refuse NOMMÉMENT le retrait d'une réponse qui porte une photo ; elle res
 
   await page.goto(`/terrain/${INTERVENTION_9L04M}`);
   const ligneApresEnvoi = ligneDuPoint(page, POINT_AVEC_PHOTO);
-  const ligneResume = ligneApresEnvoi.getByRole("button").last();
   await capturer(page, "photo-avant-retrait");
 
-  // ── ROUVRIR, PUIS SECOND APPUI SUR « NON CONFORME » — LE RETRAIT TENTÉ. ─
-  await ligneResume.click();
+  // ── SECOND APPUI SUR « NON CONFORME » — LE RETRAIT TENTÉ. ───────────────
+  // AUCUN « RÉSUMÉ » À ROUVRIR : la section reste dépliée après rechargement
+  // (`detailNonConformeVide` ne regarde que la suite et le commentaire,
+  // jamais la photo — `ouvert` initial reste vrai ici). L'ancien
+  // `getByRole("button").last()` visait jadis le bouton « Ajouter une
+  // photo » disparu (9L04E-TERRAIN-PHOTOS-EPUREES) ; il résout désormais le
+  // champ fichier caché de la bibliothèque (rôle `button` via HTML-AAM),
+  // hors d'atteinte d'un clic réel — retiré, la pastille « Non conforme »
+  // est toujours atteignable directement.
   await ligneApresEnvoi
     .getByRole("button", { name: fr["checklist.terrain.non_conforme"] })
     .click();
