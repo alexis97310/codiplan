@@ -163,4 +163,5 @@ export const MIGRATIONS_ATTENDUES: readonly string[] = [
   "20261113073000_rattachement_client_en_attente_9l04",
   "20261113090000_retrait_acces_interne_9l03c",
   "20261115010000_checklist_non_conforme_detail_9l04i",
+  "20261115020000_checklist_reponse_retrait_9l04m",
 ];
