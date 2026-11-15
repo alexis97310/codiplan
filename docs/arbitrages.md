@@ -8788,3 +8788,27 @@ Elle ne rouvre pas l'arrondi de prix (RG-TAR-05) : celui-ci reste au quart d'heu
 > Le jour où une AUTRE lecture convertit une durée mesurée par le compteur en minutes (hors `lib/tarification/valorisation.ts`, qui a sa propre règle), cette décision se relit : elle suppose que `minutesDepuisMillisecondes` est la SEULE conversion, et qu'aucune autre ne retombe dans la troncature ni dans l'arrondi segment par segment qu'elle corrige.
 
 Portée : `lib/interventions/compteur.ts` (`minutesDepuisMillisecondes`, créé ; `mesurer`), `components/terrain/rapport-automatique.tsx` (`mesureCompteurDeLaFile`, l'effet qui relit la feuille de confirmation), `tests/unit/interventions/compteur.test.ts`, `tests/unit/terrain/rapport-automatique.test.tsx`, `tests/e2e/9l06-compteur-minute-commencee.spec.ts`.
+
+## D257 — LE SECOND APPUI SUR UNE PASTILLE DÉJÀ CHOISIE PRODUIT UN VRAI RETRAIT CÔTÉ SERVEUR, EN LIGNE COMME HORS RÉSEAU ; REFUSÉ NOMMÉMENT SUR UNE RÉPONSE QUI PORTE DES PHOTOS (décision d'Alexis ; 9L04M-CHECKLIST-RETRAIT-REPONSE)
+
+### CE QUI A ÉTÉ MESURÉ
+
+9L04D (passation, § « Le retrait d'une réponse déjà écrite côté serveur N'EXISTE PAS ») avait mesuré, sans corriger : un second appui sur une pastille déjà choisie retire bien la réponse de l'état React et de la différence envoyée à la file hors réseau (`ajouterSaisie`), mais `enregistrerReponses` (`lib/checklists/depot.ts`) n'avait jamais de chemin de suppression, et refusait `valeur: null` comme toute valeur hors du type du point (`checklist.refus.valeur_invalide`). Plus bas que l'application : la migration `20261109080000_checklists_socle_9k08` n'accorde que `GRANT SELECT, INSERT, UPDATE ON "checklist_reponse"` au rôle applicatif — aucun `DELETE`. Une réponse déjà synchronisée disparaissait donc localement puis REVENAIT après rechargement, lue depuis le serveur, qui ne l'avait jamais retirée.
+
+### LA DÉCISION
+
+**1. Une entrée `{ checklistPointId, valeur: null }` de la différence SUPPRIME désormais la réponse déjà écrite pour ce point**, plutôt que d'être refusée comme une valeur invalide. `enregistrerReponses` sépare les entrées à retirer de celles à valider AVANT d'appeler `validerReponsePoint` — un retrait n'est jamais une sixième forme de saisie. TOUT ou RIEN (I6) : une seule entrée à retirer qui porte au moins une photo (`checklist_reponse_photo`) refuse la DIFFÉRENCE ENTIÈRE, nommément (`checklist.refus.reponse_porte_photos`), avant qu'aucune ligne ne soit écrite — l'immutabilité du lien photo (I6) n'est jamais desserrée. Retirer un point jamais répondu est silencieux (rien à effacer). La suite et le commentaire d'un point non conforme (9L04I) partent avec la ligne, sans code séparé. Une réponse retirée annule la validation du rapport (RG-INT-03, D135), au même titre qu'une réponse modifiée.
+
+**2. Une migration, `20261115020000_checklist_reponse_retrait_9l04m`, accorde `GRANT DELETE ON "checklist_reponse" TO "codiplan_app"`.** Rien de plus : la politique `cloisonnement_filiation` posée par 9K08 ne porte aucune clause `FOR` — elle s'appliquait déjà à toute commande, `DELETE` compris (même forme qu'`intervention_piece_remplacee`, `20261030040000_pieces_remplacees_saisie_libre_9i7b`, qui accorde `DELETE` sans politique neuve pour la même raison). Le verrou d'écriture portail sur `checklist_reponse` (`verrou_ecriture_portail_suppression`, posé par 9K16) couvrait déjà `FOR DELETE` : un compte portail ne pouvait pas supprimer cette ligne avant cette décision, et ne le peut toujours pas après.
+
+**3. Le geste entre dans la file hors réseau comme n'importe quelle saisie checklist**, sans code neuf côté terrain : `ChecklistTerrain` écrivait déjà `null` dans la différence au second appui (9L04D) ; c'est le serveur seul qui en changeait le sens. Un retrait d'une réponse ENCORE en file (jamais envoyée) continue de s'en retirer sans appel réseau — comportement déjà en place, inchangé.
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+Elle ne touche pas à l'immutabilité de `checklist_reponse_photo` (I6) : un lien photo ne se supprime toujours jamais, et c'est exactement pourquoi une réponse qui en porte un ne se retire pas par ce geste — la retirer aurait rendu le lien orphelin. Elle ne rouvre pas `checklist_version`/`checklist_point` (toujours immuables, UPDATE et DELETE retirés). Elle ne change rien au PIN (`intervention.checklist_version_id`) : un retrait n'est jamais le dernier geste qui dépinnerait une version.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où une réponse qui porte une photo doit malgré tout pouvoir se retirer (ce qui suppose de décider, pour la première fois, ce qu'il advient du lien `checklist_reponse_photo` et de la photo elle-même — orpheline ? effacée ? rattachée ailleurs ?), cette décision se relit : elle suppose aujourd'hui qu'aucun chemin ne se pose cette question, I6 réglant tout par le refus pur et simple.
+
+Portée : `prisma/migrations/20261115020000_checklist_reponse_retrait_9l04m/`, `lib/db/migrations-attendues.ts`, `lib/checklists/depot.ts` (`enregistrerReponses`), `lib/i18n/fr.ts`, `tests/isolation/checklist-domaine.test.ts`, `tests/isolation/checklists.test.ts`, `tests/e2e/9l04m-checklist-retrait-reponse.spec.ts`.
