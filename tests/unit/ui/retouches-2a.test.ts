@@ -208,7 +208,7 @@ describe("retouches typographiques du 30/09/2026 (D143)", () => {
     });
   });
 
-  describe("point 8 — le texte du terrain à 16 px", () => {
+  describe("point 8 — le texte du terrain à 16 px, amendé par D261 pour la zone terrain (13/14/17 px)", () => {
     // 9F4H3-HORS-RESEAU-ENVOYER (point 1) AJOUTE TROIS FICHIERS à cette
     // population — mêmes raisons que `tests/unit/ui/composants-base.test.ts`,
     // même liste (voir son commentaire) : le bouton du compteur quitte
@@ -223,7 +223,13 @@ describe("retouches typographiques du 30/09/2026 (D143)", () => {
       "components/terrain/bouton-envoyer.tsx",
       "components/terrain/effacement-copie-locale.tsx",
     ];
-    const TAILLES_TERRAIN = [16, 18, 24, 28];
+    // D261 (16/11/2026) amende ce seul point pour la zone terrain : 13, 14
+    // et 17 px s'ajoutent au plancher 16/18/24/28 — valeurs exactes de la
+    // maquette du 13/11 (client 17 px, ligne secondaire 13-14 px de l'en-tête
+    // de la fiche). Les libellés (`<dt>`, `<label>`) et les commandes
+    // (`<Button>`) restent tenus à 16 px minimum, par le guard dédié plus
+    // bas — l'échelle élargie ne vaut que pour un texte de contenu.
+    const TAILLES_TERRAIN = [13, 14, 16, 17, 18, 24, 28];
     const MOTIF_TAILLE_NOMMEE = /\btext-(\d+)\b/g;
     const MOTIF_TAILLE_ARBITRAIRE = /text-\[([0-9.]+)px\]/g;
     /** Surtitre (`uppercase`) ou pastille (`rounded-full`) : rang « plus petit texte », 12 px (point 11). */
@@ -267,13 +273,21 @@ describe("retouches typographiques du 30/09/2026 (D143)", () => {
     });
 
     it("reconnaît la forme qu'il refuse", () => {
-      const ligne = 'className="text-13 font-bold"';
+      // 15 px, pas 13 : D261 a ajouté 13 (et 14, 17) à l'échelle élargie de
+      // cette zone — 13 n'est plus une forme refusée ici, 15 l'est toujours.
+      const ligne = 'className="text-15 font-bold"';
       expect(
         !EST_SURTITRE_OU_PASTILLE.test(ligne) &&
           [...ligne.matchAll(MOTIF_TAILLE_NOMMEE)].some(
             (m) => !TAILLES_TERRAIN.includes(Number(m[1])),
           ),
       ).toBe(true);
+    });
+
+    it("D261 — 13, 14 et 17 px sont désormais admis dans l'échelle élargie", () => {
+      for (const valeur of [13, 14, 17]) {
+        expect(TAILLES_TERRAIN.includes(valeur)).toBe(true);
+      }
     });
 
     it("un surtitre ou une pastille à 12 px n'est pas signalé", () => {
@@ -327,6 +341,35 @@ describe("retouches typographiques du 30/09/2026 (D143)", () => {
       // signature » : 29 + 3 = 32.
       // Même arithmétique que `composants-base.test.tsx`.
       expect(total).toBe(32);
+    });
+
+    // D261 — « les LIBELLÉS et commandes restent à 16 px minimum » : les
+    // commandes sont déjà tenues par le test `<Button>` ci-dessus (il exige
+    // "text-16" littéral). Un libellé, dans ces sept fichiers, est posé par
+    // `<dt>` (la moitié gauche d'une `Ligne`, `terrain/[id]/page.tsx`) ou par
+    // `<label>` (les champs de `rapport-automatique.tsx`,
+    // `photos-terrain.tsx`) — ce guard refuse qu'une de ces deux balises
+    // porte elle-même une taille de l'échelle élargie sous 16 px.
+    const MOTIF_SOUS_16 = /text-(12|13|14|15)\b|text-\[1[0-5](\.[0-9])?px\]/;
+
+    it("aucun <dt> ni <label> ne porte lui-même une taille sous 16 px", () => {
+      const fautifs: string[] = [];
+      for (const chemin of FICHIERS_TERRAIN) {
+        const f = FICHIERS.find((x) => x.chemin === chemin);
+        const contenu = f?.brut ?? "";
+        const blocs = contenu.match(/<(dt|label)\b[\s\S]*?>/g) ?? [];
+        for (const bloc of blocs) {
+          if (MOTIF_SOUS_16.test(bloc)) {
+            fautifs.push(`${chemin} : ${bloc.replace(/\s+/g, " ")}`);
+          }
+        }
+      }
+      expect(fautifs).toEqual([]);
+    });
+
+    it("reconnaît la forme qu'il refuse — un libellé à 14 px", () => {
+      const bloc = '<dt className="text-app-encre-faible text-14">';
+      expect(MOTIF_SOUS_16.test(bloc)).toBe(true);
     });
   });
 

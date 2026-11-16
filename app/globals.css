@@ -419,12 +419,20 @@
    * `2xl`/… : les redéfinir aurait changé le rendu de `button.tsx` (`text-sm`)
    * et des deux `text-xs` du territoire, sans qu'aucun des deux n'ait été
    * mesuré contre cette échelle.
+   *
+   * `--text-17` (D261, 16/11/2026) N'ÉTEND PAS CETTE ÉCHELLE : elle amende
+   * D143 point 8 pour la seule zone `data-zone="terrain"` — l'en-tête de la
+   * fiche terrain épurée (client, 17 px, maquette du 13/11). La classe est
+   * globale par construction de Tailwind, mais `tests/unit/ui/
+   * retouches-2a.test.ts` (point 8) n'en autorise l'usage que dans les sept
+   * fichiers qu'il nomme ; ailleurs, 18 px reste la règle.
    */
   --text-12: 12px;
   --text-13: 13px;
   --text-14: 14px;
   --text-15: 15px;
   --text-16: 16px;
+  --text-17: 17px;
   --text-18: 18px;
   --text-24: 24px;
   --text-28: 28px;

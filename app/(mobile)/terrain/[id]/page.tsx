@@ -489,12 +489,11 @@ export default async function PageInterventionTerrain({
         d'en-tête, plus récente que cet audit — un écart nommé, consigné
         dans la passation plutôt que tranché ici une seconde fois.
 
-        17 px pour le client et 13-14 px pour la ligne du dessous sont ceux
-        de la maquette d'Alexis, mais `tests/unit/ui/retouches-2a.test.ts`
-        (D143, point 8) tient `app/(mobile)/terrain/[id]/page.tsx` au
-        plancher 16/18/24/28 px hors surtitre/pastille : ramenés à 18 et 16,
-        les deux valeurs les plus proches de l'échelle déjà posée, plutôt que
-        d'assouplir ce gardien sans décision nommée — voir la passation.
+        17 px pour le client et 13-14 px pour la ligne du dessous sont
+        désormais les valeurs exactes de la maquette (D261, 16/11/2026, qui
+        amende D143 point 8 pour la seule zone `data-zone="terrain"`) —
+        `tests/unit/ui/retouches-2a.test.ts` les accepte dans l'échelle
+        élargie 13/14/16/17/18/24/28 px.
       */}
         <header className="border-app-bord flex min-h-[60px] items-center gap-3 border-b py-2">
           <Link
@@ -505,11 +504,11 @@ export default async function PageInterventionTerrain({
             <Icone nom="chev-l" taille={22} />
           </Link>
           <div className="flex min-w-0 flex-1 flex-col">
-            <h1 className="text-app-encre truncate text-18 font-semibold">
+            <h1 className="text-app-encre truncate text-17 font-semibold">
               {fiche.client ?? t("terrain.client_inconnu")}
             </h1>
             {materielEtNumero === null ? null : (
-              <p className="text-app-encre-faible truncate text-16 font-medium">
+              <p className="text-app-encre-faible truncate text-14 font-medium">
                 {materielEtNumero}
               </p>
             )}
