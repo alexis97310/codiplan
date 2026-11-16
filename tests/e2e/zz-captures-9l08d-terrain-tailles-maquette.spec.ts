@@ -170,8 +170,13 @@ test("capture — en-tête de la fiche, à 375px", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 900 });
   await ouvrirLaSessionDuTerrain(page);
   await page.goto(`/terrain/${EN_COURS_ID}`);
-  await expect(page.locator("header").first()).toBeVisible();
-  await capturer(page.locator("header").first(), "entete-fiche");
+  // `components/navigation/bandeau-mobile.tsx` pose SON PROPRE `<header>`,
+  // avant celui de la fiche dans le DOM — `.first()` seul attraperait le
+  // bandeau de navigation, jamais l'en-tête de D261. Celui de la fiche est
+  // à l'intérieur de `<main>`.
+  const entete = page.locator("main header").first();
+  await expect(entete).toBeVisible();
+  await capturer(entete, "entete-fiche");
 });
 
 test("capture — une rubrique de checklist, à 375px", async ({ page }) => {
