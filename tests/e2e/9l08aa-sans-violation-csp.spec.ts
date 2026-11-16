@@ -261,9 +261,7 @@ test("terrain : signer et photographier ne lève aucune violation CSP", async ({
   );
 
   await champCamera(page).setInputFiles(fichierPhotoDEpreuve());
-  await expect(
-    page.getByText(fr["terrain.photos.etat_envoyee"]),
-  ).toBeVisible();
+  await expect(page.getByText(fr["terrain.photos.etat_envoyee"])).toBeVisible();
 
   // Un temps mesuré positif, exigé par `peutTerminer` — même patron que
   // `tests/e2e/9de-terminer-signature.spec.ts`.
