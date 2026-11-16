@@ -143,3 +143,92 @@ Aucune migration — `signataire_qualite` reste le champ texte libre d'avant ce 
 entrée neuve dans `docs/arbitrages.md` : rien n'a été TRANCHÉ par ce lot, l'écart ci-dessus reste
 une question pour Alexis, pas une décision. D173/D212/D242/D-S5 inchangés (trois issues, un seul
 bouton « Terminer », les mêmes manques bloquants).
+
+## Reprise 9L04HA
+
+9L04H est resté RECALÉ sur `origin/main` : deux scènes e2e, écrites avant ce lot, suivaient encore
+l'ancienne disposition de la signature (qualité en texte libre, pas de récapitulatif). Reprise par
+cherry-pick des six commits de `9L04H-TERRAIN-RECAPITULATIF-SIGNATURE-garde` sur `origin/main` à
+jour (qui porte désormais aussi 9L04F/9L04FA-TERRAIN-RAPPORT-PHRASES-TYPES, publiés après que 9L04H
+a été mesuré recalé) — rien n'a été retiré ni affaibli des deux côtés, voir « Ce qui a été résolu »
+ci-dessous.
+
+### Conflits de fusion — ce qui a été recomposé, jamais choisi
+
+`lib/checklists/presentation.ts` et `components/interventions/bon-tuiles.tsx` : deux imports
+ajoutés en parallèle par 9L04H (préparation) et par du code publié depuis (`DetailNonConforme`,
+`libelleSuiteNonConformite`) — les deux gardés, aucun n'écrivait sur la même ligne que l'autre.
+
+`components/terrain/rapport-automatique.tsx` : six zones où 9L04H et 9L04F/9L04FA ajoutaient
+chacun leur propre fonction, leur propre état (`useState`) ou leur propre effet au MÊME point du
+fichier — `nonConformesDepuisFile`/`phrasesTypesOuvertes` (9L04F) à côté de
+`valeursChecklistDepuisFile`/`resumeEtNonConformitesChecklist`/`CLES_QUALITE_SEGMENTS` (9L04H),
+jamais l'un à la place de l'autre. Recomposé en gardant les DEUX blocs complets, l'un après
+l'autre ; un marqueur de fusion orphelin (`>>>>>>>` isolé après `estQualitePreset`) nettoyé.
+
+`tests/unit/ui/composants-base.test.tsx` et `tests/unit/ui/retouches-2a.test.ts` : les gardiens de
+population du nombre de `<Button>` du terrain divergeaient (29 côté 9L04F/9L04FA publié, 24 côté
+9L04H sur son ANCIENNE base à 21) — recalculé sur la bonne chaîne : 29 (après 9L04E, 9L04F) + 3
+(9L04H : « Voir le récapitulatif », « Fermer » du récapitulatif, « Valider la signature ») = **32**,
+vérifié en relançant les deux épreuves après résolution.
+
+`tests/unit/terrain/rapport-automatique.test.tsx` : deux `describe` neufs insérés au même point
+(`mesureCompteurDeLaFile — tronqué…`, D256, publié depuis ; et « le récapitulatif avant signature »,
+9L04H) — remis l'un à la suite de l'autre, chacun avec sa propre fermeture.
+
+### Ce qui a été résolu (point 2 du mandat)
+
+- **`bon-4.spec.ts`** : la cause mesurée n'était pas seulement « deux boutons de plus » — une fois
+  « Autre » choisi, `getByLabel(fr["terrain.signature.qualite_libelle"])` résout TOUJOURS deux
+  éléments, parce que le groupe de segments (`SegmentsChoix`, `role="radiogroup"`) garde le MÊME
+  `aria-label` que la saisie libre qu'il ouvre — voulu (même libellé, passation du 14/11). La scène
+  choisissait déjà « Autre » par `getByRole("radio", …)` (repris de la garde), mais remplissait
+  ensuite le texte par `getByLabel` seul : changé en `getByRole("textbox", { name: … })`, même
+  patron de désambiguïsation que le test unitaire (`tests/unit/terrain/rapport-automatique.test.tsx`,
+  « la qualité du signataire se choisit en segments »). Rejoué seul : vert.
+- **`tests/e2e/offline/9f4h1-consultation.spec.ts`** : `fr["terrain.recapitulatif.ouvrir"]` ajouté
+  à `nomsBoutonsAttendus` (toujours affiché, en tête de la rubrique Signature, geste qui ne dépend
+  d'aucun réseau). Ajouté aussi la PREUVE qu'il fonctionne hors réseau, demandée par le mandat : le
+  récapitulatif s'ouvre depuis la copie locale (`page.getByRole("dialog", { name: … titre })`),
+  montre son sous-titre, puis se referme par son propre bouton « Fermer » (scopé au dialogue — un
+  autre « Fermer », celui des phrases types, existe ailleurs sur la même fiche, jamais ouvert en
+  même temps).
+
+### Point 3 — recherche des autres localisateurs de la même famille
+
+Cherché dans `tests/e2e/**` tout `getByLabel`/`getByRole` ciblant `terrain.signature.*` ou tout
+comptage de boutons qui pourrait croiser la Signature ou le récapitulatif :
+- Les neuf autres fichiers qui utilisent `terrain.signature.nom_libelle` ou `.motif_libelle`
+  (`9de-terminer-signature`, `9k27`, `9l06`, `captures-9f4h2a`, `offline/9f4h3`, `rapport-signature-
+  epaisseur-trait`, `offline/9f4h3ac`, `zz-captures-9ic`, `zz-captures-9i2`, `rapport-terrain`,
+  `offline/9f4h4`, `offline/9f4h6`, `offline/9f4h6d`) n'interrogent JAMAIS `qualite_libelle` —
+  aucun n'est concerné par la désambiguïsation ci-dessus.
+- Seuls deux fichiers faisaient un comptage exhaustif de boutons sur une fiche terrain
+  (`nomsBoutonsAttendus`/`comptesNommes`) : `9f4h1-consultation.spec.ts` (corrigé ci-dessus) et
+  `offline/9f4h4-ouverture-a-froid.spec.ts`, dont le seul `toHaveCount` de ce type vise un ÉTAT
+  VIDE (« sans instantané », zéro bouton) — hors de portée de ce ticket, non touché.
+- `9l04g-terrain-barre-fixe-terminer.spec.ts` cible `heading(signature.titre).locator("..")` pour
+  le focus de section — relation parent direct du titre, inchangée par l'ajout d'un bouton DANS la
+  section ; pas de correctif nécessaire.
+- Aucune scène `getByText`/`getByRole` sans `exact` ne risquait de confondre « Fermer » (récapitulatif)
+  avec un autre « Fermer » de la même fiche : toutes les occurrences existantes scopent déjà sur un
+  rôle précis (`button` nommé) ou un conteneur (`within(dialogue)` dans le test unitaire).
+
+### Épreuves rejouées (point 4)
+
+Au premier plan, `CI=1 --workers=1` : `bon-4`, `9l04h-terrain-recapitulatif-signature`,
+`9de-terminer-signature`, `rapport-signature-epaisseur-trait`, `9l04g-terrain-barre-fixe-terminer`,
+`9k27-terrain-terminer-ce-qui-manque`, `rapport-terrain`, `9l04f-terrain-rapport-phrases-types`,
+`zz-captures-9i2`, `zz-captures-9ic`, `zz-captures-9g1`, tout `offline/`, `tous-les-ecrans-rendent`
+— **143 tests, 139 passés, 4 ignorés** (vert, bon-4 compris après son correctif). Puis `pnpm test`
+(529 fichiers, 5892 tests), `pnpm test:isolation` (246 fichiers, 2255 tests), `CI=1 pnpm verify`
+(format, typecheck, lint, test, test:isolation, build) : tous verts.
+
+### Captures
+
+Les quatre captures 375 px de 9L04H rafraîchies (section « Captures » ci-dessus) — rejouées par sa
+propre épreuve e2e depuis l'état fusionné, qui montre pour la première fois « Phrases types » et
+« Voir le récapitulatif » ensemble sur la même fiche. Faire tourner la suite e2e complète régénère
+aussi, en effet de bord, les captures d'une quarantaine d'autres tickets (même `capturer()`, même
+dossier `docs/propositions/**/captures`) — écartées (`git checkout --`) : hors du périmètre de ce
+lot, et leur contenu ne change d'aucune règle qu'elles prouvent.
