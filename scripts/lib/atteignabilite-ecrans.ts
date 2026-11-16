@@ -37,12 +37,28 @@
  * forme 6 du §9 (26/08), qu'aucun motif statique n'arrête.
  */
 
-/** Un écran : sa route, et le texte où ses liens se lisent. */
+/**
+ * Un écran : sa route, le texte où ses liens se lisent, et les chemins déjà
+ * désignés par ce texte.
+ *
+ * `chemins` existe à part de `source` depuis 9L08A0 (16/11/2026) : `source`
+ * est la concaténation de TOUTE la fermeture d'imports d'un écran, et presque
+ * tous les écrans du back-office partagent le même chrome — mesuré sur le
+ * dépôt, 50 écrans pour 389 fichiers RÉELLEMENT distincts produisaient 84,8 Mo
+ * de texte, l'essentiel dupliqué d'un écran à l'autre. Rescanner ce texte par
+ * `cheminsDesignes` à CHAQUE écran, pendant la fermeture transitive de
+ * `ecransOrphelins`, relisait donc les mêmes composants partagés des dizaines
+ * de fois. `chemins` est calculé UNE fois par FICHIER distinct (mémoïsé), puis
+ * réuni par écran — même résultat, sans jamais rescanner un fichier partagé
+ * pour un second écran qui l'inclut aussi.
+ */
 export type Ecran = {
   /** La route Next.js, segments dynamiques compris : `/parc/[id]`. */
   readonly route: string;
   /** Le source de la page ET des composants locaux qu'elle utilise. */
   readonly source: string;
+  /** Les chemins désignés par `source`, déjà calculés — voir `chemins` ci-dessus. */
+  readonly chemins: readonly string[];
 };
 
 /**
@@ -224,7 +240,7 @@ export function ecransOrphelins(
     if (ecran === undefined) {
       continue;
     }
-    for (const designe of cheminsDesignes(ecran.source)) {
+    for (const designe of ecran.chemins) {
       ouvrir(designe);
     }
   }

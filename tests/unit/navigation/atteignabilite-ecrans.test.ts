@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 import { ENTREES, feuilles } from "@/lib/navigation/entrees";
 import {
@@ -48,12 +48,73 @@ function pages(
 }
 
 /**
+ * Cache de contenu — UN fichier n'est lu qu'UNE fois, mesuré le 16/11/2026
+ * sur 9L08A0 : sans lui, chaque écran reparcourt tout son graphe d'imports
+ * depuis zéro (ensemble `vus` NEUF par écran), et chaque fichier y est lu
+ * DEUX fois — une pour sonder l'extension, une pour la récursion. Sur les
+ * cinquante écrans du back-office, pour 389 fichiers RÉELLEMENT distincts :
+ * 31 311 appels à `readFileSync`, et le test dépassait sa limite de 5 s sous
+ * charge. Le graphe d'imports est le même pour tout le dépôt, qu'on le
+ * regarde depuis un écran ou un autre — il ne se calcule qu'une fois.
+ */
+const cacheContenu = new Map<string, string | null>();
+
+function lireFichier(absolu: string): string | null {
+  const vu = cacheContenu.get(absolu);
+  if (vu !== undefined) {
+    return vu;
+  }
+  let contenu: string | null;
+  try {
+    contenu = readFileSync(absolu, "utf8");
+  } catch {
+    contenu = null;
+  }
+  cacheContenu.set(absolu, contenu);
+  return contenu;
+}
+
+/** Les imports locaux résolus d'un fichier — mémoïsés, le graphe ne se calcule qu'une fois. */
+const cacheImports = new Map<string, string[]>();
+
+function importsResolus(absolu: string): string[] {
+  const vu = cacheImports.get(absolu);
+  if (vu !== undefined) {
+    return vu;
+  }
+  const resultats: string[] = [];
+  const source = lireFichier(absolu);
+  if (source !== null) {
+    for (const trouve of source.matchAll(/from\s+"(@\/[^"]+|\.[^"]+)"/g)) {
+      const brut = trouve[1]!;
+      const base = brut.startsWith("@/")
+        ? join(RACINE, brut.slice(2))
+        : resolve(dirname(absolu), brut);
+      for (const extension of [".tsx", ".ts", "/index.tsx", "/index.ts"]) {
+        const candidat = `${base}${extension}`;
+        if (lireFichier(candidat) !== null) {
+          resultats.push(candidat);
+          break;
+        }
+      }
+    }
+  }
+  cacheImports.set(absolu, resultats);
+  return resultats;
+}
+
+/**
  * Le source d'un écran, ET celui des composants LOCAUX qu'il utilise.
  *
  * Sans cette fermeture, un écran dont la liste vit dans un composant paraîtrait
  * ne mener nulle part — et le gardien rougirait sur un chemin qui existe. *Un
  * gardien qui crie à tort désapprend à lire les gardiens aussi sûrement qu'un
  * gardien muet* (§9, 11/09).
+ *
+ * `vus` reste propre à CHAQUE appel de premier niveau (un écran) : c'est ce
+ * qui arrête un cycle d'imports PENDANT la descente. Le cache ci-dessus est
+ * d'une autre nature — il survit entre les écrans — et c'est lui qui évite de
+ * relire un fichier déjà vu par un écran précédent.
  */
 function sourceAvecComposants(
   fichier: string,
@@ -65,35 +126,67 @@ function sourceAvecComposants(
   }
   vus.add(absolu);
 
-  let source: string;
-  try {
-    source = readFileSync(absolu, "utf8");
-  } catch {
+  const source = lireFichier(absolu);
+  if (source === null) {
     return "";
   }
 
   let total = source;
-  for (const trouve of source.matchAll(/from\s+"(@\/[^"]+|\.[^"]+)"/g)) {
-    const brut = trouve[1]!;
-    const base = brut.startsWith("@/")
-      ? join(RACINE, brut.slice(2))
-      : resolve(dirname(absolu), brut);
-    for (const extension of [".tsx", ".ts", "/index.tsx", "/index.ts"]) {
-      try {
-        readFileSync(`${base}${extension}`, "utf8");
-        total += `\n${sourceAvecComposants(`${base}${extension}`, vus)}`;
-        break;
-      } catch {
-        continue;
-      }
-    }
+  for (const suivant of importsResolus(absolu)) {
+    total += `\n${sourceAvecComposants(suivant, vus)}`;
   }
   return total;
+}
+
+/**
+ * Les chemins désignés par UN fichier, mémoïsés — la seconde cause du
+ * dépassement mesurée le 16/11/2026 sur 9L08A0.
+ *
+ * `cheminsDesignes` sur le TEXTE CONCATÉNÉ d'un écran rescanne, pour chaque
+ * écran, tout le chrome partagé qu'il importe — sur le dépôt, 50 écrans
+ * produisaient 84,8 Mo de texte cumulé (389 fichiers distincts seulement), et
+ * les six motifs de `cheminsDesignes`, rejoués sur ce volume à chaque écran
+ * de la fermeture transitive, coûtaient ~2,1 s à eux seuls. Calculé une fois
+ * PAR FICHIER, puis réuni par écran, le même résultat ne rescanne plus jamais
+ * un composant partagé pour un second écran qui l'inclut aussi.
+ */
+const cacheCheminsParFichier = new Map<string, readonly string[]>();
+
+function cheminsDesignesParFichier(absolu: string): readonly string[] {
+  const vu = cacheCheminsParFichier.get(absolu);
+  if (vu !== undefined) {
+    return vu;
+  }
+  const source = lireFichier(absolu);
+  const resultat = source === null ? [] : cheminsDesignes(source);
+  cacheCheminsParFichier.set(absolu, resultat);
+  return resultat;
+}
+
+/** L'union des chemins désignés par un écran et toute sa fermeture d'imports. */
+function cheminsDeFermeture(
+  fichier: string,
+  vus = new Set<string>(),
+  acc = new Set<string>(),
+): Set<string> {
+  const absolu = resolve(fichier);
+  if (vus.has(absolu)) {
+    return acc;
+  }
+  vus.add(absolu);
+  for (const chemin of cheminsDesignesParFichier(absolu)) {
+    acc.add(chemin);
+  }
+  for (const suivant of importsResolus(absolu)) {
+    cheminsDeFermeture(suivant, vus, acc);
+  }
+  return acc;
 }
 
 const ECRANS: readonly Ecran[] = pages(GROUPE).map(({ route, fichier }) => ({
   route,
   source: sourceAvecComposants(fichier),
+  chemins: [...cheminsDeFermeture(fichier)],
 }));
 
 /**
@@ -119,7 +212,7 @@ const DEPARTS = [
   ...feuilles(ENTREES)
     .map((e) => e.chemin)
     .filter((chemin): chemin is string => chemin !== null),
-  ...cheminsDesignes(sourceAvecComposants(join(GROUPE, "layout.tsx"))),
+  ...cheminsDeFermeture(join(GROUPE, "layout.tsx")),
 ];
 
 /**
@@ -167,6 +260,97 @@ describe("aucun écran du back-office n'est orphelin", () => {
         "n'existe pas : celui qui doit s'en servir ne la trouvera jamais, et " +
         "aucun autre contrôle du dépôt ne le dit.",
     ).toEqual([]);
+  });
+});
+
+/**
+ * LE CACHE NE CHANGE PAS CE QUE LE GARDIEN VOIT — 9L08A0, 16/11/2026.
+ *
+ * `sourceAvecComposants` mémoïse désormais lectures et imports résolus. Cette
+ * épreuve rejoue l'ANCIEN algorithme — un `readFileSync` par fichier et par
+ * écran, sans aucun partage — sur le dépôt réel, et exige exactement la même
+ * population d'écrans, les mêmes départs et les mêmes orphelins que la
+ * version mémoïsée déjà utilisée ci-dessus. Un cache qui change le résultat
+ * serait un défaut masqué par une mesure de vitesse.
+ *
+ * **Volontairement lent, et volontairement hors du délai de 5000 ms** : cette
+ * épreuve rejoue EXPRÈS l'algorithme SANS cache sur tout le dépôt — c'est le
+ * seul moyen de prouver l'équivalence contre la version d'avant. Son coût
+ * vit dans un `beforeAll` à délai explicite élargi, jamais dans le test
+ * mesuré au § CONTEXTE ni dans le chemin que le gardien utilise réellement.
+ */
+function sourceAvecComposantsSansCache(
+  fichier: string,
+  vus = new Set<string>(),
+): string {
+  const absolu = resolve(fichier);
+  if (vus.has(absolu)) {
+    return "";
+  }
+  vus.add(absolu);
+
+  let source: string;
+  try {
+    source = readFileSync(absolu, "utf8");
+  } catch {
+    return "";
+  }
+
+  let total = source;
+  for (const trouve of source.matchAll(/from\s+"(@\/[^"]+|\.[^"]+)"/g)) {
+    const brut = trouve[1]!;
+    const base = brut.startsWith("@/")
+      ? join(RACINE, brut.slice(2))
+      : resolve(dirname(absolu), brut);
+    for (const extension of [".tsx", ".ts", "/index.tsx", "/index.ts"]) {
+      try {
+        readFileSync(`${base}${extension}`, "utf8");
+        total += `\n${sourceAvecComposantsSansCache(`${base}${extension}`, vus)}`;
+        break;
+      } catch {
+        continue;
+      }
+    }
+  }
+  return total;
+}
+
+describe("la mémoïsation du graphe d'imports ne change pas le résultat", () => {
+  let ECRANS_SANS_CACHE: readonly Ecran[];
+  let DEPARTS_SANS_CACHE: string[];
+
+  beforeAll(() => {
+    // `chemins` est ici calculé par la méthode d'ORIGINE — `cheminsDesignes`
+    // sur le texte concaténé en entier, sans la mémoïsation par fichier — pour
+    // que cette épreuve reste un témoin indépendant de l'optimisation testée.
+    ECRANS_SANS_CACHE = pages(GROUPE).map(({ route, fichier }) => {
+      const source = sourceAvecComposantsSansCache(fichier);
+      return { route, source, chemins: cheminsDesignes(source) };
+    });
+    DEPARTS_SANS_CACHE = [
+      ...feuilles(ENTREES)
+        .map((e) => e.chemin)
+        .filter((chemin): chemin is string => chemin !== null),
+      ...cheminsDesignes(
+        sourceAvecComposantsSansCache(join(GROUPE, "layout.tsx")),
+      ),
+    ];
+  }, 30000);
+
+  it("même population d'écrans", () => {
+    expect(ECRANS_SANS_CACHE.map((e) => e.route).sort()).toEqual(
+      ECRANS.map((e) => e.route).sort(),
+    );
+  });
+
+  it("mêmes départs", () => {
+    expect([...DEPARTS_SANS_CACHE].sort()).toEqual([...DEPARTS].sort());
+  });
+
+  it("mêmes orphelins", () => {
+    expect(ecransOrphelins(ECRANS_SANS_CACHE, DEPARTS_SANS_CACHE)).toEqual(
+      ecransOrphelins(ECRANS, DEPARTS),
+    );
   });
 });
 
