@@ -118,7 +118,11 @@ async function traiter(requete: Request, id: string): Promise<Response> {
     undefined,
     idOperation(formulaire),
   );
-  return ecrite === null
-    ? reponse(requete, id, false, "terrain.signature.refus")
-    : reponse(requete, id, true, "terrain.signature.enregistre");
+  if (ecrite === null) {
+    return reponse(requete, id, false, "terrain.signature.refus");
+  }
+  if ("refuse" in ecrite) {
+    return reponse(requete, id, false, ecrite.cle);
+  }
+  return reponse(requete, id, true, "terrain.signature.enregistre");
 }

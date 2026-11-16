@@ -19,10 +19,14 @@ import {
 } from "@/lib/checklists/non-conformite";
 import { ligneNonConforme } from "@/lib/checklists/suite-preremplie";
 import { t } from "@/lib/i18n/fr";
+import { peutSaisirSurTerrain } from "@/lib/interventions/cycle-de-vie";
+import type { StatutIntervention } from "@/lib/interventions/saisie";
 import {
   ajouterSaisie,
   compterEnAttente,
+  type DetailCompteurDemarreEnLigne,
   EVENEMENT_CHECKLIST_SAUTER_AU_POINT,
+  EVENEMENT_COMPTEUR_DEMARRE_EN_LIGNE,
   EVENEMENT_FILE_MODIFIEE,
   listerFilePourIntervention,
   signalerChecklistNonConforme,
@@ -271,9 +275,11 @@ const CLASSES_PASTILLE_AU_REPOS = `text-app-terrain-encre ${CLASSES_PASTILLE}`;
 function PastillesConformite({
   valeur,
   onChange,
+  disabled = false,
 }: {
   readonly valeur: unknown;
   readonly onChange: (valeur: unknown) => void;
+  readonly disabled?: boolean;
 }) {
   return (
     <div
@@ -282,6 +288,7 @@ function PastillesConformite({
     >
       <button
         type="button"
+        disabled={disabled}
         aria-pressed={valeur === "conforme"}
         aria-label={t("checklist.terrain.option_conforme")}
         onClick={() => onChange(valeur === "conforme" ? null : "conforme")}
@@ -295,6 +302,7 @@ function PastillesConformite({
       </button>
       <button
         type="button"
+        disabled={disabled}
         aria-pressed={valeur === "non_conforme"}
         aria-label={t("checklist.terrain.non_conforme")}
         onClick={() =>
@@ -310,6 +318,7 @@ function PastillesConformite({
       </button>
       <button
         type="button"
+        disabled={disabled}
         aria-pressed={valeur === "sans_objet"}
         aria-label={t("checklist.terrain.option_sans_objet")}
         onClick={() => onChange(valeur === "sans_objet" ? null : "sans_objet")}
@@ -346,9 +355,11 @@ function resumeNonConformite(
 function SegmentsSuite({
   valeur,
   onChange,
+  disabled = false,
 }: {
   readonly valeur: SuiteNonConformiteChecklist | null;
   readonly onChange: (valeur: SuiteNonConformiteChecklist | null) => void;
+  readonly disabled?: boolean;
 }) {
   return (
     <div
@@ -358,6 +369,7 @@ function SegmentsSuite({
     >
       <button
         type="button"
+        disabled={disabled}
         role="radio"
         aria-checked={valeur === "regle_sur_place"}
         onClick={() =>
@@ -373,6 +385,7 @@ function SegmentsSuite({
       </button>
       <button
         type="button"
+        disabled={disabled}
         role="radio"
         aria-checked={valeur === "piece_a_commander"}
         onClick={() =>
@@ -388,6 +401,7 @@ function SegmentsSuite({
       </button>
       <button
         type="button"
+        disabled={disabled}
         role="radio"
         aria-checked={valeur === "a_revoir"}
         onClick={() => onChange(valeur === "a_revoir" ? null : "a_revoir")}
@@ -407,9 +421,11 @@ function SegmentsSuite({
 function ChampCommentaireNonConforme({
   valeur,
   onChange,
+  disabled = false,
 }: {
   readonly valeur: string | null;
   readonly onChange: (valeur: string | null) => void;
+  readonly disabled?: boolean;
 }) {
   return (
     <label className="flex w-full flex-col gap-1">
@@ -418,6 +434,7 @@ function ChampCommentaireNonConforme({
       </span>
       <textarea
         value={valeur ?? ""}
+        disabled={disabled}
         placeholder={t("checklist.non_conformite.commentaire_placeholder")}
         maxLength={500}
         rows={2}
@@ -445,6 +462,7 @@ function ChampNonConformite({
   valeur,
   onChange,
   photo,
+  disabled = false,
 }: {
   readonly point: PointChecklistEcran;
   readonly valeur: unknown;
@@ -455,6 +473,7 @@ function ChampNonConformite({
     readonly societeId: string;
     readonly sansSession: boolean;
   };
+  readonly disabled?: boolean;
 }) {
   const conforme = valeurConformeDe(valeur);
   const detail = detailNonConformeDe(valeur);
@@ -509,16 +528,22 @@ function ChampNonConformite({
           : "flex flex-col items-end gap-2"
       }
     >
-      <PastillesConformite valeur={conforme} onChange={changerConforme} />
+      <PastillesConformite
+        valeur={conforme}
+        onChange={changerConforme}
+        disabled={disabled}
+      />
       {conforme !== "non_conforme" ? null : ouvert ? (
         <div className="flex w-full flex-col gap-2">
           <SegmentsSuite
             valeur={detail.suite}
             onChange={(suite) => changerDetail({ suite })}
+            disabled={disabled}
           />
           <ChampCommentaireNonConforme
             valeur={detail.commentaire}
             onChange={(commentaire) => changerDetail({ commentaire })}
+            disabled={disabled}
           />
           <PhotosTerrain
             action={`/api/terrain/${photo.interventionId}/photos`}
@@ -548,15 +573,18 @@ function CocheRonde({
   libelle,
   valeur,
   onChange,
+  disabled = false,
 }: {
   readonly libelle: string;
   readonly valeur: unknown;
   readonly onChange: (valeur: unknown) => void;
+  readonly disabled?: boolean;
 }) {
   const faite = valeur === true;
   return (
     <button
       type="button"
+      disabled={disabled}
       role="checkbox"
       aria-checked={faite}
       aria-label={libelle}
@@ -583,11 +611,13 @@ export function SegmentsChoix({
   options,
   valeur,
   onChange,
+  disabled = false,
 }: {
   readonly libelle: string;
   readonly options: readonly string[];
   readonly valeur: unknown;
   readonly onChange: (valeur: unknown) => void;
+  readonly disabled?: boolean;
 }) {
   return (
     <div
@@ -601,6 +631,7 @@ export function SegmentsChoix({
           <button
             key={option}
             type="button"
+            disabled={disabled}
             role="radio"
             aria-checked={choisie}
             onClick={() => onChange(choisie ? null : option)}
@@ -628,6 +659,7 @@ function champDuType(
     readonly societeId: string;
     readonly sansSession: boolean;
   },
+  disabled: boolean,
 ): ReactNode {
   switch (point.typeReponse) {
     case "conforme_non_conforme_sans_objet":
@@ -637,6 +669,7 @@ function champDuType(
           valeur={valeur}
           onChange={onChange}
           photo={photo}
+          disabled={disabled}
         />
       );
     case "valeur_mesuree":
@@ -647,6 +680,7 @@ function champDuType(
             inputMode="decimal"
             aria-label={point.libelle}
             value={typeof valeur === "number" ? valeur : ""}
+            disabled={disabled}
             onChange={(e) =>
               onChange(e.target.value === "" ? null : Number(e.target.value))
             }
@@ -665,6 +699,7 @@ function champDuType(
           libelle={point.libelle}
           valeur={valeur}
           onChange={onChange}
+          disabled={disabled}
         />
       );
     case "choix_dans_une_liste":
@@ -675,6 +710,7 @@ function champDuType(
             options={point.choix}
             valeur={valeur}
             onChange={onChange}
+            disabled={disabled}
           />
         );
       }
@@ -682,6 +718,7 @@ function champDuType(
         <select
           aria-label={point.libelle}
           value={typeof valeur === "string" ? valeur : ""}
+          disabled={disabled}
           onChange={(e) =>
             onChange(e.target.value === "" ? null : e.target.value)
           }
@@ -702,6 +739,7 @@ function champDuType(
           aria-label={point.libelle}
           value={typeof valeur === "string" ? valeur : ""}
           maxLength={2000}
+          disabled={disabled}
           onChange={(e) =>
             onChange(e.target.value.length === 0 ? null : e.target.value)
           }
@@ -745,6 +783,7 @@ function PointLigne({
   valeur,
   onChange,
   photo,
+  disabled,
 }: {
   readonly point: PointChecklistEcran;
   readonly valeur: unknown;
@@ -755,6 +794,7 @@ function PointLigne({
     readonly societeId: string;
     readonly sansSession: boolean;
   };
+  readonly disabled: boolean;
 }) {
   // Choix, texte et photo veulent leur propre largeur : le libellé garde sa
   // ligne, la commande suit sur la ligne suivante, pleine largeur (point 3).
@@ -799,7 +839,7 @@ function PointLigne({
         )}
       </div>
       <div className={surSaPropreLigne ? "w-full" : undefined}>
-        {champDuType(point, valeur, onChange, photo)}
+        {champDuType(point, valeur, onChange, photo, disabled)}
       </div>
     </div>
   );
@@ -820,6 +860,7 @@ function Rubrique({
   photo,
   ouverteManuelle,
   onBasculer,
+  disabled,
 }: {
   readonly section: string;
   readonly points: readonly PointChecklistEcran[];
@@ -833,6 +874,7 @@ function Rubrique({
   };
   readonly ouverteManuelle: boolean | undefined;
   readonly onBasculer: (section: string, ouvrir: boolean) => void;
+  readonly disabled: boolean;
 }) {
   const completude = completudeDe(points, valeurs);
   const complete = completude.pointsRepondus === completude.totalPoints;
@@ -881,6 +923,7 @@ function Rubrique({
               valeur={valeurs[point.id] ?? null}
               onChange={(valeur) => onChange(point, valeur)}
               photo={photo}
+              disabled={disabled}
             />
           ))}
         </div>
@@ -893,6 +936,7 @@ export function ChecklistTerrain({
   interventionId,
   utilisateurId,
   societeId,
+  statut,
   checklistModeleLibelle,
   points,
   sansSession = false,
@@ -900,6 +944,8 @@ export function ChecklistTerrain({
   readonly interventionId: string;
   readonly utilisateurId: string;
   readonly societeId: string;
+  /** Le statut SERVEUR au moment du rendu — lu par `peutSaisirSurTerrain` local (9L08B, même patron que `RapportTerrainAutomatique`). */
+  readonly statut: StatutIntervention;
   readonly checklistModeleLibelle: string;
   readonly points: readonly PointChecklistEcran[];
   /** LA COQUILLE `/terrain-hors-reseau` (9K28-CHECKLIST-REPONSE-PHOTO) — voir
@@ -915,6 +961,51 @@ export function ChecklistTerrain({
   );
   const [pointASauter, setPointASauter] = useState<string | null>(null);
   const differenceRef = useRef<Record<string, unknown>>({});
+  // UN « DÉMARRER » MIS EN FILE HORS RÉSEAU OU RÉUSSI EN LIGNE, SANS QUE LE
+  // SERVEUR LE SACHE ENCORE AU MOMENT DE CE RENDU (9L08B, même patron que
+  // `enCoursLocalement` dans `RapportTerrainAutomatique`, composant FRÈRE
+  // qui ne peut pas partager son état directement).
+  const [demarreeLocalement, setDemarreeLocalement] = useState(false);
+  const desactivee = peutSaisirSurTerrain(statut).refuse && !demarreeLocalement;
+
+  useEffect(() => {
+    function relire(): void {
+      void listerFilePourIntervention(interventionId, {
+        utilisateurId,
+        societeId,
+      }).then((entrees) => {
+        setDemarreeLocalement(
+          entrees.some(
+            (e) => e.geste.type === "compteur" && e.geste.action === "demarrer",
+          ),
+        );
+      });
+    }
+    relire();
+    window.addEventListener(EVENEMENT_FILE_MODIFIEE, relire);
+    return () =>
+      window.removeEventListener(EVENEMENT_FILE_MODIFIEE, relire);
+  }, [interventionId, utilisateurId, societeId]);
+
+  useEffect(() => {
+    function surCompteurDemarreEnLigne(evenement: Event): void {
+      const detail = (evenement as CustomEvent<DetailCompteurDemarreEnLigne>)
+        .detail;
+      if (detail.interventionId !== interventionId) {
+        return;
+      }
+      setDemarreeLocalement(true);
+    }
+    window.addEventListener(
+      EVENEMENT_COMPTEUR_DEMARRE_EN_LIGNE,
+      surCompteurDemarreEnLigne,
+    );
+    return () =>
+      window.removeEventListener(
+        EVENEMENT_COMPTEUR_DEMARRE_EN_LIGNE,
+        surCompteurDemarreEnLigne,
+      );
+  }, [interventionId]);
 
   // LE LIEN DU REFUS « TERMINER » DÉPLIE SA RUBRIQUE ET Y SAUTE (CK7) — voir
   // `EVENEMENT_CHECKLIST_SAUTER_AU_POINT` : `RapportTerrainAutomatique`, un
@@ -988,6 +1079,12 @@ export function ChecklistTerrain({
   }, [interventionId]);
 
   function enregistrer(point: PointChecklistEcran, valeur: unknown): void {
+    // AUCUNE SAISIE POSSIBLE AU DOIGT (9L08B) — filet, les commandes sont
+    // déjà désactivées plus bas ; ce retour garde `enregistrer` sans effet
+    // si cette fonction était malgré tout rappelée.
+    if (desactivee) {
+      return;
+    }
     setValeurs((precedent) => ({ ...precedent, [point.id]: valeur }));
     differenceRef.current = { ...differenceRef.current, [point.id]: valeur };
     void ajouterSaisie({
@@ -1033,6 +1130,7 @@ export function ChecklistTerrain({
             valeurs={valeurs}
             onChange={enregistrer}
             photo={{ interventionId, utilisateurId, societeId, sansSession }}
+            disabled={desactivee}
             ouverteManuelle={etatRubriques[section]}
             onBasculer={(section, ouvrir) =>
               setEtatRubriques((precedent) => ({

@@ -39,6 +39,7 @@ export function CaseACocher({
   libelle,
   libelleVisible = true,
   className,
+  disabled = false,
 }: Readonly<{
   name: string;
   value?: string;
@@ -48,6 +49,7 @@ export function CaseACocher({
   libelle: string;
   libelleVisible?: boolean;
   className?: string;
+  disabled?: boolean;
 }>) {
   return (
     <label className={cn("min-h-11 min-w-11 md:min-h-0 md:min-w-0", className)}>
@@ -58,6 +60,7 @@ export function CaseACocher({
         defaultChecked={defaultChecked}
         checked={checked}
         onChange={onChange}
+        disabled={disabled}
         aria-label={libelleVisible ? undefined : libelle}
       />
       {libelleVisible ? libelle : null}

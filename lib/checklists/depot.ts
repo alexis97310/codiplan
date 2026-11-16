@@ -32,7 +32,7 @@ import {
   validerReponsePoint,
   type SaisieReponsePoint,
 } from "@/lib/checklists/validation-reponse";
-import { estFige } from "@/lib/interventions/cycle-de-vie";
+import { estFige, peutSaisirSurTerrain } from "@/lib/interventions/cycle-de-vie";
 import { accesSurCetteIntervention } from "@/lib/interventions/perimetre-technicien";
 import type {
   StatutIntervention,
@@ -1181,6 +1181,15 @@ export async function enregistrerReponses(
               ? "intervention.refus.annulee_figee"
               : "intervention.refus.cloturee_figee",
         };
+      }
+      // SAISIE APRÈS DÉMARRAGE SEULEMENT (9L08B, décision d'Alexis du
+      // 16/11/2026) — même garde que le rapport, les prestations réalisées
+      // et la signature (`peutSaisirSurTerrain`).
+      const verdictDemarrage = peutSaisirSurTerrain(
+        intervention.statut as StatutIntervention,
+      );
+      if (verdictDemarrage.refuse) {
+        return { refuse: true, cle: verdictDemarrage.cle };
       }
 
       const versionId = await resoudreOuPinnerVersionChecklist(

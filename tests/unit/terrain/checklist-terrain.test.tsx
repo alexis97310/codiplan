@@ -73,6 +73,9 @@ function scene(points: readonly PointChecklistEcran[]) {
       interventionId={INTERVENTION_ID}
       utilisateurId={UTILISATEUR_ID}
       societeId={SOCIETE_ID}
+      // DÉMARRÉE (9L08B) — ces épreuves portent sur la saisie elle-même,
+      // jamais sur la garde « non démarrée », couverte à part.
+      statut="en_cours"
       checklistModeleLibelle="Modèle de test"
       points={points}
     />,

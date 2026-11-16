@@ -2652,6 +2652,10 @@ export const fr = {
   // n'est plus vrai depuis que la matrice D8 retire cette flèche.
   "intervention.refus.cloturee_figee":
     "Clôturée : elle ne se modifie plus, y compris pour être annulée.",
+  // 9L08B-SAISIE-APRES-DEMARRER (décision d'Alexis du 16/11/2026) — checklist,
+  // rapport, prestations et signature exigent toutes le même préalable.
+  "intervention.refus.non_demarree":
+    "Démarrez l'intervention avant de remplir la checklist ou de faire signer le client.",
   "intervention.refus.deja_cloturee": "Cette intervention est déjà clôturée.",
   // D160 — la clôture ne part désormais que de « Terminée » (QT-4, D8 à la
   // lettre), distinct du refus « temps manquant » qui juge l'intervention

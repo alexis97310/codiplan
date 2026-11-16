@@ -561,6 +561,7 @@ function Fiche({
           interventionId={fiche.id}
           utilisateurId={utilisateurId}
           societeId={societeId}
+          statut={fiche.statut as StatutIntervention}
           checklistModeleLibelle={checklist.libelle}
           points={checklist.points}
           sansSession

@@ -197,6 +197,7 @@ describe("société B ne lit ni n'écrit les réponses de la société A", () =>
           siteId: SITE_A1_S1,
           agenceId: AGENCE_A,
           technicienId: TECHNICIEN_A,
+          statut: "en_cours",
         },
         async (interventionId) => {
           const ecritureParA = await enregistrerReponses(
@@ -254,6 +255,7 @@ describe("le PIN — posé à la première réponse acceptée, jamais avant", ()
           siteId: SITE_A1_S1,
           agenceId: AGENCE_A,
           technicienId: TECHNICIEN_A,
+          statut: "en_cours",
         },
         async (interventionId) => {
           const avant = await clientOwner().intervention.findUnique({
@@ -305,6 +307,7 @@ describe("`checklist.refus.point_hors_version` — un point d'une AUTRE version 
           siteId: SITE_A1_S1,
           agenceId: AGENCE_A,
           technicienId: TECHNICIEN_A,
+          statut: "en_cours",
         },
         async (interventionId) => {
           // PIN sur la version 1 (la plus récente au moment de la résolution
@@ -366,6 +369,7 @@ describe("une réponse modifiée remet à zéro la validation du rapport (RG-INT
           siteId: SITE_A1_S1,
           agenceId: AGENCE_A,
           technicienId: TECHNICIEN_A,
+          statut: "en_cours",
         },
         async (interventionId) => {
           await clientOwner().$executeRawUnsafe(
@@ -420,6 +424,7 @@ describe("un RETRAIT (`valeur: null`) — RÉEL, LA LIGNE DISPARAÎT (9L04M-CHEC
           siteId: SITE_A1_S1,
           agenceId: AGENCE_A,
           technicienId: TECHNICIEN_A,
+          statut: "en_cours",
         },
         async (interventionId) => {
           const ecrite = await enregistrerReponses(
@@ -463,6 +468,7 @@ describe("un RETRAIT (`valeur: null`) — RÉEL, LA LIGNE DISPARAÎT (9L04M-CHEC
           siteId: SITE_A1_S1,
           agenceId: AGENCE_A,
           technicienId: TECHNICIEN_A,
+          statut: "en_cours",
         },
         async (interventionId) => {
           const retrait = await enregistrerReponses(
@@ -497,6 +503,7 @@ describe("un RETRAIT (`valeur: null`) — RÉEL, LA LIGNE DISPARAÎT (9L04M-CHEC
           siteId: SITE_A1_S1,
           agenceId: AGENCE_A,
           technicienId: TECHNICIEN_A,
+          statut: "en_cours",
         },
         async (interventionId) => {
           await enregistrerReponses(
@@ -553,6 +560,7 @@ describe("un RETRAIT (`valeur: null`) — RÉEL, LA LIGNE DISPARAÎT (9L04M-CHEC
           siteId: SITE_A1_S1,
           agenceId: AGENCE_A,
           technicienId: TECHNICIEN_A,
+          statut: "en_cours",
         },
         async (interventionId) => {
           await enregistrerReponses(
@@ -606,6 +614,7 @@ describe("un RETRAIT (`valeur: null`) — RÉEL, LA LIGNE DISPARAÎT (9L04M-CHEC
           siteId: SITE_A1_S1,
           agenceId: AGENCE_A,
           technicienId: TECHNICIEN_A,
+          statut: "en_cours",
         },
         async (interventionId) => {
           await enregistrerReponses(
@@ -713,6 +722,7 @@ describe("un RETRAIT (`valeur: null`) — RÉEL, LA LIGNE DISPARAÎT (9L04M-CHEC
           siteId: SITE_A1_S1,
           agenceId: AGENCE_A,
           technicienId: TECHNICIEN_A,
+          statut: "en_cours",
         },
         async (interventionId) => {
           await enregistrerReponses(

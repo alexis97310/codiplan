@@ -205,6 +205,8 @@ describe("depuisFile=false — le tout premier essai EN LIGNE n'est jamais hors 
   it("terminer : même heure future acceptée, saisi_hors_reseau faux sur le segment fermé", async () => {
     const id = await jetable(TECHNICIEN);
     const h8 = new Date("2026-09-14T08:00:00.000Z");
+    // DÉMARRÉE D'ABORD (9L08B, décision d'Alexis du 16/11/2026).
+    await demarrerLeCompteur(SESSION_TECH, id, h8, clientApp());
     // UN COMMENTAIRE NON VIDE (RG-INT-02 amendée, 9K27-TERRAIN-TERMINER-CE-
     // QUI-MANQUE) — cette scène n'éprouve pas ce manque.
     await enregistrerRapportTexte(
@@ -213,7 +215,6 @@ describe("depuisFile=false — le tout premier essai EN LIGNE n'est jamais hors 
       { commentaire_technicien: "Filtre remplacé.", suite_a_donner: null },
       clientApp(),
     );
-    await demarrerLeCompteur(SESSION_TECH, id, h8, clientApp());
     await enregistrerSignature(
       SESSION_TECH,
       id,

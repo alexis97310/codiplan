@@ -111,7 +111,11 @@ async function traiter(requete: Request, id: string): Promise<Response> {
     ajouterIds,
     retirerIds,
   );
-  return ecrite === null
-    ? reponse(requete, id, false, "terrain.prestations.refus")
-    : reponse(requete, id, true, "terrain.prestations.enregistre");
+  if (ecrite === null) {
+    return reponse(requete, id, false, "terrain.prestations.refus");
+  }
+  if ("refuse" in ecrite) {
+    return reponse(requete, id, false, ecrite.cle);
+  }
+  return reponse(requete, id, true, "terrain.prestations.enregistre");
 }

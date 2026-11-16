@@ -40,6 +40,13 @@ import {
 
 afterAll(fermerClients);
 
+/** L'identifiant écrit, ou `null` — jamais lu sur un refus NOMMÉ (9L08B). */
+function idDe(
+  resultat: { readonly id: string } | { readonly refuse: true; readonly cle: string } | null,
+): string | null {
+  return resultat !== null && "id" in resultat ? resultat.id : null;
+}
+
 // `responsable_materiel` — un accès COMPLET sur `saisir_rapport` (D151), donc
 // insensible à `technicien_id` de l'intervention : ce fichier éprouve le
 // cloisonnement par SOCIÉTÉ, pas le périmètre par PERSONNE (qui a sa propre
@@ -76,6 +83,15 @@ const PRESTATION_C = uuidv7();
 const PRESTATION_COLLEGUE = uuidv7();
 
 beforeAll(async () => {
+  // DÉMARRÉE (9L08B, décision d'Alexis du 16/11/2026) — le rapport, les
+  // pièces, les prestations et la signature exigent désormais un passage
+  // par `en_cours` ; aucun scénario de ce fichier n'éprouve plus la saisie
+  // AVANT démarrage (couverte à part), donc la fixture part de là une fois
+  // pour toutes. Seul le scénario CLÔTURÉE (I5) transite et restaure
+  // lui-même vers CET état, jamais vers « planifiee ».
+  await clientOwner().$executeRawUnsafe(
+    `UPDATE "intervention" SET "statut" = 'en_cours' WHERE "id" IN ('${INTERVENTION_A1}', '${INTERVENTION_A2}', '${INTERVENTION_B1}')`,
+  );
   await clientOwner().$executeRawUnsafe(
     `INSERT INTO "prestation" ("id", "societe_id", "code", "libelle", "modifie_le")
      VALUES ('${PRESTATION_A}', '${SOCIETE_A}', 'BON2-A', 'Prestation A', now())`,
@@ -829,7 +845,7 @@ describe("la signature — HISTORISÉE, jamais réécrite", () => {
       { issue: "signee", image_base64: image, signataire_nom: "Jean Dupont" },
       clientApp(),
     );
-    expect(seconde?.id).toBe(premiere?.id);
+    expect(idDe(seconde)).toBe(idDe(premiere));
 
     const [{ n }] = await clientOwner().$queryRawUnsafe<Array<{ n: bigint }>>(
       `SELECT count(*) AS "n" FROM "intervention_signature" WHERE "intervention_id" = '${INTERVENTION_A2}'`,
@@ -868,12 +884,9 @@ describe("la signature — HISTORISÉE, jamais réécrite", () => {
   it("s'ajoute même sur une intervention CLÔTURÉE — I5, le travail terrain n'est jamais perdu", async () => {
     // LA MATRICE D8 (D160) : la clôture ne part que de TERMINEE — la ligne
     // est amenée ici par la seule chaîne que D8 permet, avant d'être close.
-    await clientOwner().$executeRawUnsafe(
-      `UPDATE "intervention" SET "statut" = 'affectee' WHERE "id" = '${INTERVENTION_A1}'`,
-    );
-    await clientOwner().$executeRawUnsafe(
-      `UPDATE "intervention" SET "statut" = 'en_cours' WHERE "id" = '${INTERVENTION_A1}'`,
-    );
+    // DÉJÀ « en_cours » (9L08B, baseline du `beforeAll` de ce fichier) :
+    // la chaîne commence directement à TERMINEE, jamais « affectee » en
+    // premier — une transition arrière que D8 refuse désormais aussi.
     await clientOwner().$executeRawUnsafe(
       `UPDATE "intervention" SET "statut" = 'terminee' WHERE "id" = '${INTERVENTION_A1}'`,
     );
@@ -898,13 +911,15 @@ describe("la signature — HISTORISÉE, jamais réécrite", () => {
     } finally {
       // RESTAURATION : une intervention clôturée refuse toute modification
       // hors annulation (`intervention_cycle_de_vie`) — le trigger est
-      // désactivé le temps de ramener la fixture à son état de départ, sur
-      // CETTE connexion (propriétaire) et pour la durée de ces deux requêtes.
+      // désactivé le temps de ramener la fixture à son état de départ (9L08B
+      // : « en_cours », posé par le `beforeAll` de ce fichier, jamais
+      // « planifiee »), sur CETTE connexion (propriétaire) et pour la durée
+      // de ces deux requêtes.
       await clientOwner().$executeRawUnsafe(
         `ALTER TABLE "intervention" DISABLE TRIGGER "intervention_cycle_de_vie"`,
       );
       await clientOwner().$executeRawUnsafe(
-        `UPDATE "intervention" SET "statut" = 'planifiee', "temps_valide_min" = NULL, "rapport_valide_par" = NULL, "rapport_valide_le" = NULL WHERE "id" = '${INTERVENTION_A1}'`,
+        `UPDATE "intervention" SET "statut" = 'en_cours', "temps_valide_min" = NULL, "rapport_valide_par" = NULL, "rapport_valide_le" = NULL WHERE "id" = '${INTERVENTION_A1}'`,
       );
       await clientOwner().$executeRawUnsafe(
         `ALTER TABLE "intervention" ENABLE TRIGGER "intervention_cycle_de_vie"`,
@@ -958,19 +973,19 @@ describe("la signature — HISTORISÉE, jamais réécrite", () => {
 
     await expect(
       clientApp().$executeRawUnsafe(
-        `UPDATE "intervention_signature" SET "image_base64" = 'x' WHERE "id" = '${pose?.id}'`,
+        `UPDATE "intervention_signature" SET "image_base64" = 'x' WHERE "id" = '${idDe(pose)}'`,
       ),
     ).rejects.toThrow(/permission denied/i);
 
     await expect(
       clientApp().$executeRawUnsafe(
-        `DELETE FROM "intervention_signature" WHERE "id" = '${pose?.id}'`,
+        `DELETE FROM "intervention_signature" WHERE "id" = '${idDe(pose)}'`,
       ),
     ).rejects.toThrow(/permission denied/i);
 
     // LA LIGNE EST TOUJOURS LÀ — ni l'un ni l'autre n'a mordu.
     const [{ n }] = await clientOwner().$queryRawUnsafe<Array<{ n: bigint }>>(
-      `SELECT count(*) AS "n" FROM "intervention_signature" WHERE "id" = '${pose?.id}'`,
+      `SELECT count(*) AS "n" FROM "intervention_signature" WHERE "id" = '${idDe(pose)}'`,
     );
     expect(Number(n)).toBe(1);
   });

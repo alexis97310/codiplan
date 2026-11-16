@@ -103,6 +103,17 @@ afterEach(async () => {
 describe("terminerIntervention — le chemin accepté", () => {
   it("le technicien termine SA PROPRE intervention : statut terminee, segment fermé, temps = somme", async () => {
     const id = await jetable(TECHNICIEN);
+    // DÉMARRÉE D'ABORD (9L08B, décision d'Alexis du 16/11/2026) — le rapport
+    // et la signature, plus bas, ne se saisissent plus qu'une fois le
+    // compteur démarré.
+    const demarrage = await demarrerLeCompteur(
+      SESSION_TECH,
+      id,
+      new Date("2026-09-14T08:00:00.000Z"),
+      clientApp(),
+    );
+    expect(demarrage.accepte).toBe(true);
+
     // UN COMMENTAIRE NON VIDE (RG-INT-02 amendée, décision « Inactif +
     // commentaire exigé » d'Alexis du 10/11/2026, 9K27-TERRAIN-TERMINER-CE-
     // QUI-MANQUE) — voir le `describe` dédié plus bas pour le refus qui
@@ -114,13 +125,6 @@ describe("terminerIntervention — le chemin accepté", () => {
       clientApp(),
     );
 
-    const demarrage = await demarrerLeCompteur(
-      SESSION_TECH,
-      id,
-      new Date("2026-09-14T08:00:00.000Z"),
-      clientApp(),
-    );
-    expect(demarrage.accepte).toBe(true);
     const arret = await arreterLeCompteur(
       SESSION_TECH,
       new Date("2026-09-14T09:00:00.000Z"),
@@ -163,13 +167,7 @@ describe("terminerIntervention — le chemin accepté", () => {
 
   it("ferme le segment OUVERT de l'appelant lui-même, sans arrêt préalable", async () => {
     const id = await jetable(TECHNICIEN);
-    await enregistrerRapportTexte(
-      SESSION_TECH,
-      id,
-      { commentaire_technicien: "Filtre remplacé.", suite_a_donner: null },
-      clientApp(),
-    );
-
+    // DÉMARRÉE D'ABORD (9L08B) — voir le test précédent.
     const demarrage = await demarrerLeCompteur(
       SESSION_TECH,
       id,
@@ -177,6 +175,13 @@ describe("terminerIntervention — le chemin accepté", () => {
       clientApp(),
     );
     expect(demarrage.accepte).toBe(true);
+
+    await enregistrerRapportTexte(
+      SESSION_TECH,
+      id,
+      { commentaire_technicien: "Filtre remplacé.", suite_a_donner: null },
+      clientApp(),
+    );
 
     await enregistrerSignature(
       SESSION_TECH,
@@ -212,16 +217,17 @@ describe("terminerIntervention — le chemin accepté", () => {
 describe("terminerIntervention — les refus", () => {
   it("refuse sans aucune issue de signature enregistrée", async () => {
     const id = await jetable(TECHNICIEN);
-    await enregistrerRapportTexte(
-      SESSION_TECH,
-      id,
-      { commentaire_technicien: "Filtre remplacé.", suite_a_donner: null },
-      clientApp(),
-    );
+    // DÉMARRÉE D'ABORD (9L08B).
     await demarrerLeCompteur(
       SESSION_TECH,
       id,
       new Date("2026-09-14T08:00:00.000Z"),
+      clientApp(),
+    );
+    await enregistrerRapportTexte(
+      SESSION_TECH,
+      id,
+      { commentaire_technicien: "Filtre remplacé.", suite_a_donner: null },
       clientApp(),
     );
     await arreterLeCompteur(
@@ -542,16 +548,17 @@ describe("terminerIntervention — les refus", () => {
     }
 
     async function preparerAccepte(id: string): Promise<void> {
-      await enregistrerRapportTexte(
-        SESSION_TECH,
-        id,
-        { commentaire_technicien: "Filtre remplacé.", suite_a_donner: null },
-        clientApp(),
-      );
+      // DÉMARRÉE D'ABORD (9L08B).
       await demarrerLeCompteur(
         SESSION_TECH,
         id,
         new Date("2026-09-14T08:00:00.000Z"),
+        clientApp(),
+      );
+      await enregistrerRapportTexte(
+        SESSION_TECH,
+        id,
+        { commentaire_technicien: "Filtre remplacé.", suite_a_donner: null },
         clientApp(),
       );
       await arreterLeCompteur(
@@ -648,16 +655,17 @@ describe("terminerIntervention — les refus", () => {
 describe("terminerIntervention — deux appels simultanés, un seul gagnant (point 2, 9F4H2A-REJEU-SANS-DOUBLON)", () => {
   it("un seul passe en terminee ; l'autre refuse (pas_en_cours), rien n'est doublé", async () => {
     const id = await jetable(TECHNICIEN);
-    await enregistrerRapportTexte(
-      SESSION_TECH,
-      id,
-      { commentaire_technicien: "Filtre remplacé.", suite_a_donner: null },
-      clientApp(),
-    );
+    // DÉMARRÉE D'ABORD (9L08B).
     await demarrerLeCompteur(
       SESSION_TECH,
       id,
       new Date("2026-09-14T08:00:00.000Z"),
+      clientApp(),
+    );
+    await enregistrerRapportTexte(
+      SESSION_TECH,
+      id,
+      { commentaire_technicien: "Filtre remplacé.", suite_a_donner: null },
       clientApp(),
     );
     await enregistrerSignature(

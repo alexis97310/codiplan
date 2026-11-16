@@ -53,6 +53,7 @@ import { formatAdresseSite } from "@/lib/interventions/bon";
 import { segmentOuvertDeLaPersonne } from "@/lib/interventions/compteur";
 import {
   peutDemarrerLeCompteur,
+  peutSaisirSurTerrain,
   peutTerminer,
 } from "@/lib/interventions/cycle-de-vie";
 import {
@@ -367,6 +368,12 @@ export default async function PageInterventionTerrain({
   // bouton, jamais un bouton qu'une requête forgée ferait échouer en silence.
   const verdictDemarrer = peutDemarrerLeCompteur(statut);
 
+  // SAISIE APRÈS DÉMARRAGE SEULEMENT (9L08B, décision d'Alexis du
+  // 16/11/2026) — la bande en tête ci-dessous et les commandes des quatre
+  // rubriques (checklist, rapport, prestations, signature) partagent le
+  // MÊME verdict, jamais recalculé deux fois (§9, 01/09).
+  const verdictSaisirTerrain = peutSaisirSurTerrain(statut);
+
   // LES MACHINES DE L'INTERVENTION, TOUTES (9DI-TP-TER1-JOURNEE-FICHE) —
   // même composition que la fiche du bureau (`donneesMaterielDesMachines` +
   // `libelleMaterielComplet`, `app/(back-office)/interventions/[id]/
@@ -561,6 +568,22 @@ export default async function PageInterventionTerrain({
         {typeof alerte === "string" && estCleTraduction(alerte) ? (
           <Message ton="avertissement" titre={t(alerte)} />
         ) : null}
+
+        {/* UNE SEULE LIGNE D'AIDE, EN TÊTE (9L08B, décision d'Alexis du
+          16/11/2026) — checklist, rapport, prestations et signature restent
+          lisibles plus bas mais leurs commandes sont inactives tant que
+          l'intervention n'a pas démarré ; ce bandeau le dit une fois, jamais
+          répété rubrique par rubrique. */}
+        {!verdictSaisirTerrain.refuse ? null : (
+          <Message
+            ton="avertissement"
+            titre={
+              estCleTraduction(verdictSaisirTerrain.cle)
+                ? t(verdictSaisirTerrain.cle)
+                : verdictSaisirTerrain.cle
+            }
+          />
+        )}
 
         {/* LE GESTE PRINCIPAL, EN TÊTE (point 1, 9G5-TERRAIN-ERGONOMIE) — à 375
           px, « Démarrer l'intervention » restait sous la ligne de flottaison,
@@ -766,6 +789,7 @@ export default async function PageInterventionTerrain({
             interventionId={id}
             utilisateurId={contexte.utilisateurId}
             societeId={contexte.societeId}
+            statut={statut}
             checklistModeleLibelle={checklist.checklistModeleLibelle}
             points={pointsChecklist}
           />

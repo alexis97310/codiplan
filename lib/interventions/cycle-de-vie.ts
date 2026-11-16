@@ -58,6 +58,39 @@ export function estFige(statut: StatutIntervention): boolean {
   return statut === "annulee" || statut === "cloturee";
 }
 
+/**
+ * Peut-on SAISIR une checklist, un rapport, des prestations réalisées ou une
+ * signature sur cette intervention ? (9L08B-SAISIE-APRES-DEMARRER, décision
+ * d'Alexis du 16/11/2026, en réponse à la question posée par 9L04G)
+ *
+ * UNE SEULE BORNE, PARTAGÉE PAR LES QUATRE SAISIES : l'intervention doit
+ * avoir été DÉMARRÉE au moins une fois. `a_planifier`, `planifiee` et
+ * `affectee` sont les trois seuls statuts dont aucune flèche de la matrice
+ * D8 n'atteint `EN_COURS` autrement qu'en ouvrant un premier segment
+ * (`demarrerLeCompteur`, `peutDemarrerLeCompteur`) — « transmettre »
+ * (`peutTransmettre`) ne fait que passer `planifiee` à `affectee`, sans
+ * jamais démarrer de compteur.
+ *
+ * **`suspendue`, `terminee` et `cloturee` n'entrent PAS dans ce refus** : les
+ * trois supposent déjà un passage par `en_cours` — une intervention qui s'y
+ * suspend, se termine ou se clôture a nécessairement démarré un jour (D120 :
+ * « une intervention sur laquelle personne n'a démarré de compteur ne se
+ * clôture pas »). **`annulee` non plus** : ce verdict ne retire ni n'ajoute
+ * rien à ce qu'une figée permet déjà (`estFige`, I5) — il ne fait que
+ * refuser la saisie AVANT le tout premier démarrage, jamais une saisie après
+ * coup sur ce qu'un statut terminal couvre par ailleurs.
+ */
+export function peutSaisirSurTerrain(statut: StatutIntervention): Verdict {
+  if (
+    statut === "a_planifier" ||
+    statut === "planifiee" ||
+    statut === "affectee"
+  ) {
+    return { refuse: true, cle: "intervention.refus.non_demarree" };
+  }
+  return PERMIS;
+}
+
 /** Peut-on DÉPLACER cette intervention — créneau ou technicien ? */
 export function peutDeplacer(statut: StatutIntervention): Verdict {
   if (statut === "annulee") {

@@ -24,6 +24,7 @@ import { estCleTraduction, t, type CleTraduction } from "@/lib/i18n/fr";
 import { minutesDepuisMillisecondes } from "@/lib/interventions/compteur";
 import {
   manquesPourTerminer,
+  peutSaisirSurTerrain,
   peutTerminer,
 } from "@/lib/interventions/cycle-de-vie";
 import type {
@@ -1007,6 +1008,11 @@ export function RapportTerrainAutomatique({
   // 4) resterait impossible : rien ne redemande `afficherTerminer` au
   // serveur avant le retour du réseau.
   const [enCoursLocalement, setEnCoursLocalement] = useState(false);
+  // SAISIE APRÈS DÉMARRAGE SEULEMENT (9L08B, décision d'Alexis du
+  // 16/11/2026) — `statut` est la vérité SERVEUR au moment du rendu ;
+  // `enCoursLocalement` (ci-dessus) la corrige dès qu'un « démarrer » a été
+  // mis en file ou a réussi en ligne DEPUIS, sans attendre un rechargement.
+  const nonDemarree = peutSaisirSurTerrain(statut).refuse && !enCoursLocalement;
   // LA CONFIRMATION DE « TERMINER », AVEC SON RÉSUMÉ (D219, décision
   // d'Alexis du 21/10/2026 ; FEUILLE PLEIN ÉCRAN depuis la décision
   // d'Alexis du 10/11/2026, M3, 9K27-TERRAIN-TERMINER-CE-QUI-MANQUE) — même
@@ -2402,6 +2408,7 @@ export function RapportTerrainAutomatique({
             name="commentaire_technicien"
             rows={3}
             value={commentaire}
+            disabled={nonDemarree}
             onChange={(e) => onChangeCommentaire(e.target.value)}
             onBlur={() => void envoyerRapport()}
             placeholder={t("terrain.rapport.commentaire_placeholder")}
@@ -2409,6 +2416,7 @@ export function RapportTerrainAutomatique({
           />
           <button
             type="button"
+            disabled={nonDemarree}
             onClick={ouvrirPhrasesTypes}
             className="text-app-terrain-encre-secondaire self-start text-16 font-medium underline"
           >
@@ -2423,6 +2431,7 @@ export function RapportTerrainAutomatique({
             name="suite_a_donner"
             rows={2}
             value={suite}
+            disabled={nonDemarree}
             onChange={(e) => onChangeSuite(e.target.value)}
             onBlur={() => void envoyerRapport()}
             placeholder={t("terrain.rapport.suite_placeholder")}
@@ -2431,6 +2440,7 @@ export function RapportTerrainAutomatique({
           {pointsNonConformesAffiches.length === 0 ? null : (
             <button
               type="button"
+              disabled={nonDemarree}
               onClick={reprendreLesNonConformites}
               className="text-app-terrain-encre-secondaire self-start text-16 font-medium underline"
             >
@@ -2507,6 +2517,7 @@ export function RapportTerrainAutomatique({
                       type="text"
                       value={piece.designation}
                       maxLength={200}
+                      disabled={nonDemarree}
                       onChange={(e) =>
                         modifierPiece(piece.id, { designation: e.target.value })
                       }
@@ -2524,6 +2535,7 @@ export function RapportTerrainAutomatique({
                         type="text"
                         value={piece.reference}
                         maxLength={80}
+                        disabled={nonDemarree}
                         onChange={(e) =>
                           modifierPiece(piece.id, { reference: e.target.value })
                         }
@@ -2540,6 +2552,7 @@ export function RapportTerrainAutomatique({
                         min={1}
                         max={9999}
                         value={piece.quantite}
+                        disabled={nonDemarree}
                         onChange={(e) =>
                           modifierPiece(piece.id, {
                             // MÊME BORNE QUE `schemaPieceRemplacee` (9I7B2,
@@ -2564,6 +2577,7 @@ export function RapportTerrainAutomatique({
                     variant="outline"
                     size="lg"
                     className="text-16"
+                    disabled={nonDemarree}
                     onClick={() => retirerPiece(piece.id)}
                   >
                     {t("terrain.pieces.retirer")}
@@ -2577,7 +2591,7 @@ export function RapportTerrainAutomatique({
             size="lg"
             className="text-16"
             onClick={ajouterPiece}
-            disabled={pieces.length >= PLAFOND_PIECES}
+            disabled={nonDemarree || pieces.length >= PLAFOND_PIECES}
           >
             {t("terrain.pieces.ajouter")}
           </Button>
@@ -2620,6 +2634,7 @@ export function RapportTerrainAutomatique({
                   name={`prestation_${prestation.id}`}
                   libelle={prestation.libelle}
                   checked={prestationsChoisies.has(prestation.id)}
+                  disabled={nonDemarree}
                   onChange={() =>
                     basculerPrestation(
                       prestation.id,
@@ -2694,6 +2709,7 @@ export function RapportTerrainAutomatique({
             size="lg"
             variant={issueSignature === "signee" ? "default" : "outline"}
             className="text-16"
+            disabled={nonDemarree}
             onClick={() => choisirIssue("signee")}
           >
             {t("terrain.signature.option_signee")}
@@ -2703,6 +2719,7 @@ export function RapportTerrainAutomatique({
             size="lg"
             variant={issueSignature === "client_absent" ? "default" : "outline"}
             className="text-16"
+            disabled={nonDemarree}
             onClick={() => choisirIssue("client_absent")}
           >
             {t("terrain.signature.option_absent")}
@@ -2714,6 +2731,7 @@ export function RapportTerrainAutomatique({
               issueSignature === "refus_signature" ? "default" : "outline"
             }
             className="text-16"
+            disabled={nonDemarree}
             onClick={() => choisirIssue("refus_signature")}
           >
             {t("terrain.signature.option_refus")}
@@ -2729,6 +2747,7 @@ export function RapportTerrainAutomatique({
               <input
                 type="text"
                 value={nomSignataire}
+                disabled={nonDemarree}
                 onChange={(e) => {
                   nomSignatureRef.current = e.target.value;
                   setNomSignataire(e.target.value);
@@ -2760,6 +2779,7 @@ export function RapportTerrainAutomatique({
                     ? qualiteSignataire
                     : null
               }
+              disabled={nonDemarree}
               onChange={(option) => {
                 if (option === t("terrain.signature.qualite.autre")) {
                   setQualiteAutreOuverte(true);
@@ -2784,6 +2804,7 @@ export function RapportTerrainAutomatique({
                 <input
                   type="text"
                   value={qualiteSignataire}
+                  disabled={nonDemarree}
                   onChange={(e) => {
                     qualiteSignatureRef.current = e.target.value;
                     setQualiteSignataire(e.target.value);
@@ -2811,11 +2832,15 @@ export function RapportTerrainAutomatique({
               ref={canvasRef}
               width={320}
               height={190}
-              className="bg-app-terrain-champ-fond h-[190px] w-full touch-none rounded-md"
-              onPointerDown={demarrerTrace}
-              onPointerMove={tracer}
-              onPointerUp={arreterTrace}
-              onPointerLeave={arreterTrace}
+              className={
+                nonDemarree
+                  ? "bg-app-terrain-champ-fond pointer-events-none h-[190px] w-full touch-none rounded-md opacity-50"
+                  : "bg-app-terrain-champ-fond h-[190px] w-full touch-none rounded-md"
+              }
+              onPointerDown={nonDemarree ? undefined : demarrerTrace}
+              onPointerMove={nonDemarree ? undefined : tracer}
+              onPointerUp={nonDemarree ? undefined : arreterTrace}
+              onPointerLeave={nonDemarree ? undefined : arreterTrace}
             />
             {aTrace ? null : (
               <p className="text-app-encre-faible text-16 font-bold">
@@ -2828,6 +2853,7 @@ export function RapportTerrainAutomatique({
                 variant="outline"
                 size="lg"
                 className="text-16"
+                disabled={nonDemarree}
                 onClick={effacerTrace}
               >
                 {t("terrain.signature.effacer")}
@@ -2841,6 +2867,7 @@ export function RapportTerrainAutomatique({
                 type="button"
                 size="lg"
                 className="text-16"
+                disabled={nonDemarree}
                 onClick={() => void tenterEnvoiSignature()}
               >
                 {t("terrain.signature.valider")}
@@ -2858,6 +2885,7 @@ export function RapportTerrainAutomatique({
             <textarea
               rows={3}
               value={motifSignature}
+              disabled={nonDemarree}
               onChange={(e) => {
                 motifSignatureRef.current = e.target.value;
                 setMotifSignature(e.target.value);

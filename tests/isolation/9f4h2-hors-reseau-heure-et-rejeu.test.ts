@@ -332,6 +332,9 @@ describe("terminer en différé — le rejeu n'envoie jamais un second geste", (
     const H845 = new Date("2026-09-14T08:45:00.000Z");
     const OP = uuidv7();
 
+    // DÉMARRÉE D'ABORD (9L08B, décision d'Alexis du 16/11/2026) — le rapport
+    // et la signature exigent désormais le compteur démarré.
+    await demarrerLeCompteur(SESSION_TECH, id, H8, clientApp());
     // UN COMMENTAIRE NON VIDE (RG-INT-02 amendée, 9K27-TERRAIN-TERMINER-CE-
     // QUI-MANQUE) — cette scène n'éprouve pas ce manque.
     await enregistrerRapportTexte(
@@ -340,7 +343,6 @@ describe("terminer en différé — le rejeu n'envoie jamais un second geste", (
       { commentaire_technicien: "Filtre remplacé.", suite_a_donner: null },
       clientApp(),
     );
-    await demarrerLeCompteur(SESSION_TECH, id, H8, clientApp());
     await enregistrerSignature(
       SESSION_TECH,
       id,
@@ -405,13 +407,14 @@ describe("terminer en différé — le rejeu n'envoie jamais un second geste", (
     const H8 = new Date("2026-09-14T08:00:00.000Z");
     const H845 = new Date("2026-09-14T08:45:00.000Z");
 
+    // DÉMARRÉE D'ABORD (9L08B).
+    await demarrerLeCompteur(SESSION_TECH, id, H8, clientApp());
     await enregistrerRapportTexte(
       SESSION_TECH,
       id,
       { commentaire_technicien: "Filtre remplacé.", suite_a_donner: null },
       clientApp(),
     );
-    await demarrerLeCompteur(SESSION_TECH, id, H8, clientApp());
     await enregistrerSignature(
       SESSION_TECH,
       id,
@@ -447,6 +450,13 @@ describe("terminer en différé — le rejeu n'envoie jamais un second geste", (
 describe("la signature — un id fabriqué par l'appareil se rejoue sans doublon", () => {
   it("un renvoi du même id répond la ligne existante, sans en créer une seconde", async () => {
     const id = await jetable(TECHNICIEN);
+    // DÉMARRÉE D'ABORD (9L08B).
+    await demarrerLeCompteur(
+      SESSION_TECH,
+      id,
+      new Date("2026-09-14T08:00:00.000Z"),
+      clientApp(),
+    );
     const OP = uuidv7();
     const saisie = {
       issue: "signee" as const,
@@ -483,6 +493,24 @@ describe("la signature — un id fabriqué par l'appareil se rejoue sans doublon
   it("un id qui désigne la ligne d'une AUTRE intervention est refusé, sans écriture", async () => {
     const id1 = await jetable(TECHNICIEN);
     const id2 = await jetable(TECHNICIEN);
+    // DÉMARRÉES D'ABORD (9L08B) — les deux, chacune la sienne.
+    await demarrerLeCompteur(
+      SESSION_TECH,
+      id1,
+      new Date("2026-09-14T08:00:00.000Z"),
+      clientApp(),
+    );
+    await arreterLeCompteur(
+      SESSION_TECH,
+      new Date("2026-09-14T08:05:00.000Z"),
+      clientApp(),
+    );
+    await demarrerLeCompteur(
+      SESSION_TECH,
+      id2,
+      new Date("2026-09-14T08:10:00.000Z"),
+      clientApp(),
+    );
     const OP = uuidv7();
 
     const premiere = await enregistrerSignature(

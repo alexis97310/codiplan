@@ -13,7 +13,11 @@ import { obligatoiresManquantsPourTerminer } from "@/lib/checklists/depot";
 import { estUuid } from "@/lib/identifiant";
 import { mesurer, verifierInstantAppareil } from "@/lib/interventions/compteur";
 import type { SaisieDifferee } from "@/lib/interventions/saisie-differee";
-import { estFige, peutTerminer } from "@/lib/interventions/cycle-de-vie";
+import {
+  estFige,
+  peutSaisirSurTerrain,
+  peutTerminer,
+} from "@/lib/interventions/cycle-de-vie";
 import { accesSurCetteIntervention } from "@/lib/interventions/perimetre-technicien";
 import {
   aSectionPiecesRemplacees,
@@ -199,6 +203,15 @@ export async function enregistrerRapportTexte(
               : "intervention.refus.cloturee_figee",
         };
       }
+      // SAISIE APRÈS DÉMARRAGE SEULEMENT (9L08B, décision d'Alexis du
+      // 16/11/2026) — une seule garde, partagée par le rapport, la checklist,
+      // les prestations réalisées et la signature (`peutSaisirSurTerrain`).
+      const verdictDemarrage = peutSaisirSurTerrain(
+        intervention.statut as StatutIntervention,
+      );
+      if (verdictDemarrage.refuse) {
+        return { refuse: true, cle: verdictDemarrage.cle };
+      }
       // LE TYPE CONTRÔLÉ AU SERVEUR, JAMAIS LE SEUL ÉCRAN (9I7B2, correctif de
       // revue, décision d'Alexis du 29/10/2026) — hors curatif/garantie/
       // reprise, des pièces NON VIDES envoyées sont REFUSÉES en bloc, AVANT
@@ -312,7 +325,9 @@ export type PrestationRealisee = {
  * l'instantané qu'il a emporté. `ajouterIds` AJOUTE (sans doublon, un rejeu du
  * même envoi ne crée rien de plus), `retirerIds` RETIRE — tout le reste de
  * `intervention_prestation` reste intact. `null` si l'intervention n'est pas
- * visible, même refus nommé que `definirPrestationsRealisees`.
+ * visible, même refus nommé que `definirPrestationsRealisees`. Un refus
+ * NOMMÉ (`peutSaisirSurTerrain`, 9L08B) si l'intervention n'a pas encore été
+ * démarrée.
  */
 export async function definirPrestationsRealiseesDepuisFile(
   contexte: ContexteSession,
@@ -320,7 +335,11 @@ export async function definirPrestationsRealiseesDepuisFile(
   ajouterIds: readonly string[],
   retirerIds: readonly string[],
   client?: PrismaClient,
-): Promise<{ readonly id: string } | null> {
+): Promise<
+  | { readonly id: string }
+  | { readonly refuse: true; readonly cle: string }
+  | null
+> {
   const societeId = exigerSocieteActive(contexte);
   return avecContexteApplicatif(
     contexte,
@@ -338,6 +357,15 @@ export async function definirPrestationsRealiseesDepuisFile(
         )
       ) {
         return null;
+      }
+      // SAISIE APRÈS DÉMARRAGE SEULEMENT (9L08B, décision d'Alexis du
+      // 16/11/2026) — même garde que le rapport, la checklist et la
+      // signature (`peutSaisirSurTerrain`).
+      const verdictDemarrage = peutSaisirSurTerrain(
+        intervention.statut as StatutIntervention,
+      );
+      if (verdictDemarrage.refuse) {
+        return { refuse: true, cle: verdictDemarrage.cle };
       }
       const ajouter = [...new Set(ajouterIds)];
       const retirer = [...new Set(retirerIds)];
@@ -585,7 +613,11 @@ export async function enregistrerSignature(
   saisie: SaisieSignature,
   client?: PrismaClient,
   id?: string,
-): Promise<{ readonly id: string } | null> {
+): Promise<
+  | { readonly id: string }
+  | { readonly refuse: true; readonly cle: string }
+  | null
+> {
   const societeId = exigerSocieteActive(contexte);
   try {
     return await avecContexteApplicatif(
@@ -604,6 +636,15 @@ export async function enregistrerSignature(
           )
         ) {
           return null;
+        }
+        // SAISIE APRÈS DÉMARRAGE SEULEMENT (9L08B, décision d'Alexis du
+        // 16/11/2026) — même garde que le rapport, la checklist et les
+        // prestations réalisées (`peutSaisirSurTerrain`).
+        const verdictDemarrage = peutSaisirSurTerrain(
+          intervention.statut as StatutIntervention,
+        );
+        if (verdictDemarrage.refuse) {
+          return { refuse: true, cle: verdictDemarrage.cle };
         }
         if (id !== undefined) {
           const rejouee = await tx.interventionSignature.findFirst({
