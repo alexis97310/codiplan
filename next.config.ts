@@ -57,6 +57,11 @@ const nextConfig: NextConfig = {
    * - `img-src` porte `blob:` : l'aperçu d'une photo réduite côté terrain
    *   (`components/interventions/photos-terrain.tsx`) s'affiche par
    *   `URL.createObjectURL`, jamais par une adresse réseau.
+   * - `img-src` porte aussi `data:` (9L08AA, 16/11/2026) : la signature du bon
+   *   est stockée et relue en `data:image/png;base64,...`
+   *   (`lib/interventions/depot-rapport-terrain.ts`), affichée telle quelle
+   *   dans trois écrans (bon bureau, fiche, bon portail) — pas un artefact de
+   *   test, un chemin normal de l'application.
    * - Aucune police, aucune image, aucun script ne vient d'un domaine tiers
    *   (polices locales, `next/font/local` ; photos et signatures servies par
    *   `/api/documents/[id]/octets`, same-origin) : `connect-src`, `font-src`
@@ -69,7 +74,7 @@ const nextConfig: NextConfig = {
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline'",
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' blob:",
+      "img-src 'self' blob: data:",
       "font-src 'self'",
       "connect-src 'self'",
       "object-src 'none'",
