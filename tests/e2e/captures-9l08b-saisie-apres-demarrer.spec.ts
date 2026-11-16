@@ -229,11 +229,11 @@ test("hors réseau, sur une fiche affectée : la même garde, lue depuis la coqu
     page.getByRole("heading", { name: fr["terrain.rapport.titre"] }),
   ).toBeVisible();
 
-  await expect(
-    page
-      .getByRole("status")
-      .filter({ hasText: fr["intervention.refus.non_demarree"] }),
-  ).toBeVisible();
+  // LA COQUILLE SANS SESSION NE PORTE PAS LA BANDE D'AIDE (celle-ci vit dans
+  // `app/(mobile)/terrain/[id]/page.tsx`, jamais dans `consultation-hors-
+  // reseau.tsx`) — seul le `statut` transmis à `ChecklistTerrain` et à
+  // `RapportTerrainAutomatique` y désactive les commandes, même garde que
+  // la fiche en ligne, lue différemment.
   await expect(
     page.getByLabel(fr["terrain.rapport.commentaire_libelle"]),
   ).toBeDisabled();

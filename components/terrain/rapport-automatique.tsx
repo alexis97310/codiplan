@@ -304,6 +304,18 @@ const DELAI_MAXIMAL_ENVOI_MS = 15_000;
  * est rendu en `null`, exactement comme l'échec réseau ci-dessous : les
  * quatre appelants le mettent alors en file sans qu'aucun ne distingue les
  * deux cas, et sans que « Vos saisies sont gardées… » mente.
+ *
+ * `intervention.refus.non_demarree` (D262, 9L08B-SAISIE-APRES-DEMARRER) suit
+ * le MÊME traitement, QUELLE QUE SOIT la session — pas seulement sans
+ * session cette fois : un « démarrer » posé HORS RÉSEAU reste en file tant
+ * que « Envoyer » ne l'a pas rejoué, et l'écran, lui, autorise déjà la
+ * saisie dès que ce geste est posé localement (`enCoursLocalement`). Entre
+ * les deux — le réseau revient avant que « Envoyer » ne rejoue le
+ * « démarrer » —, un envoi direct de rapport/signature/prestations
+ * atteindrait un serveur dont le statut n'a PAS bougé, et serait refusé à
+ * tort. Le motif, lui, n'est jamais perdu : la saisie rejoint la file, où
+ * `envoyerFile` (`envoi-file.ts`) le réaffiche si le même refus persiste au
+ * rejeu — jamais un silence, seulement un délai jusqu'au prochain rejeu.
  */
 type ReponseEnvoiJson = {
   readonly ok: boolean;
@@ -330,7 +342,11 @@ async function envoyerJson(
       signal: limite.signal,
     });
     const resultat = (await reponseServeur.json()) as ReponseEnvoiJson;
-    if (sansSession && !resultat.ok && resultat.motif === "auth.refus") {
+    if (
+      !resultat.ok &&
+      ((sansSession && resultat.motif === "auth.refus") ||
+        resultat.motif === "intervention.refus.non_demarree")
+    ) {
       return null;
     }
     return resultat;

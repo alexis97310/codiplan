@@ -216,14 +216,14 @@ test("le bon d'intervention porte les quatre blocs saisis, et nomme ce qui reste
   page,
 }) => {
   // LE BON N'EXISTE QUE POUR UN TRAVAIL FAIT (AFFICHAGE-MATERIEL-1,
-  // 23/09/2026) — `rapportTravaillee` ET `rapportVierge` naissent `affectee`
-  // (`scene.ts`, retouché par 9DD-PG-G14C-TERRAIN-TRANSMISES : le terrain ne
-  // montre plus les `planifiee`), et rien avant ce test ne les fait avancer
-  // au-delà : ce sont des saisies terrain, pas des transitions de statut.
-  // Ce test est le DERNIER de
-  // ce fichier SÉRIEL sur ces deux interventions (voir la note de tête) ; les
-  // faire passer à `terminee` ici est le geste réaliste qui les précéderait
-  // dans l'exploitation. `rapportVierge` reste « jamais touchée » au sens qui
+  // 23/09/2026) — `rapportTravaillee` ET `rapportVierge` naissent `en_cours`
+  // (`scene.ts`, D262, 9L08B-SAISIE-APRES-DEMARRER : la garde de démarrage
+  // refuserait sinon les saisies des tests précédents), et rien avant ce test
+  // ne les fait avancer au-delà : ce sont des saisies terrain, pas des
+  // transitions de statut. Ce test est le DERNIER de ce fichier SÉRIEL sur
+  // ces deux interventions (voir la note de tête) ; les faire passer à
+  // `terminee` ici est le geste réaliste qui les précéderait dans
+  // l'exploitation. `rapportVierge` reste « jamais touchée » au sens qui
   // compte pour ce test — aucun commentaire, aucune suite, aucune photo,
   // aucune signature — seul son STATUT change, pour que son bon reste
   // atteignable et que ce test puisse encore prouver qu'il ne montre rien.
@@ -232,13 +232,9 @@ test("le bon d'intervention porte les quatre blocs saisis, et nomme ce qui reste
   });
   try {
     // LA MATRICE D8 (D160, 9DF-TP-CY2-MATRICE-D8) : TERMINEE ne s'atteint
-    // plus que depuis EN_COURS — les deux interventions naissent « affectee »
-    // (voir le commentaire ci-dessus), la chaîne légale passe donc par
-    // EN_COURS.
-    await admin.$executeRawUnsafe(
-      `UPDATE "intervention" SET "statut" = 'en_cours'::"StatutIntervention" WHERE "id" = ANY($1::uuid[])`,
-      [SCENE.rapportTravaillee, SCENE.rapportVierge],
-    );
+    // plus que depuis EN_COURS — déjà l'état de naissance des deux
+    // interventions (voir le commentaire ci-dessus), ce passage ne fait donc
+    // plus que la seconde moitié de la chaîne légale.
     await admin.$executeRawUnsafe(
       `UPDATE "intervention" SET "statut" = 'terminee'::"StatutIntervention" WHERE "id" = ANY($1::uuid[])`,
       [SCENE.rapportTravaillee, SCENE.rapportVierge],

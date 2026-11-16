@@ -88,7 +88,11 @@ test.beforeAll(async () => {
       data: { id: INTERVENTION_9F4H3A, ...commun },
     });
     await client.intervention.create({
-      data: { id: INTERVENTION_ANNULEE_9F4H3A, ...commun },
+      // `en_cours` (D262, 9L08B-SAISIE-APRES-DEMARRER) : ce scénario saisit un
+      // commentaire sans jamais démarrer, ce qui n'est pas ce qu'il veut
+      // éprouver — c'est l'annulation AU BUREAU pendant la coupure, même
+      // raison que `INTERVENTION_REFUS_9F4H3` dans `9f4h3-mode-avion.spec.ts`.
+      data: { id: INTERVENTION_ANNULEE_9F4H3A, ...commun, statut: "en_cours" },
     });
   } finally {
     await client.$disconnect();
@@ -220,7 +224,18 @@ test("(a)+(b)+(c) : A hors réseau puis AB en ligne — c'est AB qui reste ; sec
     page.getByText(fr["terrain.auto.hors_ligne"]).first(),
   ).toBeVisible();
 
-  // ── LE RÉSEAU REVIENT : LE RAPPORT DEVIENT « AB », ENVOYÉ EN LIGNE ──────
+  // ── LE RÉSEAU REVIENT : LE RAPPORT DEVIENT « AB » — TOUJOURS EN FILE
+  // (D262, 9L08B-SAISIE-APRES-DEMARRER) ────────────────────────────────────
+  //
+  // Le réseau est revenu, mais le « démarrer » posé hors réseau n'a pas
+  // encore été REJOUÉ (seul « Envoyer » le fait) : le serveur ignore encore
+  // ce démarrage, et refuserait un envoi direct du rapport au motif
+  // `intervention.refus.non_demarree`. `envoyerJson` traite ce refus comme
+  // le réseau absent (même patron que `auth.refus` sous `sansSession`,
+  // juste au-dessus dans `rapport-automatique.tsx`) : « AB » rejoint la
+  // file — COALESCÉ sur « A » (point 1, même intervention/geste), jamais
+  // empilé — plutôt que d'échouer pour une raison purement temporelle que
+  // « Envoyer » va lever lui-même dans un instant.
   await context.setOffline(false);
   const commentaire = page.getByLabel(
     fr["terrain.rapport.commentaire_libelle"],
@@ -228,10 +243,10 @@ test("(a)+(b)+(c) : A hors réseau puis AB en ligne — c'est AB qui reste ; sec
   await commentaire.fill("AB");
   await commentaire.blur();
   await expect(
-    page.getByText(fr["terrain.rapport.enregistre"]).first(),
+    page.getByText(fr["terrain.auto.hors_ligne"]).first(),
   ).toBeVisible();
 
-  await capturer(page, "rapport-ab-en-ligne", 375);
+  await capturer(page, "rapport-ab-en-attente", 375);
 
   // CAPTURÉS AVANT L'ENVOI — l'arrêt du compteur, pour le rejeu de (b)
   // ci-dessous (même patron que `9f4h3-mode-avion.spec.ts` pour « terminer »).
@@ -240,7 +255,11 @@ test("(a)+(b)+(c) : A hors réseau puis AB en ligne — c'est AB qui reste ; sec
       new Promise<
         readonly {
           readonly id: string;
-          readonly geste: { readonly type: string; readonly action?: string };
+          readonly geste: {
+            readonly type: string;
+            readonly action?: string;
+            readonly commentaire?: string;
+          };
           readonly instantAppareil: string;
         }[]
       >((resolve, reject) => {
@@ -265,8 +284,13 @@ test("(a)+(b)+(c) : A hors réseau puis AB en ligne — c'est AB qui reste ; sec
   );
   expect(entreeArreter).toBeDefined();
 
-  // La file ne porte plus de rapport pour cette intervention (C1) : le
-  // bouton « Envoyer » n'a plus que le compteur à transmettre, jamais « A ».
+  // LE RAPPORT EN FILE PORTE « AB », JAMAIS « A » (C1, coalescence) — depuis
+  // D262, « AB » rejoint la file au lieu de partir en ligne (voir le
+  // commentaire ci-dessus) ; c'est CETTE entrée, rejouée par « Envoyer »
+  // juste après le démarrage qu'elle suit dans la file, qui doit l'écrire.
+  const entreeRapport = entreesEnFile.find((e) => e.geste.type === "rapport");
+  expect(entreeRapport?.geste.commentaire).toBe("AB");
+
   await page.getByRole("button", { name: /^Envoyer \(\d+\)$/ }).click();
   await expect(page.getByText(fr["terrain.file.tout_envoye"])).toBeVisible();
 

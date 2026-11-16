@@ -598,22 +598,30 @@ export async function ecrireLaScene(): Promise<ReperesDeScene> {
         duree: 60,
       },
       {
+        // `en_cours`, pas `affectee` (D262, 9L08B-SAISIE-APRES-DEMARRER) :
+        // `rapport-terrain.spec.ts` saisit le commentaire, les prestations,
+        // la photo et la signature sur CETTE intervention sans jamais cliquer
+        // « Démarrer » — la garde de démarrage les refuserait sinon.
         id: SCENE.rapportTravaillee,
         lieu: ducos,
         technicien: reperes.technicienDucos,
         rang: MERCREDI,
         debut: 8 * 60,
         duree: 120,
-        statut: "affectee",
+        statut: "en_cours",
       },
       {
+        // `en_cours`, même raison que `rapportTravaillee` ci-dessus — restée
+        // « jamais touchée » au sens qui compte (`rapport-terrain.spec.ts`,
+        // point « le bon d'intervention... ») : aucune saisie, seul son
+        // STATUT de naissance change.
         id: SCENE.rapportVierge,
         lieu: ducos,
         technicien: reperes.technicienDucos,
         rang: MERCREDI,
         debut: 10 * 60,
         duree: 60,
-        statut: "affectee",
+        statut: "en_cours",
       },
       {
         id: SCENE.compteurA,

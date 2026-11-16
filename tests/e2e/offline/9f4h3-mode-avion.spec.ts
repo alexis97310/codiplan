@@ -113,7 +113,11 @@ test.beforeAll(async () => {
       data: { id: INTERVENTION_9F4H3, ...commun },
     });
     await client.intervention.create({
-      data: { id: INTERVENTION_REFUS_9F4H3, ...commun },
+      // `en_cours` (D262, 9L08B-SAISIE-APRES-DEMARRER) : ce scénario saisit
+      // un commentaire sans jamais démarrer, ce qui n'est pas ce qu'il veut
+      // éprouver — c'est l'annulation AU BUREAU pendant la coupure, pas la
+      // garde de démarrage.
+      data: { id: INTERVENTION_REFUS_9F4H3, ...commun, statut: "en_cours" },
     });
   } finally {
     await client.$disconnect();

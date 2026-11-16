@@ -175,11 +175,12 @@ test.beforeAll(async () => {
       commentaire_technicien: "zz9F4 Commentaire pré-semé.",
     };
 
-    // — POUR LA DÉ-DUPLICATION : n'importe quel statut non figé suffit.
+    // — POUR LA DÉ-DUPLICATION : `en_cours` (D262, 9L08B-SAISIE-APRES-
+    // DEMARRER depuis ce lot — la garde de démarrage refuserait `affectee`).
     await client.intervention.create({
       data: {
         id: INTERVENTION_DUP,
-        statut: "affectee",
+        statut: "en_cours",
         priorite: "p3",
         duree_estimee_min: 30,
         ...commun,
