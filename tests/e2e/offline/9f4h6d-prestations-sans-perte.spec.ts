@@ -148,7 +148,7 @@ test.beforeAll(async () => {
       mode_valorisation: "temps_passe" as const,
       devise_code: "XPF",
       description: "9F4H6D — intervention forgée par l'épreuve",
-      statut: "affectee" as const,
+      statut: "en_cours" as const,
       date_planifiee: null,
       // UN COMMENTAIRE DÉJÀ ÉCRIT (RG-INT-02 amendée, 9K27-TERRAIN-
       // TERMINER-CE-QUI-MANQUE) — hors du périmètre de cette épreuve.

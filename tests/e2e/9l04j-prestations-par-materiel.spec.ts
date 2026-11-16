@@ -151,7 +151,7 @@ test.beforeAll(async () => {
         agence_id: agence.id,
         technicien_id: reperes.technicienDucos,
         type: "curatif",
-        statut: "affectee",
+        statut: "en_cours",
         date_planifiee: new Date("2026-09-25T00:00:00Z"),
         duree_estimee_min: 60,
         machines: {
@@ -168,7 +168,7 @@ test.beforeAll(async () => {
         agence_id: agence.id,
         technicien_id: reperes.technicienDucos,
         type: "curatif",
-        statut: "affectee",
+        statut: "en_cours",
         date_planifiee: new Date("2026-09-25T00:00:00Z"),
         duree_estimee_min: 60,
         machines: {

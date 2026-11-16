@@ -95,7 +95,7 @@ test.beforeAll(async () => {
         technicien_id: reperes.technicienDucos,
         type: "preventif_contrat",
         priorite: "p3",
-        statut: "affectee",
+        statut: "en_cours",
         date_planifiee: new Date(
           Date.UTC(jour.annee, jour.mois - 1, jour.jour),
         ),

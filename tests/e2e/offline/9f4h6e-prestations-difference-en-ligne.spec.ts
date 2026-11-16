@@ -112,7 +112,7 @@ test.beforeAll(async () => {
         mode_valorisation: "temps_passe",
         devise_code: "XPF",
         description: "9F4H6E — intervention forgée par l'épreuve",
-        statut: "affectee",
+        statut: "en_cours",
         date_planifiee: null,
       },
     });

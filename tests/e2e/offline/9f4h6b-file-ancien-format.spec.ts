@@ -114,7 +114,7 @@ test.beforeAll(async () => {
       mode_valorisation: "temps_passe" as const,
       devise_code: "XPF",
       description: "9F4H6B — intervention forgée par l'épreuve",
-      statut: "affectee" as const,
+      statut: "en_cours" as const,
       // SANS DATE (9F2B) — évite toute dépendance à la fenêtre
       // [aujourd'hui, J+8[ de « Ma journée », qui dépend du jour courant.
       date_planifiee: null,

@@ -144,7 +144,7 @@ test.beforeAll(async () => {
         technicien_id: reperes.technicienDucos,
         type: "curatif",
         priorite: "p3",
-        statut: "affectee",
+        statut: "en_cours",
         duree_estimee_min: 60,
         mode_valorisation: "temps_passe",
         devise_code: "XPF",

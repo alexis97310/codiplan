@@ -92,11 +92,13 @@ test.beforeAll(async () => {
         agence_id: agence.id,
         technicien_id: reperes.technicienDucos,
         type: "curatif",
-        // `affectee`, pas `planifiee` : depuis 9DD-PG-G14C-TERRAIN-TRANSMISES
+        // `en_cours`, pas `planifiee` : depuis 9DD-PG-G14C-TERRAIN-TRANSMISES
         // (D141, 14C), le terrain ne montre plus que le TRANSMIS — ce
         // scénario signe depuis la fiche terrain, qui exige donc une
-        // intervention déjà affectée au technicien.
-        statut: "affectee",
+        // intervention déjà affectée au technicien ; `en_cours` plutôt que
+        // `affectee` depuis D262 (9L08B-SAISIE-APRES-DEMARRER) — la signature
+        // n'est saisissable qu'après démarrage.
+        statut: "en_cours",
         date_planifiee: new Date("2026-09-25T00:00:00Z"),
         duree_estimee_min: 60,
       },
