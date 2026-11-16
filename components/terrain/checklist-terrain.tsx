@@ -983,8 +983,7 @@ export function ChecklistTerrain({
     }
     relire();
     window.addEventListener(EVENEMENT_FILE_MODIFIEE, relire);
-    return () =>
-      window.removeEventListener(EVENEMENT_FILE_MODIFIEE, relire);
+    return () => window.removeEventListener(EVENEMENT_FILE_MODIFIEE, relire);
   }, [interventionId, utilisateurId, societeId]);
 
   useEffect(() => {

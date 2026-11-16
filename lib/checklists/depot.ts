@@ -32,7 +32,10 @@ import {
   validerReponsePoint,
   type SaisieReponsePoint,
 } from "@/lib/checklists/validation-reponse";
-import { estFige, peutSaisirSurTerrain } from "@/lib/interventions/cycle-de-vie";
+import {
+  estFige,
+  peutSaisirSurTerrain,
+} from "@/lib/interventions/cycle-de-vie";
 import { accesSurCetteIntervention } from "@/lib/interventions/perimetre-technicien";
 import type {
   StatutIntervention,

@@ -38,11 +38,34 @@ import {
  * sans être réécrits ici.
  */
 
+// LA FIXTURE PARTAGÉE EST RENDUE TELLE QUE `global.ts` L'A POSÉE (9L08B) —
+// ce fichier la fait passer à « en_cours » pour toute sa durée (voir le
+// `beforeAll` plus bas) ; sans cette restauration, le mutation SURVIVRAIT à
+// ce fichier et casserait tout scénario d'un AUTRE fichier qui suppose
+// « planifiee » (ex. `intervention.test.ts`, qui transite depuis ce
+// statut). Trigger désactivé le temps du retour en arrière, que la matrice
+// D8 refuse autrement (aucune flèche EN_COURS → PLANIFIEE). ENREGISTRÉ AVANT
+// `afterAll(fermerClients)` pour s'exécuter avant la fermeture des clients.
+afterAll(async () => {
+  await clientOwner().$executeRawUnsafe(
+    `ALTER TABLE "intervention" DISABLE TRIGGER "intervention_cycle_de_vie"`,
+  );
+  await clientOwner().$executeRawUnsafe(
+    `UPDATE "intervention" SET "statut" = 'planifiee' WHERE "id" IN ('${INTERVENTION_A1}', '${INTERVENTION_A2}', '${INTERVENTION_B1}')`,
+  );
+  await clientOwner().$executeRawUnsafe(
+    `ALTER TABLE "intervention" ENABLE TRIGGER "intervention_cycle_de_vie"`,
+  );
+});
+
 afterAll(fermerClients);
 
 /** L'identifiant écrit, ou `null` — jamais lu sur un refus NOMMÉ (9L08B). */
 function idDe(
-  resultat: { readonly id: string } | { readonly refuse: true; readonly cle: string } | null,
+  resultat:
+    | { readonly id: string }
+    | { readonly refuse: true; readonly cle: string }
+    | null,
 ): string | null {
   return resultat !== null && "id" in resultat ? resultat.id : null;
 }
