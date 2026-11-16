@@ -12,6 +12,7 @@ import {
   peutGarderHeure,
   peutGenererLeBon,
   peutPlanifier,
+  peutSaisirSurTerrain,
   peutSuspendre,
   peutTerminer,
   peutTransmettre,
@@ -457,6 +458,37 @@ describe("démarrer le compteur (D120)", () => {
       "intervention.refus.deja_cloturee",
     );
   });
+});
+
+/**
+ * LA SAISIE TERRAIN APRÈS DÉMARRAGE SEULEMENT (9L08B-SAISIE-APRES-DEMARRER,
+ * décision d'Alexis du 16/11/2026) — UNE SEULE BORNE, partagée par la
+ * checklist, le rapport, les prestations réalisées et la signature.
+ */
+describe("peutSaisirSurTerrain (9L08B)", () => {
+  it.each(["a_planifier", "planifiee", "affectee"])(
+    "refuse — nommé — une intervention « %s », pas encore démarrée",
+    (statut) => {
+      const verdict = peutSaisirSurTerrain(
+        statut as Parameters<typeof estFige>[0],
+      );
+      expect(verdict.refuse && verdict.cle).toBe(
+        "intervention.refus.non_demarree",
+      );
+    },
+  );
+
+  // `suspendue`, `terminee`, `cloturee` et `annulee` supposent TOUJOURS un
+  // passage antérieur par `en_cours` (D120, `peutCloturer`) — cette borne ne
+  // change rien à leur régime propre (estFige, I5).
+  it.each(["en_cours", "suspendue", "terminee", "cloturee", "annulee"])(
+    "passe sur une intervention « %s », nécessairement déjà démarrée",
+    (statut) => {
+      expect(
+        peutSaisirSurTerrain(statut as Parameters<typeof estFige>[0]).refuse,
+      ).toBe(false);
+    },
+  );
 });
 
 /**

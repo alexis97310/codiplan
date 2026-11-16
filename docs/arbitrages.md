@@ -8922,3 +8922,29 @@ Elle ne touche ni au schéma ni à une migration (I1, I9) : la portée reste la 
 > Le jour où une autre route publique porte, comme `/premier-acces`, un jeton sensible dans son URL, cette décision se relit : elle suppose aujourd'hui que `/premier-acces` est la SEULE route dans ce cas, d'où son `Referrer-Policy` propre plutôt qu'une règle générale.
 
 Portée : `next.config.ts`, `tests/e2e/9l08-en-tetes-securite.spec.ts`, `tests/e2e/captures-9l08a-en-tetes-securite.spec.ts`, `docs/propositions/9L08-EN-TETES-SECURITE/`.
+
+## D262 — LA CHECKLIST, LE RAPPORT, LES PRESTATIONS RÉALISÉES ET LA SIGNATURE NE SE SAISISSENT QU'UNE FOIS L'INTERVENTION DÉMARRÉE ; LES PHOTOS RESTENT HORS DE CETTE DÉCISION (décision d'Alexis du 16/11/2026 ; 9L08B-SAISIE-APRES-DEMARRER)
+
+### CE QUI A ÉTÉ MESURÉ
+
+Constat de 9L04G (passation, « Question pour Alexis — B2/F1 ») : le serveur acceptait la saisie de la signature, du rapport, des prestations réalisées et de la checklist sur une intervention `affectee` (ou toute autre, hors `annulee`/`cloturee`) — `enregistrerSignature`, `enregistrerRapportTexte`, `enregistrerReponses` et `definirPrestationsRealiseesDepuisFile` ne gardaient, au mieux, que `estFige()`. Seul « Terminer » (`peutTerminer`) exigeait déjà `en_cours`. Deux options posées à Alexis le 16/11 : 1 — laisser ainsi ; 2 — interdire tant que l'intervention n'est pas démarrée, avec un message qui le dit. Réponse : **« 2 »**.
+
+### LA DÉCISION
+
+**1. Une seule borne, partagée par les quatre saisies — `peutSaisirSurTerrain`, posée dans `lib/interventions/cycle-de-vie.ts` au même titre que les autres verdicts du cycle de vie.** Elle refuse `a_planifier`, `planifiee` et `affectee` — les trois seuls statuts d'où aucune flèche de la matrice D8 n'atteint `EN_COURS` autrement qu'en ouvrant un premier segment (`demarrerLeCompteur`). Elle PASSE sur `en_cours`, `suspendue`, `terminee`, `cloturee` et `annulee` : les quatre premiers supposent déjà un passage par `en_cours` (D120 : « une intervention sur laquelle personne n'a démarré de compteur ne se clôture pas ») ; `annulee` et `cloturee` restent gouvernés par `estFige`/I5 exactement comme avant — cette décision ne leur retire et ne leur ajoute rien.
+
+**2. Refus NOMMÉ, avant toute écriture** (`intervention.refus.non_demarree`, lib/i18n/fr.ts) : « Démarrez l'intervention avant de remplir la checklist ou de faire signer le client. » Appliqué dans `enregistrerRapportTexte` et `enregistrerReponses` (juste après leur garde `estFige` existante), et dans `enregistrerSignature` et `definirPrestationsRealiseesDepuisFile` (qui n'avaient jusqu'ici aucune garde de statut) — ces deux dernières voient leur type de retour s'étendre à `{ refuse: true; cle: string }`, et les routes `/api/terrain/[id]/signature` et `/api/terrain/[id]/prestations` apprennent à le relayer, même patron que `rapport`/`checklist`.
+
+**3. L'écran ne duplique pas le message par rubrique.** Une seule ligne d'aide, en tête de la fiche terrain (`app/(mobile)/terrain/[id]/page.tsx`), affiche le refus quand `peutSaisirSurTerrain(statut)` le porte. Les commandes des quatre rubriques (checklist, rapport, pièces, prestations, signature) sont `disabled` — natif, jamais un recouvrement visuel — jusqu'au démarrage, avec reprise sans rechargement dès qu'un « démarrer » réussit en ligne (`EVENEMENT_COMPTEUR_DEMARRE_EN_LIGNE`) ou entre en file hors réseau (même patron que `enCoursLocalement`, déjà en place pour « Terminer »). Aucune garde nouvelle côté `lib/terrain/file-saisies.ts` : les commandes désactivées ne peuvent construire aucun geste, donc rien n'entre en file avant démarrage — le refus serveur nommé reste le filet si un appel était malgré tout forgé.
+
+**4. Les photos (9L04E) sont EXPLICITEMENT hors de cette décision.** `lib/documents/depot.ts` n'importe ni `estFige` ni `peutSaisirSurTerrain` : une photo continue de se déposer sur une intervention non démarrée, exactement comme avant ce lot. Alexis n'a pas été interrogé sur ce point précis au moment d'écrire cette décision — la question reste ouverte, consignée dans la passation de 9L08B.
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+Elle ne change ni la règle de « Terminer » (`peutTerminer`, inchangée), ni celle des interventions suspendues, terminées, clôturées ou annulées — leur régime (`estFige`, I5, D120) reste intact. Elle n'ajoute aucune migration.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où les photos doivent suivre la même borne (la question laissée ouverte au point 4), cette décision se relit : elle suppose aujourd'hui que `lib/documents/depot.ts` reste délibérément hors de `peutSaisirSurTerrain`, faute d'une réponse mesurée d'Alexis sur ce point précis.
+
+Portée : `lib/interventions/cycle-de-vie.ts` (`peutSaisirSurTerrain`), `lib/i18n/fr.ts`, `lib/interventions/depot-rapport-terrain.ts` (`enregistrerRapportTexte`, `enregistrerSignature`, `definirPrestationsRealiseesDepuisFile`), `lib/checklists/depot.ts` (`enregistrerReponses`), `app/api/terrain/[id]/signature/route.ts`, `app/api/terrain/[id]/prestations/route.ts`, `app/(mobile)/terrain/[id]/page.tsx`, `components/terrain/checklist-terrain.tsx`, `components/terrain/rapport-automatique.tsx`, `components/terrain/consultation-hors-reseau.tsx`, `components/ui/case-a-cocher.tsx`, `tests/unit/interventions/cycle-de-vie.test.ts`, `tests/unit/terrain/checklist-terrain.test.tsx`, `tests/isolation/checklist-domaine.test.ts`, `tests/isolation/rapport-terrain.test.ts`, `tests/isolation/terminer-intervention.test.ts`, `tests/isolation/9f4h2-hors-reseau-heure-et-rejeu.test.ts`, `tests/isolation/9f4h4b-depuis-file.test.ts`.
