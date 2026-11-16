@@ -176,7 +176,17 @@ test("capture — rapport terrain à 375px, sur un PRÉVENTIF", async ({
   await page.getByRole("button", { name: fr["connexion.valider"] }).click();
   await expect(page).toHaveURL(/\/terrain/);
   await page.goto(`/terrain/${INTERVENTION_PREVENTIVE_9K29C}`);
-  await expect(page.getByText(fr["terrain.prestations.titre"])).toBeVisible();
+  // LE SEUL ACTIF DU CATALOGUE EST RÉSERVÉ AU « curatif » (ligne 119
+  // ci-dessus) : sur ce PRÉVENTIF, le filtre par TYPE (9K29, D243) écarte
+  // déjà tout, AVANT même le filtre par famille (9L04J, D259) — la machine
+  // de cette scène n'y change rien, générale ou pas. Depuis D259, « rien ne
+  // correspond » efface la rubrique ENTIÈRE (titre compris) plutôt que d'y
+  // montrer un message : la clé `terrain.prestations.aucune_pour_ce_type`
+  // a disparu avec ce comportement. Même règle qu'avant (le type filtre),
+  // preuve différente (absence du titre plutôt que présence d'un message).
+  await expect(
+    page.getByText(fr["terrain.prestations.titre"]),
+  ).not.toBeVisible();
   await capturer(page, "rapport-terrain-preventif", 375);
 });
 
