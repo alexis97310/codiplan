@@ -115,6 +115,21 @@ s'applique à la consultation hors session.
 - **`pnpm test:e2e`** : **NON joué** — conforme à la consigne du pilote (« Tu NE joues PAS
   verify:full : la file le joue après toi ») et au budget de temps de ce lot.
 
+### Correctif trouvé en jouant `CI=1 pnpm verify` — fixture partagée non restaurée
+
+Le premier passage complet de `pnpm test:isolation` isolé (deux fois, fichiers ciblés et suite
+entière) était vert, mais `CI=1 pnpm verify` a fait apparaître un troisième passage où
+`intervention.test.ts` rougissait (« Transition refusée : en_cours → affectee »). Cause : le
+`beforeAll` ajouté à `rapport-terrain.test.ts` posait `INTERVENTION_A1`/`A2`/`B1` à `en_cours` SANS
+les restaurer en fin de fichier — la mutation survivait à ce fichier, et `intervention.test.ts`
+(qui transite depuis `planifiee`) rougissait quand vitest l'exécutait APRÈS, selon l'ordre réel de
+programmation des fichiers (jamais garanti strictement alphabétique malgré `fileParallelism:
+false`). Corrigé par un second `afterAll` dans `rapport-terrain.test.ts`, posé AVANT
+`afterAll(fermerClients)`, qui remet `planifiee` (trigger désactivé le temps du geste, même patron
+que le scénario CLÔTURÉE du même fichier). Rejoué : `pnpm test:isolation` complet, trois fois après
+ce correctif, vert à chaque fois (247 fichiers, 2274 épreuves) — y compris `rapport-terrain.test.ts`
+et `intervention.test.ts` rejoués ENSEMBLE, dans cet ordre, pour forcer le cas qui avait rougi.
+
 ### Scènes e2e repérées à risque, NON corrigées par manque de temps (à reprendre)
 
 Recherche statique (grep, jamais exécutée) : des spécifications e2e créent une intervention jetable
@@ -156,8 +171,13 @@ même borne doit-elle s'étendre à `deposerPhotoIntervention` dans un prochain 
 - `pnpm typecheck` : vert.
 - `pnpm lint` : vert (0 avertissement).
 - `pnpm vitest run tests/unit/interventions/cycle-de-vie.test.ts tests/unit/terrain/checklist-terrain.test.tsx tests/unit/interventions/terrain-routes-json.test.ts` : vert (140 épreuves).
-- `pnpm test:isolation` : vert, deux passages complets (2274 épreuves).
-- `CI=1 pnpm verify` : voir résultat ci-dessous (joué juste avant de rendre la main).
+- `pnpm test:isolation` : vert, cinq passages complets au total (2274 épreuves chacun — voir le
+  correctif ci-dessus pour l'un d'entre eux, qui a rougi puis a été corrigé).
+- `CI=1 pnpm verify` : **vert** — `format:check`, `typecheck`, `lint`, `test` (530 fichiers, 5925
+  épreuves — un passage antérieur avait vu `tests/unit/navigation/atteignabilite-ecrans.test.ts`
+  dépasser son délai de 5000 ms sous la charge du poste, rejoué seul puis dans la suite complète :
+  vert les deux fois, même cause que la reprise 9L07A, jamais touché), `test:isolation`, `build` —
+  tous verts à la fin de ce lot.
 - `pnpm verify:full` : volontairement NON joué — laissé à la file, comme demandé.
 
 ## 7. Captures
