@@ -129,3 +129,106 @@ Ce worktree était détaché sur `origin/main` au début de la session (`HEAD de
 origin/main`) — `main` lui-même est extrait ailleurs (`/home/aplou/codiplan`). J'ai créé la
 branche `9L04J-PRESTATIONS-PAR-MATERIEL` à partir de ce point et j'y ai posé les commits de ce
 lot (aucun `push`).
+
+## Reprise 9L04JA (16/11/2026)
+
+9L04J était recalé deux fois sur la même cause mesurée : `tests/e2e/captures-9k29-
+prestations-par-type-intervention.spec.ts:167` (« capture — rapport terrain à 375px, sur un
+PRÉVENTIF ») ne trouvait plus `fr["terrain.prestations.titre"]`.
+
+### Rebase
+
+Branche `9L04JA-REPRISE-PRESTATIONS-PAR-MATERIEL` créée à partir d'`origin/main`
+(`2080336ad`, après 9L04HA). Les 8 commits de `9L04J-PRESTATIONS-PAR-MATERIEL-garde` reportés
+par `cherry-pick`, un par un, rien retiré ni modifié dans leur contenu propre. Trois conflits,
+tous nés du même fait : `origin/main` avait, depuis, posé SES PROPRES décisions D255–D258
+(9L04K, 9L06, 9L04M, 9L04E) exactement là où la garde posait sa D255 à elle (même point
+d'ancrage dans `docs/arbitrages.md`, après D254, chacune ignorant l'autre à l'écriture) :
+
+1. `docs/arbitrages.md` — les D255–D258 d'`origin/main` gardées intactes ; le contenu de la
+   garde ajouté APRÈS, renuméroté **D259** (prochain numéro libre sur `origin/main` au moment
+   du rebase).
+2. `lib/db/migrations-attendues.ts` — les deux migrations listées (`..._9l04m` puis
+   `..._9l04j`, dans l'ordre chronologique de leurs horodatages : aucune collision, la migration
+   de 9L04J (`20261115030000`) reste strictement postérieure à la dernière d'`origin/main`
+   (`20261115020000`), donc inchangée).
+3. `components/terrain/consultation-hors-reseau.tsx` — les deux côtés gardés : le calcul de
+   `natureLibelle`/`creneauLibelle` posé depuis par 9L04H/9L04HA, ET la déclaration
+   `idsRealises` que 9L04J introduit ici (nécessaire plus bas à `prestationsAProposer`) ;
+   commentaire ajusté pour nommer les deux règles qui composent désormais (type ET famille).
+
+Toute référence source à **D255** introduite par la garde (commentaires de code, tests,
+`docs/cahier-des-charges.md`) renommée en **D259** après le cherry-pick (recherche exhaustive
+`git grep -n "D255"`, zéro résidu hors du D255 légitime de 9L04K).
+
+### La cause réelle du recalage — PAS celle pressentie
+
+Le brief soupçonnait le rattachement par LIBELLÉ (« Remplacement écrous porteurs » → `PONT-
+ELEV`) d'avoir rendu la machine de la scène 9K29C étrangère à sa famille. Mesuré : **ce n'est
+pas ça**. La scène 9K29C (`captures-9k29-prestations-par-type-intervention.spec.ts`) pose sa
+PROPRE prestation (`PRESTATION_9K29C`, « Prestation 9K29C (curatif seulement) »), jamais
+« Remplacement écrous porteurs », et ses deux interventions n'ont AUCUNE machine rattachée
+(`familleMachineId` toujours `null`) — la famille n'intervient donc jamais dans ce calcul : une
+prestation `familles: []` (générale) est proposée sur toute machine, y compris sans machine
+connue (D259, point 4).
+
+La vraie cause : `PRESTATION_9K29C` est réservée au type `curatif` (`types: ["curatif"]`,
+depuis 9K29/D243) ; sur l'intervention PRÉVENTIVE de la même scène, le filtre par TYPE seul
+écartait déjà tout — AVANT même que le filtre par famille (9L04J) n'entre en jeu. Avant D259,
+« rien ne correspond » affichait un message (`terrain.prestations.aucune_pour_ce_type`, titre
+visible) ; depuis D259, la rubrique ENTIÈRE s'efface (titre compris) — c'est le changement de
+comportement que ce ticket pose, pas un défaut de l'écran ni de la reprise de données.
+
+### Le correctif
+
+`tests/e2e/captures-9k29-prestations-par-type-intervention.spec.ts`, test « sur un PRÉVENTIF » :
+l'assertion `toBeVisible()` sur `terrain.prestations.titre` devient `not.toBeVisible()`, avec un
+commentaire qui nomme la cause mesurée ci-dessus. Ce n'est pas un assouplissement : la scène
+prouve TOUJOURS la même règle (le filtre par type écarte la prestation réservée au curatif sur
+un préventif) — seule la PREUVE change, parce que l'écran lui-même a changé de comportement sur
+ce cas. Le test « sur un CURATIF » n'est pas touché (sa prestation est générale en famille et
+correspond par type : la rubrique reste visible, inchangé). Cette même scène sert du même coup
+de preuve supplémentaire de la règle nouvelle, en plus de celle déjà posée par `tests/e2e/
+9l04j-prestations-par-materiel.spec.ts` (« sur un COMPRESSEUR, la rubrique disparaît
+ENTIÈREMENT »).
+
+### Autres localisateurs cherchés, aucun à corriger
+
+Recherche de tout `getByText`/`getByRole` visant `terrain.prestations.titre`, `prestations.
+titre` ou le texte « Prestations réalisées » dans `tests/e2e/**` : aucun autre fichier ne
+rencontre l'écran modifié de façon non exacte. `tests/e2e/9k29-prestations-par-type-
+intervention.spec.ts` (ligne 186-195) cible le LIBELLÉ de la prestation, jamais le titre de la
+rubrique — ses deux assertions (`not.toBeVisible()`/`toBeVisible()`) restent vraies quel que
+soit le mécanisme (élément absent vs rubrique entière absente). `tests/e2e/
+cases-parametrage-44.spec.ts` cible `getByLabel(fr["prestations.active"])` sur l'écran de
+réglage désormais enrichi d'un `<fieldset>` de familles : aucune famille ne porte un libellé
+contenant « Active », pas de collision.
+
+### Épreuves (toutes rejouées, premier plan)
+
+Après `pnpm db:generate` (schéma changé par le cherry-pick) et application de la migration
+`20261115030000_prestations_par_famille_materiel_9l04j` sur `codiplan_test` (`prisma migrate
+deploy`, `DATABASE_URL` pointée dessus) :
+
+- `tests/e2e/captures-9k29-prestations-par-type-intervention.spec.ts` — 4 passés.
+- `tests/e2e/9l04j-prestations-par-materiel.spec.ts`,
+  `tests/e2e/captures-9l04j-prestations-par-materiel.spec.ts`,
+  `tests/e2e/9k29-prestations-par-type-intervention.spec.ts`,
+  `tests/e2e/rapport-terrain.spec.ts` — 19 passés au total.
+- `tests/e2e/tous-les-ecrans-rendent.spec.ts` — 61 passés, 4 ignorés (identique à la mesure du
+  lot initial).
+- `pnpm test` — 5908 passés (530 fichiers).
+- `pnpm test:isolation` — 2263 passés (246 fichiers).
+- `CI=1 pnpm verify` (entier, deux fois) — vert : `format:check`, `typecheck`, `lint`, `test`,
+  `test:isolation`, `build`.
+
+Mémoire du build (9K28B, 9L04A) : le schéma n'a été touché QUE par la résolution du conflit de
+rebase (fusion automatique, aucune relation Prisma nouvelle par rapport à ce que la garde
+posait déjà) — le pic mesuré par la passation initiale (~6,13 Go) reste la seule mesure
+pertinente, non repris ici.
+
+### Ce qui reste inchangé
+
+Rien d'autre dans « Ce qui a été fait » ci-dessus n'est modifié par cette reprise : le
+mécanisme du filtre par famille, la migration, le catalogue, l'historique gardé — tout est
+ce que la garde avait posé, reporté tel quel.
