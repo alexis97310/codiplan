@@ -207,6 +207,11 @@ const AMENDEMENTS_ATTENDUS: ReadonlyArray<readonly [string, string]> = [
   // troisième apparence, et ses jetons ne viennent pas de
   // `codiplan-maquette-complete.html` — un écart que D124 laissait ouvert.
   ["D124", "D252"],
+  // D261 (16/11/2026, 9L08D-TERRAIN-TAILLES-MAQUETTE) amende D143 (point 8) :
+  // dans la seule zone terrain, l'échelle du plancher s'élargit à
+  // 13/14/16/17/18/24/28 px — les libellés et les commandes restent à 16 px
+  // minimum.
+  ["D143", "D261"],
 ];
 
 describe("câblage bidirectionnel entre décisions", () => {

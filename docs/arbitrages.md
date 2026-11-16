@@ -5415,6 +5415,8 @@ Aucune règle du chapitre 10. La route de déplacement (`POST .../deplacer`), `j
 
 **Décisions amendées :** D124, D138
 
+**Amendé par D263.**
+
 *Sur la valeur des tailles hors échelle (D124) et sur le plancher de 12 px, désormais garanti par une échelle complète plutôt que par un plancher isolé (D138).*
 
 ### CE QUI A ÉTÉ MESURÉ
@@ -8948,3 +8950,33 @@ Elle ne change ni la règle de « Terminer » (`peutTerminer`, inchangée), ni c
 > Le jour où les photos doivent suivre la même borne (la question laissée ouverte au point 4), cette décision se relit : elle suppose aujourd'hui que `lib/documents/depot.ts` reste délibérément hors de `peutSaisirSurTerrain`, faute d'une réponse mesurée d'Alexis sur ce point précis.
 
 Portée : `lib/interventions/cycle-de-vie.ts` (`peutSaisirSurTerrain`), `lib/i18n/fr.ts`, `lib/interventions/depot-rapport-terrain.ts` (`enregistrerRapportTexte`, `enregistrerSignature`, `definirPrestationsRealiseesDepuisFile`), `lib/checklists/depot.ts` (`enregistrerReponses`), `app/api/terrain/[id]/signature/route.ts`, `app/api/terrain/[id]/prestations/route.ts`, `app/(mobile)/terrain/[id]/page.tsx`, `components/terrain/checklist-terrain.tsx`, `components/terrain/rapport-automatique.tsx`, `components/terrain/consultation-hors-reseau.tsx`, `components/ui/case-a-cocher.tsx`, `tests/unit/interventions/cycle-de-vie.test.ts`, `tests/unit/terrain/checklist-terrain.test.tsx`, `tests/isolation/checklist-domaine.test.ts`, `tests/isolation/rapport-terrain.test.ts`, `tests/isolation/terminer-intervention.test.ts`, `tests/isolation/9f4h2-hors-reseau-heure-et-rejeu.test.ts`, `tests/isolation/9f4h4b-depuis-file.test.ts`.
+
+## D263 — DANS LA ZONE TERRAIN SEULE, L'ÉCHELLE DU PLANCHER DE D143 (POINT 8) S'ÉLARGIT À 13/14/16/17/18/24/28 PX ; LES LIBELLÉS ET LES COMMANDES RESTENT À 16 PX MINIMUM (décision d'Alexis du 16/11/2026 ; 9L08D-TERRAIN-TAILLES-MAQUETTE)
+
+**Décisions amendées :** D143
+
+### CE QUI A ÉTÉ MESURÉ
+
+9L04C (D252) a validé une maquette « épurée » de la fiche technicien demandant un client à 17 px et une ligne secondaire (« matériel · n° d'intervention ») à 13-14 px dans l'en-tête d'`app/(mobile)/terrain/[id]/page.tsx`. `tests/unit/ui/retouches-2a.test.ts` (D143, point 8) tenait alors ce fichier, et six autres du terrain, au plancher fermé 16/18/24/28 px (hors surtitre/pastille) : D252 (point 4) a donc ramené le client à 18 px et la ligne secondaire à 16 px — les deux valeurs déjà dans l'échelle les plus proches — plutôt que d'assouplir ce gardien sans décision nommée, avec une condition de réouverture explicite pour le jour où Alexis confirmerait vouloir les valeurs exactes. 9L04D (D253) a déjà amendé D143 (point 11, la graisse) pour la même zone, par une exemption ligne par ligne plutôt que par les marques formelles d'amendement — ce point 8 est une question DIFFÉRENTE (la taille, pas la graisse) et reçoit ici ses propres marques, la correction portant sur une échelle entière plutôt qu'une liste de lignes.
+
+Alexis, interrogé le 16/11/2026 (~09h15 NC) entre « 1 — garder 18 et 16 px » et « 2 — suivre la maquette, 17 et 13-14 px, en rouvrant D143 », a répondu **« 2 »**.
+
+### LA DÉCISION
+
+**1. D143 (point 8) est amendée pour la seule zone `data-zone="terrain"` (D252) : l'échelle admise y devient 13, 14, 16, 17, 18, 24 et 28 px.** Hors de cette zone (bureau, portail), D143 (point 8) est inchangée — le plancher y reste 16/18/24/28 px, et `--text-17` (`app/globals.css`, nouvelle) n'y a aucune vocation, bien que la variable Tailwind soit, par construction, globale.
+
+**2. Les LIBELLÉS et les COMMANDES restent tenus à 16 px minimum, même dans la zone terrain.** L'échelle élargie ne vaut que pour un texte de CONTENU (le nom du client, une ligne secondaire) — jamais pour un libellé de champ (`<dt>`, `<label>`) ni pour une commande (`<Button>`). `tests/unit/ui/retouches-2a.test.ts` porte désormais un guard dédié sur ces deux balises, en plus du guard déjà existant sur `<Button>` (littéral `text-16`).
+
+**3. `app/(mobile)/terrain/[id]/page.tsx` applique les valeurs exactes de la maquette du 13/11** : le client de l'en-tête passe de `text-18` à `text-17`, sa ligne secondaire (« matériel · n° d'intervention ») de `text-16` à `text-14`. Le chrono, à droite de la même ligne, n'est pas nommé par la maquette au-delà de sa position (« à droite ») et reste à 16 px — ce n'est ni un libellé ni une commande, mais une valeur affichée au même rang que les autres mesures de la fiche (compteur, décompte), qui ne sont pas davantage ramenées par cette décision.
+
+**4. Aucune autre ligne des sept fichiers de D143 (point 8) ne change.** `components/terrain/liste-journee.tsx` et `components/terrain/consultation-hors-reseau.tsx` ne sont pas gouvernés par ce point (ils ne figurent pas dans sa population) et n'ont reçu aucune substitution 18/16 documentée par D252 ou D253 à corriger ici — la maquette du 13/11 ne nommait de valeurs exactes que pour l'en-tête de la fiche en ligne. Les titres de rubrique (13 px, capitales) et les textes secondaires (13-14 px) de `components/terrain/checklist-terrain.tsx` sont hors de la population de ce point depuis l'origine (D253 les couvre, pour la graisse, au point 11) et n'ont donc pas eu à être touchés.
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+Elle ne rouvre pas D143 (point 11, la graisse) ni la portée de D253 : les deux restent la règle, inchangées. Elle ne touche aucun jeton de couleur (D124, D252) ni la disposition de la checklist, des photos, de la barre d'action ou du récapitulatif. Elle n'étend l'échelle GÉNÉRALE de D138 à aucun autre fichier ni aucune autre zone : `--text-17` existe, par construction de Tailwind, comme classe globale, mais seuls les sept fichiers de D143 (point 8) et la zone terrain qu'ils composent ont le droit de l'employer — ailleurs, elle reste une forme hors échelle.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où un écran hors de la zone terrain (bureau, portail) demande 17 px ou 13-14 px pour un texte de contenu, cette décision se relit : elle suppose aujourd'hui que l'échelle élargie reste propre à `data-zone="terrain"`, jamais une neuvième et dixième valeur de l'échelle générale de D138. Le jour où un libellé ou une commande de la zone terrain devrait lui aussi descendre sous 16 px, cette décision se relit : elle suppose que ce plancher ne bouge pas, quelle que soit l'échelle de contenu autour de lui.
+
+Portée : `docs/arbitrages.md` (D143, marque d'amendement), `app/globals.css` (`--text-17`), `app/(mobile)/terrain/[id]/page.tsx`, `tests/unit/ui/retouches-2a.test.ts` (point 8, `TAILLES_TERRAIN`, le guard `<dt>`/`<label>`).
