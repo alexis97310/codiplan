@@ -8894,3 +8894,31 @@ Elle ne touche pas au second facteur (D62, SEUIL_ECHECS_SECOND_FACTEUR) : deux m
 > Le jour où une tentative de connexion doit être comptée ou refusée PENDANT le verrouillage lui-même (par exemple pour prolonger la fenêtre à chaque nouvel essai), cette décision se relit : elle suppose aujourd'hui qu'aucune ligne n'est ajoutée tant que `verrouille` rend vrai, et que la fenêtre glissante expire donc seule, sans jamais être repoussée par les essais qui suivent le verrouillage.
 
 Portée : `prisma/migrations/20261115040000_limite_connexion_tentatives_9l07/`, `prisma/schema.prisma` (`TentativeConnexion`, `EvenementAcces.connexion_temporisee`), `lib/db/migrations-attendues.ts`, `lib/auth/limiteur-connexion.ts` (créé), `lib/auth/connexion.ts` (`tenterConnexion`), `lib/auth/lecture-identite.ts` (`CLES_DESIGNATION.tentativeConnexion`), `app/api/session/connexion/route.ts`, `docs/constitution/invariants.md` §3, `tests/unit/db/categories-i1.test.ts`, `tests/isolation/limiteur-connexion.test.ts`.
+
+## D261 — LES EN-TÊTES DE SÉCURITÉ HTTP SE POSENT UNE SEULE FOIS, DANS `next.config.ts` ; `/premier-acces` REÇOIT UN `Referrer-Policy` PROPRE (décision d'Alexis du 10/11/2026 ; 9L08-EN-TETES-SECURITE)
+
+### CE QUI A ÉTÉ MESURÉ
+
+Sur `81894e0` : aucun des trois fichiers qui auraient pu porter des en-têtes de sécurité HTTP (`next.config.ts`, `vercel.json`, `middleware.ts`) n'en posait un seul — ni politique de contenu, ni encadrement interdit, ni politique de référent, ni type MIME forcé.
+
+### LA DÉCISION
+
+**1. Un seul bloc `headers()`, dans `next.config.ts`, source unique.** `middleware.ts` garde son seul emploi déjà documenté (porter le chemin) : y poser des en-têtes aurait exigé de les recopier sur chaque réponse plutôt que de les déclarer une fois.
+
+**2. La politique de contenu (`Content-Security-Policy`) ne porte que des sources MESURÉES, jamais supposées** — `script-src`/`style-src` avec `'unsafe-inline'` (le routeur d'applications sert ses données de flux par des balises sans jeton substituable, et des composants posent un style en ligne calculé) ; `img-src` avec `blob:` (l'aperçu d'une photo réduite côté terrain) ; `frame-ancestors 'none'` et `object-src 'none'` ; `connect-src`/`font-src` restreints à `'self'`, aucune police ni aucun appel ne venant d'un domaine tiers.
+
+**3. `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, et un `Referrer-Policy: strict-origin-when-cross-origin` par défaut.** `/premier-acces` reçoit SEUL un `Referrer-Policy: no-referrer` — le jeton de premier accès vit dans son URL (chapitre 10) et ne doit fuiter par aucun en-tête `Referer`, pas même vers une ressource de même origine chargée depuis cet écran.
+
+**4. `Permissions-Policy` se limite à ce que l'application utilise réellement** — `camera=(self)` pour le lecteur de QR code, qui seul ouvre `getUserMedia` (la capture de photo terrain passe par `<input capture>`, hors de cette politique) ; microphone et géolocalisation fermés, inutilisés partout.
+
+**5. Une épreuve lit les en-têtes d'une vraie réponse pour chaque famille** — une page du bureau, une page du terrain, une réponse d'API, `/premier-acces` — plutôt que de supposer qu'un en-tête déclaré une fois s'applique partout.
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+Elle ne touche ni au schéma ni à une migration (I1, I9) : la portée reste la couche de configuration de l'application, jamais la base. Elle ne modifie aucun écran visible : les en-têtes de sécurité HTTP ne se voient jamais à l'écran, et les captures de ce lot le prouvent par l'absence de changement plutôt que par un avant/après.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où une autre route publique porte, comme `/premier-acces`, un jeton sensible dans son URL, cette décision se relit : elle suppose aujourd'hui que `/premier-acces` est la SEULE route dans ce cas, d'où son `Referrer-Policy` propre plutôt qu'une règle générale.
+
+Portée : `next.config.ts`, `tests/e2e/9l08-en-tetes-securite.spec.ts`, `tests/e2e/captures-9l08a-en-tetes-securite.spec.ts`, `docs/propositions/9L08-EN-TETES-SECURITE/`.

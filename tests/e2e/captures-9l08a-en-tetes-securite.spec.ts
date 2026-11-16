@@ -65,11 +65,10 @@ async function preparerLeComptePortail(): Promise<void> {
       where: { email: COMPTE_ADMIN_SOCIETE_EPREUVE },
       select: { id: true },
     });
-    const utilisateurSociete =
-      await admin.utilisateurSociete.findFirstOrThrow({
-        where: { utilisateur_id: utilisateur.id },
-        select: { societe_id: true },
-      });
+    const utilisateurSociete = await admin.utilisateurSociete.findFirstOrThrow({
+      where: { utilisateur_id: utilisateur.id },
+      select: { societe_id: true },
+    });
     const societeId = utilisateurSociete.societe_id;
     const client = await admin.client.findFirstOrThrow({
       where: { societe_id: societeId },
@@ -132,7 +131,11 @@ async function preparerLeComptePortail(): Promise<void> {
   }
 }
 
-async function connecter(page: Page, email: string, motDePasse: string): Promise<void> {
+async function connecter(
+  page: Page,
+  email: string,
+  motDePasse: string,
+): Promise<void> {
   await page.goto("/connexion");
   await page.getByLabel(fr["connexion.email"]).fill(email);
   await page.getByLabel(fr["connexion.mot_de_passe"]).fill(motDePasse);
@@ -192,9 +195,7 @@ for (const largeur of [1280, 375] as const) {
     }) => {
       await connecter(page, COMPTE_TECHNICIEN_EPREUVE, MOT_DE_PASSE_EPREUVE);
       await expect(page).toHaveURL(/\/terrain$/);
-      await expect.poll(() => copiePosee(page), { timeout: 10_000 }).toBe(
-        true,
-      );
+      await expect.poll(() => copiePosee(page), { timeout: 10_000 }).toBe(true);
 
       await context.setOffline(true);
       await page.goto("/terrain-hors-reseau");
@@ -205,9 +206,7 @@ for (const largeur of [1280, 375] as const) {
       await context.setOffline(false);
     });
 
-    test(`capture — l'accueil du portail, à ${largeur}px`, async ({
-      page,
-    }) => {
+    test(`capture — l'accueil du portail, à ${largeur}px`, async ({ page }) => {
       await connecter(page, EMAIL_PORTAIL, MOT_DE_PASSE_PORTAIL);
       await page.waitForURL(/\/(arrivee|portail)/);
       await page.goto("/portail");
