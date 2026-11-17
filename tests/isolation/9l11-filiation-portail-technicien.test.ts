@@ -8,7 +8,10 @@ import {
   ecartsPolitiquePortailFiliationRetiree,
   type ColonneNomTechnicienAffiche,
 } from "../../scripts/lib/filiation-portail-technicien";
-import { SQL_POLITIQUES, type PolitiqueObservee } from "../../scripts/lib/politiques-rls";
+import {
+  SQL_POLITIQUES,
+  type PolitiqueObservee,
+} from "../../scripts/lib/politiques-rls";
 import { clientOwner, fermerClients } from "./setup/db";
 
 /**

@@ -50,9 +50,7 @@ describe("ecartsPolitiquePortailFiliationRetiree (9J22A)", () => {
   });
 
   it("une politique de même nom sur une AUTRE table n'est pas confondue", () => {
-    const politiques = [
-      politique("site", POLITIQUE_PORTAIL_FILIATION_RETIREE),
-    ];
+    const politiques = [politique("site", POLITIQUE_PORTAIL_FILIATION_RETIREE)];
     expect(ecartsPolitiquePortailFiliationRetiree(politiques)).toEqual([]);
   });
 
@@ -83,9 +81,7 @@ function colonne(
 
 describe("ecartsNomTechnicienAfficheObligatoire (9J22A)", () => {
   it("rend une liste VIDE quand la colonne reste NOT NULL", () => {
-    expect(ecartsNomTechnicienAfficheObligatoire([colonne(true)])).toEqual(
-      [],
-    );
+    expect(ecartsNomTechnicienAfficheObligatoire([colonne(true)])).toEqual([]);
   });
 
   it("ÉCHOUE quand la colonne n'est plus NOT NULL", () => {
@@ -114,8 +110,6 @@ describe("ecartsNomTechnicienAfficheObligatoire (9J22A)", () => {
     expect(rapportNomTechnicienAfficheObligatoire([colonne(true)])).toContain(
       "NOT NULL=true",
     );
-    expect(rapportNomTechnicienAfficheObligatoire([])).toContain(
-      "INTROUVABLE",
-    );
+    expect(rapportNomTechnicienAfficheObligatoire([])).toContain("INTROUVABLE");
   });
 });

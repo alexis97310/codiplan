@@ -9084,3 +9084,28 @@ Elle ne touche pas `/api/demandes/creer` (le volet « + Demande » de l'écran `
 > Le jour où un écran terrain ou portail légitime a besoin de créer directement une intervention par cette route, cette décision se relit : elle suppose aujourd'hui qu'aucun n'existe, et qu'en ouvrir un exigerait une porte nommée plutôt qu'un assouplissement de la capacité exigée ici.
 
 Portée : `app/api/interventions/creer/route.ts`, `app/(back-office)/planning/page.tsx` (`peutCreerIci`), `tests/unit/auth/porte.test.ts` (`ROUTE_CAPACITE`), `tests/isolation/9l10-creer-intervention-qualifier.test.ts` (nouveau).
+
+## D268 — LA BRÈCHE REFERMÉE PAR 9J22A EST SURVEILLÉE PAR `pnpm veille`, À LA PRÉCISION DU CATALOGUE ; AUCUNE LIGNE DE DONNÉE N'EST LUE (décision d'Alexis du 10/11/2026 ; 9L11-VEILLE-MIGRATIONS-PORTAIL)
+
+### CE QUI A ÉTÉ MESURÉ
+
+`9J22` avait ouvert au portail la lecture de la ligne `utilisateur` d'un technicien (politique `utilisateur_lecture_filiation_portail`) ; `9J22A` l'a refermée et a déplacé ce qu'un bon affiche réellement — un nom, rien d'autre — sur `segment_travail.nom_technicien_affiche`, recopié une seule fois à la création du segment et posé `NOT NULL`. Si une base avait vu `9J22` sans `9J22A`, ou si la politique revenait par un geste qui ne passe pas par une migration, rien ne le surveillait avant ce ticket.
+
+### LA DÉCISION
+
+**`pnpm veille` porte désormais deux contrôles de plus** (`scripts/lib/filiation-portail-technicien.ts`), câblés par le même périmètre inversé que le reste de la veille (D55) :
+
+1. la politique `utilisateur_lecture_filiation_portail` ne doit pas exister sur `utilisateur` — sa réapparition, par migration ou à la main, rouvre la ligne entière d'un technicien à un contexte client ;
+2. `segment_travail.nom_technicien_affiche` doit rester `NOT NULL` — un `ALTER TABLE … DROP NOT NULL` joué à la main en est le geste que ce contrôle voit.
+
+Les deux lectures sont des lectures de CATALOGUE (`pg_policies`, `pg_attribute`), jamais une ligne de `segment_travail` ou d'`utilisateur` : la veille tourne sous le rôle applicatif, en lecture seule, sans contexte société posé (D55), et une lecture directe de ces tables y rendrait zéro ligne par construction — un zéro qui ne prouverait jamais qu'aucune ligne n'est vide.
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+Elle NE DÉTECTE PAS une valeur déjà posée vide (`''`) sur une ligne existante de `nom_technicien_affiche` : `NOT NULL` empêche `NULL`, pas la chaîne vide, et aucune contrainte `CHECK` du type `checklist_point_libelle_non_vide` (9K08) n'a été posée sur cette colonne — ni par 9J22A, ni par ce ticket. Une telle contrainte fermerait l'écart au niveau de l'ÉCRITURE ; l'ajouter est une migration, et ce ticket n'en pose aucune (consigne du ticket : s'arrêter plutôt qu'inventer). L'écart reste donc ouvert à cette précision près.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où Alexis arbitre une contrainte `CHECK` sur `segment_travail.nom_technicien_affiche` refusant la chaîne vide (migration), cette décision se relit : le contrôle de veille s'étendrait alors à la présence de cette contrainte, sur le même modèle catalogue que les deux contrôles ci-dessus.
+
+Portée : `scripts/lib/filiation-portail-technicien.ts` (nouveau), `scripts/veille-hebergee.mts`, `tests/unit/db/filiation-portail-technicien.test.ts` (nouveau), `tests/isolation/9l11-filiation-portail-technicien.test.ts` (nouveau).
