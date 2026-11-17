@@ -58,9 +58,11 @@ import {
 
 import {
   accesSurCetteIntervention,
+  dansLePerimetre,
   filtreDuPerimetre,
   motifRefusPlanning,
   perimetreDuPlanning,
+  perimetreParPersonne,
 } from "./perimetre-technicien";
 import {
   estFige,
@@ -2291,6 +2293,14 @@ export type ResultatCloture = ValorisationAffichee & {
  * alors **avec son nom et sa date**. *Un compteur oublié fausse les
  * indicateurs, et sans les deux colonnes on ne voit pas l'écart.*
  *
+ * **Décision d'Alexis du 10/11/2026, option 1 (D270) : le technicien qui
+ * clôture ne corrige pas son temps.** Un accès restreint (○, le technicien
+ * affecté) ne peut poser que `temps_valide_min === temps_mesure_min` — toute
+ * autre valeur est REFUSÉE nommément, jamais acceptée en silence. Un accès
+ * complet (ADMS, DIR, RM, RS, ADV) corrige librement, comme avant : les deux
+ * colonnes de traçage, posées plus bas pour tout le monde, disent alors QUI a
+ * corrigé et QUAND.
+ *
  * Le taux retenu est celui **en vigueur à la date de l'intervention**, jamais
  * le taux du jour (RG-TAR-04) : une facture qui change quand le tarif change
  * est une facture fausse.
@@ -2341,13 +2351,15 @@ export async function cloturerIntervention(
       // *hors périmètre et inexistante rendent la même chose* (D35, D50) :
       // distinguer les deux dirait à un technicien qu'une intervention d'un
       // collègue existe.
-      if (
-        !accesSurCetteIntervention(
-          exigerContexteActif(contexte),
-          "cloturer_intervention",
-          ligne.technicien_id,
-        )
-      ) {
+      //
+      // `perimetreCloture` est repris plus bas (D270) pour juger la VALEUR
+      // soumise, pas seulement l'intervention visée — une seconde lecture de
+      // `perimetreParPersonne` y divergerait en silence (§9, 01/09).
+      const perimetreCloture = perimetreParPersonne(
+        exigerContexteActif(contexte),
+        "cloturer_intervention",
+      );
+      if (!dansLePerimetre(perimetreCloture, ligne.technicien_id)) {
         return { accepte: false, cle: "intervention.refus.inconnue" };
       }
       const barriere = refus<ResultatCloture>(
@@ -2359,6 +2371,24 @@ export async function cloturerIntervention(
       );
       if (barriere !== null) {
         return barriere;
+      }
+
+      // D270 (décision d'Alexis du 10/11/2026, option 1) : LE TECHNICIEN QUI
+      // CLÔTURE NE CORRIGE PAS SON TEMPS — un accès restreint (○) ne pose que
+      // le temps MESURÉ, jamais une autre valeur. `barriere` ci-dessus a déjà
+      // garanti `ligne.temps_mesure_min !== null` (sinon `peutCloturer` aurait
+      // refusé sur « temps_manquant ») : la comparaison qui suit ne compare
+      // donc jamais à `null`. Un accès complet (ADMS, DIR, RM, RS, ADV)
+      // continue de corriger librement — c'est la même règle que D131 porte
+      // déjà sur l'INTERVENTION visée, appliquée cette fois à la VALEUR.
+      if (
+        perimetreCloture.acces === "restreint" &&
+        saisie.temps_valide_min !== ligne.temps_mesure_min
+      ) {
+        return {
+          accepte: false,
+          cle: "intervention.refus.temps_corrige_par_technicien",
+        };
       }
 
       // UN COMPTEUR QUI TOURNE ENCORE SUR CETTE INTERVENTION REFUSE LA

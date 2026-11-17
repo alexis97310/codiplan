@@ -254,6 +254,79 @@ describe("CLÔTURER — le ○ du technicien est scopé à SA PROPRE interventio
     );
     expect(resultat.accepte).toBe(true);
   });
+
+  // D270 (décision d'Alexis du 10/11/2026, option 1) : le technicien qui
+  // clôture ne corrige pas son temps — il ne pose que le temps mesuré par le
+  // compteur, et toute autre valeur est refusée nommément. Le bureau, lui,
+  // corrige librement, comme avant — et la correction reste tracée (auteur,
+  // date), posées pour toute clôture quel qu'en soit l'auteur.
+  it("un technicien REFUSÉ s'il corrige le temps qu'il a mesuré — et RIEN ne change en base", async () => {
+    const id = await jetable(TECHNICIEN);
+    await demarrerLeCompteur(
+      SESSION_TECH,
+      id,
+      new Date("2026-09-14T08:00:00.000Z"),
+      clientApp(),
+    );
+    await arreterLeCompteur(
+      SESSION_TECH,
+      new Date("2026-09-14T09:30:00.000Z"),
+      clientApp(),
+    );
+    await porterATerminee(id);
+    const avant = await etat(id);
+
+    const resultat = await cloturerIntervention(
+      SESSION_TECH,
+      // 90 min mesurées (08:00 → 09:30) ; 45 soumis — une valeur VALIDE,
+      // simplement différente, distincte de `temps_invalide`.
+      { intervention_id: id, temps_valide_min: 45 },
+      clientApp(),
+    );
+
+    expect(resultat).toEqual({
+      accepte: false,
+      cle: "intervention.refus.temps_corrige_par_technicien",
+    });
+    expect(await etat(id)).toEqual(avant);
+  });
+
+  it("le bureau corrige le temps mesuré par le compteur, et la correction est tracée (auteur, date)", async () => {
+    await poserLeTaux();
+    const id = await jetable(TECHNICIEN);
+    await demarrerLeCompteur(
+      SESSION_TECH,
+      id,
+      new Date("2026-09-14T08:00:00.000Z"),
+      clientApp(),
+    );
+    await arreterLeCompteur(
+      SESSION_TECH,
+      new Date("2026-09-14T09:30:00.000Z"),
+      clientApp(),
+    );
+    await porterATerminee(id);
+
+    const resultat = await cloturerIntervention(
+      SESSION_BUREAU,
+      { intervention_id: id, temps_valide_min: 45 },
+      clientApp(),
+    );
+    expect(resultat.accepte).toBe(true);
+
+    const [ligne] = await clientOwner().$queryRawUnsafe<
+      Array<{
+        temps_valide_min: number | null;
+        temps_valide_par: string | null;
+        temps_valide_le: Date | null;
+      }>
+    >(
+      `SELECT "temps_valide_min", "temps_valide_par", "temps_valide_le" FROM "intervention" WHERE "id" = '${id}'`,
+    );
+    expect(ligne?.temps_valide_min).toBe(45);
+    expect(ligne?.temps_valide_par).toBe(SESSION_BUREAU.utilisateurId);
+    expect(ligne?.temps_valide_le).not.toBeNull();
+  });
 });
 
 describe("SUSPENDRE / REPRENDRE — même périmètre scopé que « clôturer »", () => {
