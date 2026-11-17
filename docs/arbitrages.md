@@ -9064,3 +9064,23 @@ Elle NE RÉSOUT PAS le troisième correctif envisagé : invalider les liens de p
 > Le jour où Alexis arbitre une migration pour fermer l'écart du point 3 (nouvelle forme de politique sur `verification`, ou fonction `SECURITY DEFINER` arbitrée), cette décision se relit : elle suppose aujourd'hui que seules les SESSIONS se ferment, jamais les jetons.
 
 Portée : `lib/auth/fermeture-sessions.ts` (nouveau), `lib/auth/reinitialisation.ts` (`reinitialiserSecondFacteur`), `lib/auth/premier-acces.ts` (`choisirLePremierMotDePasse`), `tests/isolation/reinitialisation-second-facteur.test.ts`, `tests/isolation/premier-acces.test.ts`, `tests/isolation/nouveau-lien-mot-de-passe-deja-pose.test.ts`.
+
+## D267 — CRÉER DIRECTEMENT UNE INTERVENTION EXIGE « QUALIFIER / AFFECTER » (D151), JAMAIS « CRÉER UNE DEMANDE » ; LE CLIENT ET LE TECHNICIEN SONT REFUSÉS (décision d'Alexis du 10/11/2026 ; 9L10-CREER-INTERVENTION-QUALIFIER)
+
+### CE QUI A ÉTÉ MESURÉ
+
+Sur `81894e0` : `app/api/interventions/creer/route.ts` n'exigeait que `creer_demande` — la capacité que le technicien et le client portent tous deux pour DÉPOSER une demande (`/api/demandes/creer`, route distincte). Créer directement une intervention est pourtant le même geste que qualifier une demande (D151, « qualifier une demande, c'est décider qu'on va intervenir ») : un rôle qui ne qualifie jamais n'aurait dû, à aucun moment, pouvoir créer directement. Aucun écran terrain ou portail légitime n'appelle cette route — le technicien en est déjà fermé de bout en bout par le garde-fou de D221 (`app/(back-office)/template.tsx`), et « + Créer ici » (PG-D5-CREER-ICI) n'est proposé qu'aux rôles qui tiennent déjà `modifier_planning` en accès complet, un ensemble qui ne recoupait le technicien ni le client avant comme après cette décision.
+
+### LA DÉCISION
+
+**`POST /api/interventions/creer` exige désormais `qualifier_affecter`**, la même capacité que les quatre actions d'une demande (D151). Le technicien et le client, qui gardent `creer_demande`, restent donc capables de déposer une demande mais jamais de créer directement une intervention — sans exception nommée, faute de chemin légitime qui en aurait exigé une. La gating de « + Créer ici » sur `/planning` (`app/(back-office)/planning/page.tsx`) relit désormais `qualifier_affecter` au lieu de `creer_demande`, pour que le commentaire et le code désignent la même capacité que la route qu'il mène à appeler ; l'ensemble de rôles qu'il ouvre ne change pas, parce qu'il était déjà croisé avec `modifier_planning` en accès complet.
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+Elle ne touche pas `/api/demandes/creer` (le volet « + Demande » de l'écran `/demandes`) ni `/api/portail/demandes/creer` (le dépôt du portail client, gardé par `contextePortailDemande`, hors de la matrice commune) : les deux restent sur `creer_demande`, inchangée. Elle n'ajoute aucune migration et ne retire `creer_demande` à aucun rôle de la matrice §5.2.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où un écran terrain ou portail légitime a besoin de créer directement une intervention par cette route, cette décision se relit : elle suppose aujourd'hui qu'aucun n'existe, et qu'en ouvrir un exigerait une porte nommée plutôt qu'un assouplissement de la capacité exigée ici.
+
+Portée : `app/api/interventions/creer/route.ts`, `app/(back-office)/planning/page.tsx` (`peutCreerIci`), `tests/unit/auth/porte.test.ts` (`ROUTE_CAPACITE`), `tests/isolation/9l10-creer-intervention-qualifier.test.ts` (nouveau).
