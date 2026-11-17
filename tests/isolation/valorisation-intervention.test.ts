@@ -119,6 +119,10 @@ async function poserUnForfait(): Promise<string> {
 async function interventionAClore(
   mode: string,
   forfaitId: string | null,
+  creneau: { readonly debut: string; readonly fin: string } = {
+    debut: CRENEAU_DEBUT,
+    fin: CRENEAU_FIN,
+  },
 ): Promise<string> {
   const id = uuidv7();
   jetables.push(id);
@@ -137,8 +141,8 @@ async function interventionAClore(
      SELECT '${id}', "societe_id", "client_id", "site_id", '${AGENCE_A}',
             'curatif', 'terminee', '${mode}'::"ModeValorisation",
             ${forfaitId === null ? "NULL" : `'${forfaitId}'`},
-            '${TECHNICIEN}', '${CRENEAU_DEBUT}'::timestamptz,
-            '${CRENEAU_FIN}'::timestamptz, '${TECHNICIEN}', now(), now()
+            '${TECHNICIEN}', '${creneau.debut}'::timestamptz,
+            '${creneau.fin}'::timestamptz, '${TECHNICIEN}', now(), now()
        FROM "intervention" WHERE "statut" = 'planifiee' AND "societe_id" = '${SOCIETE_A}' LIMIT 1`,
   );
   // ~~RG-INT-01 : une curative ne démarre pas sans machine (L2-08a).~~ **La
@@ -163,8 +167,8 @@ async function interventionAClore(
     `INSERT INTO "segment_travail" ("id","societe_id","intervention_id","utilisateur_id","nom_technicien_affiche","debut","fin","modifie_le")
      VALUES ('${uuidv7()}', '${SOCIETE_A}', '${id}', '${TECHNICIEN}',
              (SELECT "nom" FROM "utilisateur" WHERE "id" = '${TECHNICIEN}'),
-             '${CRENEAU_DEBUT}'::timestamptz,
-             '${CRENEAU_DEBUT}'::timestamptz + interval '${TEMPS_REEL_MIN} minutes',
+             '${creneau.debut}'::timestamptz,
+             '${creneau.debut}'::timestamptz + interval '${TEMPS_REEL_MIN} minutes',
              now())`,
   );
   await clientOwner().$executeRawUnsafe(
@@ -453,5 +457,93 @@ describe("9I8A1-REPRISE-9I8A — la décomposition est FIGÉE à la clôture", (
       palierMinutes: 15,
       seuilPalierMinutes: 1,
     });
+  });
+});
+
+/**
+ * LE POURCENTAGE DE MAJORATION EST CELUI RÉGLÉ PAR LA SOCIÉTÉ (RG-INT-08,
+ * décision d'Alexis du 10/11/2026) — plus de +50 % en dur. Même doctrine de
+ * figeage que 9I8A1-REPRISE-9I8A ci-dessus : le pourcentage qui a servi à
+ * la clôture ne bouge plus, quel que soit le réglage de société ensuite.
+ */
+describe("RG-INT-08 — le pourcentage de majoration est RÉGLÉ PAR LA SOCIÉTÉ, et FIGÉ à la clôture", () => {
+  /**
+   * UN CRÉNEAU ENTIÈREMENT HORS OUVERTURE, le même lundi que `CRENEAU_DEBUT`
+   * ci-dessus mais l'après-midi — `CALENDRIER_A` n'ouvre que 8 h – 12 h. Toute
+   * la main-d'œuvre tombe donc dans l'assiette (D108), ce qui rend le
+   * pourcentage directement lisible sur le supplément.
+   */
+  const CRENEAU_HORS_OUVERTURE = {
+    debut: "2026-09-14T14:00:00+11:00",
+    fin: "2026-09-14T16:00:00+11:00",
+  };
+
+  afterEach(async () => {
+    // Quoi que le scénario ait réglé sur SOCIETE_A, elle ressort au défaut du
+    // harnais (`tests/isolation/setup/global.ts`) — même discipline que le
+    // bloc 9I8A1-REPRISE-9I8A ci-dessus pour `facturation_plancher_min`.
+    await clientOwner().societe.update({
+      where: { id: SOCIETE_A },
+      data: { majoration_hors_ouverture_pct: "50" },
+    });
+  });
+
+  it("une société à 25 % — le supplément vaut le quart de la main-d'œuvre, jamais la moitié de D12", async () => {
+    await poserLeTaux();
+    await clientOwner().societe.update({
+      where: { id: SOCIETE_A },
+      data: { majoration_hors_ouverture_pct: "25.00" },
+    });
+    const id = await interventionAClore(
+      "temps_passe",
+      null,
+      CRENEAU_HORS_OUVERTURE,
+    );
+
+    const resultat = await cloturerIntervention(
+      SESSION,
+      { intervention_id: id, temps_valide_min: TEMPS_REEL_MIN },
+      clientApp(),
+    );
+    expect(resultat.accepte).toBe(true);
+    if (!resultat.accepte) return;
+
+    const mainDoeuvre = (TAUX_MINEUR * BigInt(TEMPS_REEL_MIN)) / BigInt(60);
+    // Créneau ENTIÈREMENT hors ouverture : l'assiette est la main-d'œuvre
+    // entière, et 25 % de celle-ci est directement le supplément.
+    expect(resultat.fiche.majoration?.valeur).toBe(mainDoeuvre / BigInt(4));
+  });
+
+  it("une intervention close À 25 % garde son montant quand la société passe ensuite à 60 % (aucune donnée de production ni montant deviné)", async () => {
+    await poserLeTaux();
+    await clientOwner().societe.update({
+      where: { id: SOCIETE_A },
+      data: { majoration_hors_ouverture_pct: "25.00" },
+    });
+    const id = await interventionAClore(
+      "temps_passe",
+      null,
+      CRENEAU_HORS_OUVERTURE,
+    );
+    const resultat = await cloturerIntervention(
+      SESSION,
+      { intervention_id: id, temps_valide_min: TEMPS_REEL_MIN },
+      clientApp(),
+    );
+    expect(resultat.accepte).toBe(true);
+    if (!resultat.accepte) return;
+    const majorationFigee = resultat.fiche.majoration?.valeur;
+
+    // La société change son réglage BIEN APRÈS la clôture — à 60 %, très
+    // loin des 25 % qui ont servi à facturer : si la fiche recalculait en
+    // direct, le supplément passerait de 4 500 à 10 800.
+    await clientOwner().societe.update({
+      where: { id: SOCIETE_A },
+      data: { majoration_hors_ouverture_pct: "60.00" },
+    });
+
+    const fiche = await lireFicheIntervention(SESSION, id, clientApp());
+    expect(fiche?.valorisation?.majoration?.valeur).toBe(majorationFigee);
+    expect(fiche?.ligne.montant_ht).toBe(resultat.fiche.ligne.montant_ht);
   });
 });

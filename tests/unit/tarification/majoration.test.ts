@@ -1,11 +1,14 @@
+import { Prisma } from "@prisma/client";
 import { describe, expect, it } from "vitest";
 
 import type { Calendrier } from "@/lib/calendar";
 import { montant, zero } from "@/lib/money";
 import {
   ErreurCalendrierHorsAgence,
-  TAUX_MAJORATION,
+  TAUX_MAJORATION_HISTORIQUE,
   majorationHorsOuverture,
+  tauxMajorationDepuisPourcentage,
+  type TauxMajoration,
 } from "@/lib/tarification/majoration";
 import { valoriserIntervention } from "@/lib/tarification/valorisation";
 
@@ -59,6 +62,7 @@ function appel(parametres: {
   finOuverture?: number;
   agenceDuCalendrier?: string;
   agenceDuTechnicien?: string | null;
+  tauxMajoration?: TauxMajoration | null;
 }) {
   return majorationHorsOuverture({
     creneau: { debut: parametres.debut, fin: parametres.fin },
@@ -74,6 +78,13 @@ function appel(parametres: {
       parametres.agenceDuTechnicien === undefined
         ? AGENCE_DU_TECHNICIEN
         : parametres.agenceDuTechnicien,
+    // LE TAUX DE D12 (+50 %), PAR DÉFAUT — la plupart des scénarios de ce
+    // fichier éprouvent le PRORATA, pas le taux : garder l'ancienne valeur
+    // leur évite de changer de sens (décision d'Alexis du 10/11/2026).
+    tauxMajoration:
+      parametres.tauxMajoration === undefined
+        ? TAUX_MAJORATION_HISTORIQUE
+        : parametres.tauxMajoration,
   });
 }
 
@@ -136,10 +147,13 @@ describe("le prorata se lit sur le CRÉNEAU (D108)", () => {
     expect(verdict.majoration.supplement).toEqual(montant(BigInt(6_000), XPF));
   });
 
-  it("LE TAUX EST UNE FRACTION EXACTE, jamais un flottant", () => {
+  it("LE TAUX HISTORIQUE EST UNE FRACTION EXACTE, jamais un flottant", () => {
     // `0.1 + 0.2` ne vaut pas `0.3`, et un montant n'a pas le droit de s'en
     // apercevoir (L0-07). Le taux voyage donc en numérateur / dénominateur.
-    expect(TAUX_MAJORATION).toEqual({ numerateur: 1, denominateur: 2 });
+    expect(TAUX_MAJORATION_HISTORIQUE).toEqual({
+      numerateur: BigInt(1),
+      denominateur: BigInt(2),
+    });
   });
 
   it("L'ARITHMÉTIQUE AFFICHÉE TOMBE JUSTE — le supplément est la moitié de l'assiette", () => {
@@ -229,6 +243,7 @@ describe("une discordance d'agence LÈVE plutôt que de calculer faux", () => {
         calendrier: calendrierFermantA(17 * 60),
       },
       agenceDuTechnicien: AGENCE_DU_TECHNICIEN,
+      tauxMajoration: TAUX_MAJORATION_HISTORIQUE,
     });
     const tardive = majorationHorsOuverture({
       creneau: { debut: aNoumea(MERCREDI, 16), fin: aNoumea(MERCREDI, 18) },
@@ -238,6 +253,7 @@ describe("une discordance d'agence LÈVE plutôt que de calculer faux", () => {
         calendrier: calendrierFermantA(19 * 60),
       },
       agenceDuTechnicien: AGENCE_DE_L_INTERVENTION,
+      tauxMajoration: TAUX_MAJORATION_HISTORIQUE,
     });
     if (!kone.connue || !tardive.connue) throw new Error("verdict inattendu");
     expect(kone.majoration.supplement).toEqual(montant(BigInt(3_000), XPF));
@@ -246,7 +262,7 @@ describe("une discordance d'agence LÈVE plutôt que de calculer faux", () => {
 });
 
 /**
- * LES QUATRE MOTIFS, ET AUCUN N'EST UN ZÉRO.
+ * LES CINQ MOTIFS, ET AUCUN N'EST UN ZÉRO.
  *
  * *Zéro se lit « rien à majorer » ; `null` dit « je ne sais pas ».* Les confondre
  * ferait facturer une intervention sans son supplément, en silence.
@@ -267,6 +283,7 @@ describe("ce qui rend la majoration inconnue", () => {
       mainDoeuvre: montant(BigInt(12_000), XPF),
       calendrierDeLAgence: CALENDRIER,
       agenceDuTechnicien: null,
+      tauxMajoration: TAUX_MAJORATION_HISTORIQUE,
     });
     expect(verdict).toEqual({
       connue: false,
@@ -280,6 +297,7 @@ describe("ce qui rend la majoration inconnue", () => {
       mainDoeuvre: montant(BigInt(12_000), XPF),
       calendrierDeLAgence: CALENDRIER,
       agenceDuTechnicien: AGENCE_DU_TECHNICIEN,
+      tauxMajoration: TAUX_MAJORATION_HISTORIQUE,
     });
     expect(verdict).toEqual({
       connue: false,
@@ -299,6 +317,7 @@ describe("ce qui rend la majoration inconnue", () => {
         mainDoeuvre: montant(BigInt(12_000), XPF),
         calendrierDeLAgence: CALENDRIER,
         agenceDuTechnicien: AGENCE_DU_TECHNICIEN,
+        tauxMajoration: TAUX_MAJORATION_HISTORIQUE,
       });
       expect(verdict.connue, JSON.stringify(creneau)).toBe(false);
     }
@@ -310,6 +329,7 @@ describe("ce qui rend la majoration inconnue", () => {
       mainDoeuvre: null,
       calendrierDeLAgence: CALENDRIER,
       agenceDuTechnicien: AGENCE_DU_TECHNICIEN,
+      tauxMajoration: TAUX_MAJORATION_HISTORIQUE,
     });
     expect(verdict).toEqual({
       connue: false,
@@ -323,6 +343,7 @@ describe("ce qui rend la majoration inconnue", () => {
       mainDoeuvre: montant(BigInt(12_000), XPF),
       calendrierDeLAgence: null,
       agenceDuTechnicien: AGENCE_DU_TECHNICIEN,
+      tauxMajoration: TAUX_MAJORATION_HISTORIQUE,
     });
     expect(verdict).toEqual({
       connue: false,
@@ -338,11 +359,116 @@ describe("ce qui rend la majoration inconnue", () => {
       mainDoeuvre: montant(BigInt(12_000), XPF),
       calendrierDeLAgence: null,
       agenceDuTechnicien: AGENCE_DU_TECHNICIEN,
+      tauxMajoration: TAUX_MAJORATION_HISTORIQUE,
     });
     expect(verdict).toEqual({
       connue: false,
       motif: "intervention.majoration.creneau_absent",
     });
+  });
+
+  it("un POURCENTAGE absent ou invalide — nommé, jamais un défaut de 50 silencieux", () => {
+    const verdict = appel({
+      debut: aNoumea(MERCREDI, 16),
+      fin: aNoumea(MERCREDI, 18),
+      tauxMajoration: null,
+    });
+    expect(verdict).toEqual({
+      connue: false,
+      motif: "intervention.majoration.pourcentage_invalide",
+    });
+  });
+
+  it("LE TAUX N'EST VÉRIFIÉ QUE SI LE CRÉNEAU TOMBE HORS OUVERTURE", () => {
+    // Un créneau ENTIÈREMENT dans l'ouverture rend zéro quel que soit le
+    // taux — y compris un taux invalide qu'on n'a pas besoin de connaître
+    // pour rendre zéro. Témoin qui donne son sens à l'ordre des vérifications.
+    const verdict = appel({
+      debut: aNoumea(MERCREDI, 9),
+      fin: aNoumea(MERCREDI, 11),
+      tauxMajoration: null,
+    });
+    expect(verdict.connue).toBe(true);
+    if (!verdict.connue) return;
+    expect(verdict.majoration.supplement).toEqual(zero(XPF));
+  });
+});
+
+/**
+ * LE POURCENTAGE EST RÉGLÉ PAR LA SOCIÉTÉ (RG-INT-08, décision d'Alexis du
+ * 10/11/2026) — plus de +50 % en dur : `societe.majoration_hors_ouverture_pct`
+ * décide, lu par {@link tauxMajorationDepuisPourcentage}.
+ */
+describe("le pourcentage de majoration est celui RÉGLÉ PAR LA SOCIÉTÉ", () => {
+  it("une société à 25 % — le quart de l'assiette, jamais la moitié de D12", () => {
+    const taux = tauxMajorationDepuisPourcentage(new Prisma.Decimal("25.00"));
+    const verdict = appel({
+      debut: aNoumea(MERCREDI, 16),
+      fin: aNoumea(MERCREDI, 18),
+      tauxMajoration: taux,
+    });
+    expect(verdict.connue).toBe(true);
+    if (!verdict.connue) return;
+    // Assiette : 6 000 (moitié du créneau hors ouverture). 25 % de 6 000.
+    expect(verdict.majoration.assiette).toEqual(montant(BigInt(6_000), XPF));
+    expect(verdict.majoration.supplement).toEqual(montant(BigInt(1_500), XPF));
+  });
+
+  it("une société à 50 % — même supplément que l'ancien taux fixe de D12", () => {
+    // La fraction n'est pas réduite (5000/10000, pas 1/2) : c'est la même
+    // VALEUR, pas la même représentation — le supplément, lui, doit tomber
+    // exactement sur l'ancien taux.
+    const taux = tauxMajorationDepuisPourcentage(new Prisma.Decimal("50.00"));
+    const avecPct = appel({
+      debut: aNoumea(MERCREDI, 16),
+      fin: aNoumea(MERCREDI, 18),
+      tauxMajoration: taux,
+    });
+    const avecHistorique = appel({
+      debut: aNoumea(MERCREDI, 16),
+      fin: aNoumea(MERCREDI, 18),
+      tauxMajoration: TAUX_MAJORATION_HISTORIQUE,
+    });
+    expect(avecPct).toEqual(avecHistorique);
+  });
+
+  it("une société à 0 % — permis : jamais de supplément, quel que soit le créneau", () => {
+    const taux = tauxMajorationDepuisPourcentage(new Prisma.Decimal("0.00"));
+    const verdict = appel({
+      debut: aNoumea(MERCREDI, 19),
+      fin: aNoumea(MERCREDI, 21),
+      tauxMajoration: taux,
+    });
+    expect(verdict.connue).toBe(true);
+    if (!verdict.connue) return;
+    expect(verdict.majoration.minutesHorsOuverture).toBe(120);
+    expect(verdict.majoration.supplement).toEqual(zero(XPF));
+  });
+
+  it("un pourcentage NÉGATIF est refusé — aucune contrainte CHECK ne l'empêche en base", () => {
+    expect(tauxMajorationDepuisPourcentage(new Prisma.Decimal("-10.00"))).toBe(
+      null,
+    );
+  });
+
+  it("DEUX SOCIÉTÉS, DEUX TAUX — le même créneau majore différemment", () => {
+    const a25 = appel({
+      debut: aNoumea(MERCREDI, 16),
+      fin: aNoumea(MERCREDI, 18),
+      tauxMajoration: tauxMajorationDepuisPourcentage(
+        new Prisma.Decimal("25.00"),
+      ),
+    });
+    const a50 = appel({
+      debut: aNoumea(MERCREDI, 16),
+      fin: aNoumea(MERCREDI, 18),
+      tauxMajoration: tauxMajorationDepuisPourcentage(
+        new Prisma.Decimal("50.00"),
+      ),
+    });
+    if (!a25.connue || !a50.connue) throw new Error("verdict inattendu");
+    expect(a25.majoration.supplement).toEqual(montant(BigInt(1_500), XPF));
+    expect(a50.majoration.supplement).toEqual(montant(BigInt(3_000), XPF));
   });
 });
 
@@ -361,6 +487,7 @@ describe("le total hors taxes porte le supplément", () => {
       calendrier: calendrierFermantA(17 * 60),
     },
     agenceDuTechnicien: AGENCE_DU_TECHNICIEN,
+    tauxMajoration: TAUX_MAJORATION_HISTORIQUE,
   });
 
   it("main-d'œuvre + déplacement + MAJORATION, dans l'ordre de D11", () => {

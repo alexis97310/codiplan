@@ -213,6 +213,54 @@ describe("VIVANT — `lireBaremePortail` ne compose que la société passée en 
     const baremeB = await lireBaremePortail(SOCIETE_B);
     expect(baremeB.devise.code).toBe("EUR");
   });
+
+  /**
+   * DEUX SOCIÉTÉS, DEUX POURCENTAGES, AUCUN MÉLANGE (décision d'Alexis du
+   * 10/11/2026, RG-INT-08) — `societe.majoration_hors_ouverture_pct` est un
+   * réglage de forme « société » (I1) comme le taux horaire ci-dessus : un
+   * pourcentage posé chez A ne doit jamais se lire depuis B.
+   */
+  it("un pourcentage de majoration réglé chez A n'apparaît jamais dans le barème de B", async () => {
+    const avant = await Promise.all([
+      clientOwner().societe.findUniqueOrThrow({
+        where: { id: SOCIETE_A },
+        select: { majoration_hors_ouverture_pct: true },
+      }),
+      clientOwner().societe.findUniqueOrThrow({
+        where: { id: SOCIETE_B },
+        select: { majoration_hors_ouverture_pct: true },
+      }),
+    ]);
+    try {
+      await clientOwner().societe.update({
+        where: { id: SOCIETE_A },
+        data: { majoration_hors_ouverture_pct: "25.00" },
+      });
+      await clientOwner().societe.update({
+        where: { id: SOCIETE_B },
+        data: { majoration_hors_ouverture_pct: "60.00" },
+      });
+
+      const baremeA = await lireBaremePortail(SOCIETE_A);
+      const baremeB = await lireBaremePortail(SOCIETE_B);
+
+      expect(baremeA.majorationHorsOuverturePct).toBe("25");
+      expect(baremeB.majorationHorsOuverturePct).toBe("60");
+    } finally {
+      await clientOwner().societe.update({
+        where: { id: SOCIETE_A },
+        data: {
+          majoration_hors_ouverture_pct: avant[0].majoration_hors_ouverture_pct,
+        },
+      });
+      await clientOwner().societe.update({
+        where: { id: SOCIETE_B },
+        data: {
+          majoration_hors_ouverture_pct: avant[1].majoration_hors_ouverture_pct,
+        },
+      });
+    }
+  });
 });
 
 describe("LA ROUTE — refus et composition, porte mockée (même patron que 9j04)", () => {
