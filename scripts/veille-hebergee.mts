@@ -93,6 +93,14 @@ import {
   ecartsExemptionFonctionsIdentite,
   rapportExemptionFonctionsIdentite,
 } from "./lib/exemption-fonctions-identite";
+import {
+  SQL_COLONNE_NOM_TECHNICIEN_AFFICHE,
+  ecartsNomTechnicienAfficheObligatoire,
+  ecartsPolitiquePortailFiliationRetiree,
+  rapportNomTechnicienAfficheObligatoire,
+  rapportPolitiquePortailFiliationRetiree,
+  type ColonneNomTechnicienAffiche,
+} from "./lib/filiation-portail-technicien";
 
 /**
  * VEILLE DE LA BASE HÉBERGÉE — le détectif, à échéance fixe et en lecture seule.
@@ -401,6 +409,14 @@ async function observer(prisma: Prisma.TransactionClient): Promise<void> {
     const fonctionsIdentite = await prisma.$queryRawUnsafe<
       LigneFonctionIdentite[]
     >(SQL_FONCTIONS_IDENTITE);
+    // DÉCISION D'ALEXIS DU 10/11/2026 : la politique retirée par 9J22A
+    // (`utilisateur_lecture_filiation_portail`) est-elle bien absente, et la
+    // colonne de recopie qui l'a remplacée (`segment_travail.nom_technicien_
+    // affiche`) reste-t-elle NOT NULL ? Voir `scripts/lib/filiation-portail-
+    // technicien.ts`.
+    const colonneNomTechnicien = await prisma.$queryRawUnsafe<
+      ColonneNomTechnicienAffiche[]
+    >(SQL_COLONNE_NOM_TECHNICIEN_AFFICHE);
 
     // ── LA LECTURE, et non plus seulement le CATALOGUE (11/09/2026) ─────────
     //
@@ -569,6 +585,18 @@ async function observer(prisma: Prisma.TransactionClient): Promise<void> {
         ecarts: ecartsExemptionFonctionsIdentite(
           etatsFonctionsIdentite(fonctionsIdentite),
         ),
+      },
+      {
+        // DÉCISION D'ALEXIS DU 10/11/2026 : la brèche que 9J22A a refermée
+        // (9J22) ne doit pas revenir.
+        nom: "politique portail retirée (9J22A)",
+        rapport: rapportPolitiquePortailFiliationRetiree(politiques),
+        ecarts: ecartsPolitiquePortailFiliationRetiree(politiques),
+      },
+      {
+        nom: "colonne de recopie du nom affiché (9J22A)",
+        rapport: rapportNomTechnicienAfficheObligatoire(colonneNomTechnicien),
+        ecarts: ecartsNomTechnicienAfficheObligatoire(colonneNomTechnicien),
       },
       {
         // LA LECTURE elle-même — le contrôle qui ne tournait qu'au moment
