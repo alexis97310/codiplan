@@ -85,3 +85,53 @@ vert), les captures e2e ci-dessus. `CI=1 pnpm verify` à suivre.
 ## Aucune migration
 
 Conforme à l'interdit du ticket.
+
+## Reprise 9L08DA
+
+**Cause du recalage, mesurée par le pilote** : les deux passages de `verify` tombaient sur
+`tests/unit/navigation/atteignabilite-ecrans.test.ts:158` (délai de 5 s dépassé sous charge), aucune autre
+panne. Corrigée par `9L08A0-ATTEIGNABILITE-ECRANS-RAPIDE`, déjà présent sur `origin/main` au moment de cette
+reprise (vérifié avant d'ouvrir la branche). Les fichiers `tickets/recales/9L08D-TERRAIN-TAILLES-MAQUETTE.md`
+et `traces/9L08D-TERRAIN-TAILLES-MAQUETTE-verify-{1,2}.txt` que le ticket de reprise donnait comme référence
+sont introuvables dans ce dépôt (aucun worktree, aucun commit, aucune trace) — signalé avant d'agir ; le
+contenu utile (cause mesurée, décision D261→D263) était déjà dans le prompt de reprise et dans cette
+passation, donc le lot a continué plutôt que de s'arrêter sur un fichier absent sans rapport avec les deux
+conditions d'ARRÊT IMMÉDIAT (toutes deux fausses : `origin/main` ne porte aucun commit
+`9L08D-TERRAIN-TAILLES-MAQUETTE`, et la branche `-garde` existe).
+
+**Ce qui a changé par rapport à la garde** : les six commits de `9L08D-TERRAIN-TAILLES-MAQUETTE-garde` ont été
+reportés tels quels par `git cherry-pick`, puis un seul conflit réel résolu — `docs/arbitrages.md` : pendant
+que ce lot dormait, `origin/main` avait pris D261 (9L08-EN-TETES-SECURITE) et D262 (9L08B-SAISIE-APRES-
+DEMARRER). La décision des tailles de la zone terrain, numérotée D261 dans la garde, devient **D263** (le
+numéro libre sur `origin/main` au moment du rebase, comme prévu par le ticket). Renommé partout où D261
+désignait cette décision précise : `docs/arbitrages.md` (section + `**Amendé par D263.**` dans D143),
+`app/(mobile)/terrain/[id]/page.tsx`, `tests/unit/ui/retouches-2a.test.ts`,
+`tests/unit/theme/echelle-typographique.test.ts`, `tests/unit/docs/amendements-arbitrages.test.ts`, cette
+passation, `tests/e2e/zz-captures-9l08d-terrain-tailles-maquette.spec.ts`. Les D261/D262 propres à
+9L08-EN-TETES-SECURITE et 9L08B-SAISIE-APRES-DEMARRER (dans leurs propres fichiers et passations) n'ont pas
+été touchés — ce ne sont pas la même décision.
+
+**Effet de bord découvert à `pnpm verify`** : `tests/unit/docs/coherence-backlog.test.ts` a rougi — le texte
+de D143 cité par huit tickets du backlog (L1-01, L1-05b, L1-11, L3-04b, L3-06, L3-16, L7-01, L7-02) avait déjà
+son empreinte mise à jour par le point 1 de la garde (contre le texte « D261 »), et a changé une seconde fois
+avec le renommage en « D263 » ; remplacé par les huit nouvelles empreintes que le gardien a lui-même rendues
+(`8397d9bc→76c68695`, `1033e84f→6b0e0043`, `117472c8→c5fa5730`, `b331ce91→457cac60`, `4ef3fbf3→09aab8a4`,
+`90d7c95a→713af7a5`, `1c558d86→83b9af62`, `bfdbd1de→57902232`).
+
+**Point 3 du ticket de reprise (localisateurs e2e de la même famille)** : rien à rendre précis. Le diff de ce
+lot ne change que des classes Tailwind de taille (`text-18→text-17`, `text-16→text-14`) sur deux éléments déjà
+existants — aucun libellé, aucun bouton, aucune structure DOM nouvelle ou renommée. Le seul piège de
+localisateur de ce lot (`header` non scopé attrapant le bandeau mobile) était déjà dans la scène de capture
+elle-même et déjà corrigé par la garde (`main header`). Recherché dans `tests/e2e/**` les `locator("header")`
+non scopés sur d'autres scènes (`terrain-largeur.spec.ts`, `planning-bandeau-au-dessus-colonne-figee.spec.ts`,
+`vgp-finitions.spec.ts`, `selecteurs-1.spec.ts`) : aucun ne vise la fiche `/terrain/[id]`, aucun n'est affecté
+par ce lot.
+
+**Épreuves rejouées au premier plan** : `tests/unit/navigation/atteignabilite-ecrans.test.ts` cinq fois de
+suite (vert, ~3,5-3,8 s chacune, loin des 5 s) ; `tests/e2e/zz-captures-9l08d-terrain-tailles-maquette.spec.ts`
+et `tests/e2e/tous-les-ecrans-rendent.spec.ts` (`CI=1`, 1 worker : 66 passés, 4 ignorés préexistants, 0 échec) ;
+`pnpm test:isolation` (2274 tests, vert) ; `CI=1 pnpm verify` entier, vert (y compris le build de production).
+
+**Captures** : les cinq paires avant/après de la garde sont présentes et inchangées dans
+`docs/propositions/9L08D-TERRAIN-TAILLES-MAQUETTE/captures/` ; aucun écran supplémentaire touché par cette
+reprise, donc aucune capture neuve à ajouter.
