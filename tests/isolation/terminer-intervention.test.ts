@@ -613,14 +613,14 @@ describe("terminerIntervention — les refus", () => {
       }
     });
 
-    it("passe — un point obligatoire répondu « non conforme » ne bloque PAS", async () => {
+    it("passe — un point obligatoire répondu « non conforme », AVEC SA SUITE, ne bloque pas par l'absence de réponse (D240 inchangée)", async () => {
       const id = await jetable(TECHNICIEN);
       await preparerAccepte(id);
       const pointId = await poserChecklistPinnee(id, true);
       await clientOwner().$executeRawUnsafe(
         `INSERT INTO "checklist_reponse"
-           ("id", "societe_id", "intervention_id", "checklist_point_id", "libelle", "section", "obligatoire", "auteur_id", "valeur_conforme")
-         VALUES ('${uuidv7()}', '${SOCIETE_A}', '${id}', '${pointId}', 'Plaquettes', 'Freinage', true, '${TECHNICIEN}', 'non_conforme')`,
+           ("id", "societe_id", "intervention_id", "checklist_point_id", "libelle", "section", "obligatoire", "auteur_id", "valeur_conforme", "non_conformite_suite")
+         VALUES ('${uuidv7()}', '${SOCIETE_A}', '${id}', '${pointId}', 'Plaquettes', 'Freinage', true, '${TECHNICIEN}', 'non_conforme', 'regle_sur_place')`,
       );
 
       try {
@@ -628,6 +628,86 @@ describe("terminerIntervention — les refus", () => {
           SESSION_TECH,
           id,
           new Date("2026-09-14T09:05:00.000Z"),
+          clientApp(),
+        );
+        expect(resultat.accepte).toBe(true);
+      } finally {
+        await effacerChecklistPinnee(id);
+      }
+    });
+
+    // D264 (16/11/2026, 9L08E-NON-CONFORME-SUITE-OBLIGATOIRE, amende D254) —
+    // avant ce lot, la même saisie (non conforme SANS suite) passait : voir
+    // le test précédent, qui pose désormais la suite pour continuer à
+    // prouver D240 (l'absence de RÉPONSE ne bloque jamais un non conforme).
+    it("refuse — nommé — un point répondu « non conforme » SANS suite à donner", async () => {
+      const id = await jetable(TECHNICIEN);
+      await preparerAccepte(id);
+      const pointId = await poserChecklistPinnee(id, false);
+      await clientOwner().$executeRawUnsafe(
+        `INSERT INTO "checklist_reponse"
+           ("id", "societe_id", "intervention_id", "checklist_point_id", "libelle", "section", "obligatoire", "auteur_id", "valeur_conforme")
+         VALUES ('${uuidv7()}', '${SOCIETE_A}', '${id}', '${pointId}', 'Plaquettes', 'Freinage', false, '${TECHNICIEN}', 'non_conforme')`,
+      );
+
+      try {
+        const resultat = await terminerIntervention(
+          SESSION_TECH,
+          id,
+          new Date("2026-09-14T09:05:00.000Z"),
+          clientApp(),
+        );
+        expect(resultat.accepte).toBe(false);
+        if (!resultat.accepte) {
+          expect(resultat.cle).toBe(
+            "intervention.refus.suite_non_conforme_manquante",
+          );
+          expect(resultat.pointsSansSuite).toEqual([
+            {
+              id: expect.any(String),
+              section: "Freinage",
+              libelle: "Plaquettes",
+            },
+          ]);
+        }
+
+        const [ligne] = await clientOwner().$queryRawUnsafe<
+          Array<{ statut: string }>
+        >(`SELECT "statut" FROM "intervention" WHERE "id" = '${id}'`);
+        expect(ligne.statut).toBe("en_cours");
+      } finally {
+        await effacerChecklistPinnee(id);
+      }
+    });
+
+    it("passe — un point répondu « non conforme », sa suite posée APRÈS le premier refus, accepte « Terminer » (D264)", async () => {
+      const id = await jetable(TECHNICIEN);
+      await preparerAccepte(id);
+      const pointId = await poserChecklistPinnee(id, false);
+      const reponseId = uuidv7();
+      await clientOwner().$executeRawUnsafe(
+        `INSERT INTO "checklist_reponse"
+           ("id", "societe_id", "intervention_id", "checklist_point_id", "libelle", "section", "obligatoire", "auteur_id", "valeur_conforme")
+         VALUES ('${reponseId}', '${SOCIETE_A}', '${id}', '${pointId}', 'Plaquettes', 'Freinage', false, '${TECHNICIEN}', 'non_conforme')`,
+      );
+
+      try {
+        const refus = await terminerIntervention(
+          SESSION_TECH,
+          id,
+          new Date("2026-09-14T09:05:00.000Z"),
+          clientApp(),
+        );
+        expect(refus.accepte).toBe(false);
+
+        await clientOwner().$executeRawUnsafe(
+          `UPDATE "checklist_reponse" SET "non_conformite_suite" = 'a_revoir' WHERE "id" = '${reponseId}'`,
+        );
+
+        const resultat = await terminerIntervention(
+          SESSION_TECH,
+          id,
+          new Date("2026-09-14T09:06:00.000Z"),
           clientApp(),
         );
         expect(resultat.accepte).toBe(true);
