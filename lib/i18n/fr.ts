@@ -2491,7 +2491,7 @@ export const fr = {
   // I4) — offerte seulement au rôle qui détient déjà les deux capacités.
   "intervention.cloture.valider_et_cloturer":
     "Valider le rapport et clôturer en même temps",
-  // D270 (décision d'Alexis du 10/11/2026) — le technicien voit le champ en
+  // D271 (décision d'Alexis du 10/11/2026) — le technicien voit le champ en
   // LECTURE, jamais en saisie : ce qu'il lit est le temps mesuré, et c'est ce
   // qu'il va valider en clôturant.
   "intervention.cloture.temps_valide_lecture_aide":
@@ -2686,7 +2686,7 @@ export const fr = {
   // temps_manquant ci-dessus (aucun temps mesuré du tout).
   "intervention.refus.temps_invalide":
     "Le temps validé est un nombre entier de minutes, au moins 1.",
-  // D270 (décision d'Alexis du 10/11/2026) — distincte de `temps_invalide` :
+  // D271 (décision d'Alexis du 10/11/2026) — distincte de `temps_invalide` :
   // ici la valeur soumise est parfaitement valide, simplement différente de
   // ce que le compteur a mesuré, et c'est un technicien qui clôture.
   "intervention.refus.temps_corrige_par_technicien":

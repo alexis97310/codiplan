@@ -9163,3 +9163,25 @@ Elle ne touche ni `cloturerIntervention` ni `annulerIntervention`, qui continuen
 > Le jour où une suspension doit pouvoir REFUSER plutôt que fermer (symétrie avec la clôture et l'annulation), cette décision se relit : elle suppose aujourd'hui que l'attente de pièce n'est jamais du travail, et que fermer le compteur à sa place est donc toujours correct.
 
 Portée : `lib/interventions/depot.ts` (`suspendreIntervention`), `tests/isolation/suspension.test.ts`, `tests/e2e/9l13-suspendre-arrete-compteur.spec.ts` (nouveau).
+
+## D271 — LE TECHNICIEN QUI CLÔTURE NE CORRIGE PAS SON TEMPS : LE TEMPS VALIDÉ EST ALORS ÉGAL AU TEMPS MESURÉ ; SEULS LE RESPONSABLE ET L'ADV CORRIGENT (décision d'Alexis du 10/11/2026, option 1 ; 9L15-TEMPS-VALIDE-TECHNICIEN)
+
+### CE QUI A ÉTÉ MESURÉ
+
+Sur `81894e0` : la matrice (`lib/auth/habilitations.ts`, ~159-162) rétablit depuis D131 le ○ du technicien sur `cloturer_intervention`, scopé à sa propre intervention affectée. Mais `cloturerIntervention` (`lib/interventions/depot.ts`, ~2306) écrivait `saisie.temps_valide_min` tel que soumis, sans égard au rôle qui clôture : un technicien pouvait donc poser, à la clôture, une valeur différente du temps que le compteur avait réellement mesuré — exactement ce que D120 posait comme n'étant plus permis (« le compteur du technicien est la seule source du temps »), et que D131 n'avait rouvert que pour le GESTE de clôturer, jamais pour la VALEUR qu'il y écrit.
+
+### LA DÉCISION
+
+**Le technicien peut clôturer son intervention, mais le temps validé y est alors égal au temps mesuré par le compteur, sans correction possible de sa part. Seuls le responsable et l'ADV corrigent le temps validé, avec auteur et date tracés.** `cloturerIntervention` lit désormais le périmètre de `cloturer_intervention` (`perimetreParPersonne`, `lib/interventions/perimetre-technicien.ts`) : un accès RESTREINT (○, le technicien) n'accepte que `temps_valide_min === temps_mesure_min`, toute autre valeur étant refusée nommément (`intervention.refus.temps_corrige_par_technicien`), jamais ignorée en silence. Un accès COMPLET (ADMS, DIR, RM, RS, ADV) continue de corriger librement, comme avant cette décision. Les deux colonnes de traçage (`temps_valide_par`, `temps_valide_le`) existaient déjà et s'écrivent pour TOUTE clôture, quel qu'en soit l'auteur — ce ticket ne leur ajoute rien, il referme seulement l'écart qui laissait le technicien s'en servir pour corriger sa propre mesure.
+
+À l'écran (`DialogueCloturer`, `components/interventions/dialogue-cloturer.tsx`), le champ se SAISIT pour un accès complet (comportement actuel, inchangé) et se LIT pour un accès restreint — un champ qu'on pourrait remplir pour se voir ensuite refuser serait le même défaut que celui que D242 corrigeait ailleurs sur cette fiche. Le temps mesuré y est quand même porté par un champ caché, pour que le même formulaire poste la même valeur dans les deux cas.
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+Elle ne rouvre ni D120 (le compteur reste la seule source du temps) ni D131 (le périmètre par personne sur l'intervention visée reste inchangé) : elle les CONCILIE, en distinguant « avoir le droit de clôturer » de « avoir le droit de corriger la valeur qu'on y écrit ». Elle n'ajoute aucune migration : les colonnes `temps_valide_par`/`temps_valide_le` et leur contrainte de traçage existaient déjà. Elle ne touche à aucune autre capacité de la matrice ni à aucune autre route — ni l'annulation, ni la suspension/reprise, ni l'enregistrement d'une VGP, qui restent gouvernées par leur propre périmètre D131, inchangé.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où un écran de correction du temps validé APRÈS clôture est ouvert à un rôle autre que le responsable ou l'ADV, cette décision se relit pour y étendre le même refus nommé — elle suppose aujourd'hui qu'aucun chemin de ce genre n'existe hors de `cloturerIntervention`.
+
+Portée : `lib/interventions/depot.ts` (`cloturerIntervention`, import de `dansLePerimetre`/`perimetreParPersonne`), `lib/i18n/fr.ts`, `components/interventions/dialogue-cloturer.tsx`, `app/(back-office)/interventions/[id]/page.tsx`, `tests/isolation/droits-cycle-de-vie.test.ts`.

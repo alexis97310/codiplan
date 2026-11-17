@@ -38,7 +38,7 @@ const CLASSES_CHAMP =
  * désactiver le bouton et d'afficher le motif, comme avant ce ticket — la
  * case est l'unique changement de comportement.
  *
- * **D270 (décision d'Alexis du 10/11/2026, option 1) : `correctionAutorisee`
+ * **D271 (décision d'Alexis du 10/11/2026, option 1) : `correctionAutorisee`
  * décide si le champ se saisit ou se lit.** Un accès complet (ADMS, DIR, RM,
  * RS, ADV) continue de saisir — comportement ACTUEL, inchangé. Un accès
  * restreint (○, le technicien) voit le temps mesuré en LECTURE, avec « Le

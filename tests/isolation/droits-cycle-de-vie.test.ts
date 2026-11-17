@@ -255,7 +255,7 @@ describe("CLÔTURER — le ○ du technicien est scopé à SA PROPRE interventio
     expect(resultat.accepte).toBe(true);
   });
 
-  // D270 (décision d'Alexis du 10/11/2026, option 1) : le technicien qui
+  // D271 (décision d'Alexis du 10/11/2026, option 1) : le technicien qui
   // clôture ne corrige pas son temps — il ne pose que le temps mesuré par le
   // compteur, et toute autre valeur est refusée nommément. Le bureau, lui,
   // corrige librement, comme avant — et la correction reste tracée (auteur,

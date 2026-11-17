@@ -2293,7 +2293,7 @@ export type ResultatCloture = ValorisationAffichee & {
  * alors **avec son nom et sa date**. *Un compteur oublié fausse les
  * indicateurs, et sans les deux colonnes on ne voit pas l'écart.*
  *
- * **Décision d'Alexis du 10/11/2026, option 1 (D270) : le technicien qui
+ * **Décision d'Alexis du 10/11/2026, option 1 (D271) : le technicien qui
  * clôture ne corrige pas son temps.** Un accès restreint (○, le technicien
  * affecté) ne peut poser que `temps_valide_min === temps_mesure_min` — toute
  * autre valeur est REFUSÉE nommément, jamais acceptée en silence. Un accès
@@ -2352,7 +2352,7 @@ export async function cloturerIntervention(
       // distinguer les deux dirait à un technicien qu'une intervention d'un
       // collègue existe.
       //
-      // `perimetreCloture` est repris plus bas (D270) pour juger la VALEUR
+      // `perimetreCloture` est repris plus bas (D271) pour juger la VALEUR
       // soumise, pas seulement l'intervention visée — une seconde lecture de
       // `perimetreParPersonne` y divergerait en silence (§9, 01/09).
       const perimetreCloture = perimetreParPersonne(
@@ -2373,7 +2373,7 @@ export async function cloturerIntervention(
         return barriere;
       }
 
-      // D270 (décision d'Alexis du 10/11/2026, option 1) : LE TECHNICIEN QUI
+      // D271 (décision d'Alexis du 10/11/2026, option 1) : LE TECHNICIEN QUI
       // CLÔTURE NE CORRIGE PAS SON TEMPS — un accès restreint (○) ne pose que
       // le temps MESURÉ, jamais une autre valeur. `barriere` ci-dessus a déjà
       // garanti `ligne.temps_mesure_min !== null` (sinon `peutCloturer` aurait
