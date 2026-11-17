@@ -7,12 +7,17 @@ import {
   reprendreIntervention,
   suspendreIntervention,
 } from "@/lib/interventions/depot";
+import {
+  arreterLeCompteur,
+  demarrerLeCompteur,
+} from "@/lib/interventions/depot-compteur";
 
 import { clientApp, clientOwner, fermerClients } from "./setup/db";
 import {
   INTERVENTION_A1,
   SOCIETE_A,
   UTILISATEUR_INTERNE_A,
+  UTILISATEUR_PAR_ROLE,
 } from "./setup/fixtures";
 
 /**
@@ -56,6 +61,12 @@ const jetables: string[] = [];
 
 afterEach(async () => {
   for (const id of jetables.splice(0)) {
+    // LES SEGMENTS D'ABORD (D119) — depuis que la suspension peut en poser
+    // ET en fermer, la clé étrangère de `segment_travail` vers `intervention`
+    // refuse désormais de supprimer l'intervention tant qu'un segment la cite.
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "segment_travail" WHERE "intervention_id" = '${id}'`,
+    );
     await clientOwner().$executeRawUnsafe(
       `DELETE FROM "intervention" WHERE "id" = '${id}'`,
     );
@@ -240,6 +251,157 @@ describe("suspendre et reprendre, par le chemin de production", () => {
       accepte: false,
       cle: "intervention.refus.deja_suspendue",
     });
+  });
+});
+
+describe("la suspension ferme le segment ouvert (décision d'Alexis du 10/11/2026)", () => {
+  it("après la suspension, aucun segment ne tourne plus sur l'intervention", async () => {
+    const id = await jetable();
+    const depart = await demarrerLeCompteur(
+      SESSION,
+      id,
+      new Date("2026-09-15T08:00:00.000Z"),
+      clientApp(),
+    );
+    expect(depart.accepte).toBe(true);
+
+    const resultat = await suspendreIntervention(
+      SESSION,
+      {
+        intervention_id: id,
+        motif: "Attente de pièce",
+        piece_attendue_ref: "CMP-1",
+        date_dispo_prevue: new Date("2026-10-01T00:00:00.000Z"),
+      },
+      clientApp(),
+    );
+    expect(resultat.accepte).toBe(true);
+
+    const ouverts = await clientOwner().$queryRawUnsafe<Array<{ id: string }>>(
+      `SELECT "id" FROM "segment_travail" WHERE "intervention_id" = '${id}' AND "fin" IS NULL`,
+    );
+    expect(ouverts).toHaveLength(0);
+  });
+
+  it("le temps mesuré est figé à la suspension — l'attente ne l'augmente pas", async () => {
+    const id = await jetable();
+    await demarrerLeCompteur(
+      SESSION,
+      id,
+      new Date("2026-09-15T08:00:00.000Z"),
+      clientApp(),
+    );
+    await suspendreIntervention(
+      SESSION,
+      {
+        intervention_id: id,
+        motif: "Attente de pièce",
+        piece_attendue_ref: "CMP-1",
+        date_dispo_prevue: new Date("2026-10-01T00:00:00.000Z"),
+      },
+      clientApp(),
+    );
+
+    const [apresSuspension] = await clientOwner().$queryRawUnsafe<
+      Array<{ temps_mesure_min: number | null }>
+    >(
+      `SELECT "temps_mesure_min" FROM "intervention" WHERE "id" = '${id}'`,
+    );
+    const mesureFigee = apresSuspension?.temps_mesure_min;
+    expect(mesureFigee).not.toBeNull();
+
+    // L'ATTENTE, SIMULÉE PAR LE TEMPS QUI PASSE DANS LE SCÉNARIO — aucune
+    // écriture n'a lieu ici, et c'est exactement le témoin recherché : un
+    // compteur qui tournerait encore ajouterait des minutes au seul fait
+    // d'interroger la ligne plus tard, celui-ci n'en ajoute aucune.
+    const [plusTard] = await clientOwner().$queryRawUnsafe<
+      Array<{ temps_mesure_min: number | null }>
+    >(
+      `SELECT "temps_mesure_min" FROM "intervention" WHERE "id" = '${id}'`,
+    );
+    expect(plusTard?.temps_mesure_min).toBe(mesureFigee);
+  });
+
+  it("la reprise n'ouvre PAS de nouveau segment", async () => {
+    const id = await jetable();
+    await demarrerLeCompteur(
+      SESSION,
+      id,
+      new Date("2026-09-15T08:00:00.000Z"),
+      clientApp(),
+    );
+    await suspendreIntervention(
+      SESSION,
+      {
+        intervention_id: id,
+        motif: "Attente de pièce",
+        piece_attendue_ref: "CMP-1",
+        date_dispo_prevue: new Date("2026-10-01T00:00:00.000Z"),
+      },
+      clientApp(),
+    );
+    const reprise = await reprendreIntervention(
+      SESSION,
+      { intervention_id: id },
+      clientApp(),
+    );
+    expect(reprise.accepte).toBe(true);
+
+    const ouverts = await clientOwner().$queryRawUnsafe<Array<{ id: string }>>(
+      `SELECT "id" FROM "segment_travail" WHERE "intervention_id" = '${id}' AND "fin" IS NULL`,
+    );
+    expect(ouverts).toHaveLength(0);
+  });
+
+  it("une suspension SANS compteur en cours ne touche à rien — le cas ordinaire", async () => {
+    // RG-INT-06 n'exige aucun compteur pour suspendre (une intervention peut
+    // être mise en attente avant même d'avoir démarré) : ce scénario est le
+    // témoin que l'absence de segment n'est pas une erreur silencieuse.
+    const id = await jetable();
+    const resultat = await suspendreIntervention(
+      SESSION,
+      {
+        intervention_id: id,
+        motif: "Attente de pièce",
+        piece_attendue_ref: "CMP-1",
+        date_dispo_prevue: new Date("2026-10-01T00:00:00.000Z"),
+      },
+      clientApp(),
+    );
+    expect(resultat.accepte).toBe(true);
+    if (!resultat.accepte) return;
+    expect(resultat.fiche.temps_mesure_min).toBeNull();
+  });
+
+  it("un segment d'un RENFORT, et non de l'auteur de la suspension, se ferme aussi", async () => {
+    const id = await jetable();
+    const renfort = {
+      ...SESSION,
+      utilisateurId: UTILISATEUR_PAR_ROLE[Role.technicien] as string,
+      role: Role.technicien,
+    };
+    await demarrerLeCompteur(
+      renfort,
+      id,
+      new Date("2026-09-15T08:00:00.000Z"),
+      clientApp(),
+    );
+    const resultat = await suspendreIntervention(
+      { ...SESSION, role: Role.adv },
+      {
+        intervention_id: id,
+        motif: "Attente de pièce",
+        piece_attendue_ref: "CMP-1",
+        date_dispo_prevue: new Date("2026-10-01T00:00:00.000Z"),
+      },
+      clientApp(),
+    );
+    expect(resultat.accepte).toBe(true);
+
+    const ouverts = await clientOwner().$queryRawUnsafe<Array<{ id: string }>>(
+      `SELECT "id" FROM "segment_travail" WHERE "intervention_id" = '${id}' AND "fin" IS NULL`,
+    );
+    expect(ouverts).toHaveLength(0);
   });
 });
 

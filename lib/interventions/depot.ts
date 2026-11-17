@@ -83,6 +83,7 @@ import {
 import { type LigneHistoriqueEtat } from "./durees-par-etat";
 import { anneeDeNumerotation, prochainNumero } from "./numerotation";
 import { ordreDuRegistre } from "./ordre-registre";
+import { mesurer } from "./compteur";
 import {
   verdictChevauchement,
   verdictDatePassee,
@@ -4028,6 +4029,18 @@ export async function lireIntervention(
  * `intervention` restent écrites — d'autres écrans les lisent —, la table
  * neuve porte l'HISTORIQUE que ces colonnes, réécrites à chaque suspension, ne
  * peuvent pas garder.
+ *
+ * **FERME AUSSI LE SEGMENT DE COMPTEUR OUVERT, DANS LA MÊME TRANSACTION**
+ * (décision d'Alexis du 10/11/2026) — contrairement à `cloturerIntervention`
+ * et `annulerIntervention`, qui REFUSENT quand un compteur tourne encore, la
+ * suspension l'ARRÊTE : une attente de pièce n'est pas du travail, et le
+ * laisser tourner pré-remplirait le temps validé de l'attente elle-même.
+ * Même geste que `arreterLeCompteur` (`depot-compteur.ts`) — fermer le
+ * segment PUIS réécrire `temps_mesure_min` comme la somme des segments
+ * fermés, jamais l'inverse (le déclencheur qui garde cette colonne la
+ * recalcule depuis `segment_travail`). **Celui de l'intervention, pas
+ * forcément celui de l'auteur du geste** : un renfort peut encore avoir un
+ * segment ouvert sur une intervention que le bureau suspend.
  */
 export async function suspendreIntervention(
   contexte: ContexteSession,
@@ -4067,6 +4080,29 @@ export async function suspendreIntervention(
       }
 
       const instant = await instantDeLAgence(tx, ligne.agence_id);
+
+      // LE SEGMENT OUVERT SE FERME AVANT LE RESTE (décision d'Alexis du
+      // 10/11/2026) — voir le docblock. `findFirst` plutôt qu'`updateMany` :
+      // la somme recalculée ci-dessous doit être celle d'un segment
+      // EFFECTIVEMENT fermé, jamais celle d'une condition qui aurait pu ne
+      // trouver personne.
+      const segmentOuvert = await tx.segmentTravail.findFirst({
+        where: { intervention_id: saisie.intervention_id, fin: null },
+        select: { id: true },
+      });
+      let tempsMesureMin: number | undefined;
+      if (segmentOuvert !== null) {
+        await tx.segmentTravail.update({
+          where: { id: segmentOuvert.id },
+          data: { fin: instant },
+        });
+        const segments = await tx.segmentTravail.findMany({
+          where: { intervention_id: saisie.intervention_id },
+          select: { id: true, debut: true, fin: true },
+        });
+        tempsMesureMin = mesurer(segments).minutes;
+      }
+
       const misAJour = await tx.intervention.update({
         where: { id: saisie.intervention_id },
         data: {
@@ -4075,6 +4111,9 @@ export async function suspendreIntervention(
           piece_attendue_ref: saisie.piece_attendue_ref,
           date_dispo_prevue: saisie.date_dispo_prevue,
           suspendue_le: instant,
+          ...(tempsMesureMin === undefined
+            ? {}
+            : { temps_mesure_min: tempsMesureMin }),
         },
         select: CHAMPS_LIGNE,
       });
