@@ -1,5 +1,6 @@
 import {
   dateCivile,
+  dateCivileLocale,
   instantDuJour,
   jourSuivant,
   versLocal,
@@ -186,8 +187,7 @@ export function libelleCopieDu(
   fiche = false,
 ): string {
   const instant = new Date(genereLe);
-  const local = versLocal(instant, fuseau);
-  const date = `${String(local.jour).padStart(2, "0")}/${String(local.mois).padStart(2, "0")}/${local.annee}`;
+  const date = dateCivileLocale(instant, fuseau);
   const suffixe = fiche
     ? t("terrain.bandeau.suffixe_travail")
     : t("terrain.bandeau.suffixe");

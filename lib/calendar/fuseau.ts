@@ -449,6 +449,21 @@ export function dateCivile(date: Date): string {
   return `${jourDuMois}/${mois}/${date.getUTCFullYear()}`;
 }
 
+/**
+ * UN INSTANT (`Timestamptz`), LU DANS LE FUSEAU DONNÉ, EN `JJ/MM/AAAA` — le
+ * pendant de `dateCivile` ci-dessus pour un INSTANT plutôt qu'une colonne
+ * `DATE` : un instant n'a pas de jour civil propre, il en a un DANS UN
+ * FUSEAU (L0-08, jamais celui de l'appareil). `libelleCopieDu`
+ * (`components/terrain/presentation.ts`) composait déjà cette même paire
+ * jour/mois/année en ligne ; extraite ici pour qu'une seconde écriture
+ * (9L08F-CHECKLIST-DERNIER-RELEVE) ne la recopie pas une troisième fois
+ * (§9, 01/09).
+ */
+export function dateCivileLocale(instant: Date, fuseau: Fuseau): string {
+  const local = versLocal(instant, fuseau);
+  return `${String(local.jour).padStart(2, "0")}/${String(local.mois).padStart(2, "0")}/${local.annee}`;
+}
+
 /** Lit une clé `AAAA-MM-JJ`. Refuse tout ce qui n'a pas exactement cette forme. */
 export function lireCleJour(cle: string): JourLocal {
   const trouve = /^(\d{4})-(\d{2})-(\d{2})$/.exec(cle);

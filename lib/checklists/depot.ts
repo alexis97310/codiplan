@@ -29,6 +29,11 @@ import {
   type PointObligatoireManquant,
 } from "@/lib/checklists/completude";
 import {
+  cleDuPointReleve,
+  dernierReleveParCle,
+  type DernierReleve,
+} from "@/lib/checklists/dernier-releve";
+import {
   validerReponsePoint,
   type SaisieReponsePoint,
 } from "@/lib/checklists/validation-reponse";
@@ -731,6 +736,94 @@ async function contexteDeResolution(
   };
 }
 
+/**
+ * Bornage TECHNIQUE, pas une règle métier (9L08F-CHECKLIST-DERNIER-RELEVE) —
+ * le nombre d'interventions ANTÉRIEURES de la machine qu'on va interroger,
+ * même ordre que `lib/machines/historique.ts` (`date_planifiee` décroissant,
+ * `numero` en départage) : 200 couvrent, en pratique, bien plus que l'usage
+ * réel d'un parc CODIMA. Aucune de ces deux requêtes n'est PAR POINT — l'une
+ * et l'autre portent sur la MACHINE entière, une seule fois par fiche.
+ */
+const BORNE_INTERVENTIONS_HISTORIQUE = 200;
+
+/**
+ * LES RELEVÉS CHIFFRÉS DE LA MÊME MACHINE, SUR DES INTERVENTIONS ANTÉRIEURES
+ * DÉJÀ TERMINÉES OU CLÔTURÉES (9L08F-CHECKLIST-DERNIER-RELEVE, décisions
+ * d'Alexis du 11/11 et du 16/11/2026) — DEUX REQUÊTES PAR FICHE (jamais une
+ * par point) : la liste des interventions qualifiées de la machine, puis
+ * leurs réponses chiffrées en une fois, dédupliquées par
+ * `dernierReleveParCle` (`lib/checklists/dernier-releve.ts`). Carte VIDE sans
+ * machine rattachée (I7B/D56, au plus une par intervention) — rien à
+ * comparer.
+ *
+ * **EN DEUX TEMPS, PAS EN UNE JOINTURE** — `ChecklistReponse.intervention`
+ * n'est pas un relation FILTRABLE côté Prisma : `Intervention.
+ * checklist_reponses` porte `@ignore` (D246, forme « filiation », jamais
+ * navigué depuis `Intervention`), et un `@ignore` d'un côté retire la
+ * relation des DEUX `WhereInput` générés, pas seulement de celui qui le
+ * porte. Partir de `tx.intervention.findMany` (relation `machines`, intacte)
+ * est donc la seule voie, pas un choix de style.
+ */
+async function relevesHistoriquesDeLaMachine(
+  tx: Prisma.TransactionClient,
+  interventionId: string,
+): Promise<ReadonlyMap<string, DernierReleve>> {
+  const rattachement = await tx.interventionMachine.findFirst({
+    where: { intervention_id: interventionId },
+    select: { machine_id: true },
+  });
+  if (rattachement === null) {
+    return new Map();
+  }
+  const interventionsQualifiees = await tx.intervention.findMany({
+    where: {
+      id: { not: interventionId },
+      statut: { in: ["terminee", "cloturee"] },
+      machines: { some: { machine_id: rattachement.machine_id } },
+    },
+    select: { id: true },
+    orderBy: [{ date_planifiee: "desc" }, { numero: "desc" }],
+    take: BORNE_INTERVENTIONS_HISTORIQUE,
+  });
+  if (interventionsQualifiees.length === 0) {
+    return new Map();
+  }
+  const brut = await tx.checklistReponse.findMany({
+    where: {
+      valeur_mesuree: { not: null },
+      intervention_id: { in: interventionsQualifiees.map((i) => i.id) },
+    },
+    select: {
+      libelle: true,
+      section: true,
+      valeur_mesuree: true,
+      unite: true,
+      repondu_le: true,
+    },
+    orderBy: { repondu_le: "desc" },
+  });
+  const historique: {
+    readonly libelle: string;
+    readonly section: string;
+    readonly valeurMesuree: number;
+    readonly unite: string | null;
+    readonly reponduLe: Date;
+  }[] = [];
+  for (const releve of brut) {
+    if (releve.valeur_mesuree === null) {
+      continue;
+    }
+    historique.push({
+      libelle: releve.libelle,
+      section: releve.section,
+      valeurMesuree: releve.valeur_mesuree.toNumber(),
+      unite: releve.unite,
+      reponduLe: releve.repondu_le,
+    });
+  }
+  return dernierReleveParCle(historique);
+}
+
 async function resoudreGabaritPourIntervention(
   tx: Prisma.TransactionClient,
   interventionId: string,
@@ -901,6 +994,13 @@ export type PointDeChecklist = {
   readonly toleranceMin: Prisma.Decimal | null;
   readonly toleranceMax: Prisma.Decimal | null;
   readonly choix: readonly string[];
+  /**
+   * LE DERNIER RELEVÉ DE LA MÊME MACHINE, SUR UNE AUTRE INTERVENTION DÉJÀ
+   * TERMINÉE OU CLÔTURÉE (9L08F-CHECKLIST-DERNIER-RELEVE) — RELEVÉ SEUL,
+   * AUCUNE TOLÉRANCE (décision d'Alexis du 16/11/2026) ; `null` hors du
+   * type `valeur_mesuree`, sans machine rattachée, ou sans antécédent.
+   */
+  readonly dernierReleve: DernierReleve | null;
 };
 
 export type ReponseDeChecklist = {
@@ -987,7 +1087,7 @@ export async function checklistDeLIntervention(
         versionId = derniere.id;
       }
 
-      const [points, reponses, version] = await Promise.all([
+      const [points, reponses, version, releveParCle] = await Promise.all([
         tx.checklistPoint.findMany({
           where: { checklist_version_id: versionId },
           orderBy: { ordre: "asc" },
@@ -999,6 +1099,9 @@ export async function checklistDeLIntervention(
           where: { id: versionId },
           select: { modele: { select: { libelle: true } } },
         }),
+        // LE DERNIER RELEVÉ DE LA MÊME MACHINE (9L08F-CHECKLIST-DERNIER-
+        // RELEVE) — indépendant des `points` ci-dessus, lu en parallèle.
+        relevesHistoriquesDeLaMachine(tx, interventionId),
       ]);
 
       const photosParReponseId = await photosParReponse(
@@ -1025,6 +1128,12 @@ export async function checklistDeLIntervention(
           toleranceMin: point.tolerance_min,
           toleranceMax: point.tolerance_max,
           choix: point.choix,
+          dernierReleve:
+            point.type_reponse === "valeur_mesuree"
+              ? (releveParCle.get(
+                  cleDuPointReleve(point.section, point.libelle),
+                ) ?? null)
+              : null,
         })),
         reponses: reponses.map((reponse) => ({
           checklistPointId: reponse.checklist_point_id,
