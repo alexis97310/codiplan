@@ -15,7 +15,7 @@ import { COMPTE_TECHNICIEN_EPREUVE, MOT_DE_PASSE_EPREUVE } from "./setup/scene";
  * LES CAPTURES DE 9L08D-TERRAIN-TAILLES-MAQUETTE — AVANT/APRÈS, même recette
  * que `zz-captures-9l04c-terrain-style-epure.spec.ts` : lancé une fois sur le
  * code d'avant (AVANT, 18/16 px), une fois sur le code livré (APRÈS, 17/13-14
- * px, D261). Rien n'est écrit sans `CAPTURES_9L08D` (le chemin complet du
+ * px, D263). Rien n'est écrit sans `CAPTURES_9L08D` (le chemin complet du
  * dossier cible).
  *
  * UNE scène NEUVE, préfixée `9L08D-`, avec une intervention EN COURS et un
@@ -172,7 +172,7 @@ test("capture — en-tête de la fiche, à 375px", async ({ page }) => {
   await page.goto(`/terrain/${EN_COURS_ID}`);
   // `components/navigation/bandeau-mobile.tsx` pose SON PROPRE `<header>`,
   // avant celui de la fiche dans le DOM — `.first()` seul attraperait le
-  // bandeau de navigation, jamais l'en-tête de D261. Celui de la fiche est
+  // bandeau de navigation, jamais l'en-tête de D263. Celui de la fiche est
   // à l'intérieur de `<main>`.
   const entete = page.locator("main header").first();
   await expect(entete).toBeVisible();

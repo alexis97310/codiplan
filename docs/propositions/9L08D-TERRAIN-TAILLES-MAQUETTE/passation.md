@@ -3,14 +3,14 @@
 ## Décision d'Alexis
 
 16/11/2026 (~09h15 NC) : « 2 — suivre la maquette, 17 et 13-14 px, en rouvrant D143. » Consignée en
-**D261** (`docs/arbitrages.md`), qui amende D143 (point 8) pour la seule zone `data-zone="terrain"` posée
+**D263** (`docs/arbitrages.md`), qui amende D143 (point 8) pour la seule zone `data-zone="terrain"` posée
 par D252 — le plancher 16/18/24/28 px tient partout ailleurs, inchangé.
 
 ## Ce qui a changé
 
-1. **`docs/arbitrages.md`** — D261, nouvelle décision. Câblée dans `tests/unit/docs/amendements-arbitrages.test.ts`
-   (`["D143", "D261"]`) et dans D143 elle-même (`**Amendé par D261.**`). `tests/unit/docs/citations-decisions-code.test.ts`
-   dérive sa population du dépôt : aucune liste à tenir à jour pour les citations `D261` posées dans le code.
+1. **`docs/arbitrages.md`** — D263, nouvelle décision. Câblée dans `tests/unit/docs/amendements-arbitrages.test.ts`
+   (`["D143", "D263"]`) et dans D143 elle-même (`**Amendé par D263.**`). `tests/unit/docs/citations-decisions-code.test.ts`
+   dérive sa population du dépôt : aucune liste à tenir à jour pour les citations `D263` posées dans le code.
 2. **`app/globals.css`** — `--text-17: 17px;` (nouvelle). Documentée comme une exception de ZONE, pas une neuvième
    taille de l'échelle générale de D138 : `tests/unit/theme/echelle-typographique.test.ts` la vérifie à part
    (`SUPPLEMENT_ZONE_TERRAIN`), et son propre test l'empêche de se mêler aux huit tailles de la spec.
@@ -20,7 +20,7 @@ par D252 — le plancher 16/18/24/28 px tient partout ailleurs, inchangé.
    - **le chrono n'a pas bougé** (reste `text-16`) : la maquette du 13/11 ne nomme sa taille nulle part, seulement
      sa position (« à droite ») — ce n'est ni un libellé, ni une commande, mais une valeur affichée au même rang
      que les autres mesures de la fiche. Si Alexis veut une taille précise pour le chrono, c'est une réouverture
-     de D261.
+     de D263.
 4. **`tests/unit/ui/retouches-2a.test.ts`** (point 8) — `TAILLES_TERRAIN` passe de `[16, 18, 24, 28]` à
    `[13, 14, 16, 17, 18, 24, 28]`. Un guard neuf refuse qu'un `<dt>` ou un `<label>` des sept fichiers porte
    lui-même une taille sous 16 px (le « jumeau » que le ticket demandait : « un libellé à 14 px doit faire
@@ -36,7 +36,7 @@ par D252 — le plancher 16/18/24/28 px tient partout ailleurs, inchangé.
   du ticket demandait d'appliquer les tailles « là où 9L04C/9L04D ont posé 18/16 px à la place » — cette
   substitution documentée n'existe QUE dans l'en-tête de la fiche en ligne. Les deux écrans restent donc à leurs
   tailles actuelles (16 px pour leurs textes secondaires). Si Alexis veut aussi 13-14 px sur ces deux écrans,
-  c'est une extension du périmètre de D261 à nommer.
+  c'est une extension du périmètre de D263 à nommer.
 - **`components/terrain/checklist-terrain.tsx`** (titres de rubrique, textes secondaires, « Obligatoire ») :
   déjà à 13 px depuis D253 (point 11, la graisse) — ce fichier n'a jamais été dans la population du point 8 (la
   taille), seulement dans celle du point 11. Rien à faire ici.
@@ -44,7 +44,7 @@ par D252 — le plancher 16/18/24/28 px tient partout ailleurs, inchangé.
 - **`components/terrain/consultation-hors-reseau.tsx` — l'en-tête de la fiche hors réseau elle-même**
   (fonction `Fiche`, ligne ~449) : son client est rendu en `text-24` avec le lien « Retour » sur une ligne
   séparée — PAS la forme « une ligne, retour + client » que D252 (point 5) décrit en prose pour ce fichier.
-  Écart mesuré pendant ce lot, hors budget : ce fichier n'est de toute façon pas dans la zone de D261 (il n'est
+  Écart mesuré pendant ce lot, hors budget : ce fichier n'est de toute façon pas dans la zone de D263 (il n'est
   pas gouverné par le plancher du point 8), donc rien à faire ICI, mais la description de D252 et le code
   semblent avoir divergé sur CE point précis. À signaler, pas tranché.
 
@@ -73,7 +73,7 @@ Corrigé en `main header`.
 de budget (90 minutes, et cette commande exige un cycle complet base jetable + migration + semis + build +
 cinquante écrans) — aucun des lots 9L04D à 9L04K n'a non plus de trace dans `docs/captures/README.md` pour
 cette raison. Les deux écrans qu'elle photographie et que ce lot touche (`terrain`, `terrain-intervention`) sont
-donc datés d'avant D261 dans `docs/captures/`. Si Alexis veut ces deux images à jour, c'est un geste séparé,
+donc datés d'avant D263 dans `docs/captures/`. Si Alexis veut ces deux images à jour, c'est un geste séparé,
 hors budget de ce ticket.
 
 ## Épreuves jouées au premier plan

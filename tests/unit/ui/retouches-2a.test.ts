@@ -208,7 +208,7 @@ describe("retouches typographiques du 30/09/2026 (D143)", () => {
     });
   });
 
-  describe("point 8 — le texte du terrain à 16 px, amendé par D261 pour la zone terrain (13/14/17 px)", () => {
+  describe("point 8 — le texte du terrain à 16 px, amendé par D263 pour la zone terrain (13/14/17 px)", () => {
     // 9F4H3-HORS-RESEAU-ENVOYER (point 1) AJOUTE TROIS FICHIERS à cette
     // population — mêmes raisons que `tests/unit/ui/composants-base.test.ts`,
     // même liste (voir son commentaire) : le bouton du compteur quitte
@@ -223,7 +223,7 @@ describe("retouches typographiques du 30/09/2026 (D143)", () => {
       "components/terrain/bouton-envoyer.tsx",
       "components/terrain/effacement-copie-locale.tsx",
     ];
-    // D261 (16/11/2026) amende ce seul point pour la zone terrain : 13, 14
+    // D263 (16/11/2026) amende ce seul point pour la zone terrain : 13, 14
     // et 17 px s'ajoutent au plancher 16/18/24/28 — valeurs exactes de la
     // maquette du 13/11 (client 17 px, ligne secondaire 13-14 px de l'en-tête
     // de la fiche). Les libellés (`<dt>`, `<label>`) et les commandes
@@ -273,7 +273,7 @@ describe("retouches typographiques du 30/09/2026 (D143)", () => {
     });
 
     it("reconnaît la forme qu'il refuse", () => {
-      // 15 px, pas 13 : D261 a ajouté 13 (et 14, 17) à l'échelle élargie de
+      // 15 px, pas 13 : D263 a ajouté 13 (et 14, 17) à l'échelle élargie de
       // cette zone — 13 n'est plus une forme refusée ici, 15 l'est toujours.
       const ligne = 'className="text-15 font-bold"';
       expect(
@@ -284,7 +284,7 @@ describe("retouches typographiques du 30/09/2026 (D143)", () => {
       ).toBe(true);
     });
 
-    it("D261 — 13, 14 et 17 px sont désormais admis dans l'échelle élargie", () => {
+    it("D263 — 13, 14 et 17 px sont désormais admis dans l'échelle élargie", () => {
       for (const valeur of [13, 14, 17]) {
         expect(TAILLES_TERRAIN.includes(valeur)).toBe(true);
       }
@@ -343,7 +343,7 @@ describe("retouches typographiques du 30/09/2026 (D143)", () => {
       expect(total).toBe(32);
     });
 
-    // D261 — « les LIBELLÉS et commandes restent à 16 px minimum » : les
+    // D263 — « les LIBELLÉS et commandes restent à 16 px minimum » : les
     // commandes sont déjà tenues par le test `<Button>` ci-dessus (il exige
     // "text-16" littéral). Un libellé, dans ces sept fichiers, est posé par
     // `<dt>` (la moitié gauche d'une `Ligne`, `terrain/[id]/page.tsx`) ou par

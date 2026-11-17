@@ -490,7 +490,7 @@ export default async function PageInterventionTerrain({
         dans la passation plutôt que tranché ici une seconde fois.
 
         17 px pour le client et 13-14 px pour la ligne du dessous sont
-        désormais les valeurs exactes de la maquette (D261, 16/11/2026, qui
+        désormais les valeurs exactes de la maquette (D263, 16/11/2026, qui
         amende D143 point 8 pour la seule zone `data-zone="terrain"`) —
         `tests/unit/ui/retouches-2a.test.ts` les accepte dans l'échelle
         élargie 13/14/16/17/18/24/28 px.

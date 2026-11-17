@@ -11,7 +11,7 @@ import { sansCommentaires } from "../outils/fichiers-source";
  * 13, 14, 15, 16, 18, 24, 28 px. Aucune valeur inventée ici : ce gardien
  * confronte `app/globals.css` à cette liste, jamais l'inverse.
  *
- * `--text-17` (D261, 16/11/2026) N'ÉTEND PAS CETTE ÉCHELLE GÉNÉRALE : elle
+ * `--text-17` (D263, 16/11/2026) N'ÉTEND PAS CETTE ÉCHELLE GÉNÉRALE : elle
  * amende D143 (point 8) pour la seule zone `data-zone="terrain"` — une
  * SEULE valeur supplémentaire, déclarée ici à part, jamais mêlée aux huit
  * de la spec. `tests/unit/ui/retouches-2a.test.ts` (point 8) borne son
@@ -33,7 +33,7 @@ const STYLE = sansCommentaires(
 /** Les huit tailles de la spec §3.2 :221-227, dans l'ordre du document. */
 const ECHELLE = [12, 13, 14, 15, 16, 18, 24, 28] as const;
 
-/** La seule valeur ajoutée par D261, hors de la spec — la zone terrain seule. */
+/** La seule valeur ajoutée par D263, hors de la spec — la zone terrain seule. */
 const SUPPLEMENT_ZONE_TERRAIN = [17] as const;
 
 /** Les noms de taille que Tailwind 4 déclare par défaut — jamais à redéfinir. */
@@ -87,7 +87,7 @@ describe("l'échelle typographique (TP-UX1-1, D138)", () => {
     }
   });
 
-  it("ne déclare AUCUNE taille hors des huit de la spec et du seul supplément D261", () => {
+  it("ne déclare AUCUNE taille hors des huit de la spec et du seul supplément D263", () => {
     const noms = [...taillesDeclarees().keys()]
       .map(Number)
       .sort((a, b) => a - b);
@@ -96,7 +96,7 @@ describe("l'échelle typographique (TP-UX1-1, D138)", () => {
     );
   });
 
-  it("D261 — le supplément est exactement 17 px, et rien d'autre", () => {
+  it("D263 — le supplément est exactement 17 px, et rien d'autre", () => {
     expect([...SUPPLEMENT_ZONE_TERRAIN]).toEqual([17]);
     expect(taillesDeclarees().get("17")).toBe("17px");
   });
