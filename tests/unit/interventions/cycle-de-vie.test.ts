@@ -212,17 +212,29 @@ describe("peutValiderRapport — RG-INT-03 (D135, 9H1)", () => {
 });
 
 describe("peutTerminer — EN COURS → TERMINÉE (9DE-TP-CY1, D8 à la lettre : QT-4(a))", () => {
-  it("passe : en cours, un temps mesuré, un commentaire, une issue de signature, aucun obligatoire manquant", () => {
+  it("passe : en cours, un temps mesuré, un commentaire, une issue de signature, aucun obligatoire manquant, aucune suite manquante", () => {
     expect(
-      peutTerminer("en_cours", 12, "Un commentaire.", "signee", []).refuse,
+      peutTerminer("en_cours", 12, "Un commentaire.", "signee", [], []).refuse,
     ).toBe(false);
     expect(
-      peutTerminer("en_cours", 12, "Un commentaire.", "client_absent", [])
-        .refuse,
+      peutTerminer(
+        "en_cours",
+        12,
+        "Un commentaire.",
+        "client_absent",
+        [],
+        [],
+      ).refuse,
     ).toBe(false);
     expect(
-      peutTerminer("en_cours", 12, "Un commentaire.", "refus_signature", [])
-        .refuse,
+      peutTerminer(
+        "en_cours",
+        12,
+        "Un commentaire.",
+        "refus_signature",
+        [],
+        [],
+      ).refuse,
     ).toBe(false);
   });
 
@@ -233,6 +245,7 @@ describe("peutTerminer — EN COURS → TERMINÉE (9DE-TP-CY1, D8 à la lettre :
       "Un commentaire.",
       "signee",
       [],
+      [],
     );
     expect(annulee.refuse && annulee.cle).toBe(
       "intervention.refus.annulee_figee",
@@ -242,6 +255,7 @@ describe("peutTerminer — EN COURS → TERMINÉE (9DE-TP-CY1, D8 à la lettre :
       12,
       "Un commentaire.",
       "signee",
+      [],
       [],
     );
     expect(cloturee.refuse && cloturee.cle).toBe(
@@ -257,7 +271,14 @@ describe("peutTerminer — EN COURS → TERMINÉE (9DE-TP-CY1, D8 à la lettre :
       "suspendue",
       "terminee",
     ] as const) {
-      const verdict = peutTerminer(statut, 12, "Un commentaire.", "signee", []);
+      const verdict = peutTerminer(
+        statut,
+        12,
+        "Un commentaire.",
+        "signee",
+        [],
+        [],
+      );
       expect(verdict.refuse && verdict.cle, statut).toBe(
         "intervention.refus.pas_en_cours",
       );
@@ -271,25 +292,26 @@ describe("peutTerminer — EN COURS → TERMINÉE (9DE-TP-CY1, D8 à la lettre :
       "Un commentaire.",
       "signee",
       [],
+      [],
     );
     expect(sansMesure.refuse && sansMesure.cle).toBe(
       "intervention.refus.temps_manquant",
     );
     expect(
-      peutTerminer("en_cours", 0, "Un commentaire.", "signee", []).refuse,
+      peutTerminer("en_cours", 0, "Un commentaire.", "signee", [], []).refuse,
     ).toBe(true);
   });
 
   describe("le commentaire (décision « Inactif + commentaire exigé » d'Alexis du 10/11/2026, 9K27-TERRAIN-TERMINER-CE-QUI-MANQUE)", () => {
     it("refuse sans commentaire", () => {
-      const verdict = peutTerminer("en_cours", 12, null, "signee", []);
+      const verdict = peutTerminer("en_cours", 12, null, "signee", [], []);
       expect(verdict.refuse && verdict.cle).toBe(
         "intervention.refus.commentaire_absent",
       );
     });
 
     it("refuse un commentaire fait seulement d'espaces", () => {
-      const verdict = peutTerminer("en_cours", 12, "   ", "signee", []);
+      const verdict = peutTerminer("en_cours", 12, "   ", "signee", [], []);
       expect(verdict.refuse && verdict.cle).toBe(
         "intervention.refus.commentaire_absent",
       );
@@ -297,50 +319,89 @@ describe("peutTerminer — EN COURS → TERMINÉE (9DE-TP-CY1, D8 à la lettre :
   });
 
   it("refuse sans issue de signature", () => {
-    const verdict = peutTerminer("en_cours", 12, "Un commentaire.", null, []);
+    const verdict = peutTerminer(
+      "en_cours",
+      12,
+      "Un commentaire.",
+      null,
+      [],
+      [],
+    );
     expect(verdict.refuse && verdict.cle).toBe(
       "intervention.refus.signature_manquante",
     );
   });
 
-  it("l'ordre des gardes : figée avant statut, statut avant temps, temps avant commentaire, commentaire avant checklist, checklist avant signature", () => {
+  it("l'ordre des gardes : figée avant statut, statut avant temps, temps avant commentaire, commentaire avant checklist obligatoire, checklist obligatoire avant suite manquante, suite manquante avant signature", () => {
     // Une FIGÉE sans rien d'autre donne la clé de la figée, jamais une autre.
     expect(
-      (peutTerminer("cloturee", null, null, null, []) as { cle: string }).cle,
+      (peutTerminer("cloturee", null, null, null, [], []) as { cle: string })
+        .cle,
     ).toBe("intervention.refus.cloturee_figee");
     // Un mauvais statut, même sans rien d'autre, donne SA clé.
     expect(
-      (peutTerminer("suspendue", null, null, null, []) as { cle: string }).cle,
+      (peutTerminer("suspendue", null, null, null, [], []) as { cle: string })
+        .cle,
     ).toBe("intervention.refus.pas_en_cours");
     // en_cours sans rien d'autre : le temps manque avant le reste.
     expect(
-      (peutTerminer("en_cours", null, null, null, []) as { cle: string }).cle,
+      (peutTerminer("en_cours", null, null, null, [], []) as { cle: string })
+        .cle,
     ).toBe("intervention.refus.temps_manquant");
     // Temps présent, commentaire absent : le commentaire manque avant la
     // checklist.
     expect(
       (
-        peutTerminer("en_cours", 12, null, null, [
-          { id: "p0", section: "Sécurité", libelle: "Freins" },
-        ]) as { cle: string }
+        peutTerminer(
+          "en_cours",
+          12,
+          null,
+          null,
+          [{ id: "p0", section: "Sécurité", libelle: "Freins" }],
+          [],
+        ) as { cle: string }
       ).cle,
     ).toBe("intervention.refus.commentaire_absent");
-    // Commentaire présent, checklist incomplète : la checklist manque avant
-    // la signature.
+    // Commentaire présent, checklist obligatoire incomplète ET suite
+    // manquante : l'obligatoire manquant passe avant la suite manquante.
     const manquant = { id: "p1", section: "Sécurité", libelle: "Freins" };
+    const sansSuite = { id: "p2", section: "Sécurité", libelle: "Pneus" };
     expect(
       (
-        peutTerminer("en_cours", 12, "Un commentaire.", null, [manquant]) as {
+        peutTerminer(
+          "en_cours",
+          12,
+          "Un commentaire.",
+          null,
+          [manquant],
+          [sansSuite],
+        ) as {
           cle: string;
         }
       ).cle,
     ).toBe("intervention.refus.checklist_obligatoire_manquante");
+    // Obligatoire complet, suite manquante : elle manque avant la signature.
+    expect(
+      (
+        peutTerminer(
+          "en_cours",
+          12,
+          "Un commentaire.",
+          null,
+          [],
+          [sansSuite],
+        ) as {
+          cle: string;
+        }
+      ).cle,
+    ).toBe("intervention.refus.suite_non_conforme_manquante");
   });
 
   describe("la checklist (9K23-CHECKLIST-BLOCAGE-TERMINER, CK7 ; décision « A » du 29/10/2026, D240)", () => {
     it("aucune checklist résolue (tableau vide) = condition réputée remplie (3.10)", () => {
       expect(
-        peutTerminer("en_cours", 12, "Un commentaire.", "signee", []).refuse,
+        peutTerminer("en_cours", 12, "Un commentaire.", "signee", [], [])
+          .refuse,
       ).toBe(false);
     });
 
@@ -356,6 +417,7 @@ describe("peutTerminer — EN COURS → TERMINÉE (9DE-TP-CY1, D8 à la lettre :
         "Un commentaire.",
         "signee",
         [manquant],
+        [],
       );
       expect(verdict.refuse).toBe(true);
       expect(verdict.refuse && verdict.cle).toBe(
@@ -375,6 +437,7 @@ describe("peutTerminer — EN COURS → TERMINÉE (9DE-TP-CY1, D8 à la lettre :
         "Un commentaire.",
         "signee",
         manquants,
+        [],
       );
       expect(verdict.refuse && verdict.pointsManquants).toEqual(manquants);
     });
@@ -386,34 +449,96 @@ describe("peutTerminer — EN COURS → TERMINÉE (9DE-TP-CY1, D8 à la lettre :
         "Un commentaire.",
         "signee",
         [],
+        [],
       );
       expect(verdict.refuse && verdict.pointsManquants).toBeUndefined();
     });
   });
+
+  describe("D264 (16/11/2026, 9L08E-NON-CONFORME-SUITE-OBLIGATOIRE) — la suite à donner d'un point non conforme", () => {
+    it("un point non conforme sans suite REFUSE, en le NOMMANT (section, libellé)", () => {
+      const sansSuite = { id: "pt-3", section: "Pneus", libelle: "Pression" };
+      const verdict = peutTerminer(
+        "en_cours",
+        12,
+        "Un commentaire.",
+        "signee",
+        [],
+        [sansSuite],
+      );
+      expect(verdict.refuse).toBe(true);
+      expect(verdict.refuse && verdict.cle).toBe(
+        "intervention.refus.suite_non_conforme_manquante",
+      );
+      expect(verdict.refuse && verdict.pointsSansSuite).toEqual([sansSuite]);
+    });
+
+    it("plusieurs points sans suite sont TOUS nommés, pas seulement le premier", () => {
+      const sansSuites = [
+        { id: "pt-3", section: "Pneus", libelle: "Pression" },
+        { id: "pt-4", section: "Carrosserie", libelle: "Pare-chocs" },
+      ];
+      const verdict = peutTerminer(
+        "en_cours",
+        12,
+        "Un commentaire.",
+        "signee",
+        [],
+        sansSuites,
+      );
+      expect(verdict.refuse && verdict.pointsSansSuite).toEqual(sansSuites);
+    });
+
+    it("un refus pour un AUTRE motif ne porte jamais pointsSansSuite", () => {
+      const verdict = peutTerminer(
+        "en_cours",
+        null,
+        "Un commentaire.",
+        "signee",
+        [],
+        [],
+      );
+      expect(verdict.refuse && verdict.pointsSansSuite).toBeUndefined();
+    });
+
+    it("aucune suite manquante (tableau vide) = condition réputée remplie", () => {
+      expect(
+        peutTerminer("en_cours", 12, "Un commentaire.", "signee", [], [])
+          .refuse,
+      ).toBe(false);
+    });
+  });
 });
 
-describe("manquesPourTerminer — TOUS les manques à la fois (M3/point 2, 9K27-TERRAIN-TERMINER-CE-QUI-MANQUE)", () => {
+describe("manquesPourTerminer — TOUS les manques à la fois (M3/point 2, 9K27-TERRAIN-TERMINER-CE-QUI-MANQUE ; D264 pour la suite manquante)", () => {
   it("rien ne manque", () => {
-    expect(manquesPourTerminer("Un commentaire.", "signee", [])).toEqual({
+    expect(
+      manquesPourTerminer("Un commentaire.", "signee", [], []),
+    ).toEqual({
       commentaireManquant: false,
       signatureManquante: false,
       pointsManquants: [],
+      suitesNonConformesManquantes: [],
     });
   });
 
-  it("nomme le commentaire ET la signature ET la checklist À LA FOIS, jamais seulement le premier", () => {
+  it("nomme le commentaire ET la signature ET la checklist ET la suite manquante À LA FOIS, jamais seulement le premier", () => {
     const manquant = { id: "pt-1", section: "Freinage", libelle: "Plaquettes" };
-    expect(manquesPourTerminer(null, null, [manquant])).toEqual({
+    const sansSuite = { id: "pt-2", section: "Pneus", libelle: "Pression" };
+    expect(
+      manquesPourTerminer(null, null, [manquant], [sansSuite]),
+    ).toEqual({
       commentaireManquant: true,
       signatureManquante: true,
       pointsManquants: [manquant],
+      suitesNonConformesManquantes: [sansSuite],
     });
   });
 
   it("un commentaire fait seulement d'espaces manque", () => {
-    expect(manquesPourTerminer("   ", "signee", []).commentaireManquant).toBe(
-      true,
-    );
+    expect(
+      manquesPourTerminer("   ", "signee", [], []).commentaireManquant,
+    ).toBe(true);
   });
 });
 

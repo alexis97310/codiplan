@@ -815,9 +815,10 @@ async function resoudreOuPinnerVersionChecklist(
 }
 
 /**
- * LES POINTS OBLIGATOIRES SANS RÉPONSE, POUR LE BLOCAGE DE « TERMINER »
- * (9K23-CHECKLIST-BLOCAGE-TERMINER, CK7 ; décision « A » du 29/10/2026,
- * D240 ; RG-INT-02 amendée). Même résolution que `checklistDeLIntervention`
+ * LES MANQUES DE CHECKLIST POUR LE BLOCAGE DE « TERMINER » (9K23-CHECKLIST-
+ * BLOCAGE-TERMINER, CK7 ; décision « A » du 29/10/2026, D240 ; RG-INT-02
+ * amendée) — ET, depuis D264 (16/11/2026, 9L08E), les points non conformes
+ * sans suite à donner. Même résolution que `checklistDeLIntervention`
  * (la cascade si aucune version n'est encore figée), mais **sans jamais
  * PINNER** : un « Terminer » refusé ne doit pas figer un gabarit que
  * personne n'a encore répondu — seule `enregistrerReponses` pose le pin
@@ -829,12 +830,15 @@ async function resoudreOuPinnerVersionChecklist(
  * jamais par une route directement — `avecContexteRls` n'accepte qu'un
  * `PrismaClient` de premier niveau, pas une transaction déjà ouverte.
  */
-export async function obligatoiresManquantsPourTerminer(
+export async function manquesChecklistPourTerminer(
   tx: Prisma.TransactionClient,
   interventionId: string,
   typeIntervention: TypeInterventionSaisie,
   checklistVersionIdDejaFige: string | null,
-): Promise<readonly PointObligatoireManquant[]> {
+): Promise<{
+  readonly obligatoiresManquants: readonly PointObligatoireManquant[];
+  readonly suitesNonConformesManquantes: readonly PointObligatoireManquant[];
+}> {
   let versionId = checklistVersionIdDejaFige;
   if (versionId === null) {
     const resolu = await resoudreGabaritPourIntervention(
@@ -843,7 +847,7 @@ export async function obligatoiresManquantsPourTerminer(
       typeIntervention,
     );
     if (resolu === null) {
-      return [];
+      return { obligatoiresManquants: [], suitesNonConformesManquantes: [] };
     }
     const derniere = await tx.checklistVersion.findFirst({
       where: { checklist_modele_id: resolu.checklistModeleId },
@@ -851,7 +855,7 @@ export async function obligatoiresManquantsPourTerminer(
       select: { id: true },
     });
     if (derniere === null) {
-      return [];
+      return { obligatoiresManquants: [], suitesNonConformesManquantes: [] };
     }
     versionId = derniere.id;
   }
@@ -863,17 +867,26 @@ export async function obligatoiresManquantsPourTerminer(
     }),
     tx.checklistReponse.findMany({
       where: { intervention_id: interventionId },
-      select: { checklist_point_id: true, valeur_conforme: true },
+      select: {
+        checklist_point_id: true,
+        valeur_conforme: true,
+        non_conformite_suite: true,
+      },
     }),
   ]);
 
-  return etatDeCompletude(
+  const etat = etatDeCompletude(
     points,
     reponses.map((reponse) => ({
       checklistPointId: reponse.checklist_point_id,
       nonConforme: reponse.valeur_conforme === "non_conforme",
+      suiteDonnee: reponse.non_conformite_suite !== null,
     })),
-  ).obligatoiresManquants;
+  );
+  return {
+    obligatoiresManquants: etat.obligatoiresManquants,
+    suitesNonConformesManquantes: etat.suitesNonConformesManquantes,
+  };
 }
 
 export type PointDeChecklist = {
@@ -1036,6 +1049,7 @@ export async function checklistDeLIntervention(
           reponses.map((reponse) => ({
             checklistPointId: reponse.checklist_point_id,
             nonConforme: reponse.valeur_conforme === "non_conforme",
+            suiteDonnee: reponse.non_conformite_suite !== null,
           })),
         ),
       };

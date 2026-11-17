@@ -359,6 +359,9 @@ export default async function PageInterventionTerrain({
     checklist !== null && checklist.disponible
       ? checklist.completude.obligatoiresManquants
       : [],
+    checklist !== null && checklist.disponible
+      ? checklist.completude.suitesNonConformesManquantes
+      : [],
   );
 
   // DÉMARRER NE PART QUE DE CE QUE D8 PERMET (QT-4, D160,

@@ -20,6 +20,10 @@ import {
   suiteAvecLigne,
   suiteAvecLignes,
 } from "@/lib/checklists/suite-preremplie";
+import {
+  detailNonConformeDe,
+  valeurConformeDe,
+} from "@/lib/checklists/non-conformite";
 import { estCleTraduction, t, type CleTraduction } from "@/lib/i18n/fr";
 import { minutesDepuisMillisecondes } from "@/lib/interventions/compteur";
 import {
@@ -322,6 +326,8 @@ type ReponseEnvoiJson = {
   readonly motif: string | null;
   /** Posé seulement par `/terminer` sur le refus checklist (CK7). */
   readonly pointsManquants?: readonly PointObligatoireManquant[];
+  /** Posé seulement par `/terminer` sur le refus « suite manquante » (D264). */
+  readonly pointsSansSuite?: readonly PointObligatoireManquant[];
 };
 
 async function envoyerJson(
@@ -536,8 +542,47 @@ function obligatoiresManquantsDepuisFile(
     [...reponduLocalement].map((checklistPointId) => ({
       checklistPointId,
       nonConforme: false,
+      suiteDonnee: true,
     })),
   ).obligatoiresManquants;
+}
+
+/**
+ * LES POINTS NON CONFORMES SANS SUITE À DONNER, DEPUIS LA COPIE LOCALE ET LA
+ * FILE (D264, 9L08E-NON-CONFORME-SUITE-OBLIGATOIRE) — même discipline que
+ * `obligatoiresManquantsDepuisFile` ci-dessus : une saisie `checklist` déjà
+ * en file prend le pas, point par point, sur la réponse connue du serveur.
+ * Rejouée AUSSI par la feuille de confirmation, pour nommer ce manque AVANT
+ * le clic.
+ */
+function suitesNonConformesManquantesDepuisFile(
+  entreesCompteur: readonly EntreeFile[],
+  checklistPourTerminer: {
+    readonly points: readonly PointPourCompletude[];
+    readonly reponsesInitiales: Readonly<Record<string, unknown>>;
+  } | null,
+): readonly PointObligatoireManquant[] {
+  const gesteChecklistEnFile = entreesCompteur.find(
+    (e): e is EntreeFile & { readonly geste: GesteChecklist } =>
+      e.geste.type === "checklist",
+  );
+  const valeursFusionnees: Readonly<Record<string, unknown>> = {
+    ...checklistPourTerminer?.reponsesInitiales,
+    ...gesteChecklistEnFile?.geste.difference,
+  };
+  return (checklistPourTerminer?.points ?? [])
+    .filter((point) => {
+      const valeur = valeursFusionnees[point.id];
+      return (
+        valeurConformeDe(valeur) === "non_conforme" &&
+        detailNonConformeDe(valeur).suite === null
+      );
+    })
+    .map((point) => ({
+      id: point.id,
+      section: point.section,
+      libelle: point.libelle,
+    }));
 }
 
 /**
@@ -1012,6 +1057,11 @@ export function RapportTerrainAutomatique({
   const [pointsManquantsTerminer, setPointsManquantsTerminer] = useState<
     readonly PointObligatoireManquant[]
   >([]);
+  // LES POINTS NON CONFORMES SANS SUITE, NOMMÉS DU REFUS « TERMINER » (D264,
+  // 9L08E) — même régime que `pointsManquantsTerminer` ci-dessus.
+  const [pointsSansSuiteTerminer, setPointsSansSuiteTerminer] = useState<
+    readonly PointObligatoireManquant[]
+  >([]);
   // « TERMINER » MIS EN FILE HORS RÉSEAU (9F4H3-HORS-RESEAU-ENVOYER, point 1,
   // décision n° 108) — cette fiche a déjà envoyé « terminer » à la file ;
   // l'écran le dit à la place du bouton tant que « Envoyer » n'a pas réussi.
@@ -1045,6 +1095,11 @@ export function RapportTerrainAutomatique({
   const [pointsManquantsAffiches, setPointsManquantsAffiches] = useState<
     readonly PointObligatoireManquant[]
   >(() => obligatoiresManquantsDepuisFile([], checklistPourTerminer));
+  // LES POINTS NON CONFORMES SANS SUITE, À JOUR EN PERMANENCE (D264, 9L08E)
+  // — même discipline que `pointsManquantsAffiches` ci-dessus.
+  const [suitesManquantesAffichees, setSuitesManquantesAffichees] = useState<
+    readonly PointObligatoireManquant[]
+  >(() => suitesNonConformesManquantesDepuisFile([], checklistPourTerminer));
   // LES POINTS ACTUELLEMENT NON CONFORMES, MÊME DISCIPLINE (point 3, 9L04F)
   // — commande l'apparition du lien « Reprendre la non-conformité de la
   // checklist », relu par `relire()` au même rythme que `pointsManquantsAffiches`.
@@ -1751,6 +1806,13 @@ export function RapportTerrainAutomatique({
         setPointsManquantsAffiches(
           obligatoiresManquantsDepuisFile(entrees, checklistPourTerminer),
         );
+        // LES SUITES NON CONFORMES MANQUANTES, MÊME RÉGIME (D264, 9L08E).
+        setSuitesManquantesAffichees(
+          suitesNonConformesManquantesDepuisFile(
+            entrees,
+            checklistPourTerminer,
+          ),
+        );
         // LE LIEN « REPRENDRE LA NON-CONFORMITÉ DE LA CHECKLIST », À JOUR
         // SANS ATTENDRE UN RECHARGEMENT (point 3, 9L04F) — même discipline.
         setPointsNonConformesAffiches(
@@ -2156,6 +2218,7 @@ export function RapportTerrainAutomatique({
     setEnEnvoiTerminer(true);
     setMessageTerminer(null);
     setPointsManquantsTerminer([]);
+    setPointsSansSuiteTerminer([]);
     // UN IDENTIFIANT DÈS LE PREMIER ESSAI (point 3, C7) — voir
     // `tenterEnvoiSignature` : le même `operation_id` voyage du premier
     // essai en ligne jusqu'à un éventuel renvoi par la file.
@@ -2225,17 +2288,24 @@ export function RapportTerrainAutomatique({
         entreesCompteur,
         checklistPourTerminer,
       );
+      const suitesNonConformesManquantesLocal =
+        suitesNonConformesManquantesDepuisFile(
+          entreesCompteur,
+          checklistPourTerminer,
+        );
       const verdictLocal = peutTerminer(
         statutEffectif,
         tempsMesureLocal,
         commentaireRef.current,
         issueSignatureLocaleComplete(),
         obligatoiresManquantsLocal,
+        suitesNonConformesManquantesLocal,
       );
       if (verdictLocal.refuse) {
         setEnEnvoiTerminer(false);
         setMessageTerminer(texteDuMotif(verdictLocal.cle));
         setPointsManquantsTerminer(verdictLocal.pointsManquants ?? []);
+        setPointsSansSuiteTerminer(verdictLocal.pointsSansSuite ?? []);
         return;
       }
       // JAMAIS « EN ATTENTE D'ENVOI » SI RAPPORT, PRESTATIONS OU SIGNATURE
@@ -2333,6 +2403,7 @@ export function RapportTerrainAutomatique({
     setEnEnvoiTerminer(false);
     setMessageTerminer(texteDuMotif(resultat.motif));
     setPointsManquantsTerminer(resultat.pointsManquants ?? []);
+    setPointsSansSuiteTerminer(resultat.pointsSansSuite ?? []);
   }
 
   /**
@@ -2349,11 +2420,13 @@ export function RapportTerrainAutomatique({
     commentaire,
     issueSignatureLocaleComplete(),
     pointsManquantsAffiches,
+    suitesManquantesAffichees,
   );
   const confirmerFinDesactive =
     manquesTerminer.commentaireManquant ||
     manquesTerminer.signatureManquante ||
-    manquesTerminer.pointsManquants.length > 0;
+    manquesTerminer.pointsManquants.length > 0 ||
+    manquesTerminer.suitesNonConformesManquantes.length > 0;
 
   /** « Aller au commentaire » — referme la feuille, puis y amène (M3/point 2). */
   function allerAuCommentaire(): void {
@@ -3116,10 +3189,12 @@ export function RapportTerrainAutomatique({
                   {messageTerminer}
                 </p>
               )}
-              {pointsManquantsTerminer.length === 0 ? null : (
-                // LE LIEN QUI DÉPLIE LA TUILE ET Y SAUTE (CK7) — un bouton par
-                // point nommé, jamais une navigation : `ChecklistTerrain` est
-                // un composant FRÈRE, averti par
+              {pointsManquantsTerminer.length === 0 &&
+              pointsSansSuiteTerminer.length === 0 ? null : (
+                // LE LIEN QUI DÉPLIE LA TUILE ET Y SAUTE (CK7 ; D264 pour
+                // `pointsSansSuiteTerminer`) — un bouton par point nommé,
+                // jamais une navigation : `ChecklistTerrain` est un
+                // composant FRÈRE, averti par
                 // `EVENEMENT_CHECKLIST_SAUTER_AU_POINT`.
                 <ul className="flex flex-col gap-1">
                   {pointsManquantsTerminer.map((point) => (
@@ -3136,6 +3211,28 @@ export function RapportTerrainAutomatique({
                       >
                         {libelleDuPoint(point.section, point.libelle)}
                       </button>
+                    </li>
+                  ))}
+                  {pointsSansSuiteTerminer.map((point) => (
+                    <li key={point.id}>
+                      <button
+                        type="button"
+                        className="text-16 font-bold underline"
+                        onClick={() =>
+                          signalerChecklistSauterAuPoint({
+                            interventionId,
+                            checklistPointId: point.id,
+                          })
+                        }
+                      >
+                        {libelleDuPoint(point.section, point.libelle)}
+                      </button>
+                      {t("ponctuation.separateur")}
+                      <span>
+                        {t(
+                          "terrain.terminer.confirmation.manque_suite_non_conforme",
+                        )}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -3246,6 +3343,23 @@ export function RapportTerrainAutomatique({
                     >
                       {libelleDuPoint(point.section, point.libelle)}
                     </button>
+                  </li>
+                ))}
+                {manquesTerminer.suitesNonConformesManquantes.map((point) => (
+                  <li key={point.id}>
+                    <button
+                      type="button"
+                      className="text-16 font-bold underline"
+                      onClick={() => allerAuPointChecklist(point)}
+                    >
+                      {libelleDuPoint(point.section, point.libelle)}
+                    </button>
+                    {t("ponctuation.separateur")}
+                    <span>
+                      {t(
+                        "terrain.terminer.confirmation.manque_suite_non_conforme",
+                      )}
+                    </span>
                   </li>
                 ))}
               </ul>

@@ -418,6 +418,9 @@ async function ficheEnJSON(
         checklist?.disponible === true
           ? checklist.completude.obligatoiresManquants
           : [],
+        checklist?.disponible === true
+          ? checklist.completude.suitesNonConformesManquantes
+          : [],
       ),
       verdictDemarrer: peutDemarrerLeCompteur(statut),
       motifSuspension: ligne.motif_suspension,

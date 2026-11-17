@@ -35,6 +35,14 @@ export type Refus = {
    * seulement « un point manque ». Absent de tout autre refus de ce module.
    */
   readonly pointsManquants?: readonly PointObligatoireManquant[];
+  /**
+   * POSÉ SEULEMENT PAR `peutTerminer` sur le refus « suite non conforme
+   * manquante » (D264, 9L08E-NON-CONFORME-SUITE-OBLIGATOIRE) — NOMME chaque
+   * point répondu NON CONFORME dont `non_conformite_suite` reste vide, même
+   * discipline que `pointsManquants` ci-dessus. Les deux champs ne sont
+   * jamais posés à la fois : `peutTerminer` s'arrête au premier refus.
+   */
+  readonly pointsSansSuite?: readonly PointObligatoireManquant[];
 };
 
 /** Une action permise. */
@@ -229,10 +237,17 @@ export function peutValiderRapport(
  *     completude.ts`) — **aucune checklist résolue pour cette intervention
  *     = tableau vide = condition réputée remplie** (3.10) : ce verdict ne
  *     résout jamais lui-même un gabarit, il ne fait que lire la liste qu'on
- *     lui donne. **Un NON CONFORME ne bloque JAMAIS** : seule l'ABSENCE de
- *     réponse sur un point obligatoire bloque, `etatDeCompletude` ne compte
- *     les non-conformes que pour `nonConformes`, jamais pour
- *     `obligatoiresManquants`.
+ *     lui donne. **Un NON CONFORME ne bloque PAS par ce seul fait** : seule
+ *     l'ABSENCE de réponse sur un point obligatoire bloque ICI,
+ *     `etatDeCompletude` ne compte les non-conformes que pour
+ *     `nonConformes`, jamais pour `obligatoiresManquants`.
+ *   - **AUCUN POINT NON CONFORME NE RESTE SANS SUITE À DONNER** (D264,
+ *     décision d'Alexis du 16/11/2026 ; 9L08E-NON-CONFORME-SUITE-
+ *     OBLIGATOIRE, amende D254) — `suitesNonConformesManquantes`, calculé
+ *     par le MÊME `etatDeCompletude`, nomme chaque point non conforme dont
+ *     `non_conformite_suite` reste vide, OBLIGATOIRE ou non. Le commentaire
+ *     du point non conforme reste facultatif (D254, inchangée sur ce seul
+ *     point) ; seule la suite devient une condition de « Terminer ».
  *   - **Une ISSUE de signature est enregistrée** — signée, ou absente/refusée
  *     AVEC un motif (la base le garantit déjà, `intervention_signature_
  *     issue_coherente`) : D-S5 exige la signature au « Terminer », sauf motif
@@ -258,6 +273,7 @@ export function peutTerminer(
   commentaireTechnicien: string | null,
   issueSignature: IssueSignature | null,
   obligatoiresManquants: readonly PointObligatoireManquant[],
+  suitesNonConformesManquantes: readonly PointObligatoireManquant[],
 ): Verdict {
   if (statut === "annulee") {
     return { refuse: true, cle: "intervention.refus.annulee_figee" };
@@ -284,6 +300,13 @@ export function peutTerminer(
       pointsManquants: obligatoiresManquants,
     };
   }
+  if (suitesNonConformesManquantes.length > 0) {
+    return {
+      refuse: true,
+      cle: "intervention.refus.suite_non_conforme_manquante",
+      pointsSansSuite: suitesNonConformesManquantes,
+    };
+  }
   if (issueSignature === null) {
     return { refuse: true, cle: "intervention.refus.signature_manquante" };
   }
@@ -304,17 +327,24 @@ export function peutTerminer(
  * temps. Un temps manquant reste un refus SERVEUR ordinaire (D212), affiché
  * comme n'importe quel autre après un clic, parce qu'aucun lien sensé ne
  * mène à « démarrer le compteur » depuis cette feuille.
+ *
+ * **D264 (16/11/2026, 9L08E) ajoute un QUATRIÈME manque** :
+ * `suitesNonConformesManquantes`, nommé et cliquable de la même manière que
+ * `pointsManquants` — la feuille distingue les deux listes parce que leur
+ * motif diffère (« sans réponse » contre « suite à donner manquante »).
  */
 export type ManquesTerminer = {
   readonly commentaireManquant: boolean;
   readonly signatureManquante: boolean;
   readonly pointsManquants: readonly PointObligatoireManquant[];
+  readonly suitesNonConformesManquantes: readonly PointObligatoireManquant[];
 };
 
 export function manquesPourTerminer(
   commentaireTechnicien: string | null,
   issueSignature: IssueSignature | null,
   obligatoiresManquants: readonly PointObligatoireManquant[],
+  suitesNonConformesManquantes: readonly PointObligatoireManquant[],
 ): ManquesTerminer {
   return {
     commentaireManquant:
@@ -322,6 +352,7 @@ export function manquesPourTerminer(
       commentaireTechnicien.trim().length === 0,
     signatureManquante: issueSignature === null,
     pointsManquants: obligatoiresManquants,
+    suitesNonConformesManquantes,
   };
 }
 

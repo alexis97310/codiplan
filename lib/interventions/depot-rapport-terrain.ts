@@ -9,7 +9,7 @@ import {
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
 import type { PointObligatoireManquant } from "@/lib/checklists/completude";
-import { obligatoiresManquantsPourTerminer } from "@/lib/checklists/depot";
+import { manquesChecklistPourTerminer } from "@/lib/checklists/depot";
 import { estUuid } from "@/lib/identifiant";
 import { mesurer, verifierInstantAppareil } from "@/lib/interventions/compteur";
 import type { SaisieDifferee } from "@/lib/interventions/saisie-differee";
@@ -806,6 +806,8 @@ export type ResultatTerminer =
       readonly cle: string;
       /** Posé seulement sur le refus checklist — voir `Refus.pointsManquants`. */
       readonly pointsManquants?: readonly PointObligatoireManquant[];
+      /** Posé seulement sur le refus « suite manquante » — voir `Refus.pointsSansSuite` (D264). */
+      readonly pointsSansSuite?: readonly PointObligatoireManquant[];
     };
 
 /**
@@ -962,24 +964,27 @@ export async function terminerIntervention(
         orderBy: [{ cree_le: "desc" }, { id: "desc" }],
       });
 
-      const obligatoiresManquants = await obligatoiresManquantsPourTerminer(
-        tx,
-        interventionId,
-        ligne.type as TypeIntervention,
-        ligne.checklist_version_id,
-      );
+      const { obligatoiresManquants, suitesNonConformesManquantes } =
+        await manquesChecklistPourTerminer(
+          tx,
+          interventionId,
+          ligne.type as TypeIntervention,
+          ligne.checklist_version_id,
+        );
       const verdict = peutTerminer(
         ligne.statut as StatutIntervention,
         tempsMesure,
         ligne.commentaire_technicien,
         derniere?.issue ?? null,
         obligatoiresManquants,
+        suitesNonConformesManquantes,
       );
       if (verdict.refuse) {
         return {
           accepte: false,
           cle: verdict.cle,
           pointsManquants: verdict.pointsManquants,
+          pointsSansSuite: verdict.pointsSansSuite,
         };
       }
       // `derniere` n'est jamais `null` ici : `peutTerminer` aurait refusé sur

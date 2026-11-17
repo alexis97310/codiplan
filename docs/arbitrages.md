@@ -8711,6 +8711,8 @@ Portée : `tests/unit/ui/retouches-2a.test.ts` (`EXEMPTIONS`), `app/globals.css`
 
 ## D254 — LA SUITE À DONNER, LE COMMENTAIRE ET LES PHOTOS D'UN POINT NON CONFORME SONT DES INFORMATIONS ADDITIONNELLES, JAMAIS UNE SEPTIÈME COLONNE DE `checklist_reponse_valeur_unique` (décisions d'Alexis du 13/11/2026 ; 9L04I-CHECKLIST-NON-CONFORME-DETAIL)
 
+**Amendé par D264.**
+
 ### CE QUI A ÉTÉ MESURÉ
 
 Alexis, mesuré le 13/11/2026 : le moteur des cinq/six types de réponse (9K18, 9K28) ne porte PAS ce détail — `checklist_reponse_valeur_unique` (`num_nonnulls` sur les six colonnes de valeur) reste à six, et la checklist épurée (9L04D) passe d'abord sans ce détail. Trois décisions propres à ce lot : la suite à donner se limite à TROIS valeurs closes — « Réglé sur place », « Pièce à commander », « À revoir » — ; « Pièce à commander » ne porte PAS de champ référence, la pièce en attente passant déjà par « Suspendre » (D236) ; et le ticket n'a pas tranché si la suite et le commentaire sont obligatoires une fois le point marqué non conforme — ils restent donc FACULTATIFS par défaut (CLAUDE.md §8 : pas de valeur inventée), question ouverte laissée à la passation.
@@ -8980,3 +8982,31 @@ Elle ne rouvre pas D143 (point 11, la graisse) ni la portée de D253 : les deux 
 > Le jour où un écran hors de la zone terrain (bureau, portail) demande 17 px ou 13-14 px pour un texte de contenu, cette décision se relit : elle suppose aujourd'hui que l'échelle élargie reste propre à `data-zone="terrain"`, jamais une neuvième et dixième valeur de l'échelle générale de D138. Le jour où un libellé ou une commande de la zone terrain devrait lui aussi descendre sous 16 px, cette décision se relit : elle suppose que ce plancher ne bouge pas, quelle que soit l'échelle de contenu autour de lui.
 
 Portée : `docs/arbitrages.md` (D143, marque d'amendement), `app/globals.css` (`--text-17`), `app/(mobile)/terrain/[id]/page.tsx`, `tests/unit/ui/retouches-2a.test.ts` (point 8, `TAILLES_TERRAIN`, le guard `<dt>`/`<label>`).
+
+## D264 — UN POINT NON CONFORME SANS SUITE À DONNER BLOQUE « TERMINER » ; LE COMMENTAIRE RESTE FACULTATIF (décision d'Alexis du 16/11/2026 ; 9L08E-NON-CONFORME-SUITE-OBLIGATOIRE, amende D254)
+
+**Décisions amendées :** D254
+
+### CE QUI A ÉTÉ MESURÉ
+
+D254 (9L04I, 13/11/2026) avait laissé ouverte la question de savoir si la suite à donner et le commentaire d'un point non conforme devaient devenir obligatoires, avec sa propre condition de réouverture : *« Le jour où Alexis tranche que la suite ou le commentaire doit être OBLIGATOIRE une fois un point marqué non conforme, cette décision se relit. »* Alexis, interrogé le 16/11/2026 entre trois options — « 1 — la suite devient obligatoire, le commentaire reste facultatif ; Terminer indique le point où elle manque », « 2 — les deux restent facultatifs », « 3 — les deux deviennent obligatoires » — a répondu **« 1 »**.
+
+### LA DÉCISION
+
+**1. La suite à donner devient une condition de « Terminer » ; le commentaire reste facultatif.** Un point répondu « non conforme » dont `checklist_reponse.non_conformite_suite` reste vide bloque « Terminer », au même titre qu'un point obligatoire sans réponse (CK7, D240) — mais par un calcul SÉPARÉ : `etatDeCompletude` (`lib/checklists/completude.ts`) nomme ces points dans `suitesNonConformesManquantes`, jamais mêlés à `obligatoiresManquants`. Un point NON obligatoire, répondu non conforme sans suite, entre lui aussi dans cette liste — la condition porte sur la conformité de la réponse, jamais sur le caractère obligatoire du point. L'enregistrement d'une réponse non conforme SANS suite reste PERMIS (un technicien peut y revenir plus tard) : l'exigence porte sur « Terminer », jamais sur chaque saisie — aucune contrainte n'est posée en base.
+
+**2. D240 n'est pas rouverte.** « Un non conforme ne bloque jamais Terminer » reste vrai au sens où D240 l'a tranché : l'ABSENCE de réponse sur un point obligatoire est le seul fait qui entre dans `obligatoiresManquants`, et répondre « non conforme » reste une réponse à part entière, jamais un manque de ce point de vue. Ce que D264 ajoute est un second critère, orthogonal — la suite à donner d'une réponse non conforme — jamais une relecture du premier.
+
+**3. `peutTerminer` (`lib/interventions/cycle-de-vie.ts`) reçoit un sixième paramètre, `suitesNonConformesManquantes`, jugé après la checklist obligatoire et avant la signature** — l'ordre des gardes suit celui déjà écrit pour les points obligatoires, un cran plus loin. `manquesPourTerminer` nomme ce manque EN PLUS des trois déjà nommés (commentaire, signature, checklist obligatoire), pour que la feuille de confirmation (D219 amendée, M3, 9K27) les cite TOUS À LA FOIS.
+
+**4. La feuille de confirmation et le refus serveur NOMMENT chaque point, section et libellé, avec un lien qui saute au point** — même patron que CK7 (D240) : « <Rubrique> — <libellé> : Suite à donner manquante », jamais un motif générique. La ligne rouge repliée d'un point non conforme (D-CND, 9L04I) affiche ce même texte tant que la suite reste vide, à la place d'un résumé muet.
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+Elle ne rend pas le COMMENTAIRE d'un point non conforme obligatoire : D254 reste la règle sur ce point précis, inchangée. Elle ne touche pas la signature (D242, D-S5) : la garde « signature ou motif obligatoire » reste ce qu'elle était. Elle n'ajoute aucune migration ni contrainte en base — `checklist_reponse_detail_non_conforme` (D254) ne change pas : la garde reste purement applicative, comme CK7 l'est déjà pour les points obligatoires.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où Alexis tranche que le commentaire d'un point non conforme doit, lui aussi, devenir obligatoire avant « Terminer », cette décision se relit : elle suppose aujourd'hui que seule la suite entre dans le calcul des manques, jamais le commentaire. Le jour où une contrainte de base serait posée sur `non_conformite_suite`, cette décision se relit également : elle suppose aujourd'hui que la garde reste purement applicative, au même rang que CK7.
+
+Portée : `lib/checklists/completude.ts` (`ReponsePourCompletude.suiteDonnee`, `EtatCompletude.suitesNonConformesManquantes`), `lib/interventions/cycle-de-vie.ts` (`peutTerminer`, `Refus.pointsSansSuite`, `ManquesTerminer.suitesNonConformesManquantes`, `manquesPourTerminer`), `lib/checklists/depot.ts` (`manquesChecklistPourTerminer`, ex-`obligatoiresManquantsPourTerminer`), `lib/interventions/depot-rapport-terrain.ts` (`terminerIntervention`, `ResultatTerminer.pointsSansSuite`), `app/api/terrain/[id]/terminer/route.ts`, `app/api/terrain/instantane/route.ts`, `app/(mobile)/terrain/[id]/page.tsx`, `components/terrain/rapport-automatique.tsx`, `components/terrain/checklist-terrain.tsx` (`resumeNonConformite`), `lib/i18n/fr.ts`, `tests/unit/checklists/completude.test.ts`, `tests/unit/interventions/cycle-de-vie.test.ts`, `tests/isolation/terminer-intervention.test.ts`, `tests/e2e/9l08e-non-conforme-suite-obligatoire.spec.ts`.

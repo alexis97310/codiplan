@@ -2727,6 +2727,12 @@ export const fr = {
   // libellé, lien qui saute au point), jamais dans cette phrase fixe.
   "intervention.refus.checklist_obligatoire_manquante":
     "Un point obligatoire de la checklist n'a pas de réponse.",
+  // D264 (16/11/2026, 9L08E-NON-CONFORME-SUITE-OBLIGATOIRE) — amende D254 :
+  // la suite à donner devient obligatoire sur un point non conforme avant
+  // « Terminer », le commentaire reste facultatif. Le(s) point(s) se
+  // nomment À PART, même patron que le refus checklist ci-dessus.
+  "intervention.refus.suite_non_conforme_manquante":
+    "Un point non conforme de la checklist n'a pas de suite à donner.",
 
   // ── LA RÉALISATION — DONNÉES RÉELLES DE LA FICHE (50-INTERVENTIONS-2) ────
   "intervention.realisation.titre": "Réalisation",
@@ -3526,6 +3532,9 @@ export const fr = {
     "Le commentaire du rapport",
   "terrain.terminer.confirmation.aller_commentaire": "Aller au commentaire",
   "terrain.terminer.confirmation.manque_signature": "La signature du client",
+  // D264 (16/11/2026, 9L08E) — un point non conforme sans suite à donner.
+  "terrain.terminer.confirmation.manque_suite_non_conforme":
+    "Suite à donner manquante",
   "terrain.terminer.confirmation.aller_signature": "Aller à la signature",
   "terrain.terminer.confirmation.indisponible":
     "Confirmer la fin — disponible dès que tout ce qui manque est renseigné.",
@@ -5271,6 +5280,9 @@ export const fr = {
   "checklist.non_conformite.piece_a_commander": "Pièce à commander",
   "checklist.non_conformite.a_revoir": "À revoir",
   "checklist.non_conformite.suite_titre": "Suite à donner",
+  // D264 (16/11/2026, 9L08E) — la ligne rouge repliée, tant que la suite
+  // reste vide (devenue un manque bloquant pour « Terminer »).
+  "checklist.non_conformite.suite_manquante": "Suite à donner manquante",
   "checklist.non_conformite.commentaire_titre": "Commentaire",
   "checklist.non_conformite.commentaire_placeholder":
     "Commentaire (facultatif)",

@@ -212,6 +212,10 @@ const AMENDEMENTS_ATTENDUS: ReadonlyArray<readonly [string, string]> = [
   // 13/14/16/17/18/24/28 px — les libellés et les commandes restent à 16 px
   // minimum.
   ["D143", "D263"],
+  // D264 (16/11/2026, 9L08E-NON-CONFORME-SUITE-OBLIGATOIRE) amende D254 :
+  // la suite à donner d'un point non conforme devient obligatoire avant
+  // « Terminer » ; le commentaire reste facultatif.
+  ["D254", "D264"],
 ];
 
 describe("câblage bidirectionnel entre décisions", () => {

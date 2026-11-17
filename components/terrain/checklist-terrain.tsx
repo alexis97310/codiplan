@@ -144,6 +144,7 @@ function completudeDe(
     .map((point) => ({
       checklistPointId: point.id,
       nonConforme: valeurConformeDe(valeurs[point.id]) === "non_conforme",
+      suiteDonnee: detailNonConformeDe(valeurs[point.id]).suite !== null,
     }));
   return etatDeCompletude(pointsPourCompletude, reponsesPourCompletude);
 }
@@ -334,16 +335,25 @@ function PastillesConformite({
   );
 }
 
-/** « Pièce à commander · ne redémarre pas sous 6 bar » — le résumé replié (point 2, 9L04I). */
+/**
+ * « Pièce à commander · ne redémarre pas sous 6 bar » — le résumé replié
+ * (point 2, 9L04I). **D264 (16/11/2026, 9L08E)** : tant que la suite reste
+ * vide, la ligne le dit (« Suite à donner manquante ») plutôt que de rester
+ * muette ou de ne montrer que le commentaire — c'est désormais un manque
+ * bloquant pour « Terminer », jamais seulement une absence silencieuse.
+ */
 function resumeNonConformite(
   suite: SuiteNonConformiteChecklist | null,
   commentaire: string | null,
 ): string {
-  const partieSuite = suite === null ? null : libelleSuiteNonConformite(suite);
-  if (partieSuite !== null && commentaire !== null) {
+  const partieSuite =
+    suite === null
+      ? t("checklist.non_conformite.suite_manquante")
+      : libelleSuiteNonConformite(suite);
+  if (commentaire !== null) {
     return `${partieSuite}${t("ponctuation.separateur")}${commentaire}`;
   }
-  return partieSuite ?? commentaire ?? "";
+  return partieSuite;
 }
 
 /**

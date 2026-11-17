@@ -61,6 +61,7 @@ function reponse(
   cle?: string,
   pointsManquants?: readonly PointObligatoireManquant[],
   cleAlerte?: string,
+  pointsSansSuite?: readonly PointObligatoireManquant[],
 ): Response {
   if (veutJson(requete)) {
     return Response.json({
@@ -68,6 +69,7 @@ function reponse(
       motif: cle ?? null,
       alerte: cleAlerte ?? null,
       ...(pointsManquants === undefined ? {} : { pointsManquants }),
+      ...(pointsSansSuite === undefined ? {} : { pointsSansSuite }),
     });
   }
   return versLaFiche(id, cle, cleAlerte);
@@ -150,6 +152,8 @@ async function traiter(requete: Request, id: string): Promise<Response> {
         false,
         resultat.cle,
         resultat.pointsManquants,
+        undefined,
+        resultat.pointsSansSuite,
       );
     }
 
