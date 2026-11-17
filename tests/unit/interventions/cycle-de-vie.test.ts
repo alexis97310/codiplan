@@ -217,24 +217,12 @@ describe("peutTerminer — EN COURS → TERMINÉE (9DE-TP-CY1, D8 à la lettre :
       peutTerminer("en_cours", 12, "Un commentaire.", "signee", [], []).refuse,
     ).toBe(false);
     expect(
-      peutTerminer(
-        "en_cours",
-        12,
-        "Un commentaire.",
-        "client_absent",
-        [],
-        [],
-      ).refuse,
+      peutTerminer("en_cours", 12, "Un commentaire.", "client_absent", [], [])
+        .refuse,
     ).toBe(false);
     expect(
-      peutTerminer(
-        "en_cours",
-        12,
-        "Un commentaire.",
-        "refus_signature",
-        [],
-        [],
-      ).refuse,
+      peutTerminer("en_cours", 12, "Un commentaire.", "refus_signature", [], [])
+        .refuse,
     ).toBe(false);
   });
 
@@ -512,9 +500,7 @@ describe("peutTerminer — EN COURS → TERMINÉE (9DE-TP-CY1, D8 à la lettre :
 
 describe("manquesPourTerminer — TOUS les manques à la fois (M3/point 2, 9K27-TERRAIN-TERMINER-CE-QUI-MANQUE ; D264 pour la suite manquante)", () => {
   it("rien ne manque", () => {
-    expect(
-      manquesPourTerminer("Un commentaire.", "signee", [], []),
-    ).toEqual({
+    expect(manquesPourTerminer("Un commentaire.", "signee", [], [])).toEqual({
       commentaireManquant: false,
       signatureManquante: false,
       pointsManquants: [],
@@ -525,9 +511,7 @@ describe("manquesPourTerminer — TOUS les manques à la fois (M3/point 2, 9K27-
   it("nomme le commentaire ET la signature ET la checklist ET la suite manquante À LA FOIS, jamais seulement le premier", () => {
     const manquant = { id: "pt-1", section: "Freinage", libelle: "Plaquettes" };
     const sansSuite = { id: "pt-2", section: "Pneus", libelle: "Pression" };
-    expect(
-      manquesPourTerminer(null, null, [manquant], [sansSuite]),
-    ).toEqual({
+    expect(manquesPourTerminer(null, null, [manquant], [sansSuite])).toEqual({
       commentaireManquant: true,
       signatureManquante: true,
       pointsManquants: [manquant],
