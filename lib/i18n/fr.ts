@@ -5239,6 +5239,10 @@ export const fr = {
   "checklist.terrain.symbole_sans_objet": "–",
   "checklist.terrain.symbole_rubrique_ouverte": "▾",
   "checklist.terrain.symbole_rubrique_fermee": "▸",
+  // LE DERNIER RELEVÉ (9L08F-CHECKLIST-DERNIER-RELEVE, décisions d'Alexis du
+  // 11/11 et du 16/11/2026) — RELEVÉ SEUL, AUCUNE TOLÉRANCE.
+  "checklist.terrain.dernier_releve_prefixe": "Dernier relevé",
+  "checklist.terrain.dernier_releve_le": "le",
   // Clés déjà nommées par le domaine et la route (9K18-CHECKLIST-DOMAINE,
   // `lib/checklists/validation-reponse.ts`, `lib/checklists/depot.ts`,
   // `app/api/terrain/[id]/checklist/route.ts`) — aucun écran ne les rendait

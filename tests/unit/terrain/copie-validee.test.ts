@@ -276,6 +276,7 @@ describe("checklistDeLaFiche — aucun test n'existait (9L04I-CHECKLIST-NON-CONF
       disponible: true,
       checklistVersionId: "v1",
       reponses: { p1: "conforme" },
+      dernierReleves: {},
     });
   });
 
@@ -303,6 +304,7 @@ describe("checklistDeLaFiche — aucun test n'existait (9L04I-CHECKLIST-NON-CONF
           commentaire: "Ne redémarre pas sous 6 bar",
         },
       },
+      dernierReleves: {},
     });
   });
 
@@ -321,6 +323,43 @@ describe("checklistDeLaFiche — aucun test n'existait (9L04I-CHECKLIST-NON-CONF
       disponible: true,
       checklistVersionId: "v1",
       reponses: {},
+      dernierReleves: {},
+    });
+  });
+
+  it("9L08F — `dernierReleves` absent (copie antérieure à ce lot) devient `{}`, jamais un plantage", () => {
+    const fiche = {
+      checklist: {
+        disponible: true,
+        checklistVersionId: "v1",
+        reponses: {},
+      },
+    } as unknown as FicheJSON;
+    expect(checklistDeLaFiche(fiche)).toEqual({
+      disponible: true,
+      checklistVersionId: "v1",
+      reponses: {},
+      dernierReleves: {},
+    });
+  });
+
+  it("9L08F — un relevé valide traverse, un relevé de forme invalide est écarté", () => {
+    const fiche = {
+      checklist: {
+        disponible: true,
+        checklistVersionId: "v1",
+        reponses: {},
+        dernierReleves: {
+          p1: { valeur: 6.2, unite: "bar", date: "12/09/2026" },
+          p2: { valeur: "pas un nombre", unite: null, date: "12/09/2026" },
+        },
+      },
+    } as unknown as FicheJSON;
+    expect(checklistDeLaFiche(fiche)).toEqual({
+      disponible: true,
+      checklistVersionId: "v1",
+      reponses: {},
+      dernierReleves: { p1: { valeur: 6.2, unite: "bar", date: "12/09/2026" } },
     });
   });
 });

@@ -292,9 +292,42 @@ export function checklistDeLaFiche(fiche: FicheJSON): FicheJSON["checklist"] {
       reponses[pointId] = valeur;
     }
   }
+  // `dernierReleves` AJOUTÉ APRÈS COUP (9L08F-CHECKLIST-DERNIER-RELEVE),
+  // comme `catalogue` ou `prestationsRealiseesIds` ci-dessous — une copie
+  // posée par une version antérieure de l'application n'en porte pas :
+  // `{}` plutôt qu'un rendu qui lève, RELEVÉ SEUL, jamais de verdict.
+  const dernierReleves: Record<
+    string,
+    {
+      readonly valeur: number;
+      readonly unite: string | null;
+      readonly date: string;
+    }
+  > = {};
+  if (typeof c.dernierReleves === "object" && c.dernierReleves !== null) {
+    for (const [pointId, valeur] of Object.entries(
+      c.dernierReleves as Record<string, unknown>,
+    )) {
+      if (
+        typeof valeur === "object" &&
+        valeur !== null &&
+        typeof (valeur as Record<string, unknown>).valeur === "number" &&
+        (typeof (valeur as Record<string, unknown>).unite === "string" ||
+          (valeur as Record<string, unknown>).unite === null) &&
+        typeof (valeur as Record<string, unknown>).date === "string"
+      ) {
+        dernierReleves[pointId] = valeur as {
+          readonly valeur: number;
+          readonly unite: string | null;
+          readonly date: string;
+        };
+      }
+    }
+  }
   return {
     disponible: true,
     checklistVersionId: c.checklistVersionId,
     reponses,
+    dernierReleves,
   };
 }

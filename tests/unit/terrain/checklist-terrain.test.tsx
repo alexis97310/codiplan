@@ -55,6 +55,7 @@ function point(
     unite: null,
     choix: [],
     valeurInitiale: null,
+    dernierReleve: null,
     ...partiel,
   };
 }

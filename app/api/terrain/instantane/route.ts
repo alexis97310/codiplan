@@ -3,6 +3,7 @@ import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { exigerCapacite } from "@/lib/auth/porte";
 import { type Fuseau } from "@/lib/calendar/fuseau";
 import {
+  dateCivileLocale,
   instantDuJour,
   jourDe,
   jourSuivant,
@@ -183,6 +184,24 @@ export type FicheJSON = {
         readonly reponses: Readonly<
           Record<string, string | number | boolean | DetailNonConforme>
         >;
+        /**
+         * LE DERNIER RELEVÉ DE LA MÊME MACHINE, PAR POINT (9L08F-CHECKLIST-
+         * DERNIER-RELEVE) — RELEVÉ SEUL, AUCUNE TOLÉRANCE. Par `point.id`,
+         * absent = aucun antécédent, JAMAIS sur `checklistModeles` : la
+         * machine varie PAR FICHE, même quand deux fiches de la journée
+         * partagent la même version de gabarit (voir `ChecklistModeleJSON`,
+         * qui lui ne porte que le TEMPLATE, partagé).
+         */
+        readonly dernierReleves: Readonly<
+          Record<
+            string,
+            {
+              readonly valeur: number;
+              readonly unite: string | null;
+              readonly date: string;
+            }
+          >
+        >;
       }
     | { readonly disponible: false };
 };
@@ -345,6 +364,31 @@ async function ficheEnJSON(
                 string,
                 string | number | boolean | DetailNonConforme,
               ] => entree[1] !== null,
+            ),
+        ),
+        // LE DERNIER RELEVÉ DE LA MÊME MACHINE, PAR POINT (9L08F-CHECKLIST-
+        // DERNIER-RELEVE) — formaté ICI (fuseau de LA FICHE, L0-08), pour que
+        // la coquille hors réseau n'ait qu'à le lire, jamais à le composer
+        // une seconde fois (§9, 01/09).
+        dernierReleves: Object.fromEntries(
+          checklist.points
+            .map((point) => [point.id, point.dernierReleve] as const)
+            .filter(
+              (
+                entree,
+              ): entree is readonly [string, NonNullable<(typeof entree)[1]>] =>
+                entree[1] !== null,
+            )
+            .map(
+              ([pointId, releve]) =>
+                [
+                  pointId,
+                  {
+                    valeur: releve.valeur,
+                    unite: releve.unite,
+                    date: dateCivileLocale(releve.date, fiche.fuseau),
+                  },
+                ] as const,
             ),
         ),
       };

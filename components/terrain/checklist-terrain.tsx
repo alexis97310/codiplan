@@ -95,6 +95,21 @@ export type PointChecklistEcran = {
    * non-conformite.ts` — la simple chaîne sinon, comme les autres types.
    */
   readonly valeurInitiale: string | number | boolean | DetailNonConforme | null;
+  /**
+   * LE DERNIER RELEVÉ DE LA MÊME MACHINE (9L08F-CHECKLIST-DERNIER-RELEVE,
+   * décisions d'Alexis du 11/11 et du 16/11/2026) — RELEVÉ SEUL, AUCUNE
+   * TOLÉRANCE : un simple rappel sous le champ, jamais un verdict. `null`
+   * hors du type `valeur_mesuree`, sans machine rattachée, ou sans
+   * antécédent sur une intervention déjà terminée ou clôturée. La date
+   * arrive déjà composée (`JJ/MM/AAAA`, fuseau de la fiche) — ni `Date` ni
+   * `Prisma.Decimal` ne traversent la frontière serveur/client, voir
+   * `valeurInitiale` ci-dessus.
+   */
+  readonly dernierReleve: {
+    readonly valeur: number;
+    readonly unite: string | null;
+    readonly date: string;
+  } | null;
 };
 
 /** Le MAXIMUM d'options que les segments pleine largeur portent — au-delà, le menu déroulant. */
@@ -787,6 +802,24 @@ function champDuType(
   }
 }
 
+/**
+ * « Dernier relevé : 6.2 bar le 12/09/2026 » (9L08F-CHECKLIST-DERNIER-
+ * RELEVE) — RELEVÉ SEUL, AUCUNE TOLÉRANCE, AUCUN VERDICT (décision d'Alexis
+ * du 16/11/2026) : un simple rappel du texte, jamais une couleur qui
+ * jugerait la valeur.
+ */
+export function libelleDernierReleve(releve: {
+  readonly valeur: number;
+  readonly unite: string | null;
+  readonly date: string;
+}): string {
+  const valeurEtUnite =
+    releve.unite === null
+      ? String(releve.valeur)
+      : `${releve.valeur} ${releve.unite}`;
+  return `${t("checklist.terrain.dernier_releve_prefixe")}${t("ponctuation.deux_points")}${valeurEtUnite} ${t("checklist.terrain.dernier_releve_le")} ${releve.date}`;
+}
+
 /** UN POINT = UNE LIGNE (point 3, 9L04D) — hauteur minimale 64 px. */
 function PointLigne({
   point,
@@ -837,6 +870,11 @@ function PointLigne({
         <span className="text-app-terrain-encre text-16 font-medium">
           {point.libelle}
         </span>
+        {point.dernierReleve === null ? null : (
+          <p className="text-app-terrain-encre-secondaire text-13">
+            {libelleDernierReleve(point.dernierReleve)}
+          </p>
+        )}
         {point.consigne === null ? null : (
           <p className="text-app-terrain-encre-secondaire text-13">
             {point.consigne}

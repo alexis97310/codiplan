@@ -19,6 +19,7 @@ import {
   lienItineraire,
 } from "@/components/terrain/presentation";
 import {
+  dateCivileLocale,
   jourDe,
   maintenant,
   versLocal,
@@ -345,6 +346,21 @@ export default async function PageInterventionTerrain({
             point.typeReponse,
             checklist.reponses.find((r) => r.checklistPointId === point.id),
           ),
+          // LE DERNIER RELEVÉ DE LA MÊME MACHINE (9L08F-CHECKLIST-DERNIER-
+          // RELEVE) — déjà client-safe : `Prisma.Decimal` converti en
+          // `number` par le dépôt, la date composée ici en `JJ/MM/AAAA`
+          // DANS LE FUSEAU DE LA FICHE, jamais celui de l'appareil (L0-08).
+          dernierReleve:
+            point.dernierReleve === null
+              ? null
+              : {
+                  valeur: point.dernierReleve.valeur,
+                  unite: point.dernierReleve.unite,
+                  date: dateCivileLocale(
+                    point.dernierReleve.date,
+                    fiche.fuseau,
+                  ),
+                },
         }))
       : [];
 

@@ -362,6 +362,7 @@ function pointsChecklistDeLaFiche(
     points: modele.points.map((point) => ({
       ...point,
       valeurInitiale: checklist.reponses[point.id] ?? null,
+      dernierReleve: checklist.dernierReleves[point.id] ?? null,
     })),
   };
 }
