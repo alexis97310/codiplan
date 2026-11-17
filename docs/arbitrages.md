@@ -9109,3 +9109,23 @@ Elle NE DÉTECTE PAS une valeur déjà posée vide (`''`) sur une ligne existant
 > Le jour où Alexis arbitre une contrainte `CHECK` sur `segment_travail.nom_technicien_affiche` refusant la chaîne vide (migration), cette décision se relit : le contrôle de veille s'étendrait alors à la présence de cette contrainte, sur le même modèle catalogue que les deux contrôles ci-dessus.
 
 Portée : `scripts/lib/filiation-portail-technicien.ts` (nouveau), `scripts/veille-hebergee.mts`, `tests/unit/db/filiation-portail-technicien.test.ts` (nouveau), `tests/isolation/9l11-filiation-portail-technicien.test.ts` (nouveau).
+
+## D269 — LA MAJORATION HORS OUVERTURE LIT LE POURCENTAGE RÉGLÉ PAR LA SOCIÉTÉ, PLUS DE +50 % EN DUR ; LE POURCENTAGE EST FIGÉ À LA CLÔTURE (décision d'Alexis du 10/11/2026 ; 9L12-MAJORATION-POURCENTAGE-SOCIETE)
+
+### CE QUI A ÉTÉ MESURÉ
+
+Sur `81894e0` : `lib/tarification/majoration.ts` appliquait un taux de +50 % codé en dur (`TAUX_MAJORATION`), alors que `societe.majoration_hors_ouverture_pct` (`Decimal(5,2)`) existe en base depuis avant ce ticket et est DÉJÀ lu et affiché par le barème du portail (`lireBaremePortail`, `app/api/portail/tarifs/lecture.ts`) comme le pourcentage réglé par la société. Le calcul et l'affichage portaient donc deux vérités différentes sur la même notion : le client lisait un pourcentage que la facturation réelle ne respectait jamais.
+
+### LA DÉCISION
+
+**Le calcul lit le pourcentage réglé par la société, par la MÊME fonction de lecture que le barème du portail.** `tauxMajorationDepuisPourcentage` (`lib/tarification/majoration.ts`) convertit le `Decimal(5,2)` en fraction exacte (jamais un flottant) ; `lireTauxMajorationSociete` lit la colonne et l'applique — c'est elle que `lib/interventions/depot.ts` appelle désormais, à la place du taux fixe. Un pourcentage absent ou invalide (négatif — aucune contrainte `CHECK` ne l'empêche en base) refuse nommément (`intervention.majoration.pourcentage_invalide`), jamais un défaut de 50 silencieux ; ce refus n'est vérifié que si le créneau tombe hors ouverture, puisqu'un créneau entièrement dans l'ouverture rend zéro quel que soit le taux. **Le pourcentage est figé dans `valorisation_figee` à la clôture** (même doctrine que la règle d'arrondi, 9I8A1-REPRISE-9I8A) : le bon et tout recalcul d'une intervention CLÔTURÉE relisent la valeur figée, jamais le réglage courant de la société.
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+Elle ne change ni l'assiette (main-d'œuvre seule) ni le calendrier de référence (agence du technicien) de D12/D13, qui restent arrêtés. Elle n'ajoute aucun écran de paramétrage pour `majoration_hors_ouverture_pct` : aucune route n'écrit cette colonne aujourd'hui, et ce ticket ne portait que sur sa LECTURE. Elle n'ajoute aucune migration et ne pose aucune contrainte `CHECK` sur cette colonne — une valeur négative reste refusée en mémoire (`tauxMajorationDepuisPourcentage`), pas en base. Aucune intervention déjà close ne change de montant : les clôtures qui portent déjà une `valorisation_figee` rejouent leur supplément tel qu'il a été calculé, quel que soit le taux fixe qui était en vigueur au moment du calcul.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où une route de paramétrage écrit `societe.majoration_hors_ouverture_pct`, cette décision se relit pour y ajouter la validation d'écriture (bornes, contrainte `CHECK`) qu'elle ne pose pas aujourd'hui — elle suppose qu'aucune route de ce genre n'existe, et que la question ne se pose donc pas encore à l'exploitation.
+
+Portée : `lib/tarification/majoration.ts` (`TAUX_MAJORATION` renommé `TAUX_MAJORATION_HISTORIQUE`, `tauxMajorationDepuisPourcentage` et `lireTauxMajorationSociete` nouveaux), `lib/interventions/depot.ts`, `lib/i18n/fr.ts`, `tests/unit/tarification/majoration.test.ts`, `tests/isolation/9j20-portail-tarifs.test.ts`, `tests/isolation/valorisation-intervention.test.ts`, `tests/e2e/captures-9l12-majoration-pourcentage-societe.spec.ts` (nouveau).
