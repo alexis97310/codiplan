@@ -334,3 +334,74 @@ prochain `verify:full`.
 
 Question du point 5 (les photos) : toujours ouverte, non posée à Alexis par ce lot non plus — hors
 de son périmètre (fermer les écarts mesurés de 9L08B, pas trancher une question nouvelle).
+
+## Reprise 9L08BB
+
+9L08BA a été recalé DEUX FOIS sur la MÊME cause : `tests/e2e/9di-tp-ter1-journee-fiche.spec.ts:315`
+(« le rapport s'enregistre seul et l'indicateur « Enregistré » apparaît ») saisissait encore le
+commentaire sur `INTERVENTION_PRINCIPALE`, restée `affectee`, sans jamais cliquer « Démarrer » —
+`locator.fill` expirait sur la zone désormais `disabled`. Ce fichier n'avait été touché par AUCUN
+des deux grep précédents (ni celui de la passation initiale, ni les cinq scènes supplémentaires de
+9L08BA) : sa fixture pose `statut: "affectee"` par la constante `commun`, partagée entre les trois
+interventions du fichier, forme que les deux recherches par motif littéral n'ont pas reconnue.
+
+**`tickets/recales/9L08BA-REPRISE-SAISIE-APRES-DEMARRER.md` et `traces/9L08BA-*-verify-{1,2}.txt`
+sont INTROUVABLES dans ce worktree** (`/home/aplou/codiplan-voie1`) — ni `tickets/` ni `traces/`
+n'existent sur le disque de cette machine, à l'exception d'un verrou d'orchestration
+(`~/.codiplan-parallele/pris/9L08BA-...`). Le diagnostic retenu ci-dessous vient donc ENTIÈREMENT
+du texte de la consigne de ce lot (déjà précis : fichier, ligne, scène, cause), jamais du contrat
+recalé lui-même, qui n'a pas pu être relu. À vérifier par le pilote si cette absence est anormale.
+
+### (a) Le correctif, scène par scène
+
+- `tests/e2e/9di-tp-ter1-journee-fiche.spec.ts` — le test clique désormais « Démarrer
+  l'intervention » avant de saisir le commentaire (mêmes assertions, rien retiré), puis « Mettre en
+  pause » après coup : `demarrerLeCompteur` refuse un second compteur ouvert pour la même personne
+  (« une personne ne travaille pas à deux endroits à la fois »), et le scénario suivant du même
+  fichier (« le bandeau « compteur en cours »… ») démarre sur `INTERVENTION_AILLEURS` — laisser le
+  compteur de `INTERVENTION_PRINCIPALE` tourner l'aurait fait échouer. `afterAll` élargi : le
+  segment que l'app engendre désormais aussi sur `INTERVENTION_PRINCIPALE` est effacé avant
+  l'intervention (FK `Restrict`, I10), même disposition que pour `INTERVENTION_AILLEURS`.
+- Recherche systématique (point 2 de la consigne), par grep ciblé puis lecture de chaque fichier
+  trouvé — jamais seulement le motif littéral `statut: "affectee"` à côté de `/terrain/`, mais
+  chaque interaction RÉELLE avec un bouton gardé par `nonDemarree`
+  (`rapport-automatique.tsx:1031`) : `terrain.compteur.demarrer` absent avant un
+  `commentaire_libelle`/`checklist`/`prestation`/`signature.option`. Un seul AUTRE fichier touché :
+
+  - `tests/e2e/zz-captures-9g5-terrain-ergonomie.spec.ts` — capture AVANT/APRÈS sur
+    `SCENE.compteurA`, délibérément laissée `affectee` (pour que « Démarrer l'intervention » reste
+    visible aux DEUX largeurs, 1280 et 375 ; la démarrer dans ce test aurait privé le passage
+    suivant de cette même capture). Le bouton « Signature du client » y est cliqué
+    SANS condition suffisante : `(await boutonSignature.count()) > 0` reste vrai même `disabled` —
+    seul `.click()` échouerait, en silence jusqu'au délai. Corrigé en ajoutant
+    `&& (await boutonSignature.isEnabled())` : sur `compteurA` non démarrée, la capture
+    `fiche-signature` montre maintenant le bouton inactif plutôt que le canevas ouvert — fidèle à
+    D261, et cette image n'était de toute façon pas committée avant (`CAPTURES_9G5` absent en CI).
+
+  Tous les autres fichiers du même grep (`9de-terminer-signature`, `9l06-compteur-minute-commencee`,
+  `9l08aa-sans-violation-csp`, `captures-9f4h2a-fin-avant-debut`, les six `offline/9f4h3*`/
+  `9f4h4*`/`9f4h6*`, `rapport-terrain.spec.ts`, `captures-9k29-...`, `offline/9f4h1-consultation`,
+  `fiche-machine.spec.ts`) démarrent déjà avant de saisir, ou leur fixture est déjà `en_cours`
+  (`SCENE.rapportTravaillee`/`rapportVierge`, posée par 9L08BA), ou ne font que des `toBeVisible`
+  (jamais de `.click()` sur un contrôle désactivé — un bouton `disabled` reste visible) : AUCUN
+  changement, confirmé en lisant chacun entièrement, pas seulement sur le grep.
+
+### (b) Vérifications jouées (premier plan, comme demandé)
+
+- **60 fichiers e2e, `CI=1 --workers=1`** (`9di-tp-ter1-journee-fiche.spec.ts` ; tout fichier dont
+  le nom contient `terrain`, `rapport`, `checklist` ou `signature` ; les 13 fichiers de
+  `tests/e2e/offline/` ; les e2e touchées par 9L08BA ;
+  `tests/e2e/tous-les-ecrans-rendent.spec.ts`) : **238 passées, 4 ignorées (`.skip` préexistants,
+  non touchés par ce lot), 0 échec** — 17,8 min.
+- `pnpm test:isolation` : vert — 247 fichiers, 2274 épreuves.
+- `CI=1 pnpm verify` : vert — `format:check` (après un passage de `prettier --write` sur le fichier
+  touché par le point (a) ci-dessus, dont le style ne suivait pas la configuration du dépôt),
+  `typecheck`, `lint`, `test`, `test:isolation`, `build`.
+- `pnpm verify:full` : volontairement NON joué — laissé à la file, comme demandé.
+
+### (c) Non fait
+
+Aucun écran (composant, page) n'a été touché par ce lot — seuls des fichiers de `tests/e2e/` et
+cette passation ont changé — donc aucune capture 375 px n'était due (consigne : « si tu touches un
+écran, refais sa capture »). `scripts/captures.mts` n'a pas été relancé, pour la même raison que la
+reprise 9L08BA : `docs/captures/` ne porte aucun écran nouveau ni modifié par cette reprise.

@@ -76,10 +76,20 @@ for (const largeur of [1280, 375] as const) {
     // LE CANEVAS DE SIGNATURE (point 5) — invisible tant qu'aucune issue
     // n'est choisie ; un simple changement d'état local (`choisirIssue`),
     // sans aucun appel réseau, donc sans effet sur la scène partagée.
+    // DEPUIS D261/D262 (9L08B-SAISIE-APRES-DEMARRER) : ce bouton existe
+    // désormais mais reste DÉSACTIVÉ sur `compteurA`, délibérément laissée
+    // `affectee` pour que les DEUX largeurs montrent « Démarrer
+    // l'intervention » (point 1) — jamais démarrée ici, sous peine de priver
+    // la largeur suivante de cette capture. `isEnabled()` remplace le simple
+    // `count()` : un bouton désactivé reste trouvable, mais `.click()`
+    // attendrait en vain qu'il s'active.
     const boutonSignature = page.getByRole("button", {
       name: fr["terrain.signature.option_signee"],
     });
-    if ((await boutonSignature.count()) > 0) {
+    if (
+      (await boutonSignature.count()) > 0 &&
+      (await boutonSignature.isEnabled())
+    ) {
       await boutonSignature.click();
       await page
         .locator("canvas")

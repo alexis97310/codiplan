@@ -242,14 +242,20 @@ test.beforeAll(async () => {
 test.afterAll(async () => {
   const client = admin();
   try {
-    // L'APP ENGENDRE SON PROPRE IDENTIFIANT pour le segment de
-    // `INTERVENTION_AILLEURS` (démarré/arrêté par le test lui-même) — le
-    // filtre porte donc sur `intervention_id`, jamais sur un `id` connu
-    // d'avance, pour que les DEUX segments soient effacés AVANT
-    // l'intervention qui les porte (FK `Restrict`).
+    // L'APP ENGENDRE SON PROPRE IDENTIFIANT pour les segments de
+    // `INTERVENTION_PRINCIPALE` et `INTERVENTION_AILLEURS` (démarrés/arrêtés
+    // par les tests eux-mêmes) — le filtre porte donc sur `intervention_id`,
+    // jamais sur un `id` connu d'avance, pour que les TROIS segments soient
+    // effacés AVANT l'intervention qui les porte (FK `Restrict`).
     await client.segmentTravail.deleteMany({
       where: {
-        intervention_id: { in: [INTERVENTION_AILLEURS, INTERVENTION_REPRISE] },
+        intervention_id: {
+          in: [
+            INTERVENTION_PRINCIPALE,
+            INTERVENTION_AILLEURS,
+            INTERVENTION_REPRISE,
+          ],
+        },
       },
     });
     await client.interventionMachine.deleteMany({
@@ -312,11 +318,24 @@ test("la fiche d'une intervention transmise montre priorité, créneau, panne, m
 // clic sur « Enregistrer », n'existe plus pour ce bloc — l'enregistrement
 // est automatique, et c'est l'indicateur discret sous le champ qui porte
 // désormais le ton vert du succès.
+// DÉMARRÉE D'ABORD (D261, 9L08B-SAISIE-APRES-DEMARRER) — la zone du rapport
+// reste désormais INACTIVE tant que l'intervention n'a pas ouvert un premier
+// segment (`peutSaisirSurTerrain`) ; `INTERVENTION_PRINCIPALE` naît
+// `affectee`, donc ce scénario démarre lui-même le compteur avant de saisir,
+// puis le referme (une personne ne travaille pas à deux endroits à la fois,
+// `demarrerLeCompteur`) pour ne pas gêner la scène suivante.
 test("le rapport s'enregistre seul et l'indicateur « Enregistré » apparaît", async ({
   page,
 }) => {
   await ouvrirLaSessionDuTerrain(page);
   await page.goto(`/terrain/${INTERVENTION_PRINCIPALE}`);
+
+  await page
+    .getByRole("button", { name: fr["terrain.compteur.demarrer"] })
+    .click();
+  await expect(page).toHaveURL(
+    new RegExp(`/terrain/${INTERVENTION_PRINCIPALE}$`),
+  );
 
   await page
     .getByLabel(fr["terrain.rapport.commentaire_libelle"])
@@ -327,6 +346,14 @@ test("le rapport s'enregistre seul et l'indicateur « Enregistré » apparaît",
   await expect(page).toHaveURL(
     new RegExp(`/terrain/${INTERVENTION_PRINCIPALE}$`),
   );
+
+  // ── ARRÊTER, pour ne pas laisser un compteur ouvert aux tests suivants ──
+  await page
+    .getByRole("button", { name: fr["terrain.compteur.pause"] })
+    .click();
+  await expect(
+    page.getByText(fr["terrain.compteur.tourne_depuis"]),
+  ).toHaveCount(0);
 });
 
 test("le bandeau « compteur en cours » mène, depuis Ma journée et depuis l'autre fiche, vers l'intervention où il tourne", async ({
