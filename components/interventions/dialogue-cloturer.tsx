@@ -5,6 +5,7 @@ import { useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CaseACocher } from "@/components/ui/case-a-cocher";
 import { Dialogue } from "@/components/ui/dialogue";
+import { enDuree } from "@/lib/calendar/duree";
 import { t } from "@/lib/i18n/fr";
 import { explicationRegle } from "@/lib/interventions/presentation-partagee";
 import type { RegleArrondi } from "@/lib/tarification/valorisation";
@@ -36,6 +37,17 @@ const CLASSES_CHAMP =
  * mêmes refus qu'aujourd'hui. Sans elle, `verdict.refuse` continue de
  * désactiver le bouton et d'afficher le motif, comme avant ce ticket — la
  * case est l'unique changement de comportement.
+ *
+ * **D270 (décision d'Alexis du 10/11/2026, option 1) : `correctionAutorisee`
+ * décide si le champ se saisit ou se lit.** Un accès complet (ADMS, DIR, RM,
+ * RS, ADV) continue de saisir — comportement ACTUEL, inchangé. Un accès
+ * restreint (○, le technicien) voit le temps mesuré en LECTURE, avec « Le
+ * bureau peut le corriger » : le serveur refuserait de toute façon une autre
+ * valeur (`intervention.refus.temps_corrige_par_technicien`,
+ * `lib/interventions/depot.ts`), et un champ qu'on peut remplir pour se voir
+ * ensuite refuser serait le même défaut que B2 (D242) ailleurs sur cette fiche.
+ * Un champ CACHÉ porte la valeur dans les deux cas : le formulaire reste un
+ * seul `<input name="temps_valide_min">`, jamais deux chemins de soumission.
  */
 export function DialogueCloturer({
   reference,
@@ -45,11 +57,13 @@ export function DialogueCloturer({
   unSegmentHorsReseau,
   regle,
   offrirValiderEtCloturer = false,
+  correctionAutorisee,
 }: Readonly<{
   readonly reference: string;
   readonly action: string;
   readonly tempsMesureMin: number | null;
   readonly verdict: { readonly refuse: boolean; readonly raison: string };
+  readonly correctionAutorisee: boolean;
   /**
    * 9F4H2-HORS-RESEAU-HEURE-ET-REJEU (décision n° 107 d'Alexis, 14/10/2026) —
    * au moins un segment de temps de CETTE intervention porte l'heure du
@@ -98,17 +112,38 @@ export function DialogueCloturer({
           method="post"
           className="flex flex-col gap-3"
         >
-          <label className="flex flex-col gap-1.5 text-sm font-medium">
-            {t("intervention.cloture.temps_valide_saisie")}
-            <input
-              name="temps_valide_min"
-              type="number"
-              defaultValue={
-                tempsMesureMin === null ? undefined : String(tempsMesureMin)
-              }
-              className={CLASSES_CHAMP}
-            />
-          </label>
+          {correctionAutorisee ? (
+            <label className="flex flex-col gap-1.5 text-sm font-medium">
+              {t("intervention.cloture.temps_valide_saisie")}
+              <input
+                name="temps_valide_min"
+                type="number"
+                defaultValue={
+                  tempsMesureMin === null ? undefined : String(tempsMesureMin)
+                }
+                className={CLASSES_CHAMP}
+              />
+            </label>
+          ) : (
+            <label className="flex flex-col gap-1.5 text-sm font-medium">
+              {t("intervention.cloture.temps_valide")}
+              <input
+                type="hidden"
+                name="temps_valide_min"
+                value={tempsMesureMin === null ? "" : String(tempsMesureMin)}
+              />
+              <span className={CLASSES_CHAMP}>
+                {tempsMesureMin === null
+                  ? t("terrain.inconnu")
+                  : enDuree(tempsMesureMin)}
+              </span>
+            </label>
+          )}
+          {correctionAutorisee ? null : (
+            <p className="text-app-encre-faible text-12 font-bold">
+              {t("intervention.cloture.temps_valide_lecture_aide")}
+            </p>
+          )}
           <p className="text-app-encre-faible text-12 font-bold">
             {explicationRegle(regle)}
           </p>

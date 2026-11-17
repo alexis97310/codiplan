@@ -415,6 +415,14 @@ export default async function PageIntervention({
       "cloturer_intervention",
       ligne.technicien_id,
     );
+  // D270 (décision d'Alexis du 10/11/2026, option 1) : le technicien (○) voit
+  // le temps en LECTURE, jamais en saisie — `cloturerIntervention`
+  // (`lib/interventions/depot.ts`) refuserait de toute façon toute valeur
+  // différente du temps mesuré. Un accès COMPLET (ADMS, DIR, RM, RS, ADV)
+  // corrige librement, comme avant.
+  const correctionTempsAutorisee =
+    contexteActif !== null &&
+    peutPleinement(contexteActif.role, "cloturer_intervention");
   const peutSuspendreOuReprendre =
     contexteActif !== null &&
     accesSurCetteIntervention(
@@ -1188,6 +1196,7 @@ export default async function PageIntervention({
               )}
               regle={regleArrondi}
               offrirValiderEtCloturer={offrirValiderEtCloturer}
+              correctionAutorisee={correctionTempsAutorisee}
             />
           ) : null}
           {/*
