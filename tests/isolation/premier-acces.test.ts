@@ -106,6 +106,7 @@ describe("premier accès", () => {
         confirmation: trop,
       },
       creerAuth(clientApp()),
+      clientApp(),
     );
     expect(refus.issue).toBe("trop_court");
     // ET LE JETON VIT ENCORE — c'est ce que « ne consomme pas » veut dire, et
@@ -117,6 +118,7 @@ describe("premier accès", () => {
         confirmation: CHOISI,
       },
       creerAuth(clientApp()),
+      clientApp(),
     );
     expect(abouti.issue).toBe("abouti");
   });
@@ -139,6 +141,7 @@ describe("premier accès", () => {
         confirmation: "UnAutreMotDePasseEncore1",
       },
       creerAuth(clientApp()),
+      clientApp(),
     );
     expect(rejeu.issue).toBe("refuse");
 
@@ -161,6 +164,7 @@ describe("premier accès", () => {
         confirmation: CHOISI,
       },
       creerAuth(clientApp()),
+      clientApp(),
     );
     const mort = await choisirLePremierMotDePasse(
       {
@@ -169,8 +173,125 @@ describe("premier accès", () => {
         confirmation: CHOISI,
       },
       creerAuth(clientApp()),
+      clientApp(),
     );
     expect(inconnu).toEqual(mort);
     expect(inconnu.issue).toBe("refuse");
+  });
+});
+
+/**
+ * CHOISIR UN MOT DE PASSE PAR LIEN FERME LES AUTRES SESSIONS DU COMPTE —
+ * décision d'Alexis du 10/11/2026 (9L09-SESSIONS-FERMEES-REINITIALISATION).
+ *
+ * Ce module n'ouvre lui-même aucune session (voir l'en-tête de
+ * `lib/auth/premier-acces.ts`) : « fermer les AUTRES » revient donc à fermer
+ * TOUTES les sessions déjà ouvertes du compte. Compte SÉPARÉ de celui de
+ * « premier accès » ci-dessus, pour ne pas dépendre de l'ordre dans lequel
+ * son unique jeton est consommé par les scénarios précédents.
+ */
+describe("choisir un mot de passe par lien ferme les sessions déjà ouvertes", () => {
+  // SA PROPRE SOCIÉTÉ — `ouvrirPremierCompte` n'ouvre que la PREMIÈRE
+  // identité d'une société (amorçage) ; celle du bloc « premier accès »
+  // ci-dessus porte déjà une habilitation.
+  const SOCIETE_SESSIONS = uuidv7();
+  const CODE_SESSIONS = `PREMACCS-${SOCIETE_SESSIONS.slice(0, 8)}`;
+  const EMAIL_SESSIONS = `premier-acces-sessions-${SOCIETE_SESSIONS.slice(0, 8)}@example.test`;
+  let utilisateurIdSessions = "";
+  let jetonSessions = "";
+
+  beforeAll(async () => {
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "societe" (id, code, raison_sociale, pays, territoire,
+         fuseau_horaire, devise_code, majoration_hors_ouverture_pct, langue, actif)
+       VALUES ($1::uuid, $2, $3, 'NC', 'NC', 'Pacific/Noumea', 'XPF', 0, 'fr', true)`,
+      SOCIETE_SESSIONS,
+      CODE_SESSIONS,
+      `Société ${CODE_SESSIONS}`,
+    );
+    const ouverture = await ouvrirPremierCompte(clientApp(), {
+      societeId: SOCIETE_SESSIONS,
+      email: EMAIL_SESSIONS,
+      nom: "Sessions fermées",
+    });
+    jetonSessions = jetonDe(ouverture.urlPremierAcces);
+    const [ligne] = await clientOwner().$queryRawUnsafe<{ id: string }[]>(
+      `SELECT id FROM "utilisateur" WHERE email = $1`,
+      EMAIL_SESSIONS,
+    );
+    utilisateurIdSessions = ligne!.id;
+  });
+
+  async function poserSessionSessions(): Promise<void> {
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "session"
+         (id, token, utilisateur_id, expire_le, cree_le, modifie_le)
+       VALUES ($1::uuid, $2, $3::uuid, now() + interval '1 day', now(), now())`,
+      uuidv7(),
+      uuidv7(),
+      utilisateurIdSessions,
+    );
+  }
+
+  async function sessionsRestantesSessions(): Promise<number> {
+    const lignes = await clientOwner().$queryRawUnsafe<{ n: bigint }[]>(
+      `SELECT count(*)::bigint AS n FROM "session" WHERE utilisateur_id = $1::uuid`,
+      utilisateurIdSessions,
+    );
+    return Number(lignes[0]?.n ?? 0);
+  }
+
+  it("ferme toutes les sessions déjà ouvertes une fois le mot de passe posé", async () => {
+    await poserSessionSessions();
+    await poserSessionSessions();
+    expect(await sessionsRestantesSessions()).toBe(2);
+
+    const issue = await choisirLePremierMotDePasse(
+      {
+        jeton: jetonSessions,
+        motDePasse: CHOISI,
+        confirmation: CHOISI,
+      },
+      creerAuth(clientApp()),
+      clientApp(),
+    );
+    expect(issue.issue).toBe("abouti");
+
+    // AUCUNE SESSION NE SURVIT — la politique `session_fermeture` ne
+    // reconnaît plus ni jeton ni identité pour ces lignes.
+    expect(await sessionsRestantesSessions()).toBe(0);
+  });
+});
+
+/**
+ * UN LIEN EXPIRÉ EST REFUSÉ — scénario manquant avant 9L09. La bibliothèque
+ * (`consumeVerificationValue`, Better Auth) traite déjà une ligne passé son
+ * `expiresAt` comme invalide : ce scénario le PROUVE plutôt que de le
+ * supposer — une ligne insérée directement, déjà expirée à la naissance.
+ */
+describe("un lien EXPIRÉ est refusé — même motif qu'un jeton inconnu", () => {
+  const JETON_EXPIRE = `expire-${uuidv7()}`;
+
+  beforeAll(async () => {
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "verification" (id, identifiant, valeur, expire_le, cree_le, modifie_le)
+       VALUES ($1::uuid, $2, $3, now() - interval '1 hour', now() - interval '2 hour', now() - interval '2 hour')`,
+      uuidv7(),
+      `reset-password:${JETON_EXPIRE}`,
+      uuidv7(),
+    );
+  });
+
+  it("refuse, comme un jeton qui n'a jamais été émis", async () => {
+    const issue = await choisirLePremierMotDePasse(
+      {
+        jeton: JETON_EXPIRE,
+        motDePasse: CHOISI,
+        confirmation: CHOISI,
+      },
+      creerAuth(clientApp()),
+      clientApp(),
+    );
+    expect(issue.issue).toBe("refuse");
   });
 });

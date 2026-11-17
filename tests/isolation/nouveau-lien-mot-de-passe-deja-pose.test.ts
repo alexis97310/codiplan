@@ -109,6 +109,7 @@ describe("envoyerNouveauLienDAcces — contre un compte qui a DÉJÀ choisi son 
         confirmation: ANCIEN_MOT_DE_PASSE,
       },
       creerAuth(clientApp()),
+      clientApp(),
     );
     expect(premierChoix.issue).toBe("abouti");
     expect(await seConnecte(ANCIEN_MOT_DE_PASSE)).toBe(200);
@@ -148,6 +149,7 @@ describe("envoyerNouveauLienDAcces — contre un compte qui a DÉJÀ choisi son 
         confirmation: NOUVEAU_MOT_DE_PASSE,
       },
       creerAuth(clientApp()),
+      clientApp(),
     );
     expect(nouveauChoix.issue).toBe("abouti");
 

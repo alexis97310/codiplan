@@ -1,7 +1,12 @@
+import type { PrismaClient } from "@prisma/client";
 import { z } from "zod";
+
+import { prisma as clientParDefaut } from "@/lib/db/client";
 
 import { auth, type Auth } from "./config";
 import { dansUnEchangeAuth } from "./echange";
+import { fermerSessionsDuCompte } from "./fermeture-sessions";
+import { avecDesignationAuth } from "./lecture-identite";
 
 /**
  * LE PREMIER ACCÈS — choisir un mot de passe contre un jeton à usage unique.
@@ -27,6 +32,37 @@ import { dansUnEchangeAuth } from "./echange";
  * Aucune session. La personne se reconnecte avec le mot de passe qu'elle vient
  * de choisir, et son second facteur lui sera demandé si son rôle l'exige (D58).
  * *Une chaîne qui enchaînerait sur une session ouverte sauterait le facteur.*
+ *
+ * ## CE QU'IL FERME (décision d'Alexis du 10/11/2026,
+ * 9L09-SESSIONS-FERMEES-REINITIALISATION)
+ *
+ * TOUTES les sessions déjà ouvertes du compte, une fois le mot de passe posé
+ * — ce module n'en ouvre aucune (voir ci-dessus), il n'y a donc pas de
+ * session « courante » à épargner, à la différence de
+ * `changerSonMotDePasse` (`lib/auth/mon-compte.ts`), qui, lui, en préserve
+ * une. Pour un PREMIER accès, aucune session n'existe encore : fermer « tout »
+ * revient à fermer « rien ». Pour un NOUVEAU lien (D86, mot de passe oublié,
+ * compte déjà actif ailleurs), c'est tout l'objet du geste : un poste perdu
+ * ou partagé ne doit plus rien valoir une fois le mot de passe changé.
+ *
+ * **MESURÉ** : l'option du greffon, `emailAndPassword.revokeSessionsOnPasswordReset`,
+ * appelle `deleteUserSessions` à travers `avecDesignationAuth`
+ * (`lib/auth/config.ts`), qui ne pose AUCUNE désignation pour un `WHERE
+ * utilisateur_id = …` sur `session` (`CLES_DESIGNATION.session.ou` n'admet
+ * que le jeton, jamais l'identifiant — `lib/auth/lecture-identite.ts`) :
+ * **zéro ligne supprimée**, même constat que celui déjà écrit pour
+ * `deleteUserSessions` dans `lib/auth/mon-compte.ts`. Ce module ferme donc les
+ * sessions LUI-MÊME (`fermerSessionsDuCompte`, `lib/auth/fermeture-sessions.ts`),
+ * en désignant la cible par `app.utilisateur_id` dans une transaction qu'il
+ * contrôle entièrement — même patron que `revoquerAccesPortailClient` et
+ * `retirerAccesInterne`.
+ *
+ * Le compte visé est appris en lisant `verification` AVANT l'appel à
+ * `resetPassword` (sous désignation, par l'identifiant du jeton — la même clé
+ * que Better Auth lit lui-même) : `resetPassword` ne rend jamais l'identité
+ * dans sa réponse. Un jeton qui ne désigne rien (inconnu, déjà consommé) ne
+ * fait rien fuiter de plus : le refus qui suit reste le même motif unique,
+ * et aucune session n'est fermée.
  */
 
 /** Le plancher de longueur, celui de Better Auth — écrit ici pour être lisible. */
@@ -62,6 +98,10 @@ export async function choisirLePremierMotDePasse(
   // scénario mesurerait une autre base que celle qu'il vient de préparer, et
   // son refus viendrait du voisin (§9, 24/08).
   instance: Auth = auth(),
+  // MÊME CLIENT QUE `instance` — un scénario d'isolation passe le sien pour
+  // les deux ; la production prend le même singleton par défaut (voir
+  // l'en-tête : la fermeture des sessions lit et écrit sur CE client).
+  client: PrismaClient = clientParDefaut,
 ): Promise<IssuePremierAcces> {
   const analyse = Saisie.safeParse(saisie);
   if (!analyse.success) {
@@ -80,15 +120,27 @@ export async function choisirLePremierMotDePasse(
   }
 
   return dansUnEchangeAuth(async () => {
+    // LU AVANT LA CONSOMMATION — `resetPassword` ne rend jamais l'identité
+    // dans sa réponse, et le jeton n'existe plus une fois consommé. Voir
+    // l'en-tête : une désignation absente (jeton inconnu) ne fait rien
+    // fuiter, le refus qui suit restant le même motif unique.
+    const avant = await avecDesignationAuth(client).verification.findFirst({
+      where: { identifiant: `reset-password:${jeton}` },
+      select: { valeur: true },
+    });
     try {
       await instance.api.resetPassword({
         body: { newPassword: motDePasse, token: jeton },
       });
-      return { issue: "abouti" as const };
     } catch {
       // UN SEUL MOTIF, quelle que soit la cause. Voir l'en-tête : le détail
       // serait un renseignement sur l'existence et l'état d'un compte.
       return { issue: "refuse" as const };
     }
+    // FERME TOUTES LES SESSIONS DU COMPTE — voir l'en-tête de la fonction.
+    if (avant !== null) {
+      await fermerSessionsDuCompte(client, avant.valeur);
+    }
+    return { issue: "abouti" as const };
   });
 }
