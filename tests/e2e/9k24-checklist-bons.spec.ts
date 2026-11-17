@@ -193,6 +193,11 @@ async function preparerLaScene(): Promise<Scene> {
         libelle: LIBELLE_NON_CONFORME,
         type_reponse: "conforme_non_conforme_sans_objet" as const,
         valeur_conforme: "non_conforme" as const,
+        // D264 (16/11/2026, 9L08E) — la suite à donner est désormais
+        // obligatoire pour qu'une intervention réelle atteigne « terminee »
+        // avec ce point non conforme ; ce seed la pose pour rester un état
+        // atteignable.
+        non_conformite_suite: "regle_sur_place" as const,
       },
       {
         section: "Mesures",
@@ -241,6 +246,8 @@ async function preparerLaScene(): Promise<Scene> {
           valeur_mesuree:
             "valeur_mesuree" in point ? point.valeur_mesuree : null,
           valeur_texte: "valeur_texte" in point ? point.valeur_texte : null,
+          non_conformite_suite:
+            "non_conformite_suite" in point ? point.non_conformite_suite : null,
           auteur_id: utilisateur.id,
         },
       });

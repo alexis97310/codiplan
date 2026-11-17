@@ -152,6 +152,11 @@ async function preparerLaScene(): Promise<Scene> {
         ordre: 2,
         libelle: LIBELLE_NON_CONFORME,
         valeur_conforme: "non_conforme" as const,
+        // D264 (16/11/2026, 9L08E) — la suite à donner est désormais
+        // obligatoire pour qu'une intervention réelle atteigne « terminee »
+        // avec ce point non conforme ; ce seed la pose pour rester un état
+        // atteignable.
+        non_conformite_suite: "regle_sur_place" as const,
       },
     ];
 
@@ -179,6 +184,8 @@ async function preparerLaScene(): Promise<Scene> {
           section: point.section,
           obligatoire: false,
           valeur_conforme: point.valeur_conforme,
+          non_conformite_suite:
+            "non_conformite_suite" in point ? point.non_conformite_suite : null,
           auteur_id: utilisateur.id,
         },
       });
