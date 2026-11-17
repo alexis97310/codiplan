@@ -100,8 +100,36 @@ async function mfaActifSujet(): Promise<boolean | undefined> {
   return ligne?.mfa_actif;
 }
 
+/** Pose une session ordinaire pour le sujet — même patron que `retrait-acces-interne.test.ts`. */
+async function poserSessionSujet(): Promise<string> {
+  const token = uuidv7();
+  await clientOwner().$executeRawUnsafe(
+    `INSERT INTO "session"
+       (id, token, utilisateur_id, expire_le, cree_le, modifie_le)
+     VALUES ($1::uuid, $2, $3::uuid, now() + interval '1 day', now(), now())`,
+    uuidv7(),
+    token,
+    SUJET,
+  );
+  return token;
+}
+
+async function sessionsRestantesSujet(): Promise<number> {
+  const lignes = await clientOwner().$queryRawUnsafe<{ n: bigint }[]>(
+    `SELECT count(*)::bigint AS n FROM "session" WHERE utilisateur_id = $1::uuid`,
+    SUJET,
+  );
+  return Number(lignes[0]?.n ?? 0);
+}
+
 beforeEach(poserSujetAvecSecondFacteur);
-afterEach(restaurerSujet);
+afterEach(async () => {
+  await restaurerSujet();
+  await clientOwner().$executeRawUnsafe(
+    `DELETE FROM "session" WHERE utilisateur_id = $1::uuid`,
+    SUJET,
+  );
+});
 
 describe("la réinitialisation force le ré-enrôlement, et RIEN d'autre", () => {
   it("B (admin_societe) réinitialise un autre membre de SA société", async () => {
@@ -125,6 +153,27 @@ describe("la réinitialisation force le ré-enrôlement, et RIEN d'autre", () =>
     expect(facteur?.codes_secours).toBe("CODES-DU-SUJET");
 
     expect(await mfaActifSujet()).toBe(false);
+  });
+
+  it("FERME TOUTES LES SESSIONS DU SUJET (décision d'Alexis du 10/11/2026) — refusées à la requête suivante", async () => {
+    await poserSessionSujet();
+    await poserSessionSujet();
+    expect(await sessionsRestantesSujet()).toBe(2);
+
+    await reinitialiserSecondFacteur(
+      {
+        societeId: SOCIETE_A,
+        role: Role.admin_societe,
+        auteurId: ADMIN_B,
+        sujetId: SUJET,
+      },
+      clientApp(),
+    );
+
+    // AUCUNE SESSION NE SURVIT — la politique `session_fermeture` ne reconnaît
+    // plus ni jeton ni identité pour ces lignes : une requête qui les
+    // présenterait serait refusée.
+    expect(await sessionsRestantesSujet()).toBe(0);
   });
 
   it("A (admin_plateforme) réinitialise n'importe quel compte, sans société active", async () => {

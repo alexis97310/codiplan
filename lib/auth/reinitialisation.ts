@@ -4,6 +4,7 @@ import { prisma as clientParDefaut } from "@/lib/db/client";
 import { avecContexteRls } from "@/lib/db/rls";
 import { uuidv7 } from "@/lib/db/uuid";
 
+import { fermerSessionsDuCompteDansLaTransaction } from "./fermeture-sessions";
 import { avecDesignationAuth } from "./lecture-identite";
 import { identiteExclusiveALaSociete } from "./lien-d-acces";
 import { Role } from "./roles";
@@ -103,6 +104,16 @@ export function peutReinitialiserSecondFacteur(
  * un administrateur de société n'agit pas sur une identité qu'il ne contrôle
  * pas entièrement. A (`admin_plateforme`) n'est pas concerné — décision
  * antérieure à D226, et cette reprise ne l'élargit pas à A.
+ *
+ * **TOUTES LES SESSIONS DU SUJET SONT FERMÉES, DANS LA MÊME TRANSACTION**
+ * (décision d'Alexis du 10/11/2026, 9L09-SESSIONS-FERMEES-REINITIALISATION) —
+ * un second facteur devenu INERTE ne doit laisser aucune session déjà ouverte
+ * valoir encore un accès vérifié : sans cela, la personne qui a perdu son
+ * téléphone resterait connectée ailleurs, second facteur compris, jusqu'à
+ * l'expiration naturelle de sa session. Voir
+ * `fermerSessionsDuCompteDansLaTransaction` (`lib/auth/fermeture-sessions.ts`)
+ * pour le patron, déjà tenu par `revoquerAccesPortailClient` et
+ * `retirerAccesInterne`.
  */
 export async function reinitialiserSecondFacteur(
   demande: DemandeReinitialisation,
@@ -194,6 +205,12 @@ export async function reinitialiserSecondFacteur(
             "et l'écriture est annulée.",
         );
       }
+
+      // FERME TOUTES LES SESSIONS DU SUJET — voir l'en-tête de la fonction.
+      // DERNIER geste de la transaction : les deux écritures ci-dessus ont
+      // déjà eu lieu sous `app.utilisateur_id` = l'AUTEUR (I8) ; le réarmer
+      // sur le SUJET ne concerne plus qu'elles.
+      await fermerSessionsDuCompteDansLaTransaction(tx, demande.sujetId);
     },
   );
 
