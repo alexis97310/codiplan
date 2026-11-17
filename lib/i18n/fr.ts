@@ -2446,8 +2446,9 @@ export const fr = {
   "intervention.cloture.total_inconnu": "Sans information",
   "intervention.cloture.total_motif": "Ce qui manque",
   // ── LA MAJORATION HORS OUVERTURE (L2-09b, D12, D108) ──────────────────────
-  // Quatre motifs, et ils ne se corrigent pas au même endroit : un créneau qui
-  // manque n'est pas un calendrier d'agence qui manque.
+  // Cinq motifs, et ils ne se corrigent pas au même endroit : un créneau qui
+  // manque n'est pas un calendrier d'agence qui manque, ni un pourcentage de
+  // société qui manque.
   "intervention.majoration.creneau_absent":
     "Aucun créneau n'est posé : la majoration hors ouverture se lit sur le créneau, et non sur le temps passé.",
   "intervention.majoration.main_doeuvre_absente":
@@ -2456,6 +2457,8 @@ export const fr = {
     "Aucun technicien rattaché à un établissement : la majoration hors ouverture se lit sur les horaires de son établissement.",
   "intervention.majoration.calendrier_absent":
     "L'établissement du technicien n'a pas d'horaires d'ouverture : sans eux, on ne peut pas dire ce qui tombe hors ouverture.",
+  "intervention.majoration.pourcentage_invalide":
+    "Le pourcentage de majoration réglé par la société est absent ou invalide : le supplément ne peut pas être calculé.",
   "intervention.total.forfait_de_prestation_absent":
     "Le forfait de prestation de cette intervention n'est pas encore choisi : le catalogue ne le propose pas. Le total ne peut pas être calculé tant qu'il manque.",
   "intervention.total.main_doeuvre_absente":

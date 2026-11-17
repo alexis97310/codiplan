@@ -1,3 +1,5 @@
+import type { Prisma } from "@prisma/client";
+
 import { minutesHorsOuverture, type Calendrier } from "@/lib/calendar";
 import { arrondirAuPlusProche, montant, zero, type Montant } from "@/lib/money";
 
@@ -30,11 +32,23 @@ import { arrondirAuPlusProche, montant, zero, type Montant } from "@/lib/money";
  *
  * ## CE QUI NE SE ROUVRE PAS, ET CE QUI RENDRA LA QUESTION CADUQUE
  *
- * Le taux (**+50 %**), l'assiette (**main-d'œuvre seule**) et le calendrier de
- * référence (**agence du TECHNICIEN**) sont arrêtés par D12 et D13. *Le jour où
- * `intervention` portera l'heure réelle de début ET de fin* — R3-05 à la file —
- * la majoration se calculera sur les heures réellement travaillées, et D12 se
+ * L'assiette (**main-d'œuvre seule**) et le calendrier de référence (**agence
+ * du TECHNICIEN**) restent arrêtés par D12 et D13. *Le jour où `intervention`
+ * portera l'heure réelle de début ET de fin* — R3-05 à la file — la
+ * majoration se calculera sur les heures réellement travaillées, et D12 se
  * relira pour être remplacé. **La condition est vérifiable : deux colonnes.**
+ *
+ * **Le taux, lui, s'est rouvert** (décision d'Alexis du 10/11/2026) : ce
+ * n'est plus +50 % en dur, mais le pourcentage réglé par la société
+ * (`societe.majoration_hors_ouverture_pct`), lu par
+ * {@link tauxMajorationDepuisPourcentage} / {@link lireTauxMajorationSociete}
+ * — **la même lecture que le barème du portail**
+ * (`lireBaremePortail`, `app/api/portail/tarifs/lecture.ts`), pour que les
+ * deux ne puissent jamais afficher deux taux différents. `+50 %` ne
+ * disparaît pas : {@link TAUX_MAJORATION_HISTORIQUE} le porte encore, pour
+ * relire une intervention clôturée AVANT cette décision et dont la
+ * décomposition n'a pas été figée (même rôle que `REGLE_HISTORIQUE`,
+ * `lib/tarification/valorisation.ts`).
  *
  * ## L'ASSIETTE EST LA MAIN-D'ŒUVRE, ET RIEN D'AUTRE
  *
@@ -55,8 +69,69 @@ import { arrondirAuPlusProche, montant, zero, type Montant } from "@/lib/money";
  * module dispose* (la forme de D70).
  */
 
-/** Le taux de D12, exprimé en fraction exacte — jamais en flottant. */
-export const TAUX_MAJORATION = { numerateur: 1, denominateur: 2 } as const;
+/** Un taux de majoration, exprimé en fraction exacte — jamais en flottant. */
+export type TauxMajoration = {
+  readonly numerateur: bigint;
+  readonly denominateur: bigint;
+};
+
+/**
+ * L'ANCIEN TAUX DE D12, exposé pour relire une intervention clôturée AVANT
+ * la décision d'Alexis du 10/11/2026 (RG-INT-08) dont la décomposition n'a
+ * pas été figée (migration non rétroactive, `valorisation_figee` encore
+ * `null`) — c'est le taux qui a servi à la facturer, jamais le réglage
+ * actuel de la société. Même rôle que `REGLE_HISTORIQUE`
+ * (`lib/tarification/valorisation.ts`).
+ */
+export const TAUX_MAJORATION_HISTORIQUE: TauxMajoration = {
+  numerateur: BigInt(1),
+  denominateur: BigInt(2),
+};
+
+/**
+ * LE POURCENTAGE RÉGLÉ PAR LA SOCIÉTÉ, EN FRACTION EXACTE (décision d'Alexis
+ * du 10/11/2026, RG-INT-08) — remplace le taux fixe de D12.
+ *
+ * `societe.majoration_hors_ouverture_pct` est un `Decimal(5,2)` NOT NULL,
+ * mais aucune contrainte `CHECK` ne borne sa valeur en base : une valeur
+ * négative n'est pas empêchée au niveau du schéma. Ce module la refuse
+ * plutôt que de majorer à l'envers — `null` en retour, jamais un défaut
+ * silencieux.
+ *
+ * `Decimal(5,2)` garantit au plus deux décimales : `.times(100)` (decimal.js,
+ * jamais un flottant binaire) rend donc un ENTIER exact — jamais `toFixed`,
+ * que le gardien `tests/unit/money/sans-decimales-en-dur.test.ts` refuse
+ * partout hors `lib/money` (I3), pourcentage compris.
+ */
+export function tauxMajorationDepuisPourcentage(
+  pourcentage: Prisma.Decimal,
+): TauxMajoration | null {
+  if (pourcentage.isNegative()) {
+    return null;
+  }
+  const centiemes = pourcentage.times(100).toString();
+  return { numerateur: BigInt(centiemes), denominateur: BigInt(10_000) };
+}
+
+/**
+ * LA MÊME LECTURE QUE LE BARÈME DU PORTAIL (`lireBaremePortail`,
+ * `app/api/portail/tarifs/lecture.ts`) — une seule source pour
+ * `societe.majoration_hors_ouverture_pct`, pour que le portail et le calcul
+ * ne puissent jamais afficher deux taux différents.
+ */
+export async function lireTauxMajorationSociete(
+  tx: Prisma.TransactionClient,
+  societeId: string,
+): Promise<TauxMajoration | null> {
+  const societe = await tx.societe.findFirst({
+    where: { id: societeId },
+    select: { majoration_hors_ouverture_pct: true },
+  });
+  if (societe === null) {
+    return null;
+  }
+  return tauxMajorationDepuisPourcentage(societe.majoration_hors_ouverture_pct);
+}
 
 /** Un calendrier ACCOMPAGNÉ de l'agence dont il provient (D13). */
 export type CalendrierDAgence = {
@@ -91,23 +166,25 @@ export type MajorationHorsOuverture = {
 /**
  * Pourquoi la majoration ne se calcule pas — clé de dictionnaire.
  *
- * **Quatre motifs, et ils ne se corrigent pas au même endroit** : les deux
- * premiers sont prononcés ICI, les deux derniers par le dépôt qui charge les
+ * **Cinq motifs, et ils ne se corrigent pas au même endroit** : les deux
+ * premiers sont prononcés ICI, les trois derniers par le dépôt qui charge les
  * données. *Les réunir sous « inconnue » ferait chercher une donnée manquante
- * là où c'est un paramétrage d'agence qui manque.*
+ * là où c'est un paramétrage d'agence ou de société qui manque.*
  *
  * | Motif | Prononcé par | Ce qu'il faut faire |
  * |---|---|---|
  * | `creneau_absent` | ce module | poser un créneau, ou ne rien facturer à l'heure |
- * | `main_doeuvre_absente` | ce module | le mode ne facture pas d'heures, ou le taux manque |
+ * | `main_doeuvre_absente` | ce module | le mode ne facture pas d'heures |
  * | `technicien_absent` | le dépôt | affecter un technicien, ou le rattacher à une agence |
  * | `calendrier_absent` | le dépôt | paramétrer le calendrier de SON agence (I7) |
+ * | `pourcentage_invalide` | le dépôt | régler `societe.majoration_hors_ouverture_pct` à une valeur positive ou nulle |
  */
 export type MotifMajorationInconnue =
   | "intervention.majoration.creneau_absent"
   | "intervention.majoration.main_doeuvre_absente"
   | "intervention.majoration.technicien_absent"
-  | "intervention.majoration.calendrier_absent";
+  | "intervention.majoration.calendrier_absent"
+  | "intervention.majoration.pourcentage_invalide";
 
 export type VerdictMajoration =
   | { readonly connue: true; readonly majoration: MajorationHorsOuverture }
@@ -165,16 +242,30 @@ export function majorationHorsOuverture(parametres: {
   readonly calendrierDeLAgence: CalendrierDAgence | null;
   /** `null` quand aucun technicien rattaché n'a été trouvé. */
   readonly agenceDuTechnicien: string | null;
+  /**
+   * `null` quand le pourcentage de la société est absent ou invalide
+   * (décision d'Alexis du 10/11/2026) — voir {@link lireTauxMajorationSociete}.
+   * Vérifié SEULEMENT si le créneau tombe hors ouverture : un créneau
+   * ENTIÈREMENT dans l'ouverture rend zéro quel que soit le taux, y compris
+   * un taux qu'on n'a pas besoin de connaître pour ça.
+   */
+  readonly tauxMajoration: TauxMajoration | null;
 }): VerdictMajoration {
-  const { creneau, mainDoeuvre, calendrierDeLAgence, agenceDuTechnicien } =
-    parametres;
+  const {
+    creneau,
+    mainDoeuvre,
+    calendrierDeLAgence,
+    agenceDuTechnicien,
+    tauxMajoration,
+  } = parametres;
 
-  // ── LES QUATRE MOTIFS SONT PRONONCÉS ICI, ET NULLE PART AILLEURS ─────────
+  // ── LES CINQ MOTIFS SONT PRONONCÉS ICI, ET NULLE PART AILLEURS ──────────
   //
   // L'appelant rapporte ce qu'il a OBSERVÉ — un technicien, un calendrier, un
-  // créneau — et ce module décide. *Laisser le dépôt prononcer deux des quatre
-  // motifs aurait été deux lectures d'un même critère* (§9, 01/09) : le jour où
-  // l'ordre changerait ici, l'autre moitié ne le saurait pas.
+  // créneau, un pourcentage — et ce module décide. *Laisser le dépôt
+  // prononcer trois des cinq motifs aurait été deux lectures d'un même
+  // critère* (§9, 01/09) : le jour où l'ordre changerait ici, l'autre moitié
+  // ne le saurait pas.
   //
   // LA DISCORDANCE D'AGENCE EST JUGÉE LA PREMIÈRE, et elle LÈVE : c'est un
   // défaut d'APPEL, pas une donnée manquante. La rendre sous un motif anodin
@@ -244,6 +335,15 @@ export function majorationHorsOuverture(parametres: {
     };
   }
 
+  // LE TAUX N'EST REQUIS QU'ICI — voir la note sur `tauxMajoration`
+  // ci-dessus : au-dessous, il n'y avait rien à majorer, taux valide ou pas.
+  if (tauxMajoration === null) {
+    return {
+      connue: false,
+      motif: "intervention.majoration.pourcentage_invalide",
+    };
+  }
+
   const assiette = montant(
     arrondirAuPlusProche(
       mainDoeuvre.valeur * BigInt(Math.round(hors)),
@@ -253,8 +353,8 @@ export function majorationHorsOuverture(parametres: {
   );
   const supplement = montant(
     arrondirAuPlusProche(
-      assiette.valeur * BigInt(TAUX_MAJORATION.numerateur),
-      BigInt(TAUX_MAJORATION.denominateur),
+      assiette.valeur * tauxMajoration.numerateur,
+      tauxMajoration.denominateur,
     ),
     mainDoeuvre.devise,
   );

@@ -40,7 +40,10 @@ import { montant, zero, type Montant } from "@/lib/money";
 import { conditionsDeFacturation } from "@/lib/tarification/conditions";
 import { forfaitRetenu } from "@/lib/tarification/forfaits";
 import {
+  lireTauxMajorationSociete,
   majorationHorsOuverture,
+  TAUX_MAJORATION_HISTORIQUE,
+  type TauxMajoration,
   type VerdictMajoration,
 } from "@/lib/tarification/majoration";
 import { tauxEnVigueur } from "@/lib/tarification/taux-horaire";
@@ -1900,11 +1903,12 @@ async function regleArrondiDeLaSociete(
  * INTERVENTION PAS ENCORE CLÔTURÉE (9I8A1-REPRISE-9I8A) — la même suite
  * d'appels que l'ancien corps de `cloturerIntervention`, factorisée pour que
  * `lireFicheIntervention` ne la recopie pas une seconde fois (§9, 01/09 :
- * deux lectures d'un même critère divergent en silence). `regle` est fourni
- * par l'appelant plutôt que relu ici : la clôture connaît déjà la règle de la
- * société au moment où elle calcule, et une fiche qui relit une CLÔTURE
- * ANCIENNE (sans décomposition figée) doit pouvoir imposer
- * {@link REGLE_HISTORIQUE} plutôt que le réglage courant.
+ * deux lectures d'un même critère divergent en silence). `regle` ET
+ * `tauxMajoration` sont fournis par l'appelant plutôt que relus ici : la
+ * clôture connaît déjà le réglage de la société au moment où elle calcule,
+ * et une fiche qui relit une CLÔTURE ANCIENNE (sans décomposition figée)
+ * doit pouvoir imposer {@link REGLE_HISTORIQUE} et
+ * {@link TAUX_MAJORATION_HISTORIQUE} plutôt que le réglage courant.
  */
 async function valoriserEnDirect(
   tx: Prisma.TransactionClient,
@@ -1920,6 +1924,7 @@ async function valoriserEnDirect(
   societeId: string,
   minutesReelles: number,
   regle: RegleArrondi,
+  tauxMajoration: TauxMajoration | null,
 ): Promise<ValorisationAffichee | null> {
   const instant = await instantDeLAgence(tx, ligne.agence_id);
   const taux = await tauxEnVigueur(tx, ligne.date_planifiee ?? instant);
@@ -1939,6 +1944,7 @@ async function valoriserEnDirect(
     societeId,
     ligne,
     v.mainDoeuvre,
+    tauxMajoration,
   );
   const composition = valoriserIntervention({
     mode: ligne.mode_valorisation as ModeDeValorisation,
@@ -2069,6 +2075,7 @@ async function majorationDeLIntervention(
     readonly creneau_fin: Date | null;
   },
   mainDoeuvre: Montant | null,
+  tauxMajoration: TauxMajoration | null,
 ): Promise<VerdictMajoration> {
   // CE DÉPÔT NE PRONONCE AUCUN MOTIF : il rapporte ce qu'il a observé, et
   // `majorationHorsOuverture` décide. *Deux lectures d'un même critère
@@ -2118,6 +2125,7 @@ async function majorationDeLIntervention(
         ? null
         : { agenceId: technicien.agence_id, calendrier },
     agenceDuTechnicien: technicien?.agence_id ?? null,
+    tauxMajoration,
   });
 }
 
@@ -2155,6 +2163,11 @@ async function majorationApplicableALIntervention(
   ) {
     return false;
   }
+  // CET APERÇU N'EST JAMAIS CELUI D'UNE INTERVENTION CLÔTURÉE (voir
+  // `lignesConditionsFacturation`, qui rejoue la décomposition FIGÉE dans ce
+  // cas) : le pourcentage COURANT de la société s'applique, comme `regle`
+  // juste au-dessus dans ce même module.
+  const tauxMajoration = await lireTauxMajorationSociete(tx, societeId);
   const verdict = await majorationDeLIntervention(
     tx,
     societeId,
@@ -2164,6 +2177,7 @@ async function majorationApplicableALIntervention(
     // PRÉSENCE compte ; `devise_code` peut être `null` avant qu'une devise
     // ne soit posée sur l'intervention (une ligne qui n'en a pas encore).
     zero(ligne.devise_code ?? ""),
+    tauxMajoration,
   );
   return verdict.connue && verdict.majoration.minutesHorsOuverture > 0;
 }
@@ -2365,16 +2379,22 @@ export async function cloturerIntervention(
       }
 
       const instant = await instantDeLAgence(tx, ligne.agence_id);
-      // LA RÈGLE DE LA SOCIÉTÉ, LUE EN DIRECT (9I8A1-REPRISE-9I8A) — jamais
-      // celle d'hier, ni un défaut deviné : c'est celle-ci qui va être FIGÉE
-      // sur `valorisation_figee` ci-dessous, pour toujours.
+      // LA RÈGLE ET LE TAUX DE LA SOCIÉTÉ, LUS EN DIRECT (9I8A1-REPRISE-9I8A,
+      // décision d'Alexis du 10/11/2026) — jamais ceux d'hier, ni un défaut
+      // deviné : ce sont eux qui vont être FIGÉS sur `valorisation_figee`
+      // ci-dessous, pour toujours.
       const regle = await regleArrondiDeLaSociete(tx, contexte.societeId ?? "");
+      const tauxMajoration = await lireTauxMajorationSociete(
+        tx,
+        contexte.societeId ?? "",
+      );
       const valorisation = await valoriserEnDirect(
         tx,
         ligne,
         contexte.societeId ?? "",
         saisie.temps_valide_min,
         regle,
+        tauxMajoration,
       );
       if (valorisation === null) {
         return { accepte: false, cle: "intervention.refus.taux_absent" };
@@ -3515,11 +3535,12 @@ export async function lireFicheIntervention(
       // après coup ne doit rien changer à une fiche déjà close. Les deux
       // AUTRES cas calculent EN DIRECT, par la même fonction que la clôture
       // (§9, 01/09 : deux lectures d'un même critère divergent en silence) —
-      // une intervention PAS ENCORE close avec la règle COURANTE de la
-      // société (un aperçu, qui n'a rien à figer) ; une intervention close
-      // AVANT cette migration (`valorisation_figee` encore `null`) avec la
-      // règle HISTORIQUE constante, jamais le réglage actuel : c'est elle qui
-      // a servi à la facturer, et aucune reprise de données n'est faite.
+      // une intervention PAS ENCORE close avec la règle ET LE TAUX COURANTS
+      // de la société (un aperçu, qui n'a rien à figer) ; une intervention
+      // close AVANT cette migration (`valorisation_figee` encore `null`)
+      // avec la règle ET LE TAUX HISTORIQUES constants (décision d'Alexis
+      // du 10/11/2026), jamais le réglage actuel : ce sont eux qui ont
+      // servi à la facturer, et aucune reprise de données n'est faite.
       let valorisation: ValorisationAffichee | null = null;
       if (
         cloturee_le !== null &&
@@ -3535,12 +3556,17 @@ export async function lireFicheIntervention(
           cloturee_le !== null
             ? REGLE_HISTORIQUE
             : await regleArrondiDeLaSociete(tx, contexte.societeId ?? "");
+        const tauxMajoration =
+          cloturee_le !== null
+            ? TAUX_MAJORATION_HISTORIQUE
+            : await lireTauxMajorationSociete(tx, contexte.societeId ?? "");
         valorisation = await valoriserEnDirect(
           tx,
           brute,
           contexte.societeId ?? "",
           brute.temps_valide_min,
           regle,
+          tauxMajoration,
         );
       }
 
