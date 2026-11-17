@@ -9143,3 +9143,23 @@ Elle ne change ni l'assiette (main-d'œuvre seule) ni le calendrier de référen
 > Le jour où une route de paramétrage écrit `societe.majoration_hors_ouverture_pct`, cette décision se relit pour y ajouter la validation d'écriture (bornes, contrainte `CHECK`) qu'elle ne pose pas aujourd'hui — elle suppose qu'aucune route de ce genre n'existe, et que la question ne se pose donc pas encore à l'exploitation.
 
 Portée : `lib/tarification/majoration.ts` (`TAUX_MAJORATION` renommé `TAUX_MAJORATION_HISTORIQUE`, `tauxMajorationDepuisPourcentage` et `lireTauxMajorationSociete` nouveaux), `lib/interventions/depot.ts`, `lib/i18n/fr.ts`, `tests/unit/tarification/majoration.test.ts`, `tests/isolation/9j20-portail-tarifs.test.ts`, `tests/isolation/valorisation-intervention.test.ts`, `tests/e2e/captures-9l12-majoration-pourcentage-societe.spec.ts` (nouveau).
+
+## D270 — SUSPENDRE UNE INTERVENTION FERME LE SEGMENT DE COMPTEUR OUVERT ; LE TEMPS MESURÉ SE FIGE À LA SUSPENSION (décision d'Alexis du 10/11/2026 ; 9L13-SUSPENDRE-ARRETE-COMPTEUR)
+
+### CE QUI A ÉTÉ MESURÉ
+
+Sur `81894e0` : `suspendreIntervention` (`lib/interventions/depot.ts`) changeait le statut et posait la pièce attendue sans toucher au compteur, alors que `cloturerIntervention` et `annulerIntervention` REFUSENT déjà quand un segment est ouvert (D160, QT-4). Une suspension laissait donc le compteur tourner pendant l'attente de pièce, et le temps mesuré pré-remplissait le temps validé d'une durée qui n'était pas du travail.
+
+### LA DÉCISION
+
+**La suspension FERME le segment ouvert sur l'intervention, dans la même transaction que le changement de statut** — celui d'un renfort compris, jamais seulement celui de l'auteur du geste. Même calcul que `arreterLeCompteur` (`depot-compteur.ts`) : le segment se ferme d'abord, puis `temps_mesure_min` se réécrit comme la somme des segments fermés (le déclencheur `intervention_temps_mesure_est_celui_du_compteur` l'exige). La reprise, elle, n'ouvre toujours aucun segment — seul un geste explicite sur le compteur en rouvre un. Côté file hors réseau, le pipeline fixe d'`envoyerFile` (`lib/terrain/envoi-file.ts`) ordonnait déjà `compteur` avant `suspendre` ; rien n'y a changé, et c'est désormais sans conséquence de toute façon puisque le serveur ferme lui-même le segment à la seule réception de la suspension, même si aucun « arrêter » ne l'a jamais accompagnée dans la file.
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+Elle ne touche ni `cloturerIntervention` ni `annulerIntervention`, qui continuent de REFUSER plutôt que de fermer (D160) — la suspension est le seul geste du cycle de vie qui ferme le compteur à la place de celui qui aurait dû l'arrêter. Elle n'ajoute aucune migration : aucune colonne ni contrainte n'a manqué.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où une suspension doit pouvoir REFUSER plutôt que fermer (symétrie avec la clôture et l'annulation), cette décision se relit : elle suppose aujourd'hui que l'attente de pièce n'est jamais du travail, et que fermer le compteur à sa place est donc toujours correct.
+
+Portée : `lib/interventions/depot.ts` (`suspendreIntervention`), `tests/isolation/suspension.test.ts`, `tests/e2e/9l13-suspendre-arrete-compteur.spec.ts` (nouveau).
