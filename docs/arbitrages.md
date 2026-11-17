@@ -9038,3 +9038,29 @@ Elle ne rouvre pas la décision du 11/11/2026 (« les 23 mesures en relevé seul
 > Le jour où Alexis demande d'afficher ou de saisir une tolérance sous un point chiffré, cette décision se relit : elle suppose aujourd'hui que les colonnes `tolerance_min`/`tolerance_max` restent inertes et qu'aucun verdict automatique n'existe. Le jour où un point chiffré est RENOMMÉ et où l'historique attendu n'apparaît plus, cette décision se relit aussi : elle suppose que la clé `section + libellé` est la plus stable disponible sans rouvrir une table de correspondance dédiée.
 
 Portée : `lib/checklists/dernier-releve.ts` (nouveau), `lib/checklists/depot.ts` (`PointDeChecklist.dernierReleve`, `relevesHistoriquesDeLaMachine`, `checklistDeLIntervention`), `lib/calendar/fuseau.ts` (`dateCivileLocale`), `components/terrain/presentation.ts` (`libelleCopieDu`, refactorisée sur `dateCivileLocale`), `components/terrain/checklist-terrain.tsx` (`PointChecklistEcran.dernierReleve`, `libelleDernierReleve`, `PointLigne`), `app/(mobile)/terrain/[id]/page.tsx`, `app/api/terrain/instantane/route.ts` (`FicheJSON.checklist.dernierReleves`), `components/terrain/consultation-hors-reseau.tsx` (`pointsChecklistDeLaFiche`), `lib/terrain/copie-validee.ts` (`checklistDeLaFiche`), `lib/i18n/fr.ts` (`checklist.terrain.dernier_releve_prefixe`, `checklist.terrain.dernier_releve_le`), `tests/unit/checklists/dernier-releve.test.ts`, `tests/unit/terrain/checklist-terrain.test.tsx`, `tests/unit/terrain/copie-validee.test.ts`, `tests/isolation/9l08f-checklist-dernier-releve.test.ts`, `tests/e2e/9l08f-checklist-dernier-releve.spec.ts`.
+
+## D266 — RÉINITIALISER UN SECOND FACTEUR OU CHOISIR UN MOT DE PASSE PAR LIEN FERME LES SESSIONS DÉJÀ OUVERTES DU COMPTE ; INVALIDER LES LIENS ANTÉRIEURS RESTE HORS DE PORTÉE SANS MIGRATION (décision d'Alexis du 10/11/2026 ; 9L09-SESSIONS-FERMEES-REINITIALISATION)
+
+### CE QUI A ÉTÉ MESURÉ
+
+Sur `81894e0` : réinitialiser le second facteur d'un compte (`reinitialiserSecondFacteur`, lib/auth/reinitialisation.ts) remettait le facteur à l'état « jamais vérifié » sans fermer aucune session déjà ouverte de ce compte — une session ouverte AVANT la réinitialisation restait valable après, second facteur compris, jusqu'à son expiration naturelle. De même, choisir un mot de passe par un lien (`choisirLePremierMotDePasse`, lib/auth/premier-acces.ts — premier accès ou « nouveau lien » de D86) ne fermait aucune autre session du compte : un poste perdu ou partagé restait connecté après que la personne a changé son mot de passe depuis un autre poste. Alexis a répondu « OK » aux deux correctifs proposés.
+
+### LA DÉCISION
+
+**1. `reinitialiserSecondFacteur` ferme TOUTES les sessions du sujet, dans la MÊME transaction que les deux écritures de 9IA** (`second_facteur`, `utilisateur.mfa_actif`) — un second facteur devenu inerte ne doit laisser aucune session déjà ouverte valoir encore un accès vérifié.
+
+**2. `choisirLePremierMotDePasse` ferme TOUTES les sessions déjà ouvertes du compte, une fois le mot de passe posé** — ce module n'en ouvre aucune lui-même (D35/D50 : la personne se reconnecte ensuite), donc « fermer les autres » revient à « fermer toutes ». Pour un premier accès, aucune session n'existe encore : le geste ne change rien. Pour un nouveau lien (mot de passe oublié, compte déjà actif ailleurs), c'est tout l'objet du correctif.
+
+**3. Les deux réutilisent le même patron, déjà tenu par `revoquerAccesPortailClient` et `retirerAccesInterne`** (`lib/auth/fermeture-sessions.ts`, nouveau) : la politique `session_fermeture` n'admet que le jeton présenté ou sa propre ligne, ancrée sur `app.utilisateur_id` — fermer la session d'un tiers exige de poser cette variable sur la cible, dans la transaction qui écrit. Aucune politique n'a changé.
+
+**4. L'option du greffon Better Auth (`emailAndPassword.revokeSessionsOnPasswordReset`) n'a pas été activée** : elle appelle `deleteUserSessions` à travers l'enveloppe de désignation (`lib/auth/lecture-identite.ts`), qui ne pose aucune désignation pour un `WHERE utilisateur_id = …` sur `session` — zéro ligne supprimée, même constat déjà écrit pour la même méthode dans `lib/auth/mon-compte.ts`. Le geste reste donc applicatif.
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+Elle NE RÉSOUT PAS le troisième correctif envisagé : invalider les liens de premier accès / mot de passe oublié ANTÉRIEURS encore valides d'un compte, au moment où un nouveau lien lui est émis. La table `verification` (jetons à usage unique) n'est cloisonnée que par DÉSIGNATION sur `identifiant` (L1-02d) — aucune politique, aucune fonction `SECURITY DEFINER` autorisée (D226, D233) ne permet de retrouver ou de supprimer les jetons antérieurs d'un compte par son identifiant d'utilisateur. Fermer cet écart demande soit une nouvelle forme de politique sur `verification`, soit une troisième fonction `SECURITY DEFINER` arbitrée au même rang que D226/D233 — l'une et l'autre une migration, hors de ce lot. Un lien antérieur non consommé reste donc valable après l'émission d'un nouveau lien, jusqu'à son expiration naturelle (une heure, D65) ou son usage.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où Alexis arbitre une migration pour fermer l'écart du point 3 (nouvelle forme de politique sur `verification`, ou fonction `SECURITY DEFINER` arbitrée), cette décision se relit : elle suppose aujourd'hui que seules les SESSIONS se ferment, jamais les jetons.
+
+Portée : `lib/auth/fermeture-sessions.ts` (nouveau), `lib/auth/reinitialisation.ts` (`reinitialiserSecondFacteur`), `lib/auth/premier-acces.ts` (`choisirLePremierMotDePasse`), `tests/isolation/reinitialisation-second-facteur.test.ts`, `tests/isolation/premier-acces.test.ts`, `tests/isolation/nouveau-lien-mot-de-passe-deja-pose.test.ts`.
