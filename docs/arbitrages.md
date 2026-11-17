@@ -9010,3 +9010,31 @@ Elle ne rend pas le COMMENTAIRE d'un point non conforme obligatoire : D254 reste
 > Le jour où Alexis tranche que le commentaire d'un point non conforme doit, lui aussi, devenir obligatoire avant « Terminer », cette décision se relit : elle suppose aujourd'hui que seule la suite entre dans le calcul des manques, jamais le commentaire. Le jour où une contrainte de base serait posée sur `non_conformite_suite`, cette décision se relit également : elle suppose aujourd'hui que la garde reste purement applicative, au même rang que CK7.
 
 Portée : `lib/checklists/completude.ts` (`ReponsePourCompletude.suiteDonnee`, `EtatCompletude.suitesNonConformesManquantes`), `lib/interventions/cycle-de-vie.ts` (`peutTerminer`, `Refus.pointsSansSuite`, `ManquesTerminer.suitesNonConformesManquantes`, `manquesPourTerminer`), `lib/checklists/depot.ts` (`manquesChecklistPourTerminer`, ex-`obligatoiresManquantsPourTerminer`), `lib/interventions/depot-rapport-terrain.ts` (`terminerIntervention`, `ResultatTerminer.pointsSansSuite`), `app/api/terrain/[id]/terminer/route.ts`, `app/api/terrain/instantane/route.ts`, `app/(mobile)/terrain/[id]/page.tsx`, `components/terrain/rapport-automatique.tsx`, `components/terrain/checklist-terrain.tsx` (`resumeNonConformite`), `lib/i18n/fr.ts`, `tests/unit/checklists/completude.test.ts`, `tests/unit/interventions/cycle-de-vie.test.ts`, `tests/isolation/terminer-intervention.test.ts`, `tests/e2e/9l08e-non-conforme-suite-obligatoire.spec.ts`.
+
+## D265 — SOUS UN POINT CHIFFRÉ, LE DERNIER RELEVÉ DE LA MÊME MACHINE S'AFFICHE EN RAPPEL ; RELEVÉ SEUL, AUCUNE TOLÉRANCE (décisions d'Alexis du 11/11 et du 16/11/2026 ; 9L08F-CHECKLIST-DERNIER-RELEVE)
+
+### CE QUI A ÉTÉ MESURÉ
+
+La revue du 13/11/2026 (`claude/revue-intervention-technicien-13-11.md`, constat C5, « lot 4 ») proposait d'afficher, sous un point chiffré de la checklist, à la fois le dernier relevé de la machine ET les colonnes de tolérance (`checklist_point.tolerance_min`/`tolerance_max`, posées vides depuis 9K08). Le 11/11/2026, Alexis avait déjà tranché « les 23 mesures en relevé seul, aucune tolérance ». Reposée le 16/11/2026 entre trois options — « 1 — relevé seul, on ajoute seulement le dernier relevé de la machine sous le champ ; 2 — on ajoute aussi les tolérances ; 3 — rien » —, la réponse d'Alexis a été **« 1 »**.
+
+### LA DÉCISION
+
+**1. Sous le libellé d'un point de type `valeur_mesuree`, la fiche terrain affiche le dernier relevé de la MÊME MACHINE, lu sur une intervention ANTÉRIEURE déjà `terminee` ou `cloturee`** — « Dernier relevé : 6.2 bar le 12/09/2026 », en 13 px gris (`text-app-terrain-encre-secondaire`, `#5B6472`), sans aucune couleur ni verdict. Rien ne s'affiche en l'absence d'antécédent, de machine rattachée, ou pour un point d'un autre type.
+
+**2. AUCUNE TOLÉRANCE n'est affichée ni saisie, et aucun passage automatique en non conforme n'est introduit.** Les colonnes `tolerance_min`/`tolerance_max` restent inertes, exactement comme avant ce lot — cette décision ne les lit toujours pas.
+
+**3. La clé de correspondance entre deux points de versions différentes est `section + libellé`, jamais `checklist_point.id`** — `checklist_point.id` change à chaque nouvelle version d'un modèle, alors que `checklist_reponse` recopie `libelle`/`section` au moment de la réponse (D235). Deux limites assumées : un point RENOMMÉ entre deux versions perd son historique ; une machine dont le modèle de matériel change garde son relevé si le libellé/section du point survit au changement (`lib/checklists/dernier-releve.ts`).
+
+**4. La lecture est bornée, pas un calcul métier** — `lib/checklists/depot.ts` (`relevesHistoriquesDeLaMachine`) interroge les 200 interventions les plus récentes de la machine (même ordre que `lib/machines/historique.ts`), puis leurs réponses chiffrées en une seule requête supplémentaire, jamais une requête par point.
+
+**5. Le bon interne et la fiche bureau n'affichent pas ce rappel** — ce sont des documents de preuve/remise, pas un outil d'aide à la saisie ; seules la fiche terrain en ligne (`components/terrain/checklist-terrain.tsx`) et la coquille hors réseau (même instantané, `app/api/terrain/instantane/route.ts`) le portent.
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+Elle ne rouvre pas la décision du 11/11/2026 (« les 23 mesures en relevé seul, aucune tolérance », jamais consignée sous son propre numéro faute de ticket à l'époque) : elle la CONFIRME, en y ajoutant le rappel du dernier relevé que cette même décision avait déjà nommé. Elle n'ajoute aucune migration — `tolerance_min`/`tolerance_max` existent déjà, posées vides, et le restent. Elle ne filtre pas par qui a saisi le relevé précédent : tout technicien amené à intervenir sur une machine voit le même rappel, quel que soit l'auteur du relevé antérieur.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où Alexis demande d'afficher ou de saisir une tolérance sous un point chiffré, cette décision se relit : elle suppose aujourd'hui que les colonnes `tolerance_min`/`tolerance_max` restent inertes et qu'aucun verdict automatique n'existe. Le jour où un point chiffré est RENOMMÉ et où l'historique attendu n'apparaît plus, cette décision se relit aussi : elle suppose que la clé `section + libellé` est la plus stable disponible sans rouvrir une table de correspondance dédiée.
+
+Portée : `lib/checklists/dernier-releve.ts` (nouveau), `lib/checklists/depot.ts` (`PointDeChecklist.dernierReleve`, `relevesHistoriquesDeLaMachine`, `checklistDeLIntervention`), `lib/calendar/fuseau.ts` (`dateCivileLocale`), `components/terrain/presentation.ts` (`libelleCopieDu`, refactorisée sur `dateCivileLocale`), `components/terrain/checklist-terrain.tsx` (`PointChecklistEcran.dernierReleve`, `libelleDernierReleve`, `PointLigne`), `app/(mobile)/terrain/[id]/page.tsx`, `app/api/terrain/instantane/route.ts` (`FicheJSON.checklist.dernierReleves`), `components/terrain/consultation-hors-reseau.tsx` (`pointsChecklistDeLaFiche`), `lib/terrain/copie-validee.ts` (`checklistDeLaFiche`), `lib/i18n/fr.ts` (`checklist.terrain.dernier_releve_prefixe`, `checklist.terrain.dernier_releve_le`), `tests/unit/checklists/dernier-releve.test.ts`, `tests/unit/terrain/checklist-terrain.test.tsx`, `tests/unit/terrain/copie-validee.test.ts`, `tests/isolation/9l08f-checklist-dernier-releve.test.ts`, `tests/e2e/9l08f-checklist-dernier-releve.spec.ts`.
