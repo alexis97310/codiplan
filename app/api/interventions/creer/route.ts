@@ -22,6 +22,14 @@ import { motifDuRefusDeSaisie, versLeFormulaire } from "./formulaire";
  * CRÉER UNE INTERVENTION — UNE DEMANDE (lot 2, D84 ; PARCOURS-1, 23/09/2026,
  * arbitrage Alexis).
  *
+ * **LA CAPACITÉ EXIGÉE EST `qualifier_affecter`, PAS `creer_demande`**
+ * (décision d'Alexis du 10/11/2026) : créer directement une intervention est
+ * le même geste que qualifier une demande (D151, « qualifier une demande,
+ * c'est décider qu'on va intervenir ») — le technicien et le client, qui
+ * possèdent `creer_demande` pour déposer une DEMANDE (`/api/demandes/creer`,
+ * route distincte et inchangée), ne possèdent pas `qualifier_affecter` et
+ * sont donc refusés ici.
+ *
  * Le lieu arrive sous la forme `client:site` — un seul champ pour un couple qui
  * ne se dissocie jamais. Le faire saisir en deux listes laisserait choisir un
  * lieu d'un autre client, et il faudrait alors le refuser : autant ne pas le
@@ -58,7 +66,7 @@ export async function POST(requete: Request): Promise<Response> {
 const IDENTIFIANT_UUID = z.string().uuid();
 
 async function traiter(requete: Request): Promise<Response> {
-  const contexte = await exigerCapacite("creer_demande");
+  const contexte = await exigerCapacite("qualifier_affecter");
   if (contexte === null) {
     return versLePlanning(await motifDuRefus());
   }

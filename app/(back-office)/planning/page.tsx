@@ -279,13 +279,14 @@ export default async function PagePlanning({
   const peutDeclarerAbsence =
     contexte.role !== null && peut(contexte.role, "modifier_planning");
   // « + CRÉER ICI » (PG-D5-CREER-ICI) — les DEUX capacités ensemble : celle
-  // de la route de création (`creer_demande`, `app/api/interventions/creer/route.ts`)
-  // et celle de la pose (`modifier_planning`, ci-dessus, en accès COMPLET).
-  // Un rôle qui n'a que l'une des deux ne verrait qu'un geste que l'autre
-  // moitié du parcours refuserait en silence.
+  // de la route de création (`qualifier_affecter`, décision d'Alexis du
+  // 10/11/2026, `app/api/interventions/creer/route.ts`) et celle de la pose
+  // (`modifier_planning`, ci-dessus, en accès COMPLET). Un rôle qui n'a que
+  // l'une des deux ne verrait qu'un geste que l'autre moitié du parcours
+  // refuserait en silence.
   const peutCreerIci =
     contexte.role !== null &&
-    peut(contexte.role, "creer_demande") &&
+    peut(contexte.role, "qualifier_affecter") &&
     peutModifierLePlanning;
   // ── LE RÉFÉRENTIEL DES TECHNICIENS SUIT LE MÊME PÉRIMÈTRE QUE LES LIGNES
   // (R5-01, mesuré et corrigé le 17/09/2026).

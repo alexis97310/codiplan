@@ -113,11 +113,16 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   "app/api/contacts/creer/route.ts": "gerer_client_site",
   "app/api/contacts/[id]/modifier/route.ts": "gerer_client_site",
   "app/api/contacts/[id]/activite/route.ts": "gerer_client_site",
-  // « Créer une demande ».
-  "app/api/interventions/creer/route.ts": "creer_demande",
-  // « + Demande » (D188, 9EDZ-DEMANDES-CONNEXION-MAQUETTE) — le volet de
-  // /demandes dépose directement, même capacité que la création
-  // d'intervention ci-dessus.
+  // 9L10-CREER-INTERVENTION-QUALIFIER (décision d'Alexis du 10/11/2026) —
+  // créer directement une intervention est le même geste que qualifier une
+  // demande (D151), jamais celui de déposer une demande : le technicien et
+  // le client, qui possèdent `creer_demande`, sont refusés ici.
+  "app/api/interventions/creer/route.ts": "qualifier_affecter",
+  // « Créer une demande » — « + Demande » (D188,
+  // 9EDZ-DEMANDES-CONNEXION-MAQUETTE), le volet de /demandes dépose
+  // directement. Depuis 9L10, sa capacité diverge de celle de la création
+  // d'intervention ci-dessus : déposer une demande n'est plus le même geste
+  // que créer directement une intervention.
   "app/api/demandes/creer/route.ts": "creer_demande",
   // D151 (03/10/2026, décision du 03/10 point 3) — les QUATRE ACTIONS d'une
   // demande relèvent de « Qualifier / affecter » (CDC §5.2), jamais de la
