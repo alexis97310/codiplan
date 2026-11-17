@@ -7,10 +7,7 @@ import {
   reprendreIntervention,
   suspendreIntervention,
 } from "@/lib/interventions/depot";
-import {
-  arreterLeCompteur,
-  demarrerLeCompteur,
-} from "@/lib/interventions/depot-compteur";
+import { demarrerLeCompteur } from "@/lib/interventions/depot-compteur";
 
 import { clientApp, clientOwner, fermerClients } from "./setup/db";
 import {
@@ -304,9 +301,7 @@ describe("la suspension ferme le segment ouvert (décision d'Alexis du 10/11/202
 
     const [apresSuspension] = await clientOwner().$queryRawUnsafe<
       Array<{ temps_mesure_min: number | null }>
-    >(
-      `SELECT "temps_mesure_min" FROM "intervention" WHERE "id" = '${id}'`,
-    );
+    >(`SELECT "temps_mesure_min" FROM "intervention" WHERE "id" = '${id}'`);
     const mesureFigee = apresSuspension?.temps_mesure_min;
     expect(mesureFigee).not.toBeNull();
 
@@ -316,9 +311,7 @@ describe("la suspension ferme le segment ouvert (décision d'Alexis du 10/11/202
     // d'interroger la ligne plus tard, celui-ci n'en ajoute aucune.
     const [plusTard] = await clientOwner().$queryRawUnsafe<
       Array<{ temps_mesure_min: number | null }>
-    >(
-      `SELECT "temps_mesure_min" FROM "intervention" WHERE "id" = '${id}'`,
-    );
+    >(`SELECT "temps_mesure_min" FROM "intervention" WHERE "id" = '${id}'`);
     expect(plusTard?.temps_mesure_min).toBe(mesureFigee);
   });
 
