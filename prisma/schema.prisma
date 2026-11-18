@@ -234,7 +234,12 @@ model Societe {
   utilisateur_societes         UtilisateurSociete[]              @ignore
   utilisateur_clients          UtilisateurClient[]               @ignore
   perimetres_portail           UtilisateurClientSite[]           @ignore
-  contacts                     Contact[]
+  /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : JAMAIS navigué depuis `Societe` —
+  /// tous les `tx.contact.*` (`lib/contacts/depot.ts`, `lib/clients/depot.ts`,
+  /// `lib/avertissements/*.ts`) sélectionnent des scalaires, jamais cette
+  /// réciproque. Partenaire vérifié : `Contact.societe` non plus jamais
+  /// sélectionné.
+  contacts                     Contact[]                         @ignore
   habilitations                Habilitation[]
   techniciens_habilites        TechnicienHabilitation[]          @ignore
   sites_habilitations          SiteHabilitationRequise[]         @ignore
@@ -802,7 +807,10 @@ model Client {
   societe  Societe             @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
   sites    Site[]
   comptes  UtilisateurClient[]
-  contacts Contact[]
+  /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : même motif que `Societe.contacts`
+  /// — `client_id` lu en scalaire, jamais cette réciproque. Partenaire
+  /// vérifié : `Contact.client` non plus jamais sélectionné.
+  contacts Contact[]           @ignore
   machines Machine[]
 
   @@unique([societe_id, code_externe])
@@ -977,7 +985,10 @@ model Site {
   /// D246) — sans effet sur le chaînage lui-même, porté par la clé étrangère
   /// composite déclarée sur `UtilisateurClientSite`, pas par ce champ.
   perimetres             UtilisateurClientSite[]   @ignore
-  contacts               Contact[]
+  /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : même motif que `Societe.contacts`
+  /// — `site_id` lu en scalaire, jamais cette réciproque. Partenaire vérifié :
+  /// `Contact.site` non plus jamais sélectionné.
+  contacts               Contact[]                 @ignore
   /// `@ignore` : même raisonnement, même ticket — `SiteHabilitationRequise`
   /// se lit toujours par sa propre requête filtrée.
   habilitations_requises SiteHabilitationRequise[] @ignore
