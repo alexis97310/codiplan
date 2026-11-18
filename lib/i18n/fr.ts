@@ -839,6 +839,23 @@ export const fr = {
   "sites.cree_prefixe": "Le",
   "sites.cree_suffixe": "a été créé.",
   "sites.modifie": "Les modifications ont été enregistrées.",
+  // AGENCE-SITE-PROPAGEE (décision d'Alexis du 10/11/2026) — composés par
+  // `texteAgencePropagee` (`app/(back-office)/sites/presentation.ts`), jamais
+  // affichés seuls. **Le mot imposé ne s'écrit pas ici** (§3, D5/D47) : ces
+  // clés s'arrêtent avant lui, et `motDansUnePhrase("agence")` le complète
+  // au rendu, comme `sites.fiche.contacts_vide_prefixe` le fait déjà pour
+  // « site ».
+  "sites.agence_propagee.ouvertes_singulier_prefixe":
+    "intervention ouverte a suivi la nouvelle",
+  "sites.agence_propagee.ouvertes_pluriel_prefixe":
+    "interventions ouvertes ont suivi la nouvelle",
+  "sites.agence_propagee.a_revoir_prefixe": "Attention :",
+  "sites.agence_propagee.a_revoir_singulier_prefixe":
+    "intervention déjà posée tombe hors des horaires de la nouvelle",
+  "sites.agence_propagee.a_revoir_pluriel_prefixe":
+    "interventions déjà posées tombent hors des horaires de la nouvelle",
+  "sites.agence_propagee.a_revoir_suffixe": "à revoir.",
+  "sites.agence_propagee.numero_prefixe": "n°",
   // /SITES/NOUVEAU AU GABARIT DU 28/09 (9EK-TP-UX5-2-CREATIONS-1) — bloc
   // ISOLÉ, même raison que le bloc jumeau de « clients.nouveau » : la clé
   // `sites.action.creer` garde son texte (« Créer ») pour ses autres

@@ -57,16 +57,22 @@ async function traiter(
   params: Promise<{ id: string }>,
 ): Promise<Response> {
   const { id } = await params;
-  const versLaFiche = (cle?: string): Response =>
-    new Response(null, {
+  // `extra`, EN NOMBRES ET CLÉS FERMÉES SEULEMENT — même discipline que
+  // `/api/interventions/transmettre` (9CP-PG-G14B-TRANSMETTRE-GROUPE) : un
+  // paramètre forgé rend au plus un compte faux, jamais un texte injecté.
+  const versLaFiche = (cle?: string, extra?: URLSearchParams): Response => {
+    const parametres = extra ?? new URLSearchParams();
+    if (cle !== undefined) {
+      parametres.set("motif", cle);
+    }
+    const chaine = parametres.toString();
+    return new Response(null, {
       status: 303,
       headers: {
-        Location:
-          cle === undefined
-            ? `/sites/${id}`
-            : `/sites/${id}?motif=${encodeURIComponent(cle)}`,
+        Location: chaine === "" ? `/sites/${id}` : `/sites/${id}?${chaine}`,
       },
     });
+  };
 
   const contexte = await exigerCapacite("gerer_client_site");
   if (contexte === null) {
@@ -124,7 +130,24 @@ async function traiter(
   }
 
   const resultat = await modifierSite(contexte, id, saisie.data);
-  return versLaFiche(
-    resultat.accepte ? "sites.modifie" : `site.refus.${resultat.motif}`,
-  );
+  if (!resultat.accepte) {
+    return versLaFiche(`site.refus.${resultat.motif}`);
+  }
+  // AGENCE-SITE-PROPAGEE (décision d'Alexis du 10/11/2026) — LE COMPTE-RENDU
+  // VOYAGE PAR DES NOMBRES, JAMAIS PAR DU TEXTE (même discipline que
+  // `texteCompteRenduTransmission`) : `agenceSuivies` est un entier,
+  // `agenceASignaler` un numéro d'intervention répété, jamais une phrase.
+  const parametres = new URLSearchParams();
+  if (
+    resultat.interventionsDeplacees !== undefined &&
+    resultat.interventionsDeplacees > 0
+  ) {
+    parametres.set("agenceSuivies", String(resultat.interventionsDeplacees));
+  }
+  for (const signalee of resultat.interventionsASignaler ?? []) {
+    if (signalee.numero !== null) {
+      parametres.append("agenceASignaler", String(signalee.numero));
+    }
+  }
+  return versLaFiche("sites.modifie", parametres);
 }

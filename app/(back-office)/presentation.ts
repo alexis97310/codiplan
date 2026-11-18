@@ -42,6 +42,25 @@ export function ouTiret(valeur: string | number | null): string {
 }
 
 /**
+ * UN ENTIER POSITIF PORTÉ PAR L'URL, JAMAIS AUTRE CHOSE (9CP-PG-G14B-
+ * TRANSMETTRE-GROUPE) — un paramètre forgé ou absent rend `0`, jamais une
+ * exception : seul un compte-rendu composé de NOMBRES et de CLÉS FERMÉES
+ * (L1-02f, D50) peut voyager par une redirection sans devenir un canal de
+ * texte en dur.
+ *
+ * **Extraite ici plutôt que recopiée** (§9, 01/09) : `/planning` la lisait
+ * déjà pour `?transmis=`/`?techniciens=`/`?echecsCourriel=`, et
+ * `/sites/[id]` en a besoin mot pour mot pour `?agenceSuivies=`.
+ */
+export function entierPositif(valeur: string | string[] | undefined): number {
+  const brut = Array.isArray(valeur) ? valeur[0] : valeur;
+  const nombre = Number(brut);
+  return typeof brut === "string" && Number.isInteger(nombre) && nombre >= 0
+    ? nombre
+    : 0;
+}
+
+/**
  * UN NOMBRE ET SON UNITÉ ACCORDÉE — jamais un « s » retranché (AT-07).
  *
  * Le singulier est une clé du dictionnaire, jamais calculé par troncature : le

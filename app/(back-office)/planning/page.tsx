@@ -169,7 +169,7 @@ import {
   objetDuBloc,
   referenceAffichee,
 } from "../interventions/presentation";
-import { decompte } from "../presentation";
+import { decompte, entierPositif } from "../presentation";
 import {
   barreChargeDuJour,
   creneauDeLaCarte,
@@ -386,13 +386,6 @@ export default async function PagePlanning({
   // (L1-02f, D50) : un paramètre forgé rend au plus un compte faux, une
   // mention « canal non configuré » à tort, ou une ligne d'une intervention
   // que son rôle a par ailleurs le droit d'ouvrir — jamais un texte injecté.
-  const entierPositif = (valeur: string | string[] | undefined): number => {
-    const brut = Array.isArray(valeur) ? valeur[0] : valeur;
-    const nombre = Number(brut);
-    return typeof brut === "string" && Number.isInteger(nombre) && nombre >= 0
-      ? nombre
-      : 0;
-  };
   const transmisAffiche =
     typeof parametres.transmis === "string"
       ? entierPositif(parametres.transmis)

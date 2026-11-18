@@ -1,10 +1,20 @@
 import { Prisma, type PrismaClient } from "@prisma/client";
 
 import { type ContexteSession, exigerSocieteActive } from "@/lib/auth/contexte";
+import { fuseauDeLAgence, chargerCalendrierAgence } from "@/lib/calendar/agence";
+import {
+  comparerJours,
+  jourDe,
+  jourSuivant,
+  versLocal,
+  type JourLocal,
+} from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
 import { normaliserRaisonSociale } from "@/lib/excel/rapprochement";
-import { STATUTS_INTERVENTION_FERMES } from "@/lib/interventions/depot";
+import { STATUTS_INTERVENTION_OUVERTS } from "@/lib/interventions/cycle-de-vie";
+import { jourStocke, STATUTS_INTERVENTION_FERMES } from "@/lib/interventions/depot";
+import { verdictOuverture, type PoseDemandee } from "@/lib/interventions/pose";
 import { STATUTS_HORS_PARC_ACTIF } from "@/lib/machines/depot";
 import { trierAlphanumeriquement } from "@/lib/tri/collation";
 import { machinesVgpDepasseeParSite } from "@/lib/vgp/registre";
@@ -120,7 +130,29 @@ export type MotifRefusSite =
   | "fiche_introuvable";
 
 export type ResultatEcriture =
-  | { readonly accepte: true; readonly fiche: FicheSite }
+  | {
+      readonly accepte: true;
+      readonly fiche: FicheSite;
+      /**
+       * POSÉ SEULEMENT PAR `modifierSite` QUAND LE RATTACHEMENT CHANGE
+       * (AGENCE-SITE-PROPAGEE, D10/11/2026) — combien d'interventions
+       * OUVERTES de ce site ont suivi la nouvelle agence, dans la MÊME
+       * transaction que l'écriture de la fiche. `undefined` sur toute autre
+       * écriture (création, ou modification qui ne touche pas `agence_id`).
+       */
+      readonly interventionsDeplacees?: number;
+      /**
+       * LES INTERVENTIONS DÉJÀ POSÉES QUE CE DÉPLACEMENT SORT DES HORAIRES
+       * (ou d'un jour fermé) de la NOUVELLE agence — SIGNALÉES, jamais
+       * déplacées d'office : leur créneau n'est pas touché, et c'est à qui
+       * planifie de le revoir. Même présence conditionnelle que
+       * `interventionsDeplacees`.
+       */
+      readonly interventionsASignaler?: readonly {
+        readonly id: string;
+        readonly numero: number | null;
+      }[];
+    }
   | { readonly accepte: false; readonly motif: MotifRefusSite };
 
 /** Violation de contrainte d'intégrité référentielle — ici, la clé composite. */
@@ -155,6 +187,88 @@ function motifDeLErreur(erreur: unknown): MotifRefusSite | null {
     return "fiche_introuvable";
   }
   return null;
+}
+
+/**
+ * LES INTERVENTIONS DÉJÀ POSÉES QUE LA NOUVELLE AGENCE REND HORS OUVERTURE
+ * (AGENCE-SITE-PROPAGEE, décision d'Alexis du 10/11/2026) — jour fermé ou
+ * créneau hors des horaires de la nouvelle agence. **Elle SIGNALE, elle ne
+ * corrige rien** : le créneau d'une intervention n'est jamais touché par ce
+ * changement de rattachement, à qui planifie de le revoir.
+ *
+ * `verdictOuverture` (`lib/interventions/pose.ts`) est la MÊME lecture
+ * qu'à la pose, rejouée ici contre le calendrier de la nouvelle agence
+ * plutôt que recopiée (§9, 01/09). Une agence sans calendrier REFUSE toute
+ * ligne posée, comme à la pose (I7) : « inconnu » n'est pas « ouvert ».
+ *
+ * Les lignes sans aucun créneau (statut `a_planifier`) n'ont rien à juger :
+ * aucun jour ni heure ne leur est encore posé.
+ */
+async function interventionsHorsOuvertureNouvelleAgence(
+  tx: Prisma.TransactionClient,
+  societeId: string,
+  nouvelleAgenceId: string,
+  interventions: readonly {
+    readonly id: string;
+    readonly numero: number | null;
+    readonly date_planifiee: Date | null;
+    readonly creneau_debut: Date | null;
+    readonly creneau_fin: Date | null;
+  }[],
+): Promise<readonly { readonly id: string; readonly numero: number | null }[]> {
+  const posees = interventions.filter(
+    (ligne) => ligne.date_planifiee !== null || ligne.creneau_debut !== null,
+  );
+  if (posees.length === 0) {
+    return [];
+  }
+  const agence = await tx.agence.findFirst({
+    where: { id: nouvelleAgenceId, societe_id: societeId },
+    select: {
+      fuseau_horaire: true,
+      societe: { select: { fuseau_horaire: true } },
+    },
+  });
+  if (agence === null) {
+    return [];
+  }
+  const fuseau = fuseauDeLAgence(agence);
+  const demandes = posees.map((ligne) => {
+    const jour = jourStocke(ligne.date_planifiee);
+    const demande: PoseDemandee = {
+      datePlanifiee: jour,
+      creneauDebut: ligne.creneau_debut,
+      creneauFin: ligne.creneau_fin,
+      technicienId: null,
+    };
+    const jourVise =
+      jour ??
+      (demande.creneauDebut === null
+        ? null
+        : jourDe(versLocal(demande.creneauDebut, fuseau)));
+    return { ligne, demande, jourVise };
+  });
+  const joursVises = demandes
+    .map(({ jourVise }) => jourVise)
+    .filter((jour): jour is JourLocal => jour !== null);
+  if (joursVises.length === 0) {
+    return [];
+  }
+  const tries = [...joursVises].sort(comparerJours);
+  const premier = tries[0];
+  const dernier = tries[tries.length - 1];
+  const calendrier = await chargerCalendrierAgence(tx, {
+    societeId,
+    agenceId: nouvelleAgenceId,
+    fenetre: { du: jourSuivant(premier, -1), au: jourSuivant(dernier, 1) },
+  });
+  const signalees: { id: string; numero: number | null }[] = [];
+  for (const { ligne, demande } of demandes) {
+    if (verdictOuverture(calendrier, demande).etat !== "permis") {
+      signalees.push({ id: ligne.id, numero: ligne.numero });
+    }
+  }
+  return signalees;
 }
 
 /**
@@ -343,6 +457,49 @@ export async function modifierSite(
                 motif: "agence_inactive" as const,
               };
             }
+            // AGENCE-SITE-PROPAGEE (décision d'Alexis du 10/11/2026) : LES
+            // INTERVENTIONS OUVERTES DU SITE SUIVENT LA NOUVELLE
+            // AGENCE, DANS LA MÊME TRANSACTION QUE LA FICHE ; LES FIGÉES
+            // (`STATUTS_INTERVENTION_OUVERTS`, cycle-de-vie.ts) GARDENT
+            // L'ANCIENNE — l'historique ne se réécrit pas.
+            const ouvertes = await tx.intervention.findMany({
+              where: {
+                site_id: id,
+                statut: { in: [...STATUTS_INTERVENTION_OUVERTS] },
+              },
+              select: {
+                id: true,
+                numero: true,
+                date_planifiee: true,
+                creneau_debut: true,
+                creneau_fin: true,
+              },
+            });
+            // SIGNALÉES AVANT L'ÉCRITURE : le calendrier qui juge est celui de
+            // la nouvelle agence, et le jugement porte sur le créneau tel
+            // qu'il est déjà posé — `agence_id` n'a pas encore changé sous ce
+            // calcul, mais rien ici ne lit `agence_id` : seul le calendrier de
+            // la CIBLE est chargé.
+            const interventionsASignaler =
+              await interventionsHorsOuvertureNouvelleAgence(
+                tx,
+                exigerSocieteActive(contexte),
+                saisie.agence_id,
+                ouvertes,
+              );
+            if (ouvertes.length > 0) {
+              await tx.intervention.updateMany({
+                where: { id: { in: ouvertes.map((ligne) => ligne.id) } },
+                data: { agence_id: saisie.agence_id },
+              });
+            }
+            const fiche = await modifierSiteDans(tx, id, saisie);
+            return {
+              accepte: true as const,
+              fiche,
+              interventionsDeplacees: ouvertes.length,
+              interventionsASignaler,
+            };
           }
         }
         const fiche = await modifierSiteDans(tx, id, saisie);

@@ -89,6 +89,7 @@ import {
 } from "../../contacts/presentation";
 import {
   decompte,
+  entierPositif,
   hrefDeLaPage,
   libellePage,
   libelleDestinataireCourriels,
@@ -105,6 +106,7 @@ import {
   libelleRattachement,
   libelleSiteCree,
   libelleZone,
+  texteAgencePropagee,
   titreMachinesDuSite,
   titreVgpDuSite,
   videEquipementsSite,
@@ -199,6 +201,19 @@ export default async function PageSite({
   }
   const paramsResolus = await searchParams;
   const motif = paramsResolus.motif;
+  // AGENCE-SITE-PROPAGEE (décision d'Alexis du 10/11/2026) — LU DEPUIS
+  // L'URL (`?agenceSuivies=`, `?agenceASignaler=`, répété une fois par
+  // intervention), EN NOMBRES SEULEMENT (même discipline que le
+  // compte-rendu de transmission du planning, `entierPositif`).
+  const numerosASignaler = [paramsResolus.agenceASignaler ?? []]
+    .flat()
+    .filter((valeur): valeur is string => typeof valeur === "string")
+    .map((valeur) => Number(valeur))
+    .filter((valeur) => Number.isInteger(valeur) && valeur > 0);
+  const agencePropagee = texteAgencePropagee({
+    suivies: entierPositif(paramsResolus.agenceSuivies),
+    aRevoir: numerosASignaler,
+  });
   const saisieContactGardee = saisieContactGardeeDepuis(paramsResolus);
   const site = await lireSiteCache(session.contexte, id);
   if (site === null) {
@@ -446,6 +461,16 @@ export default async function PageSite({
       ) : typeof motif === "string" && estCleTraduction(motif) ? (
         <BandeauMotif motif={motif}>{t(motif)}</BandeauMotif>
       ) : null}
+
+      {/* AGENCE-SITE-PROPAGEE (décision d'Alexis du 10/11/2026) — ce
+          bandeau-ci s'ajoute à celui de « sites.modifie » ci-dessus, il ne
+          le remplace pas : les deux disent des faits distincts. */}
+      {agencePropagee === null ? null : (
+        <BandeauEtat
+          ton={numerosASignaler.length > 0 ? "avertissement" : "information"}
+          titre={agencePropagee}
+        />
+      )}
 
       {clientActif ? null : (
         <BandeauEtat ton="avertissement" titre={alerteClientInactifDuSite()} />

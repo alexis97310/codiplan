@@ -234,6 +234,54 @@ export function libelleSiteCree(): string {
   return `${t("sites.cree_prefixe")} ${motDansUnePhrase("site")} ${t("sites.cree_suffixe")}`;
 }
 
+/**
+ * LE COMPTE-RENDU D'UN CHANGEMENT D'AGENCE SUR UN SITE (AGENCE-SITE-
+ * PROPAGEE, décision d'Alexis du 10/11/2026) — composé depuis des NOMBRES
+ * portés par l'URL (`?agenceSuivies=`, `?agenceASignaler=`, répété une fois
+ * par intervention), jamais depuis du texte : même discipline que
+ * `texteCompteRenduTransmission` (`planning/presentation.ts`) pour
+ * `/api/interventions/transmettre`.
+ *
+ * **`aRevoir` ne corrige rien, elle NOMME** : chaque numéro listé est une
+ * intervention déjà posée dont le créneau tombe hors des horaires ou sur un
+ * jour fermé de la NOUVELLE agence — signalée, jamais déplacée d'office.
+ *
+ * Rend `null` quand rien n'est à dire : une modification qui ne change pas
+ * le rattachement n'a ni intervention suivie, ni intervention à revoir.
+ */
+export function texteAgencePropagee(parametres: {
+  readonly suivies: number;
+  readonly aRevoir: readonly number[];
+}): string | null {
+  const { suivies, aRevoir } = parametres;
+  if (suivies === 0 && aRevoir.length === 0) {
+    return null;
+  }
+  const phrases: string[] = [];
+  if (suivies > 0) {
+    phrases.push(
+      decompte(
+        suivies,
+        `${t("sites.agence_propagee.ouvertes_singulier_prefixe")} ${motDansUnePhrase("agence")}.`,
+        `${t("sites.agence_propagee.ouvertes_pluriel_prefixe")} ${motDansUnePhrase("agence")}.`,
+      ),
+    );
+  }
+  if (aRevoir.length > 0) {
+    const numeros = aRevoir
+      .map((numero) => `${t("sites.agence_propagee.numero_prefixe")}${numero}`)
+      .join(", ");
+    phrases.push(
+      `${t("sites.agence_propagee.a_revoir_prefixe")} ${decompte(
+        aRevoir.length,
+        `${t("sites.agence_propagee.a_revoir_singulier_prefixe")} ${motDansUnePhrase("agence")}`,
+        `${t("sites.agence_propagee.a_revoir_pluriel_prefixe")} ${motDansUnePhrase("agence")}`,
+      )} (${numeros}) ${t("sites.agence_propagee.a_revoir_suffixe")}`,
+    );
+  }
+  return phrases.join(" ");
+}
+
 /** « Aucun interlocuteur n'est enregistré pour ce site. » */
 export function videContactsSite(): string {
   return `${t("sites.fiche.contacts_vide_prefixe")} ${motDansUnePhrase("site")}.`;

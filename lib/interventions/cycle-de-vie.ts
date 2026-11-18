@@ -1,6 +1,10 @@
 import type { PointObligatoireManquant } from "@/lib/checklists/completude";
 
-import type { IssueSignature, StatutIntervention } from "./saisie";
+import {
+  STATUTS_INTERVENTION,
+  type IssueSignature,
+  type StatutIntervention,
+} from "./saisie";
 
 /**
  * LE CYCLE DE VIE D'UNE INTERVENTION — ce qui est permis, et ce qui est REFUSÉ
@@ -65,6 +69,22 @@ const PERMIS: Permis = { refuse: false };
 export function estFige(statut: StatutIntervention): boolean {
   return statut === "annulee" || statut === "cloturee";
 }
+
+/**
+ * LES STATUTS « OUVERTS » AU SENS DE CE MODULE — tout ce qui n'est pas FIGÉ
+ * (`estFige`), et RIEN D'AUTRE (AGENCE-SITE-PROPAGEE, décision d'Alexis du
+ * 10/11/2026, option 1).
+ *
+ * **Volontairement DIFFÉRENT de `STATUTS_INTERVENTION_FERMES`**
+ * (`lib/interventions/depot.ts`), qui range aussi `terminee` parmi les
+ * fermées pour un compteur d'affichage (FICHE-360-1) : cette liste-ci sert
+ * une décision, pas un affichage, et la décision d'Alexis ne nomme que les
+ * clôturées comme gardant l'ancienne agence. Une intervention `terminee` n'a
+ * pas encore de rapport clos au sens de I5 (`estFige`) ; elle suit donc la
+ * nouvelle agence comme une `en_cours` ou une `planifiee`.
+ */
+export const STATUTS_INTERVENTION_OUVERTS: readonly StatutIntervention[] =
+  STATUTS_INTERVENTION.filter((statut) => !estFige(statut));
 
 /**
  * Peut-on SAISIR une checklist, un rapport, des prestations réalisées ou une

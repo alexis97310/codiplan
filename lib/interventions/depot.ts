@@ -1273,7 +1273,7 @@ function statutApresDeplacement(
  * fuseau de l'agence le reculerait d'un cran sous UTC+11, et une seconde
  * écriture de cette lecture divergerait en silence (§9, 01/09).
  */
-function jourStocke(date: Date | null): JourLocal | null {
+export function jourStocke(date: Date | null): JourLocal | null {
   return date === null
     ? null
     : {
