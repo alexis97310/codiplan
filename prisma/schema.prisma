@@ -231,12 +231,29 @@ model Societe {
   prestationTypesIntervention  PrestationTypeIntervention[]      @ignore
   prestationFamillesMateriel   PrestationFamilleMateriel[]        @ignore
   interventionSignatures       InterventionSignature[]           @ignore
-  interventionPauses           InterventionPause[]
+  /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : JAMAIS navigué — `InterventionPause`
+  /// se lit toujours par sa propre requête filtrée sur `intervention_id`
+  /// (`lib/interventions/depot.ts`, `lib/absences/depot.ts`), jamais par cette
+  /// réciproque. Partenaire vérifié : `InterventionPause.societe` n'est non plus
+  /// jamais sélectionné (même pattern que le bloc ci-dessus).
+  interventionPauses           InterventionPause[]               @ignore
   piecesRemplacees             InterventionPieceRemplacee[]
-  interventionStatutHistorique InterventionStatutHistorique[]
-  demandeStatutHistorique      DemandeStatutHistorique[]
+  /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : JAMAIS navigué — seul l'accesseur
+  /// de premier niveau `tx.interventionStatutHistorique` est lu
+  /// (`lib/portail/historique-etats.ts`, `lib/interventions/depot.ts`), jamais
+  /// cette réciproque. Partenaire `InterventionStatutHistorique.societe` non
+  /// plus jamais sélectionné.
+  interventionStatutHistorique InterventionStatutHistorique[]    @ignore
+  /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : même raisonnement, seul
+  /// `tx.demandeStatutHistorique` (accesseur de premier niveau) est lu
+  /// (`lib/portail/historique-etats.ts`), jamais cette réciproque.
+  demandeStatutHistorique      DemandeStatutHistorique[]         @ignore
   notificationLectures         NotificationLecture[]             @ignore
-  suitesADonner                SuiteADonner[]
+  /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : JAMAIS navigué — `SuiteADonner` se
+  /// lit toujours par sa propre requête filtrée, jamais par cette réciproque
+  /// (vérifié distinct des relations nommées `SuiteADonnerOrigine`/
+  /// `SuiteADonnerReprise`, non touchées ici).
+  suitesADonner                SuiteADonner[]                    @ignore
   checklistModeles             ChecklistModele[]
   checklistVersions            ChecklistVersion[]                @ignore
   checklistPoints              ChecklistPoint[]                  @ignore
@@ -987,7 +1004,21 @@ model Utilisateur {
   clients          UtilisateurClient[]
   sessions         Session[]
   comptes          Compte[]
-  seconds_facteurs SecondFacteur[]
+  /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : JAMAIS navigué — `SecondFacteur` se
+  /// lit toujours par `tx.secondFacteur.*`, filtré sur `utilisateur_id`
+  /// (`lib/auth/enrolement.ts`, `lib/auth/deverrouillage.ts`,
+  /// `lib/auth/reinitialisation.ts`), jamais par cette réciproque. Le texte du
+  /// schéma reste visible au gardien `tests/unit/auth/utilisateur-sans-donnee-
+  /// metier.test.ts` (lecture du SCHÉMA, pas du client Prisma).
+  seconds_facteurs SecondFacteur[]  @ignore
+  /// PAS `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) — mesuré à tort comme non lue
+  /// en ne vérifiant que CE champ : `@ignore` ici retire aussi
+  /// `JournalAcces.utilisateur` (même relation, deux sens), qui EST lu
+  /// (`tests/e2e/captures-9j21-finitions-invitation.spec.ts`,
+  /// `tests/e2e/captures-9l03b-reprise-portail-invitation.spec.ts` —
+  /// `journalAcces.deleteMany({ where: { utilisateur: { email: ... } } })`).
+  /// Même famille d'erreur que `Prestation.realisations` (9L04A-MEMOIRE-
+  /// BUILD-CAUSE, D246) : vérifier le PARTENAIRE, jamais seulement le champ.
   acces_journalise JournalAcces[]
 
   @@map("utilisateur")
@@ -1807,7 +1838,12 @@ model Intervention {
   /// passé (option A retenue par Alexis le 29/10/2026, `etude-equipe/synthese.md`
   /// question 2) : une ligne n'existe qu'à compter du déploiement de cette
   /// migration.
-  statut_historique       InterventionStatutHistorique[]
+  /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : JAMAIS navigué depuis
+  /// `Intervention` — `historiqueInterventionDuClient`
+  /// (`lib/portail/historique-etats.ts`) et `historiqueStatutDeLIntervention`
+  /// (`lib/interventions/depot.ts`) lisent `tx.interventionStatutHistorique`
+  /// directement, filtré sur `intervention_id`.
+  statut_historique       InterventionStatutHistorique[] @ignore
   /// LES SUITES À DONNER NÉES DE CETTE INTERVENTION (9J17-SUITE-A-DONNER-
   /// SCHEMA, D231) — forme « filiation », celle-ci décide qui les voit.
   suites_a_donner_origine SuiteADonner[]                 @relation("SuiteADonnerOrigine")
@@ -2347,7 +2383,10 @@ model Demande {
   /// L'HISTORIQUE DES CHANGEMENTS DE STATUT (9J08A-HISTORIQUE-DES-ETATS) —
   /// même régime que `Intervention.statut_historique` : alimenté par
   /// déclencheur, sans reprise du passé.
-  statut_historique DemandeStatutHistorique[]
+  /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : JAMAIS navigué depuis `Demande` —
+  /// `historiquesDemandesDuClient` (`lib/portail/historique-etats.ts`) lit
+  /// `tx.demandeStatutHistorique` directement, filtré sur `demande_id`.
+  statut_historique DemandeStatutHistorique[] @ignore
   /// Les notifications dont cette demande est la cible (9J09-NOTIFICATIONS-SCHEMA).
   notifications     Notification[]
 
@@ -3631,7 +3670,17 @@ model FamilleMateriel {
   /// Les prestations qui la visent, via la table de liaison (9L04J, D259) —
   /// REMPLACE l'ancienne relation directe `Prestation[]` du scalaire
   /// `famille_id`, retirée par la même migration.
-  prestations       PrestationFamilleMateriel[]
+  /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : JAMAIS navigué depuis
+  /// `FamilleMateriel` — `famillesVisables`, `listerLesFamilles` et les
+  /// requêtes d'import (`lib/prestations/depot.ts`, `lib/materiel/depot.ts`,
+  /// `lib/imports/*.ts`) ne sélectionnent jamais cette réciproque, et la
+  /// contrainte `onDelete: Restrict` vit sur `PrestationFamilleMateriel.
+  /// famille`, pas sur ce champ. Partenaire vérifié : `PrestationFamilleMateriel
+  /// .famille` n'est non plus jamais navigué (seul le scalaire `famille_id`
+  /// l'est, via `count`/`createMany`/`deleteMany`) — à la différence de
+  /// `Prestation.realisations` ci-dessous, ignorer ce champ ne casse aucun
+  /// partenaire réellement lu.
+  prestations       PrestationFamilleMateriel[]       @ignore
   /// PAS `@ignore` sur `campagnes_vgp` (9L04A-MEMOIRE-BUILD-CAUSE, D246) —
   /// mesuré à tort comme non lue en ne vérifiant que ce champ : `@ignore`
   /// ici retire aussi `VgpCampagne.famille` (même relation, deux sens) du
