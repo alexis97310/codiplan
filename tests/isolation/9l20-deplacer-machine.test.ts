@@ -37,9 +37,8 @@ const URL_DATABASE_AVANT = process.env.DATABASE_URL;
 process.env.DATABASE_URL = urlApp();
 const { deplacerMachine, lireMachine, modifierMachine } =
   await import("@/lib/machines/depot");
-const { historiqueDesEmplacements } = await import(
-  "@/lib/machines/emplacements"
-);
+const { historiqueDesEmplacements } =
+  await import("@/lib/machines/emplacements");
 
 afterAll(async () => {
   process.env.DATABASE_URL = URL_DATABASE_AVANT;
@@ -218,8 +217,7 @@ describe("deplacerMachine — le chemin accepté est TRACÉ au journal", () => {
       clientApp(),
     );
     const trace = historique.find(
-      (e) =>
-        e.ancienSiteId === SITE_A1_S2 && e.nouveauSiteId === SITE_A1_S1,
+      (e) => e.ancienSiteId === SITE_A1_S2 && e.nouveauSiteId === SITE_A1_S1,
     );
     expect(trace).toBeDefined();
     expect(trace?.utilisateurId).toBe(UTILISATEUR_INTERNE_A);

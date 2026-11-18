@@ -230,9 +230,7 @@ export default async function PageMachine({
     ? await historiqueDesEmplacements(contexte, machine.id)
     : [];
   const sitesCites = [
-    ...new Set(
-      emplacements.flatMap((e) => [e.ancienSiteId, e.nouveauSiteId]),
-    ),
+    ...new Set(emplacements.flatMap((e) => [e.ancienSiteId, e.nouveauSiteId])),
   ];
   const libellesSites =
     sitesCites.length === 0
@@ -875,7 +873,9 @@ function LigneEmplacement({
       <Cellule>
         {libelleSiteEmplacement(emplacement.nouveauSiteId, libellesSites)}
       </Cellule>
-      <Cellule>{auteurEmplacementAffiche(emplacement.utilisateurId, annuaire)}</Cellule>
+      <Cellule>
+        {auteurEmplacementAffiche(emplacement.utilisateurId, annuaire)}
+      </Cellule>
     </tr>
   );
 }

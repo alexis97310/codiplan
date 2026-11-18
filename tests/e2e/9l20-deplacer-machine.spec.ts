@@ -12,6 +12,7 @@ import { reperesDeLaScene } from "./setup/reperes";
 import { COMPTE_ADMIN_SOCIETE_EPREUVE } from "./setup/scene";
 import { choisirResultatParTexte } from "./setup/selecteur-recherche";
 import { ouvrirLaSessionSensible } from "./setup/session";
+import { SCENE_9L20 } from "./setup/scene-9l20";
 
 /**
  * 9L20-DEPLACER-MACHINE, DE BOUT EN BOUT — décision d'Alexis du 10/11/2026.
@@ -50,10 +51,6 @@ const CLIENT_9L20 = uuidv7();
 const SITE_DEPART_9L20 = uuidv7();
 const SITE_CIBLE_9L20 = uuidv7();
 const MACHINE_9L20 = uuidv7();
-
-const RAISON_SOCIALE = "9L20-Client (déplacer machine)";
-const LIBELLE_DEPART = "9L20-Site de départ";
-const LIBELLE_CIBLE = "9L20-Site cible";
 
 function admin(): PrismaClient {
   return new PrismaClient({
@@ -102,7 +99,7 @@ test.beforeAll(async () => {
       data: {
         id: CLIENT_9L20,
         societe_id: reperes.societeId,
-        raison_sociale: RAISON_SOCIALE,
+        raison_sociale: SCENE_9L20.raisonSociale,
         actif: true,
       },
     });
@@ -112,7 +109,7 @@ test.beforeAll(async () => {
         societe_id: reperes.societeId,
         client_id: CLIENT_9L20,
         agence_id: agence.id,
-        libelle: LIBELLE_DEPART,
+        libelle: SCENE_9L20.libelleDepart,
       },
     });
     await client.site.create({
@@ -121,7 +118,7 @@ test.beforeAll(async () => {
         societe_id: reperes.societeId,
         client_id: CLIENT_9L20,
         agence_id: agence.id,
-        libelle: LIBELLE_CIBLE,
+        libelle: SCENE_9L20.libelleCible,
       },
     });
     await client.machine.create({
@@ -162,7 +159,7 @@ for (const largeur of [1280, 375]) {
     await expect(
       page.getByText(fr["machine.modifier.non_modifiable"]),
     ).toBeVisible();
-    await expect(page.getByText(LIBELLE_DEPART)).toHaveCount(0);
+    await expect(page.getByText(SCENE_9L20.libelleDepart)).toHaveCount(0);
     await capturer(page, "9l20-modifier-sans-site", largeur);
 
     // 2. LA FICHE — le bouton « Déplacer la machine » est posé à côté de
@@ -184,8 +181,8 @@ for (const largeur of [1280, 375]) {
     await choisirResultatParTexte(
       dialogue,
       "nouveau_site_id",
-      LIBELLE_CIBLE,
-      LIBELLE_CIBLE,
+      SCENE_9L20.libelleCible,
+      SCENE_9L20.libelleCible,
     );
     await expect(
       dialogue.getByText(fr["machine.deplacer.confirmation_autre_client"]),
@@ -206,10 +203,16 @@ for (const largeur of [1280, 375]) {
     // `ListeCartes` mobile) — les deux existent dans le DOM à la fois, une
     // seule est affichée (même idiome que `visuel-2.spec.ts`).
     await expect(
-      page.getByText(LIBELLE_DEPART).and(page.locator(":visible")).first(),
+      page
+        .getByText(SCENE_9L20.libelleDepart)
+        .and(page.locator(":visible"))
+        .first(),
     ).toBeVisible();
     await expect(
-      page.getByText(LIBELLE_CIBLE).and(page.locator(":visible")).first(),
+      page
+        .getByText(SCENE_9L20.libelleCible)
+        .and(page.locator(":visible"))
+        .first(),
     ).toBeVisible();
     await capturer(page, "9l20-fiche-apres-deplacement", largeur);
 
@@ -222,8 +225,8 @@ for (const largeur of [1280, 375]) {
     await choisirResultatParTexte(
       retourDialogue,
       "nouveau_site_id",
-      LIBELLE_DEPART,
-      LIBELLE_DEPART,
+      SCENE_9L20.libelleDepart,
+      SCENE_9L20.libelleDepart,
     );
     await retourDialogue
       .getByRole("button", { name: fr["machine.deplacer.bouton"] })
@@ -249,7 +252,9 @@ test("refus nommé — poster un site différent par l'ancien formulaire ne dép
   }, SITE_CIBLE_9L20);
   // LA ROUTE RÉPOND EN JSON (D-06) — pas de redirection, le formulaire
   // affiche le refus NOMMÉ dans sa propre bannière, sur la même page.
-  await page.getByRole("button", { name: fr["machine.action.enregistrer"] }).click();
+  await page
+    .getByRole("button", { name: fr["machine.action.enregistrer"] })
+    .click();
   await expect(
     page.getByText(fr["machine.refus.deplacement_requis"]),
   ).toBeVisible();

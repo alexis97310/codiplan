@@ -1,9 +1,6 @@
 import { type PrismaClient } from "@prisma/client";
 
-import {
-  exigerSocieteActive,
-  type ContexteSession,
-} from "@/lib/auth/contexte";
+import { exigerSocieteActive, type ContexteSession } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
 
 /**

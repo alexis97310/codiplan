@@ -1,9 +1,6 @@
 import { type PrismaClient } from "@prisma/client";
 
-import {
-  exigerContexteActif,
-  type ContexteSession,
-} from "@/lib/auth/contexte";
+import { exigerContexteActif, type ContexteSession } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import {
   CHAMPS_LIGNE,
