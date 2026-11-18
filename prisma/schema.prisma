@@ -262,9 +262,18 @@ model Societe {
   habilitations                Habilitation[]                    @ignore
   techniciens_habilites        TechnicienHabilitation[]          @ignore
   sites_habilitations          SiteHabilitationRequise[]         @ignore
-  clients                      Client[]
+  /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : JAMAIS navigué — aucune requête
+  /// `tx.client.*` ne sélectionne cette réciproque (`CHAMPS_FICHE`,
+  /// `lib/clients/depot.ts`, est plate). Partenaire vérifié :
+  /// `Client.societe` non plus jamais sélectionné.
+  clients                      Client[]                          @ignore
   sessions_actives             Session[]                         @ignore
-  sites                        Site[]
+  /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : JAMAIS navigué depuis `Societe`
+  /// (à la différence de `Client.sites` et `Agence.sites`, NON touchés :
+  /// `tx.site.findMany` imbrique `client: {...}` (`lib/sites/depot.ts`) et
+  /// `agence: {...}` (`lib/demandes/depot.ts`), tous deux réellement lus) —
+  /// `Site.societe`, lui, n'est sélectionné nulle part.
+  sites                        Site[]                            @ignore
   familles_materiel            FamilleMateriel[]                 @ignore
   sous_types_materiel          SousTypeMateriel[]                @ignore
   modeles_materiel             ModeleMateriel[]                  @ignore
