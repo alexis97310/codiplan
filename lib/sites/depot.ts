@@ -1,7 +1,10 @@
 import { Prisma, type PrismaClient } from "@prisma/client";
 
 import { type ContexteSession, exigerSocieteActive } from "@/lib/auth/contexte";
-import { fuseauDeLAgence, chargerCalendrierAgence } from "@/lib/calendar/agence";
+import {
+  fuseauDeLAgence,
+  chargerCalendrierAgence,
+} from "@/lib/calendar/agence";
 import {
   comparerJours,
   jourDe,
@@ -13,7 +16,10 @@ import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
 import { normaliserRaisonSociale } from "@/lib/excel/rapprochement";
 import { STATUTS_INTERVENTION_OUVERTS } from "@/lib/interventions/cycle-de-vie";
-import { jourStocke, STATUTS_INTERVENTION_FERMES } from "@/lib/interventions/depot";
+import {
+  jourStocke,
+  STATUTS_INTERVENTION_FERMES,
+} from "@/lib/interventions/depot";
 import { verdictOuverture, type PoseDemandee } from "@/lib/interventions/pose";
 import { STATUTS_HORS_PARC_ACTIF } from "@/lib/machines/depot";
 import { trierAlphanumeriquement } from "@/lib/tri/collation";

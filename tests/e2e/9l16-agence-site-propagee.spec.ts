@@ -202,9 +202,7 @@ test("le changement d'agence du site déplace les ouvertes, signale la déjà-po
   // créneau — ce test ne porte que sur le signalement, pas sur une correction
   // de date qui n'existe pas.
   const numero = fr["sites.agence_propagee.numero_prefixe"];
-  await expect(
-    page.getByText(`${numero}${NUMERO_SIGNALEE}`),
-  ).toBeVisible();
+  await expect(page.getByText(`${numero}${NUMERO_SIGNALEE}`)).toBeVisible();
   await expect(page.getByText(`${numero}${NUMERO_OUVERTE}`)).toHaveCount(0);
   await expect(page.getByText(`${numero}${NUMERO_CLOTUREE}`)).toHaveCount(0);
 

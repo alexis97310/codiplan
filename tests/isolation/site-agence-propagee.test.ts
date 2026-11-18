@@ -212,7 +212,9 @@ describe("modifierSite — l'agence des interventions suit ou reste, selon leur 
 
     const lignes = await clientOwner().$queryRawUnsafe<
       Array<{ id: string; agence_id: string }>
-    >(`SELECT "id", "agence_id" FROM "intervention" WHERE "site_id" = '${siteId}'`);
+    >(
+      `SELECT "id", "agence_id" FROM "intervention" WHERE "site_id" = '${siteId}'`,
+    );
     const agenceDe = (id: string) =>
       lignes.find((ligne) => ligne.id === id)?.agence_id;
 
@@ -269,14 +271,18 @@ describe("modifierSite — l'agence des interventions suit ou reste, selon leur 
 
     const ligne = await clientOwner().$queryRawUnsafe<
       Array<{ agence_id: string }>
-    >(`SELECT "agence_id" FROM "intervention" WHERE "id" = '${posee.fiche.id}'`);
+    >(
+      `SELECT "agence_id" FROM "intervention" WHERE "id" = '${posee.fiche.id}'`,
+    );
     expect(ligne[0]?.agence_id).toBe(cible.fiche.id);
   });
 
   it("ne touche à rien hors du périmètre de la société active (I1)", async () => {
     const avant = await clientOwner().$queryRawUnsafe<
       Array<{ agence_id: string }>
-    >(`SELECT "agence_id" FROM "intervention" WHERE "id" = '${INTERVENTION_B1}'`);
+    >(
+      `SELECT "agence_id" FROM "intervention" WHERE "id" = '${INTERVENTION_B1}'`,
+    );
 
     const depart = await creerAgence(ADMIN_A, agence(), clientApp());
     const cible = await creerAgence(ADMIN_A, agence(), clientApp());
@@ -302,7 +308,9 @@ describe("modifierSite — l'agence des interventions suit ou reste, selon leur 
     // c'est exactement ce que ce témoin éprouve.
     const apres = await clientOwner().$queryRawUnsafe<
       Array<{ agence_id: string }>
-    >(`SELECT "agence_id" FROM "intervention" WHERE "id" = '${INTERVENTION_B1}'`);
+    >(
+      `SELECT "agence_id" FROM "intervention" WHERE "id" = '${INTERVENTION_B1}'`,
+    );
     expect(apres[0]?.agence_id).toBe(avant[0]?.agence_id);
   });
 });
