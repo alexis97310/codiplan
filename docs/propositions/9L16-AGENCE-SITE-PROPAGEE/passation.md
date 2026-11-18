@@ -193,3 +193,74 @@ rejouer `tests/e2e/9l16-agence-site-propagee.spec.ts` par `pnpm test:e2e`
 lui-même, sur un poste sans le plafond mémoire du script `build` — la règle
 est déjà éprouvée par ailleurs (isolation, et à la main dans un vrai
 navigateur).
+
+## Reprise 9L16B-REPRISE-AGENCE-SITE (18/11/2026)
+
+9L16-AGENCE-SITE-PROPAGEE était recalé deux fois sur la même cause : `pnpm
+format:check` (Prettier) tombait sur `lib/sites/depot.ts`,
+`tests/e2e/9l16-agence-site-propagee.spec.ts` et
+`tests/isolation/site-agence-propagee.test.ts`. Les fichiers
+`tickets/recales/9L16-AGENCE-SITE-PROPAGEE.md` et
+`traces/9L16-AGENCE-SITE-PROPAGEE-verify-{1,2}.txt` que cette reprise devait
+lire en entier comme référence n'existent nulle part sur ce dépôt — ni dans
+l'historique d'une branche quelconque, ni sur le disque d'aucun des quatre
+arbres de travail (`codiplan`, `codiplan-equipe`, `codiplan-voie1`,
+`codiplan-voie2`) — probablement un nettoyage antérieur. La cause mesurée
+était déjà réécrite en entier dans le corps du ticket de reprise lui-même ;
+cette section s'appuie sur cette description, faute de mieux.
+
+### Ce qui a été fait
+
+1. Le commit unique de `9L16-AGENCE-SITE-PROPAGEE-garde` (`f9b27336e`) a été
+   reporté par `git cherry-pick` sur une branche fraîche partant
+   d'`origin/main`. Aucun conflit : deux fusions automatiques
+   (`lib/i18n/fr.ts`, `lib/interventions/depot.ts`) avec ce qui a été publié
+   depuis (9L13, 9L15…), rien retiré de l'un ni de l'autre.
+2. `npx prettier --write` sur les trois seuls fichiers visés par la cause
+   mesurée. Le diff de ce passage est vérifié à la main : uniquement des
+   sauts de ligne et des retours à la ligne d'imports/arguments, aucune
+   ligne de logique déplacée ou changée.
+3. La scène e2e a été rejouée au premier plan pour la première fois par
+   `pnpm test:e2e` lui-même (`CI=1 pnpm exec playwright test --workers=1
+   tests/e2e/9l16-agence-site-propagee.spec.ts`) : **1 passed**. C'est
+   exactement le dernier maillon que la passation d'origine disait manquant
+   (plafond mémoire du poste d'alors sur `pnpm run build`) ; ce poste n'a
+   pas rencontré ce plafond.
+4. Recherche des localisateurs fragiles de la même famille (point 3 de la
+   consigne) : le nouveau bandeau de `sites/[id]` (`texteAgencePropagee`,
+   `BandeauEtat`) ne s'affiche que quand l'URL porte `?agenceSuivies=` ou
+   `?agenceASignaler=` — deux paramètres qu'aucune autre scène de
+   `tests/e2e/**` ne pose (`grep` sans résultat hors de la scène neuve) :
+   aucune autre scène ne peut donc rencontrer ce bandeau. Le changement sur
+   `app/(back-office)/planning/page.tsx` est un pur déplacement
+   (`entierPositif` extrait vers `../presentation.ts`, zéro texte ni
+   comportement changé) : rien à resserrer là non plus. Aucun localisateur
+   n'a eu besoin d'être rendu plus précis.
+5. Rejoué au premier plan, en un seul lancement Playwright (même serveur,
+   même build, pour ne pas payer `next build` à chaque fois) :
+   `tests/e2e/9l16-agence-site-propagee.spec.ts` + tous les `*site*` +
+   tous les `*planning*` + `tests/e2e/tous-les-ecrans-rendent.spec.ts` → 226
+   tests, **222 passed, 4 skipped**. Les 4 `skip` sont le seul `test.skip`
+   préexistant du dépôt dans ce périmètre
+   (`tests/e2e/tous-les-ecrans-rendent.spec.ts:554`, motif nommé, non
+   introduit par ce lot).
+6. `pnpm test:isolation` : 251 fichiers, 2304 tests, tous verts.
+7. `CI=1 pnpm verify` : vert de bout en bout (`format:check`, `typecheck`,
+   `lint`, `test`, `test:isolation`, `build`), rejoué deux fois pour
+   confirmation, code de sortie 0 les deux fois.
+
+### Ce qui n'a pas changé
+
+Aucune migration, aucune dépendance neuve, aucun écran modifié — seules des
+lignes de formatage. Les quatre captures de 9L16-AGENCE-SITE-PROPAGEE
+restent donc la référence telle quelle ; aucune n'a été reprise. Aucun
+nouveau numéro d'arbitrage : cette reprise n'a rencontré aucun point
+ambigu nécessitant une décision au sens de `docs/doctrine-arbitrage.md`.
+
+### Suite possible
+
+Plus rien ne manque côté `tests/e2e/9l16-agence-site-propagee.spec.ts` :
+`pnpm test:e2e` le couvre désormais lui-même. Retrouver, si possible, la
+cause de la disparition de `tickets/recales/9L16-AGENCE-SITE-PROPAGEE.md`
+et des traces associées, pour que la prochaine reprise d'un lot recalé
+puisse encore s'appuyer sur eux.
