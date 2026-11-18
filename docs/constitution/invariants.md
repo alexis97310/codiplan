@@ -177,7 +177,7 @@ Toute fonctionnalité de l'application technicien est utilisable en mode avion :
 ### I5 — Préséance en cas de conflit de synchronisation
 **Terrain** : temps, diagnostic, checklist, photos, signature, création de machine.
 **Back-office** : affectation, créneau, priorité.
-**Statut** : par préséance — `ANNULEE` > `CLOTUREE` > `TERMINEE` > `EN_COURS` > `SUSPENDUE` > statuts de planification. Le travail terrain n'est jamais perdu, même sur une intervention annulée ; le conflit est journalisé et remonté.
+**Statut** : par préséance — `CLOTUREE` > `ANNULEE` > `TERMINEE` > `EN_COURS` > `SUSPENDUE` > statuts de planification. **`CLOTUREE` est terminale, au sens plein** *(D160, 04/10/2026)* : aucune transition n'en sort, pas même vers `ANNULEE` — l'ancienne lecture, qui plaçait `ANNULEE` au-dessus de `CLOTUREE`, est refermée. Le travail terrain n'est jamais perdu, même sur une intervention annulée ; le conflit est journalisé et remonté.
 
 ### I6 — Aucun import appliqué sans contrôle préalable
 Un import Excel produit d'abord un rapport (créations, modifications, rejets motivés), puis attend une validation explicite. L'annulation est **partielle et sûre** : refus motivé sur les lignes modifiées ou référencées depuis, jamais de suppression en cascade.
@@ -209,7 +209,7 @@ Toute création, modification ou suppression sur une table du périmètre est jo
 Pas de client réel, pas de photo, pas de clé, pas de `.env`. Les jeux de test viennent de `prisma/seed.ts`.
 
 ### I10 — Identifiants : clé technique et numéro affiché sont distincts
-`id` est un UUID v7 généré sur l'appareil, y compris hors ligne, et porte toutes les relations et le `qr_token`. `numero` est attribué par le serveur, séquentiellement par société, à la première synchronisation. Tant qu'il est nul, l'interface affiche `Local-<6 caractères>` avec une pastille « non synchronisé ». **Le QR encode le jeton, jamais le numéro.**
+`id` est un UUID v7 généré sur l'appareil, y compris hors ligne, et porte toutes les relations et le `qr_token`. `numero` est attribué par le serveur, séquentiellement par société **et par année civile — il repart à 1 chaque année** *(numérotation annuelle, 23/10/2026, ticket 9H2-NUMEROTATION-INTERVENTIONS)*, à la première synchronisation. La paire `(société, année, numéro)` distingue deux lignes d'années différentes qui portent le même `numero` ; `numero` seul reste cherchable par égalité, exactement comme avant. Tant qu'il est nul, l'interface affiche `Local-<6 caractères>` avec une pastille « non synchronisé ». **Le QR encode le jeton, jamais le numéro.**
 
 ### Vocabulaire imposé
 **Agence** = établissement CODIMA (Ducos, Koné, Dolbeau). **Site** = lieu d'intervention chez un client. Ces deux mots ne sont jamais interchangeables.

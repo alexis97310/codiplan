@@ -5036,6 +5036,8 @@ Aucune migration, aucune politique RLS, aucune ligne de semis, aucun prix. La PR
 
 ## D136 — « ABSENCE » PARTOUT À L'ÉCRAN ; ÉCOURTER REMPLACE LEVER POUR UNE ABSENCE EN COURS (QG-8 bis, QT-15, QT-23, TR-5, QE-13e ; précisions du pilote du 03/10, à valider par Alexis)
 
+Validée par Alexis le 10/11/2026.
+
 *Numéro RÉSERVÉ depuis le 27/09/2026 (lot PG-G15, décisions d'Alexis du 27/09/2026, question QG-8 bis) et laissé en blanc entre D135 et D137 jusqu'à ce jour : la partie sans migration du lot PG-G15 n'avait pas encore été construite. Rendu le 03/10/2026, ticket 9DK-PG-G15A-ABSENCE-ECOURTER, à partir des décisions d'Alexis du 27/09/2026 (QG-8 bis, QT-15, QT-23) et de l'audit TP-ABS du 28/09/2026 (TR-2, TR-3, TR-5, MO-31). Les documents du Projet `claude/mesure-abs-parc-03-10.md` et `claude/decisions-alexis-03-10.md`, cités par le ticket pour les « choix du pilote PG-G15 T1 », n'existent dans ce dépôt ni sur le disque ni dans l'historique `git` : les précisions d'application ci-dessous sont donc des CHOIX DU PILOTE pris directement à l'exécution du ticket (consigne d'Alexis « ne reste pas bloqué »), et cette page reste À VALIDER PAR ALEXIS sur ce point précis — pas sur le reste, déjà tranché par QG-8 bis/QT-15/QT-23/TR-5.*
 
 **Amendé par D185.** Sur le tableau de bord selon le rôle (9EG-TP-UX6-TABLEAU-DE-BORD-1) seulement : la bande de décomptes dit « technicien indisponible aujourd'hui » (singulier)/« techniciens indisponibles aujourd'hui » (pluriel), reprenant le libellé de la maquette du 28/09 plutôt que « absence » — décision 46 d'Alexis du 09/10/2026. `/absences` elle-même n'est pas touchée par ce lot et garde le mot « absence » partout ailleurs.
@@ -5602,6 +5604,8 @@ Aucune migration, aucune politique RLS : les deux points sont des questions d'au
 
 ## D152 — LECTURE DU TECHNICIEN (QT-2, 28/09/2026 ; précisions du pilote du 03/10/2026, à valider par Alexis)
 
+Validée par Alexis le 10/11/2026.
+
 *Décide le constat QT-2 de l'audit du 28/09/2026 (document du Projet `claude/decisions-alexis-28-09.md`) : « le technicien suit RG-DRO-02 : ses interventions et leurs fiches, le parc des clients qu'il visite sous 7 jours, sa propre absence ; ni le registre complet, ni les chiffres de la société, ni les tarifs, ni les absences des autres ; il garde créer/modifier une machine. » Les précisions d'application ci-dessous sont des CHOIX DU PILOTE (document du Projet `claude/mesure-tp-s1-s3-03-10.md`, §« Choix du pilote », points 1-6, 9, 10, 12 ; consigne d'Alexis du 03/10/2026 : « ne reste pas bloqué »), appliqués tels quels par le ticket 9DG-TP-S1-LECTURE-TECHNICIEN. Cette page reste à valider par Alexis.*
 
 ### CE QUI A ÉTÉ MESURÉ
@@ -5634,7 +5638,11 @@ Aucune migration, aucune politique RLS (le filtre est applicatif, comme R5-01 et
 
 > Le jour où Alexis ne valide pas une des précisions du pilote ci-dessus, cette page se rouvre pour la trancher à sa place plutôt que de laisser le choix du pilote faire foi en silence. Le jour où un second rôle reçoit un `○` sur `consulter_parc_complet` ou `consulter_planning`, le périmètre qu'il ouvre est celui que cette page définit, sans qu'il faille la rouvrir.
 
+**Règles amendées :** aucune — périmètre de lecture applicatif, pas une règle chiffrée du chapitre 10.
+
 ## D153 — DROITS D'ÉCRAN ET DE ROUTE (décision du 03/10/2026, TP-S)
+
+Validée par Alexis le 10/11/2026.
 
 *Décide les constats PA-02, PA-01, CS6, CS31, PA-25, CS14, IN-29, PV-49, TR-4 de l'audit du 28/09/2026 (document du Projet `claude/decisions-alexis-03-10.md`, décision 9, lignes TP-S) et les précisions du pilote (consigne d'Alexis « ne reste pas bloqué », document du Projet `claude/mesure-tp-s1-s3-03-10.md`, choix 8 et 11), appliqués par le ticket 9DH-TP-S3-DROITS-ECRANS.*
 
@@ -5666,7 +5674,11 @@ Aucune migration, aucune politique RLS : les capacités nouvelles et déplacées
 
 > Le jour où un second rôle reçoit le `●` sur `regler_trajets` ou `administrer_agences` sans passer par cette page, le gardien de `tests/unit/auth/habilitations.test.ts` (D153) le signale. Le jour où une route d'écriture de taux, forfait, matériel ou prestation revient à `exigerCapacite` simple, le `○` de la direction y réécrirait de nouveau : PA-02 se rouvre.
 
+**Règles amendées :** aucune — matrice du §5.2 et portes applicatives (la mise à jour du tableau du §5.2 du cahier des charges, validée en même temps, en porte le détail).
+
 ## D164 — DEMANDES : TRAITÉES ET RÉUTILISATION (IN-40, IN-42 ; précisions du pilote du 03/10, à valider par Alexis)
+
+Validée par Alexis le 10/11/2026.
 
 *Décide les constats IN-40, IN-42, IN-43, IN-44 de l'audit du 28/09/2026, et l'ergonomie QE-8/QE-13a (liste des demandes à onglets), appliqués par le ticket 9DM-TP-DEM1-TRAITEES-REUTILISATION. Les précisions ci-dessous sont des CHOIX DU PILOTE (document du Projet `claude/mesure-cli-dem-03-10.md`, §« Choix du pilote TP-DEM-A » ; consigne d'Alexis du 03/10/2026 : « ne reste pas bloqué »), appliqués tels quels. Cette page reste à valider par Alexis.*
 
@@ -5698,7 +5710,11 @@ Aucune migration, aucune politique RLS : `demande` reste de forme « parc » (D1
 
 > Le jour où Alexis ne valide pas une des précisions du pilote ci-dessus, cette page se rouvre pour la trancher à sa place plutôt que de laisser le choix du pilote faire foi en silence. Le jour où une demande non qualifiée redevient réutilisable par `creerIntervention` sans passer par cette page, les épreuves d'isolation nommées par le ticket 9DM-TP-DEM1-TRAITEES-REUTILISATION le signalent.
 
+**Règles amendées :** aucune — ergonomie de la liste des demandes, pas une règle chiffrée du chapitre 10.
+
 ## D173 — LA SIGNATURE EST EXIGÉE AU « TERMINER », SAUF MOTIF TRACÉ ET NOTIFIÉ AU RESPONSABLE SAV
+
+**Règles amendées :** RG-INT-04
 
 **Amendé par D241.** (Points 4 et 5 : repli sur le bureau quand aucun `responsable_sav` n'est actif, et deux messages distincts côté technicien.)
 
@@ -5724,7 +5740,7 @@ Aucune règle de la matrice D8 n'est posée en base ni au déclencheur `interven
 
 > Le jour où l'exploitation demande une QUATRIÈME issue de signature, cette page se rouvre plutôt que d'ajouter une valeur à `IssueSignature` sans revoir `intervention_signature_issue_coherente`, qui ne connaît que deux formes. Le jour où la matrice D8 complète (les autres transitions, la clôture depuis `terminee` seulement) est posée au déclencheur, cette page ne se rouvre pas pour autant — c'est le ticket T2, déjà nommé, qui la complète.
 
-**Règles amendées :** aucune au chapitre 10 — cette décision porte sur le cycle de vie applicatif d'une intervention et sur le format d'une preuve, pas sur une règle de gestion chiffrée.
+**Mise à jour du 10/11/2026 :** RG-INT-04 disait seulement « obligatoire pour clôturer » — elle nommait le mauvais geste (la clôture, pas « Terminer », D8) et ne citait ni les trois issues ni le responsable SAV. Corrigée pour nommer le geste réel ; déclarée en tête de cette section.
 
 ## D160 — D8 TENUE EN BASE ET AU SERVEUR (QT-4, décision d'Alexis du 28/09/2026 ; ticket T2, 9DF-TP-CY2-MATRICE-D8)
 
@@ -5763,7 +5779,11 @@ Aucune règle du chapitre 10. `peutTerminer` (D173, T1) n'est pas modifié : « 
 
 > Le jour où un chemin fait réellement naître la transition `SUSPENDUE → EN_COURS` (une reprise directe qui redémarrerait le compteur en un seul geste, par exemple), `peutDemarrerLeCompteur` doit être revu pour l'accueillir — cette page se rouvre alors, plutôt que de laisser le serveur rester plus strict que la base sans que personne ne l'ait décidé. Le jour où l'exploitation demande qu'une CLOTURÉE redevienne annulable, cette page se rouvre pour le trancher — l'ancienne lecture d'I5 ne refait pas surface sans décision écrite.
 
+**Règles amendées :** aucune — cycle de vie applicatif (D8), pas une règle du chapitre 10.
+
 ## D162 — DONNER L'ACCÈS À UN TECHNICIEN (QT-1, 28/09/2026 ; précisions du pilote du 03/10/2026, à valider par Alexis)
+
+Validée par Alexis le 10/11/2026.
 
 *Décide le constat QT-1 de l'audit du 28/09/2026 fondu avec TP-UX8-b (TR-40, PA-36, MO-1, TR-32 ; D37 « l'administrateur de la société ouvre les comptes de sa société »). Décisions d'Alexis (documents du Projet `claude/decisions-alexis-28-09.md` et `claude/decisions-alexis-03-10.md`) : QT-1 (a) l'administrateur de la société envoie un lien d'accès, APRÈS TP-S ; QE-18 (a) « Mot de passe oublié » = texte seul, aucune route publique ; QE-17 (a) pas de « Rester connecté », inchangé par cette page. Les précisions d'application ci-dessous sont des CHOIX DU PILOTE (document du Projet `claude/mesure-tp-ter-acc-03-10.md`, §« Questions TP-ACC », réponses 1-4, 6-8 ; consigne d'Alexis du 03/10/2026 : « ne reste pas bloqué »), appliquées telles quelles par le ticket 9DJ-TP-ACC1-DONNER-ACCES. Cette page reste à valider par Alexis.*
 
@@ -5793,7 +5813,11 @@ Aucune migration : la trace réutilise les valeurs existantes du journal d'accè
 
 > Le jour où une politique RLS rend `utilisateur_societe` lisible par `admin_societe` au-delà de sa propre société — ou le jour où une autre source permet de savoir honnêtement qu'une identité est habilitée ailleurs sans violer D34 — le quatrième refus nommé par ce ticket (« accès dans une autre société ») se pose, à cette page. Le jour où un chemin administratif ouvre la toute PREMIÈRE identité d'une société autrement que par `lib/auth/amorcage.ts`, le geste d'amorçage et sa branche de politique (`app_societe_active_vierge`) se retirent, par une migration dédiée — D65 point 4.
 
+**Règles amendées :** aucune — ouverture d'un compte technicien, pas une règle chiffrée du chapitre 10.
+
 ## D165 — CLIENT INACTIF : DÉSACTIVATION REFUSÉE SI DES INTERVENTIONS RESTENT OUVERTES, ÉTAT VISIBLE, QUI REÇOIT LES COURRIELS (QT-16, 28/09/2026 ; précisions du pilote du 03/10/2026, à valider par Alexis)
+
+Validée par Alexis le 10/11/2026.
 
 *Décide le constat QT-16 de l'audit du 28/09/2026 (CS16, CS15, CS27, CS45), et complète D129 (le client inactif sort du planning et du registre, par défaut). Décision 9 d'Alexis Plouvier, directeur d'exploitation, du 03/10/2026 (document du Projet `claude/decisions-alexis-03-10.md`) : désactiver un client qui a des interventions ouvertes est REFUSÉ, en listant ces interventions. Les précisions ci-dessous sont des CHOIX DU PILOTE (document du Projet `claude/mesure-cli-dem-03-10.md`, §« Choix du pilote TP-CLI » ; consigne d'Alexis du 03/10/2026 : « ne reste pas bloqué »), appliquées telles quelles par le ticket 9DN-TP-CLI1-CLIENT-INACTIF. Cette page reste à valider par Alexis.*
 
@@ -5825,7 +5849,11 @@ Aucune migration : le refus de QT-16 est purement applicatif — un déclencheur
 
 > Le jour où Alexis ne valide pas une des précisions du pilote ci-dessus — notamment le classement de `terminee` comme « ouverte » pour cette seule question —, cette page se rouvre pour la trancher à sa place plutôt que de laisser le choix du pilote faire foi en silence. Le jour où une désactivation de client avec une intervention non close est de nouveau acceptée sans refus, les épreuves d'isolation nommées par le ticket 9DN-TP-CLI1-CLIENT-INACTIF le signalent.
 
+**Règles amendées :** aucune — garde applicative sur la désactivation d'un client, pas une règle chiffrée nouvelle du chapitre 10.
+
 ## D161 — TERRAIN : JOURNÉE ET FICHE DU TECHNICIEN (QE-11, 03/10/2026 ; précisions du pilote, à valider par Alexis)
+
+Validée par Alexis le 10/11/2026.
 
 *Décide l'ergonomie QE-11 (a) — « barre basse du terrain, un écran par étape » — appliquée par Alexis le 03/10/2026, décision 9 « tout recommandé » du document du Projet `claude/decisions-alexis-03-10.md`. Les précisions d'application ci-dessous sont des CHOIX DU PILOTE (document du Projet `claude/mesure-tp-ter-acc-03-10.md`, §« Choix du pilote TP-TER »), appliqués tels quels par le ticket 9DI-TP-TER1-JOURNEE-FICHE, premier des deux lots fondus avec TP-UX7 a/b (audit du 28/09/2026 : TR-22, PV-24, TR-16, TR-15, TR-24, TR-25). Cette page REVIENT sur la phrase de D121 (« et sa barre du terrain reste vide (`ENTREES_TERRAIN`, R5-01) — cette décision ne la touche pas ») : D121 n'avait qu'une liste vide à juger, aucun second chrome n'existait encore. Cette page reste à valider par Alexis.*
 
@@ -5859,7 +5887,11 @@ Aucune migration. Aucune règle de cycle de vie, de droit ou de périmètre n'es
 
 > Le jour où Alexis ne valide pas une des précisions du pilote ci-dessus, cette page se rouvre pour la trancher à sa place plutôt que de laisser le choix du pilote faire foi en silence. Le jour où TP-PARC ouvre « Machines » et « Scanner », la barre basse en reçoit les deux entrées ICI, sans qu'il faille rouvrir cette page pour la forme des deux premières. Le jour où Alexis tranche la question laissée ouverte sur la reprise d'une SUSPENDUE depuis le terrain, cette page se rouvre pour l'écrire.
 
+**Règles amendées :** aucune — ergonomie de l'écran terrain, pas une règle chiffrée du chapitre 10.
+
 ## D166 — REGISTRE VGP : LE CLIENT INACTIF ET LA MACHINE HORS PARC ACTIF EN SORTENT SANS INTERRUPTEUR ; TITRE, ONGLETS, TUILES CLIQUABLES, FILTRES ET IMPRESSION PAR CLIENT (PV-32, QE-13d, MO-12 ; précisions du pilote du 03/10/2026, à valider par Alexis)
+
+Validée par Alexis le 10/11/2026.
 
 *Décide les constats PV-32, PV-37, MO-12 de l'audit du 28/09/2026, fondus avec TP-UX3-f (QE-13d (a) : onglets et titre) et TP-UX9-c (MO-12 : registre imprimable par client). Décision 9 d'Alexis Plouvier, directeur d'exploitation, du 03/10/2026 (document du Projet `claude/decisions-alexis-03-10.md`) : les machines des clients inactifs sortent du registre VGP, comme D129. Les précisions ci-dessous sont des CHOIX DU PILOTE (document du Projet `claude/mesure-vgp-nav-03-10.md`, §« Choix du pilote VGP-2 » ; consigne d'Alexis du 03/10/2026 : « ne reste pas bloqué »), appliquées telles quelles par le ticket 9DP-TP-VGP2-REGISTRE. Cette page reste à valider par Alexis.*
 
@@ -5895,7 +5927,11 @@ Aucune migration, aucune ligne de semis, aucun prix. Le régime des « réserves
 
 > Le jour où Alexis ne valide pas une des précisions du pilote ci-dessus — notamment l'absence d'interrupteur pour PV-32, ou le choix de ne pas faire chercher `/parc` sur la référence interne —, cette page se rouvre pour la trancher à sa place plutôt que de laisser le choix du pilote faire foi en silence. Le jour où l'état « réserves » existe, l'onglet correspondant se pose, à cette page plutôt qu'en silence ailleurs.
 
+**Règles amendées :** aucune — ergonomie du registre VGP, pas une règle chiffrée du chapitre 10.
+
 ## D169 — EXPORTER (MO-9 ; précisions du pilote du 03/10, à valider par Alexis)
+
+Validée par Alexis le 10/11/2026.
 
 *Décide le constat MO-9 de l'audit du 28/09/2026 (`VERIF-PA-MO.md`, `docs/propositions/audit-2026-09-28/constats/`) : aucun des trois écrans — registre des interventions, parc machines, registre des VGP — n'offre d'export. Les précisions ci-dessous sont des CHOIX DU PILOTE (consigne d'Alexis du 03/10/2026, « ne reste pas bloqué », document du Projet `claude/mesure-mod-ux6-03-10.md`, §« Choix du pilote »), appliquées telles quelles par le ticket 9DS-TP-MOD1-EXPORTER. Cette page reste à valider par Alexis.*
 
@@ -5919,7 +5955,11 @@ Aucune migration, aucune ligne de semis, aucune dépendance nouvelle (`write-exc
 
 > Le jour où Alexis ne valide pas une des précisions du pilote ci-dessus — notamment l'absence de plafond sur l'export, ou le choix de fermer l'export derrière la capacité de lecture de l'écran plutôt que la seule `importer_exporter` —, cette page se rouvre pour la trancher à sa place. Le jour où un écran gagne une colonne de montant, cette page se rouvre avant que l'export la reprenne sans le dire.
 
+**Règles amendées :** aucune — ergonomie de l'export, pas une règle chiffrée du chapitre 10.
+
 ## D163 — STATUT DE RESSOURCE DU TECHNICIEN (QG-9, 27/09/2026 ; précisions du pilote du 03/10/2026, à valider par Alexis)
+
+Validée par Alexis le 10/11/2026.
 
 *Décide le constat PG-G16 (QG-9, décision d'Alexis du 27/09/2026 : « salarié / patenté = un champ de la fiche technicien, badge et filtre »). Les précisions d'application ci-dessous sont des CHOIX DU PILOTE (document du Projet `claude/mesure-abs-parc-03-10.md`, §PG-G16 ; consigne d'Alexis du 03/10/2026 : « ne reste pas bloqué »), appliquées telles quelles par le ticket 9DL-PG-G16-STATUT-RESSOURCE. Cette page reste à valider par Alexis.*
 
@@ -5945,7 +5985,11 @@ Aucune migration, aucune ligne de semis, aucune dépendance nouvelle (`write-exc
 
 > Le jour où Alexis tranche la question du filtre de planning par statut de ressource, cette page se rouvre pour en porter la décision — elle ne doit pas se déduire du badge ni du filtre existant. Le jour où Alexis ne valide pas une des précisions du pilote ci-dessus — notamment l'irréversibilité de « non renseigné » une fois un statut posé, ou le choix de ne marquer que « Patente » —, cette page se rouvre pour la trancher à sa place.
 
+**Règles amendées :** aucune — statut applicatif du technicien, pas une règle chiffrée du chapitre 10.
+
 ## D167 — HUB PARAMÈTRES ET AGENCES (QT-21, QT-22, 28/09/2026 ; précisions du pilote du 03/10, à valider par Alexis)
+
+Validée par Alexis le 10/11/2026.
 
 **Amendé par D201, D206.**
 
@@ -5997,7 +6041,11 @@ Aucune migration. Aucune politique RLS n'est levée : la lecture de l'identité 
 
 > Le jour où Alexis ne valide pas une des précisions du pilote ci-dessus — notamment le remplacement de la section « Société » de l'audit par « Planification », ou l'entrée d'« Imports » au hub —, cette page se rouvre pour la trancher à sa place plutôt que de laisser le choix du pilote faire foi en silence. Le jour où `/parametres/societe` cesse de rediriger sans qu'une console éditeur lui rende un formulaire réel, cette page se rouvre. Le jour où PA-28, PA-30 ou PA-33 sont traités, cette page ne se rouvre pas pour autant — ce sont les tickets suivants de la série NAV qui les ferment, nommément.
 
+**Règles amendées :** aucune — ergonomie des écrans de paramétrage, pas une règle chiffrée du chapitre 10.
+
 ## D168 — RETOUR ET FIL D'ARIANE (TR-47 à TR-51, 28/09/2026 ; précisions du pilote du 03/10/2026, à valider par Alexis)
+
+Validée par Alexis le 10/11/2026.
 
 *Décide les constats TR-47, TR-48, TR-49, TR-50 et TR-51 de l'audit du 28/09/2026 (`docs/propositions/audit-2026-09-28/`), tranchés par la décision 9 d'Alexis du 03/10/2026 (document du Projet `claude/decisions-alexis-03-10.md`) : « fil d'Ariane sur les fiches, ← là où il n'y a pas de fil ; au téléphone ‹ Parent ». Cette décision **REVIENT sur D122**, qui avait retiré le fil d'Ariane de la maquette de démonstration confrontée (`codiplan-maquette-complete.html` ne porte qu'un « eyebrow » de domaine, voir D121/D122) au profit d'une étiquette simple. Les précisions ci-dessous sont des CHOIX DU PILOTE (document du Projet `claude/mesure-vgp-nav-03-10.md`, §« Choix du pilote NAV » ; consigne d'Alexis du 03/10/2026 : « ne reste pas bloqué »), appliquées par le ticket 9DR-TP-NAV2-RETOURS-FIL — deuxième d'une série de quatre. Cette page reste à valider par Alexis.*
 
@@ -6035,7 +6083,11 @@ La fiche intervention elle-même **garde son retour nu contextuel** (`retourFich
 
 > Le jour où Alexis ne valide pas le fil réduit au téléphone, ou préfère une autre forme que « ‹ Parent », cette page se rouvre. Le jour où la fiche intervention reçoit son propre fil à la place de son retour contextuel, ce n'est pas cette page qui se rouvre — c'est le ticket suivant qui l'écrit, nommément.
 
+**Règles amendées :** aucune — navigation (retour, fil d'Ariane), pas une règle chiffrée du chapitre 10.
+
 ## D170 — INDICATEURS DU MOIS ET DONNÉES À COMPLÉTER (QT-20, QE-19, MO-7 ; précisions du pilote du 03/10, à valider par Alexis)
+
+Validée par Alexis le 10/11/2026.
 
 *Décide les constats QT-20 (audit du 28/09/2026, `docs/propositions/audit-2026-09-28/constats/`) et MO-7, et répond à QE-19. Les précisions ci-dessous sont des CHOIX DU PILOTE (consigne d'Alexis du 03/10/2026, « ne reste pas bloqué », document du Projet `claude/mesure-mod-ux6-03-10.md`, §« Choix du pilote »), appliquées telles quelles par le ticket 9DT-TP-MOD2-INDICATEURS-DONNEES. Cette page reste à valider par Alexis.*
 
@@ -6062,6 +6114,8 @@ Aucune migration, aucune ligne de semis, aucune valeur inventée. Aucune politiq
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où Alexis ne valide pas une des précisions du pilote ci-dessus — notamment le découpage « par nature » retenu pour les planifiées et les clôturées (et son absence pour les créées), ou le choix de fermer les cinq autres points de MO-7 hors de ce lot —, cette page se rouvre pour la trancher à sa place plutôt que de laisser le choix du pilote faire foi en silence. Le jour où l'un des cinq points écartés (sites sans zone/trajet, agences sans horaires, imports avec rejets, personne prévenu, zones sans forfait) est traité, cette page ne se rouvre pas pour autant — c'est le ticket qui le traite qui le ferme, nommément.
+
+**Règles amendées :** aucune — ergonomie des indicateurs du tableau de bord, pas une règle chiffrée du chapitre 10.
 
 ## D171 — BANDEAU, RAIL ET DÉCOMPTES (QE-3 à QE-5, QT-24 ; précisions du pilote du 03/10)
 
@@ -6121,6 +6175,8 @@ Aucune migration, aucune ligne de semis, aucun montant. Aucune politique RLS. La
 
 ## D175 — ABSENCES : LA PAGE AU GABARIT DE LA MAQUETTE DU 28/09, DÉCLARATION EN VOLET (QE-13e (a), QE-13a ; 03/10/2026)
 
+Validée par Alexis le 10/11/2026.
+
 *Décide QE-13e (a) — absences, 4 semaines en bandes — et applique QE-13a (b) — la maquette du 28/09 (`docs/propositions/ergonomie-2026-09-28/maquette-toutes-pages.html`) remplace l'ancienne (D137) —, posés par le ticket 9EC-TP-UX3-E-ABSENCES. Les précisions ci-dessous sont des choix du pilote, tenus par D125, D128, D136 et D140 pour ce qui n'est pas réellement réouvert ici.*
 
 **Amendé par D185.** Sur le tableau de bord selon le rôle (9EG-TP-UX6-TABLEAU-DE-BORD-1) seulement : la bande de décomptes dit « technicien(s) indisponible(s) aujourd'hui », reprenant le libellé de la maquette du 28/09 — décision 46 d'Alexis du 09/10/2026. `/absences` elle-même, construite ici, n'est pas touchée par ce lot.
@@ -6142,6 +6198,8 @@ Aucune migration, aucune ligne de semis, aucun montant. Aucune règle du chapitr
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où Alexis ne valide pas une des précisions ci-dessus — notamment le départ des bandes depuis la semaine affichée plutôt que la suivante, l'absence de « Modifier », ou la variante mobile non construite —, cette page se rouvre pour la trancher à sa place.
+
+**Règles amendées :** aucune — ergonomie de l'écran des absences, pas une règle chiffrée du chapitre 10.
 ## D174 — REGISTRE DES INTERVENTIONS EN 8 ONGLETS (QE-8 (a) du 03/10/2026 ; prolonge D125 par QE-13a/D137)
 
 *Décide QE-8 (a), posé par le ticket 9EA-TP-UX3-1-REGISTRE-1 — premier d'une série de deux (REGISTRE-2 à suivre). Applique la recommandation « (a) partout » d'Alexis (document du Projet `claude/decisions-alexis-03-10.md`) et la décision 13 d'Alexis du 05/10/2026 (`claude/decisions-alexis-05-10.md`) sur l'onglet d'arrivée.*
@@ -6167,6 +6225,8 @@ Aucune migration, aucune ligne de semis, aucun montant, aucune règle de gestion
 > Le jour où Alexis ne valide pas l'une des précisions de ce ticket — notamment l'ordre retenu pour un onglet, le texte de l'emplacement « À facturer », ou l'onglet d'arrivée —, cette page se rouvre pour la trancher à sa place. Le jour où FACTURE-1 pose la liste « à facturer », ce n'est pas cette page qui se rouvre pour la lui donner — c'est FACTURE-1, nommément, en cohérence avec `components/interventions/onglets-registre.tsx`.
 
 ## D176 — DEMANDES : LISTE ET FICHE AU GABARIT DU 28/09, UN SEUL GESTE TRANSFORME (QE-9, QE-13a ; D125 ; 9ED-TP-UX3-D2-DEMANDES)
+
+Validée par Alexis le 10/11/2026.
 
 *Décide QE-9 (a) du 03/10/2026 — le titre d'une fiche demande est l'objet, le couple client · site — et applique QE-13a (b) — la maquette du 28/09 (`docs/propositions/ergonomie-2026-09-28/maquette-toutes-pages.html`) remplace l'ancienne (D125 prolongée) —, posés par le ticket 9ED-TP-UX3-D2-DEMANDES. Tient aussi la décision 14 d'Alexis du 05/10/2026 (`claude/decisions-alexis-05-10.md`) : « Créer l'intervention » passe aussi la demande en « Transformée ».*
 
@@ -6195,6 +6255,8 @@ Aucune migration, aucune ligne de semis, aucun montant. Aucune règle de gestion
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où Alexis ne valide pas l'une des précisions ci-dessus — notamment le repli du titre sur le client seul, le nombre de lignes de « Interventions sur cette machine » s'il change, ou la non-construction de la pastille d'alerte d'onglet —, cette page se rouvre pour la trancher à sa place.
+
+**Règles amendées :** aucune — ergonomie de la liste et de la fiche des demandes, pas une règle chiffrée du chapitre 10.
 
 ## D177 — REGISTRE DES INTERVENTIONS : COLONNES PAR ONGLET, ACTIONS DE LIGNE, SÉLECTION (QE-8 (a) du 03/10/2026 ; D125/QE-13a, D137 ; 9EA-TP-UX3-1-REGISTRE-2)
 
@@ -6813,6 +6875,8 @@ Aucune migration, aucune ligne de semis, aucun prix, aucune règle de planificat
 
 ## D193 — PLANNING : FILE, CARTES, COLONNE TECHNICIEN ET LÉGENDE AU GABARIT DE LA MAQUETTE DU 28/09 (QE-13a (b), QE-2 (a), QE-1 (a) du 03/10/2026 ; refonte du 05/10/2026 ; précisions du pilote, à valider par Alexis ; 9EH-TP-UX-PL-PLANNING-2)
 
+Validée par Alexis le 10/11/2026.
+
 *Cite D190 (en-tête, barre d'outils et filtres du même planning, lot 1/2 de ce ticket — ce texte en est le lot 2/2 et reprend par-dessus, sans rien défaire) ; D125, D128 (la maquette fait foi sur la DISPOSITION, jamais sur le contenu : aucune fonction livrée par un lot antérieur n'a été retirée, aucune règle de planification n'a changé) ; D137/QE-13a (`maquette-toutes-pages.html` du 28/09 remplace `CODIPLAN_Maquette.html` sur la disposition) ; D111 (le taux compact, une seule agence → le taux seul, plusieurs → chacune nommée, jamais deux taux pour une même personne) ; D124 (aucune couleur nouvelle hors des jetons existants) ; D141 (« Transmettre toutes les planifiées prêtes » posé en tête du bloc « Laissées », sous la grille — inchangé par ce lot).*
 
 ### CE QUI A ÉTÉ MESURÉ
@@ -6864,6 +6928,8 @@ Deux unitaires, ajustés par ce même ticket (partie A, `5191a7ac` ; partie C, `
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où Alexis tranche que la sous-ligne « Salarié · BR » doit remplacer la ligne d'agence, qu'un repli par chevron doit s'ajouter à la file « À traiter » en plus du « Plein écran » existant, que la durée d'une carte de la grille doit se taire quand le créneau porte une fin (ce qui exigerait d'abord de changer l'attente de `planning-largeur-et-carte.spec.ts`), ou que le bord de priorité doit adopter une teinte hors des jetons existants — cette décision se rouvre.
+
+**Règles amendées :** aucune — ergonomie du planning, pas une règle chiffrée du chapitre 10.
 
 ## D195 — FICHE INTERVENTION : PLANIFIER/TRANSMETTRE/DÉPLACER DEVIENNENT DES DIALOGUES D'EN-TÊTE, LA CARTE ACTIONS DISPARAÎT ENTIÈREMENT (décision n° 63 d'Alexis, 08/10/2026 ; 9ES-TP-UX4-3-FICHE-GESTES-2)
 
@@ -7693,6 +7759,10 @@ Portée : `lib/auth/acces-bureau.ts` (`estCibleProtegeeCopieNouveauLien`, `copie
 
 ## D224 — LE TEMPS FACTURÉ S'ARRONDIT PAR PALIER DE 30 MIN À PARTIR DE 5 MIN, SAUF LA PREMIÈRE HEURE ENTIÈRE, RÉGLABLE PAR SOCIÉTÉ (décision d'Alexis du 29/10/2026, 9I8A-REGLE-DE-FACTURATION-DU-TEMPS / 9I8A1-REPRISE-9I8A)
 
+**Règles amendées :** RG-TAR-05
+
+Confirmée par Alexis le 10/11/2026 — remplace définitivement « l'arrondi au quart d'heure » comme règle par défaut.
+
 ### CE QUI A ÉTÉ DEMANDÉ
 
 Demande d'Alexis, verbatim : « j'aimerais que lorsqu'il est temps de cloturer l'intervention, le temps validé soit par palier de 30min (à partir de 5min) sauf la première heure (1min entamé = 1h facturée) ». Lecture du pilote, confirmée par Alexis (« ok réglage par société, oui »), avec le tableau suivant, qui fait foi :
@@ -7808,7 +7878,9 @@ Portée ajoutée : `lib/machines/garde-statut.ts` (nouveau), `lib/machines/saisi
 
 ## D228 — PARCOURS-1 : une intervention ne porte qu'une machine au plus, et pourquoi ce texte manquait
 
-*À VALIDER PAR ALEXIS. Cette section ÉCRIT ce qui est déjà posé en base depuis le 23/09/2026 — elle ne redécide rien. « PARCOURS-1 » était cité comme un arbitrage de rang 1 à cinq endroits de ce document sans qu'aucune section `## Dxx` n'en porte le texte complet (ticket 9J01-DOC-PARCOURS-1, audit équipe du 29/10/2026, confirmé indépendamment par CATALOGUE, le chef, CONTRADICTEUR et l'ARCHITECTE). Alexis confirme que ce qui suit reflète bien sa décision du 23/09/2026, ou la corrige.*
+**Règles amendées :** RG-INT-01
+
+**Validée par Alexis le 10/11/2026** — confirme que ce qui suit reflète bien sa décision du 23/09/2026 ; la section ÉCRIT ce qui était déjà posé en base depuis cette date, elle ne redécide rien. « PARCOURS-1 » était cité comme un arbitrage de rang 1 à cinq endroits de ce document sans qu'aucune section `## Dxx` n'en porte le texte complet (ticket 9J01-DOC-PARCOURS-1, audit équipe du 29/10/2026, confirmé indépendamment par CATALOGUE, le chef, CONTRADICTEUR et l'ARCHITECTE).
 
 ### CE QUE LE CHAPITRE 7/M3 ET D103 PERMETTAIENT AVANT
 
@@ -7822,15 +7894,15 @@ Le texte posé sur la contrainte elle-même (`COMMENT ON CONSTRAINT`, `migration
 
 > « PARCOURS-1, arbitrage Alexis du 23/09/2026 : une intervention ne porte qu'une machine au plus. Posée VALIDÉE — la migration a vérifié qu'aucune ligne existante ne l'enfreint avant de la poser, et échoue sinon plutôt que de laisser un trou. »
 
-### ÉCART MESURÉ, NOTÉ PLUTÔT QUE TRANCHÉ EN DOUCE
+### ÉCART MESURÉ, RÉSOLU PAR CE TICKET (9L21)
 
-Le chapitre 10, RG-INT-01, porte aujourd'hui, mot pour mot : *« Elle PEUT en porter une ou plusieurs (`intervention_machine`) »* *(amendée par D16, D120 — D120 du 15/09/2026, antérieure à PARCOURS-1)*. Ce texte contredit directement la contrainte posée le 23/09/2026 : la base refuse par construction ce que le chapitre 10 dit permettre. Cette section N'AMENDE PAS RG-INT-01 — `docs/cahier-des-charges.md` est hors du territoire de ce ticket (9J01-DOC-PARCOURS-1, limité à l'ajout d'une section à `docs/arbitrages.md`) — et aucun gardien existant (`cablage-arbitrages`, dont la liste `CABLAGE_ATTENDU` est fermée et écrite à la main) ne tenait cette paire jusqu'ici, puisque D228 n'existait pas. **La mise à jour de RG-INT-01 reste un point ouvert, posé explicitement à Alexis plutôt que résolu en douce.**
+Le chapitre 10, RG-INT-01, portait jusqu'au 10/11/2026, mot pour mot : *« Elle PEUT en porter une ou plusieurs (`intervention_machine`) »* *(amendée par D16, D120 — D120 du 15/09/2026, antérieure à PARCOURS-1)*. Ce texte contredisait directement la contrainte posée le 23/09/2026 : la base refusait par construction ce que le chapitre 10 disait permettre. **Résolu par ce ticket (9L21) : RG-INT-01 est corrigée pour dire « au plus une machine », et cette décision déclarée en tête de section.**
 
 ### CONDITION DE RÉOUVERTURE, vérifiable
 
 > Le jour où une visite doit à nouveau couvrir plusieurs machines, chacune avec sa propre checklist (CATALOGUE CAT-2.3, Question 3), cette page se rouvre : il faudra retirer la contrainte `intervention_machine_intervention_id_key` par une migration dédiée, et revoir RG-INT-01 dans le même geste plutôt que de laisser le chapitre 10 et la base diverger une seconde fois.
 
-**Règles amendées :** aucune — voir « Écart mesuré » ci-dessus.
+Voir « Règles amendées » en tête de cette section.
 
 ## D229 — LA NOTIFICATION PREND LA FORME « INTERNE », PAS « PARC » (session, 9J09-NOTIFICATIONS-SCHEMA, 05/11/2026)
 

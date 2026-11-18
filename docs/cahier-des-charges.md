@@ -264,7 +264,7 @@ Un utilisateur peut être habilité sur plusieurs sociétés. Un sélecteur de s
 
 ### 5.2 Matrice des rôles
 
-*Corrigée par l'arbitrage D37 — la colonne « Admin » d'origine est **scindée**.*
+*Corrigée par l'arbitrage D37 — la colonne « Admin » d'origine est **scindée**. Mise à jour des lignes « Saisir un rapport » et « Voir les montants de vente » (D151, 03/10/2026 ; arbitrage 3.8) ; ajout des lignes « Consulter les clients et les sites » et « Régler les trajets », et mise à jour de la colonne Direction sur cinq lignes (D153, 03/10/2026 ; D199, 13/10/2026) — validées par Alexis le 10/11/2026.*
 
 | Fonction | Admin plateforme | Admin société | Direction | Resp. matériel | Resp. SAV | ADV | Technicien | Client |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
@@ -272,24 +272,26 @@ Un utilisateur peut être habilité sur plusieurs sociétés. Un sélecteur de s
 | Modifier le planning | — | ● | ● | ● | ● | ● | — | — |
 | Créer une demande | — | ● | ● | ● | ● | ● | ● | ● |
 | Qualifier / affecter | — | ● | ● | ● | ● | ● | — | — |
-| Saisir un rapport | — | ● | — | ● | ● | — | ● | — |
+| Saisir un rapport | — | ● | ● | ● | ● | — | ○ | — |
 | Valider un rapport | — | ● | ● | ● | ● | — | — | — |
 | Clôturer une intervention | — | ● | ● | ● | ● | ● | ○ | — |
 | Annuler une intervention | — | ● | ● | ● | ● | ● | — | — |
 | Suspendre / reprendre une intervention | — | ● | ● | ● | ● | ● | ○ | — |
 | Enregistrer une vérification VGP | — | ● | ● | ● | ● | ● | ○ | — |
 | Créer / modifier un client ou un site | — | ● | ● | — | — | ● | — | — |
+| Consulter les clients et les sites | — | ● | ● | ● | ● | ● | — | — |
 | Créer / modifier un contrat | — | ● | ● | ● | — | ○ | — | — |
 | Créer / modifier une machine | — | ● | ● | ● | ● | ● | ● | — |
 | Consulter le parc complet | — | ● | ● | ● | ● | ● | ○ | — |
 | Consulter son propre parc | — | — | — | — | — | — | — | ● |
-| Voir les montants de vente | — | — | ● | ● | ● | ● | — | ○ |
+| Voir les montants de vente | — | — | ● | ● | ● | ● | — | — |
 | Voir les marges | — | — | ● | ● | ○ | — | — | — |
 | Préparer les éléments à facturer | — | — | ● | ● | — | ● | — | — |
 | Importer / exporter en masse | — | ● | ● | ● | ○ | ● | — | — |
-| Paramétrer une société | — | ● | ○ | — | — | — | — | — |
-| Administrer les utilisateurs | — | ● | — | — | — | — | — | — |
-| Administrer les agences | — | ● | — | — | — | — | — | — |
+| Paramétrer une société | — | ● | ● | — | — | — | — | — |
+| Administrer les utilisateurs | — | ● | ● | — | — | — | — | — |
+| Régler les trajets | — | ● | ● | — | — | ● | — | — |
+| Administrer les agences | — | ● | ● | — | — | — | — | — |
 | Consulter le journal d'audit | — | ● | ● | — | — | — | — | — |
 
 ● accès complet ○ accès restreint (périmètre limité ou lecture seule) — pas d'accès
@@ -301,6 +303,14 @@ Un utilisateur peut être habilité sur plusieurs sociétés. Un sélecteur de s
 Rattacher cette colonne à `admin_plateforme`, comme le faisait la version précédente, revenait à faire passer par l'éditeur la création d'un compte chez un client : intenable dès la première vente.
 
 **Trois lignes ajoutées, et une rouverte (arbitrage Alexis, 23/09/2026, D131).** « Annuler une intervention », « Suspendre / reprendre une intervention » et « Enregistrer une vérification VGP » sont absentes du cahier des charges d'origine ; le `○` de « Clôturer une intervention » sur la colonne Technicien, retiré par l'arbitrage 3.17, est rétabli mais **scopé** : le technicien n'agit que sur une intervention (ou, pour la VGP, une machine) où IL est le technicien affecté — jamais celle d'un collègue, jamais une annulation. Le détail et le motif complet sont dans `docs/arbitrages.md` (D131).
+
+**Deux lignes ajoutées de plus (D153, 03/10/2026).** « Consulter les clients et les sites » ouvre en LECTURE SEULE la fiche client et la fiche site aux responsables matériel et SAV, qui en ont besoin pour leur travail quotidien sans jamais pouvoir les modifier (`gerer_client_site`, D130, reste réservé à l'administrateur de société, à la direction et à l'ADV). « Régler les trajets » distingue le réglage des temps de trajet par zone (ADV, D107) du reste du paramétrage de société.
+
+**La colonne Direction, portée au ● de l'administrateur de société sur cinq lignes (D199, décision n° 85 d'Alexis, 13/10/2026) :** « Saisir un rapport », « Paramétrer une société », « Administrer les utilisateurs », « Régler les trajets », « Administrer les agences » — *« la direction doit pouvoir modifier ce qu'elle souhaite, elle a tout pouvoir »*. La direction garde en plus ce qu'`admin_societe` n'a pas : les trois lignes financières (D37).
+
+**Le `○` du client sur « Voir les montants de vente » devient `—` (arbitrage 3.8) :** aucun montant sur le portail client en V1 — ni sur le rapport, ni sur une intervention précise. Le barème publié sur le portail (D232, amendement borné de l'arbitrage 3.8) est un fait distinct, hors de cette ligne : il ne porte pas sur la valorisation d'une intervention.
+
+Décisions validées par Alexis le 10/11/2026 : D151, D153, D199.
 
 **Restrictions notables**
 
@@ -682,7 +692,7 @@ mention est un écart, jamais une sortie du périmètre.*
 | RG-SOC-02 | Le filtrage par société est appliqué côté serveur sur chaque requête, et doublé d'une politique de sécurité au niveau des lignes en base. |
 | RG-SOC-03 | Un utilisateur peut être habilité sur plusieurs sociétés, avec un rôle distinct pour chacune. |
 | RG-SOC-04 | Aucune donnée client, machine, intervention ou contrat ne peut être partagée entre sociétés. Seuls les référentiels techniques marqués « partagés » le sont. |
-| RG-SOC-05 | Les compteurs de numérotation sont propres à chaque société. |
+| RG-SOC-05 | Les compteurs de numérotation sont propres à chaque société **et à chaque année civile** : la numérotation repart à 1 chaque année, la paire (société, année, numéro) distinguant deux lignes d'années différentes qui portent le même numéro *(numérotation annuelle, 23/10/2026, ticket 9H2-NUMEROTATION-INTERVENTIONS — voir `docs/decisions/2026-10-23-numerotation-annuelle.md`)*. |
 | RG-SOC-06 | La création d'une société ne requiert aucun développement : elle est intégralement paramétrable. |
 
 ### RG — Devises et tarification
@@ -693,17 +703,17 @@ mention est un écart, jamais une sortie du périmètre.*
 | RG-TAR-02 | Aucune conversion n'est appliquée ligne à ligne. La conversion n'intervient que sur les agrégats de consolidation, à parité datée et paramétrée. |
 | RG-TAR-03 | Le nombre de décimales est une propriété de la devise. XPF : zéro décimale. EUR : deux. |
 | RG-TAR-04 | Le taux horaire est historisé. Un changement de taux ne modifie pas les interventions déjà valorisées. |
-| RG-TAR-05 | Une intervention est valorisée au forfait, au temps passé, ou au forfait plus les heures excédentaires. Le mode est fixé à la qualification et modifiable jusqu'à la clôture. **Le temps d'intervention est arrondi AU QUART D'HEURE SUPÉRIEUR**, et **la main-d'œuvre facturée ne peut être inférieure à UNE HEURE** au taux en vigueur. **Arrondi puis plancher s'appliquent UNE SEULE FOIS, sur l'intervention ENTIÈRE**, jamais tâche par tâche — et par intervention, jamais sur le total d'une journée : cinq passages de cinq minutes font **5 heures**, et non 30 minutes. Le plancher ne s'applique **ni au forfait** (le prix d'un forfait ne dépend pas de la durée), **ni au trajet**, **ni au travail interne** — aucun des trois n'est facturé à l'heure. Une intervention étalée sur deux jours reste **une** intervention : un seul arrondi, un seul plancher. **Le plancher s'applique PAR INTERVENTION, sans exception** : deux interventions le même jour sur le même site déclenchent **deux planchers**, y compris si la seconde achève la première. *(amendée par D57, D83, D89)* |
+| RG-TAR-05 | Une intervention est valorisée au forfait, au temps passé, ou au forfait plus les heures excédentaires. Le mode est fixé à la qualification et modifiable jusqu'à la clôture. **La première heure est due dès la première minute travaillée (plancher), puis l'excédent se compte par PALIERS DE 30 MINUTES, un palier n'étant dû qu'à partir de 5 minutes passées dans ce palier** — réglage par défaut (60/30/5) pour toute société, **réglable PAR SOCIÉTÉ** *(D224)*. **L'ancienne règle — arrondi au quart d'heure supérieur, plancher d'une heure — reste disponible comme réglage (60/15/1)**, mais n'est plus la règle unique du dépôt. **Palier et plancher s'appliquent UNE SEULE FOIS, sur l'intervention ENTIÈRE**, jamais tâche par tâche — et par intervention, jamais sur le total d'une journée : cinq passages de cinq minutes font **5 heures**, et non 30 minutes. Le plancher ne s'applique **ni au forfait** (le prix d'un forfait ne dépend pas de la durée), **ni au trajet**, **ni au travail interne** — aucun des trois n'est facturé à l'heure. Une intervention étalée sur deux jours reste **une** intervention : un seul calcul. **Le plancher s'applique PAR INTERVENTION, sans exception** : deux interventions le même jour sur le même site déclenchent **deux planchers**, y compris si la seconde achève la première. **La décomposition est figée à la clôture** *(D224)* : une fiche déjà close ne change jamais d'affichage si la société modifie son réglage ensuite. *(amendée par D57, D83, D89, D224)* |
 | RG-TAR-06 | Un forfait ne s'applique que si ses conditions sont remplies — zone, famille de matériel, type d'intervention. |
 
 ### RG — Interventions
 
 | Réf | Règle |
 |---|---|
-| RG-INT-01 | Une intervention est rattachée à un client et à un site. ~~Elle porte au moins une machine, **sauf pour les types `expertise`, `installation` et `recensement`**. Si la machine n'existe pas, elle est créée avant de démarrer.~~ **AUCUNE MACHINE N'EST EXIGÉE POUR DÉMARRER** *(D120)* : *une intervention peut porter sur autre chose qu'un équipement — un réseau d'air comprimé, par exemple.* Elle PEUT en porter une ou plusieurs (`intervention_machine`), et **aucune machine rattachée signifie le site entier**. Si la machine existe et qu'on veut la nommer, elle se rattache ; si elle n'existe pas, elle se crée — mais ni l'un ni l'autre ne conditionne le démarrage, que le compteur du technicien déclenche d'un seul geste. *(amendée par D16, D120)* |
+| RG-INT-01 | Une intervention est rattachée à un client et à un site. ~~Elle porte au moins une machine, **sauf pour les types `expertise`, `installation` et `recensement`**. Si la machine n'existe pas, elle est créée avant de démarrer.~~ **AUCUNE MACHINE N'EST EXIGÉE POUR DÉMARRER** *(D120)* : *une intervention peut porter sur autre chose qu'un équipement — un réseau d'air comprimé, par exemple.* **Elle porte AU PLUS UNE machine** *(D228)* — `intervention_machine`, contrainte `UNIQUE("intervention_id")` posée en base — et **aucune machine rattachée signifie le site entier**. Trois machines à traiter sur un même passage ouvrent TROIS interventions, jamais une seule avec trois lignes. Si la machine existe et qu'on veut la nommer, elle se rattache ; si elle n'existe pas, elle se crée — mais ni l'un ni l'autre ne conditionne le démarrage, que le compteur du technicien déclenche d'un seul geste. *(amendée par D16, D120, D228)* |
 | RG-INT-02 | Une intervention ne peut passer à TERMINÉE que si le temps passé est renseigné, **un commentaire non vide est écrit** *(D242, 11/11/2026)* et la checklist complétée. **« Complétée » signifie que CHAQUE POINT OBLIGATOIRE de la checklist résolue porte une réponse** *(D240, 11/11/2026)* : l'absence de checklist résolue satisfait la condition (3.10), et un point répondu « non conforme » satisfait la condition pour CE point — seule l'ABSENCE de réponse sur un point obligatoire bloque, jamais sa valeur. **Le commentaire, lui, est écrit dans `commentaire_technicien` — un texte fait seulement d'espaces compte comme absent** *(D242)*. Le refus NOMME le ou les points obligatoires sans réponse (section, libellé), et nomme séparément un commentaire absent. *(amendée par D240, D242)* |
 | RG-INT-03 | Une intervention ne peut être CLÔTURÉE sans rapport validé. |
-| RG-INT-04 | La signature client est obligatoire pour clôturer, sauf motif d'exception tracé et notifié au responsable. |
+| RG-INT-04 | La signature client est exigée au geste **« Terminer »** *(D173)* — distinct de la clôture, D8 — sauf motif d'exception TRACÉ, parmi trois issues closes (`signee`, `client_absent`, `refus_signature`), et notifié au responsable SAV. *(amendée par D173)* |
 | RG-INT-05 | Toute modification d'une intervention planifiée à moins de 24 h notifie le client et le technicien. |
 | RG-INT-06 | Une intervention SUSPENDUE porte un motif et, pour une attente de pièce, la référence attendue et la date de disponibilité prévisionnelle. |
 | RG-INT-07 | Le temps de trajet est saisi séparément et **n'est JAMAIS facturé au temps** : le déplacement se facture par un **forfait conditionné par zone** (RG-TAR-06), un seul par intervention ; une ligne de temps de type `trajet` n'est jamais facturable. ~~n'est facturé que selon la règle du contrat, du forfait ou du barème applicable~~ *(amendée par D74 — la version d'origine laissait un contrat facturer le trajet au temps)* |

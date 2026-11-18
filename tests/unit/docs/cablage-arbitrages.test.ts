@@ -54,6 +54,10 @@ const CABLAGE_ATTENDU: ReadonlyArray<readonly [string, string]> = [
   // D120 (15/09/2026) — la machine cesse d'être exigée pour démarrer : une
   // intervention peut porter sur autre chose qu'un équipement.
   ["D120", "RG-INT-01"],
+  // D228 (23/09/2026, PARCOURS-1 ; validée par Alexis le 10/11/2026, ticket
+  // 9L21) — une intervention ne porte qu'une machine au plus, déjà posé en
+  // base depuis le 23/09/2026 ; le chapitre 10 ne le disait pas encore.
+  ["D228", "RG-INT-01"],
   ["D22", "RG-DRO-02"],
   ["D23", "RG-PLA-05"],
   ["D25", "RG-INT-10"],
@@ -74,6 +78,11 @@ const CABLAGE_ATTENDU: ReadonlyArray<readonly [string, string]> = [
   ["D56", "RG-PLA-05"],
   // D57 tranche l'arrondi au quart d'heure : PAR INTERVENTION (07/09/2026).
   ["D57", "RG-TAR-05"],
+  // D224 (29/10/2026, confirmée par Alexis le 10/11/2026, ticket 9L21) — le
+  // temps facturé se compte par paliers de 30 min à partir de 5 min, sauf la
+  // première heure entière, réglable par société ; remplace l'arrondi au
+  // quart d'heure comme règle par défaut du dépôt.
+  ["D224", "RG-TAR-05"],
   // D74 (nuit du 10/09/2026) : le trajet est un FORFAIT, le temps de trajet ne
   // s'ajoute jamais aux heures facturées — RG-INT-07 laissait un contrat le
   // facturer au temps, et RG-PLA-05 dit désormais que `temps_trajet_min` est
@@ -118,6 +127,10 @@ const CABLAGE_ATTENDU: ReadonlyArray<readonly [string, string]> = [
   // non vide s'ajoute aux conditions de « Terminer » (décision « Inactif +
   // commentaire exigé » d'Alexis du 10/11/2026).
   ["D242", "RG-INT-02"],
+  // D173 (ticket 9L21, 10/11/2026) — la signature est exigée au geste
+  // « Terminer » (D8), pas à la clôture ; le chapitre 10 nommait le mauvais
+  // geste depuis l'origine.
+  ["D173", "RG-INT-04"],
 ];
 
 describe("câblage bidirectionnel entre le chapitre 10 et les arbitrages", () => {
