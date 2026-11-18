@@ -31,10 +31,7 @@ const FICHIERS = [
 ] as const;
 
 function flux(nom: string): string {
-  const texte = readFileSync(
-    join(RACINE, ".github", "workflows", nom),
-    "utf8",
-  );
+  const texte = readFileSync(join(RACINE, ".github", "workflows", nom), "utf8");
   expect(
     texte.length,
     `${nom} est vide ou introuvable : le gardien ne mesure rien`,
@@ -48,9 +45,7 @@ describe.each(FICHIERS)(
     it("aucun « uses: » ne porte un nom de version mobile", () => {
       const texte = flux(nom);
       const usages = [...texte.matchAll(/^\s*- uses: (\S+)@(\S+)/gm)];
-      expect(usages.length, "aucune action tierce trouvée").toBeGreaterThan(
-        0,
-      );
+      expect(usages.length, "aucune action tierce trouvée").toBeGreaterThan(0);
       for (const [, action, reference] of usages) {
         expect(
           reference,
@@ -66,10 +61,9 @@ describe.each(FICHIERS)(
         .filter((ligne) => /^\s*- uses: \S+@[0-9a-f]{40}/.test(ligne));
       expect(lignes.length).toBeGreaterThan(0);
       for (const ligne of lignes) {
-        expect(
-          ligne,
-          `pas de version en commentaire sur : ${ligne}`,
-        ).toMatch(/#\s*v\d+(\.\d+)*\s*$/);
+        expect(ligne, `pas de version en commentaire sur : ${ligne}`).toMatch(
+          /#\s*v\d+(\.\d+)*\s*$/,
+        );
       }
     });
   },
