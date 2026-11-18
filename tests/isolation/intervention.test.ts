@@ -1,10 +1,16 @@
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, describe, expect, it } from "vitest";
 
 import { Role } from "@/lib/auth/roles";
 import { avecContexteApplicatif } from "@/lib/db/client";
+import { uuidv7 } from "@/lib/db/uuid";
+import {
+  STATUTS_INTERVENTION,
+  type StatutIntervention,
+} from "@/lib/interventions/saisie";
 
 import {
   clientApp,
+  clientOwner,
   fermerClients,
   observerSousProprietaire,
   sousSociete,
@@ -395,6 +401,125 @@ describe("l'intervention, sous le rôle applicatif", () => {
           throw new Error("ANNULER");
         }),
       ).rejects.toThrow(/^ANNULER$/);
+    });
+  });
+
+  /**
+   * LA MATRICE D8, JOUÉE SUR TOUS LES COUPLES (décision d'Alexis du
+   * 10/11/2026) — le bloc précédent n'éprouvait qu'UN couple refusé et UN
+   * couple permis ; une case oubliée côté base, dans un sens ou dans l'autre,
+   * y serait passée inaperçue. Celui-ci écrit la matrice COMPLÈTE, mot pour
+   * mot celle du déclencheur `intervention_cycle_de_vie`
+   * (`prisma/migrations/20261022210000_rapport_valide_avant_cloture`, qui
+   * reprend sans changement celle de `20261004100000_tp_cy2_matrice_d8`), et
+   * confronte chacun des 56 couples hors diagonale à la base — jamais à une
+   * seconde implémentation TypeScript du même critère, qui pourrait diverger
+   * en silence de la base (§9, 01/09).
+   *
+   * Chaque ligne jetable naît par un INSERT direct (hors du déclencheur, qui
+   * ne porte que sur `BEFORE UPDATE`) dans l'état de départ, puis reçoit UNE
+   * UPDATE vers l'arrivée. Deux arrivées portent des colonnes couplées par
+   * une contrainte CHECK distincte de la matrice — `cloturee` son
+   * `statut_facturation`, `suspendue` son motif et sa date — posées ici pour
+   * qu'un couple PERMIS par la matrice ne soit jamais refusé pour UNE AUTRE
+   * raison, ce qui ferait croire la matrice fautive à tort.
+   */
+  describe("la matrice D8, JOUÉE SUR TOUS LES COUPLES (décision d'Alexis du 10/11/2026)", () => {
+    const MATRICE_D8: Record<
+      StatutIntervention,
+      readonly StatutIntervention[]
+    > = {
+      a_planifier: ["planifiee", "annulee"],
+      planifiee: ["a_planifier", "affectee", "en_cours", "annulee"],
+      affectee: ["a_planifier", "planifiee", "en_cours", "annulee"],
+      en_cours: ["suspendue", "terminee", "annulee"],
+      suspendue: ["a_planifier", "planifiee", "en_cours", "annulee"],
+      terminee: ["en_cours", "cloturee"],
+      cloturee: [],
+      annulee: [],
+    };
+
+    // UNE SEULE RAISON DE REFUS POUR LES DEUX TERMINAUX — le déclencheur
+    // refuse toute écriture sur une ligne déjà figée AVANT même de regarder
+    // la matrice (I5, D160) ; les 14 couples qui en partent portent donc ce
+    // message, jamais « transition refusée ».
+    const MESSAGE_REFUS = (depart: StatutIntervention): RegExp =>
+      depart === "annulee" || depart === "cloturee"
+        ? /ne se modifie plus/
+        : /n'est pas une transition permise/;
+
+    function colonnesCouplees(statut: StatutIntervention): string {
+      if (statut === "cloturee") {
+        return (
+          `, "statut_facturation" = 'a_facturer', "temps_valide_min" = 90, ` +
+          `"rapport_valide_par" = '${RAPPORT_VALIDE_PAR}', "rapport_valide_le" = now()`
+        );
+      }
+      if (statut === "suspendue") {
+        return `, "motif_suspension" = 'Attente de pièce', "suspendue_le" = now()`;
+      }
+      return "";
+    }
+
+    const jetables: string[] = [];
+
+    afterEach(async () => {
+      for (const id of jetables.splice(0)) {
+        await clientOwner().$executeRawUnsafe(
+          `DELETE FROM "intervention" WHERE "id" = '${id}'`,
+        );
+      }
+    });
+
+    /** Une ligne jetable, NÉE dans `statut` — par INSERT, jamais par une UPDATE que la matrice jugerait. */
+    async function jetableDansEtat(
+      statut: StatutIntervention,
+    ): Promise<string> {
+      const id = uuidv7();
+      jetables.push(id);
+      await clientOwner().$executeRawUnsafe(
+        `INSERT INTO "intervention" ("id","societe_id","client_id","site_id","agence_id",
+           "type","statut","date_planifiee","duree_estimee_min","modifie_le"${
+             statut === "cloturee" ? `,"statut_facturation"` : ""
+           }${statut === "suspendue" ? `,"motif_suspension","suspendue_le"` : ""})
+         SELECT '${id}', "societe_id", "client_id", "site_id", "agence_id",
+                'curatif', '${statut}', DATE '2026-09-14', 60, now()${
+                  statut === "cloturee" ? `, 'a_facturer'` : ""
+                }${
+                  statut === "suspendue"
+                    ? `, 'Attente de pièce', now()`
+                    : ""
+                }
+           FROM "intervention" WHERE "id" = '${INTERVENTION_A1}'`,
+      );
+      return id;
+    }
+
+    const COUPLES: ReadonlyArray<
+      readonly [StatutIntervention, StatutIntervention]
+    > = STATUTS_INTERVENTION.flatMap((depart) =>
+      STATUTS_INTERVENTION.filter((arrivee) => arrivee !== depart).map(
+        (arrivee) => [depart, arrivee] as const,
+      ),
+    );
+
+    it.each(COUPLES)("%s → %s", async (depart, arrivee) => {
+      const permis = MATRICE_D8[depart].includes(arrivee);
+      const id = await jetableDansEtat(depart);
+
+      const geste = sousSociete(SOCIETE_A, (tx) =>
+        tx.$executeRawUnsafe(
+          `UPDATE "intervention" SET "statut" = '${arrivee}'${colonnesCouplees(
+            arrivee,
+          )} WHERE "id" = '${id}'`,
+        ),
+      );
+
+      if (permis) {
+        await expect(geste).resolves.toBe(1);
+      } else {
+        await expect(geste).rejects.toThrow(MESSAGE_REFUS(depart));
+      }
     });
   });
 });
