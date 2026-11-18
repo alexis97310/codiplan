@@ -121,3 +121,64 @@ localement — vertes. `build` (`next build`) a été vérifié manuellement
 atteinte par la taille actuelle du dépôt, sans rapport avec ce ticket
 (confirmé : la même commande, avec 8192 Mo, réussit à l'identique sur le
 code de ce ticket). `verify:full` est laissé à la file, comme demandé.
+
+## Reprise 9L15A-REPRISE-TEMPS-VALIDE (18/11/2026)
+
+Reprise mandatée après deux rouges de `CI=1 pnpm verify` à l'étape `next
+build` (`JavaScript heap out of memory`, plafond 6144 Mo) — cause mesurée par
+9L13A-REPRISE-MEMOIRE-BUILD comme commune à TOUS les lots du 18/11 sur
+`origin/main` seul, et refermée entre-temps par
+`9L16A-MEMOIRE-BUILD-MARGE` (36 réciproques Prisma `@ignore`, marge ~300 Mo
+rendue, plafond inchangé) : le diff de ce ticket n'y était pas en cause.
+
+- **`tickets/recales/9L15-TEMPS-VALIDE-TECHNICIEN.md` et
+  `traces/9L15-TEMPS-VALIDE-TECHNICIEN-verify-{1,2}.txt`** : absents de ce
+  dépôt (ni sur `origin/main`, ni sur aucune branche, ni ailleurs sur la
+  machine — recherché). Cette reprise s'appuie donc sur le CONTEXTE écrit
+  dans le mandat de reprise, qui portait déjà la mesure de la cause ; aucun
+  des deux fichiers n'a pu être relu en entier comme demandé.
+- Branche `9L15A-REPRISE-TEMPS-VALIDE` ouverte depuis `origin/main` à jour
+  (`5ee78c1a0`). Les trois commits de `9L15-TEMPS-VALIDE-TECHNICIEN-garde`
+  (points 1, 2, 3) cherry-pickés dans l'ordre. Deux sans conflit ; le
+  troisième en a un sur `docs/arbitrages.md` — les deux lots avaient écrit
+  **D270** sous un mandat parti du même `origin/main` : 9L13
+  (« suspendre ferme le compteur ») y était déjà publié entre-temps. La
+  décision de ce ticket est renumérotée **D271**, partout — `docs/
+  arbitrages.md`, `docs/propositions/9L15-TEMPS-VALIDE-TECHNICIEN/
+  passation.md` (ce fichier, plus haut), `tests/e2e/
+  9l15-temps-valide-technicien.spec.ts`, `tests/isolation/
+  droits-cycle-de-vie.test.ts`, `components/interventions/
+  dialogue-cloturer.tsx`, `app/(back-office)/interventions/[id]/page.tsx`,
+  `lib/i18n/fr.ts`, `lib/interventions/depot.ts`, et le titre du commit
+  cherry-pické (amendé). Rien d'autre n'a changé dans les trois commits.
+- Aucune relation Prisma nouvelle posée par ce ticket (`prisma/schema.prisma`
+  non touché) : rien à marquer `@ignore` au sens du gardien de 9L16A.
+- Recherche dans `tests/e2e/**` des localisateurs de la même famille
+  (« Temps validé », `temps_valide_min`, « Clôturer », le nouveau libellé
+  « Le bureau peut le corriger ») : AUCUN besoin de les rendre plus précis.
+  Toutes les épreuves existantes qui touchent `DialogueCloturer`
+  (`fiche-cloturer.spec.ts`, `fiche-cloturer-replie.spec.ts`,
+  `9k09-fiche-cloture-suite-origine.spec.ts`, etc.) s'ouvrent sous un compte
+  à accès complet (`ouvrirUneSession`/`COMPTE_EPREUVE`), donc restent sur la
+  branche `correctionAutorisee = true`, inchangée — le même constat que plus
+  haut (« chemin SANS ÉCRAN ») : aucune épreuve existante n'exerçait déjà la
+  branche restreinte avant ce ticket, donc aucune n'est entrée en collision
+  avec le nouveau libellé de lecture.
+- Pic mesuré de `pnpm build` (`/usr/bin/time -v`, `.next` effacé avant) :
+  **Maximum resident set size : 6 028 012 ko ≈ 5 887 Mio**, soit une marge de
+  ≈ 257 Mio sous le plafond de 6144 Mio — cohérent avec la marge « ~300 Mo »
+  rendue par 9L16A (l'écart tient à la variance d'une mesure à l'autre, pas à
+  ce ticket : aucune relation Prisma neuve, aucun type inféré nouveau).
+- Rejoué au premier plan, `CI=1 --workers=1` : les e2e de ce ticket
+  (`9l15-temps-valide-technicien.spec.ts`), la famille `*cloture*`
+  (`9k09-fiche-cloture-suite-origine`, `fiche-avant-cloture-lien-rapport-
+  role`, `fiche-cloturer-replie`, `fiche-cloturer`,
+  `zz-captures-9h1b-avant-cloture-roles`) et
+  `tests/e2e/tous-les-ecrans-rendent.spec.ts` ensemble : **78 passed, 4
+  skipped, 0 failed**. Puis `pnpm test:isolation` : **250 fichiers, 2301
+  tests, tous verts**. Puis `CI=1 pnpm verify` entier (format, typecheck,
+  lint, 5971 tests unitaires, 2301 tests d'isolation, build) : **vert de bout
+  en bout**, build compris — le point bloquant des deux tentatives
+  précédentes est donc refermé, comme mesuré par 9L13A/9L16A.
+- Aucune assertion retirée, élargie, ni `skip`/`fixme`/`retries` ajoutés.
+  Aucun changement de fond au-delà du renumérotage D270→D271.
