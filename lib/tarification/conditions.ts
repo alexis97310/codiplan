@@ -1,4 +1,5 @@
 import { t } from "@/lib/i18n/fr";
+import type { TypeIntervention } from "@/lib/interventions/saisie";
 
 import type { ModeDeValorisation, RegleArrondi } from "./valorisation";
 
@@ -134,4 +135,25 @@ export function conditionsDeFacturation(
     lignes.push(t("tarification.conditions.majoration"));
   }
   return lignes;
+}
+
+/**
+ * RG-INT-09, RG-INT-11 — UNE GARANTIE OU UN RECENSEMENT NE GÉNÈRE AUCUN
+ * MONTANT CLIENT (décision d'Alexis du 10/11/2026). Les deux types se
+ * traitent IDENTIQUEMENT ici, comme le déclencheur `intervention_facturation_
+ * a_la_cloture` (D8) les traite déjà identiquement pour `statut_facturation`.
+ */
+export function estSansMontantClient(type: TypeIntervention): boolean {
+  return type === "garantie" || type === "recensement";
+}
+
+/**
+ * LA MENTION QUI REMPLACE ENTIÈREMENT les conditions habituelles pour ces
+ * deux types — jamais une ligne de plus parmi elles (voir
+ * {@link estSansMontantClient}).
+ */
+export function mentionNonFacturee(type: TypeIntervention): string {
+  return type === "garantie"
+    ? t("tarification.conditions.non_facturable.garantie")
+    : t("tarification.conditions.non_facturable.recensement");
 }

@@ -37,7 +37,11 @@ import {
 } from "@/lib/habilitations/affectation";
 import { resoudreEtatMachineDuFormulaire } from "@/lib/machines/garde-statut";
 import { montant, zero, type Montant } from "@/lib/money";
-import { conditionsDeFacturation } from "@/lib/tarification/conditions";
+import {
+  conditionsDeFacturation,
+  estSansMontantClient,
+  mentionNonFacturee,
+} from "@/lib/tarification/conditions";
 import { forfaitRetenu } from "@/lib/tarification/forfaits";
 import {
   lireTauxMajorationSociete,
@@ -105,6 +109,7 @@ import {
   type Reprise,
   type StatutIntervention,
   type Suspension,
+  type TypeIntervention,
   type VueRegistre,
 } from "./saisie";
 
@@ -2219,6 +2224,7 @@ async function majorationApplicableALIntervention(
 export async function lignesConditionsFacturation(
   contexte: ContexteSession,
   ligne: {
+    readonly type: string;
     readonly mode_valorisation: string;
     readonly technicien_id: string | null;
     readonly creneau_debut: Date | null;
@@ -2232,6 +2238,14 @@ export async function lignesConditionsFacturation(
   },
   connexion?: PrismaClient,
 ): Promise<readonly string[]> {
+  // RG-INT-09, RG-INT-11 (décision d'Alexis du 10/11/2026) : la mention
+  // REMPLACE ENTIÈREMENT les conditions habituelles — jamais composée avec
+  // elles — et avant même de regarder si la décomposition est figée : ces
+  // deux types n'en ont jamais eu besoin pour le dire.
+  const type = ligne.type as TypeIntervention;
+  if (estSansMontantClient(type)) {
+    return [mentionNonFacturee(type)];
+  }
   const societeId = contexte.societeId ?? "";
   if (
     figee?.cloturee === true &&
@@ -2331,6 +2345,9 @@ export async function cloturerIntervention(
           date_planifiee: true,
           mode_valorisation: true,
           forfait_deplacement_id: true,
+          // RG-INT-09, RG-INT-11 : une garantie ou un recensement ne génère
+          // aucun montant CLIENT — jugé plus bas, à l'écriture.
+          type: true,
           // LES TROIS COLONNES DE LA MAJORATION (L2-09b) : le créneau porte le
           // prorata (D108), le technicien porte l'agence dont on lit le
           // calendrier (D13). *`agence_id` est celle de l'INTERVENTION, et ce
@@ -2462,8 +2479,19 @@ export async function cloturerIntervention(
             // **Le total INCONNU s'écrit `null`, jamais zéro.** La colonne était
             // déjà nullable ; ce qui change est qu'on n'y écrit plus un montant nul
             // à la place d'une absence.
-            montant_ht: valorisation.totalHT?.valeur ?? null,
-            devise_code: valorisation.totalHT?.devise ?? null,
+            //
+            // RG-INT-09, RG-INT-11 (décision d'Alexis du 10/11/2026) : une
+            // garantie ou un recensement ne génère aucun montant CLIENT —
+            // `montant_ht`/`devise_code` restent `null` quel que soit
+            // `valorisation.totalHT`, même déclencheur que D8
+            // (`intervention_facturation_a_la_cloture`) qui pose déjà
+            // `statut_facturation = 'non_facturable'` pour ces deux types.
+            montant_ht: estSansMontantClient(ligne.type as TypeIntervention)
+              ? null
+              : (valorisation.totalHT?.valeur ?? null),
+            devise_code: estSansMontantClient(ligne.type as TypeIntervention)
+              ? null
+              : (valorisation.totalHT?.devise ?? null),
             // LA DÉCOMPOSITION FIGÉE (9I8A1-REPRISE-9I8A, décision A d'Alexis
             // du 31/10/2026) — pour toujours, jamais recalculée : la fiche et
             // le bon d'une intervention clôturée la relisent ICI, pas via un

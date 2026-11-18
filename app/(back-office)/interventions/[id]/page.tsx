@@ -94,6 +94,10 @@ import type {
   StatutIntervention,
   TypeIntervention,
 } from "@/lib/interventions/saisie";
+import {
+  estSansMontantClient,
+  mentionNonFacturee,
+} from "@/lib/tarification/conditions";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import {
@@ -2001,7 +2005,20 @@ export default async function PageIntervention({
               </dl>
             </Carte>
 
-            {fiche.devise === null ? null : (
+            {estSansMontantClient(ligne.type as TypeIntervention) ? (
+              // RG-INT-09, RG-INT-11 (décision d'Alexis du 10/11/2026) : une
+              // garantie ou un recensement n'affiche AUCUN total client —
+              // avant même `fiche.devise === null` ci-dessous, qui ne
+              // tranche pas cette question : la mention ne révèle aucun
+              // montant, et se voit même sans devise posée.
+              <Carte titre={t("intervention.cloture.facture")}>
+                <div className="flex flex-col gap-3 px-4 py-3.5">
+                  <p className="text-app-oxyde text-13 font-bold">
+                    {mentionNonFacturee(ligne.type as TypeIntervention)}
+                  </p>
+                </div>
+              </Carte>
+            ) : fiche.devise === null ? null : (
               <Valorisation
                 valorisation={fiche.valorisation}
                 devise={fiche.devise}

@@ -22,6 +22,7 @@ import {
 import type { DatesMachine } from "@/lib/machines/depot";
 import { montant, type Montant } from "@/lib/money";
 import { empreinteDuLogo } from "@/lib/societes/logo";
+import { estSansMontantClient } from "@/lib/tarification/conditions";
 import { tauxEnVigueur } from "@/lib/tarification/taux-horaire";
 
 import { mesurer, type Segment } from "./compteur";
@@ -34,6 +35,7 @@ import {
   restrictionParPersonne,
   type LigneIntervention,
 } from "./depot";
+import { type TypeIntervention } from "./saisie";
 
 /**
  * LE BON D'INTERVENTION IMPRIMABLE (lot 16, BON-1) — CE QUE LA BASE PORTE DÉJÀ.
@@ -460,6 +462,14 @@ async function composerBon(
         // Voir l'entête du module : un taux qu'on ne peut plus reconstituer
         // efface le total, même s'il est encore écrit en base.
         montantTotal = taux === null ? null : montantStocke;
+      }
+      // RG-INT-09, RG-INT-11 (décision d'Alexis du 10/11/2026) : une garantie
+      // ou un recensement ne génère aucun montant CLIENT — par-dessus les
+      // trois issues ci-dessus, quelle que soit celle qui s'est appliquée.
+      if (estSansMontantClient(brute.type as TypeIntervention)) {
+        taux = null;
+        forfaitMontant = null;
+        montantTotal = null;
       }
 
       // ── LES MACHINES IDENTIFIÉES (BON-3) — lues dans CETTE requête, jamais

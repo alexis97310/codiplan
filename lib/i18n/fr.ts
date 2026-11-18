@@ -2557,6 +2557,13 @@ export const fr = {
   "tarification.conditions.deplacement_apres": ".",
   "tarification.conditions.majoration":
     "Intervention hors heures d'ouverture : majoration applicable selon nos conditions tarifaires.",
+  // RG-INT-09, RG-INT-11 (décision d'Alexis du 10/11/2026) — remplace
+  // ENTIÈREMENT les lignes ci-dessus pour ces deux types, jamais une ligne
+  // de plus parmi elles (`estSansMontantClient`, `conditions.ts`).
+  "tarification.conditions.non_facturable.garantie":
+    "Intervention non facturée (garantie).",
+  "tarification.conditions.non_facturable.recensement":
+    "Intervention non facturée (recensement).",
 
   "intervention.annulation.motif": "Motif de l'annulation",
   "intervention.annulation.obligatoire":

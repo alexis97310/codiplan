@@ -45,6 +45,10 @@ import type {
 import { versionDuBon } from "@/lib/interventions/version-bon";
 import { formatMoney } from "@/lib/money";
 import { lireAfficherMontants } from "@/lib/societes/identite";
+import {
+  estSansMontantClient,
+  mentionNonFacturee,
+} from "@/lib/tarification/conditions";
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
 
 import {
@@ -387,6 +391,13 @@ export default async function PageBonIntervention({
         {!montants.montre ? (
           <p className="text-app-oxyde text-13 font-bold print:hidden">
             {t(montants.cle)}
+          </p>
+        ) : estSansMontantClient(bon.ligne.type as TypeIntervention) ? (
+          // RG-INT-09, RG-INT-11 (décision d'Alexis du 10/11/2026) : avant
+          // même `valorisationAncienne` — ces deux types n'ont jamais de
+          // total à expliquer, ancien ou courant.
+          <p className="text-app-oxyde text-13 font-bold">
+            {mentionNonFacturee(bon.ligne.type as TypeIntervention)}
           </p>
         ) : bon.valorisationAncienne ? (
           <div className="flex flex-col gap-2.5">

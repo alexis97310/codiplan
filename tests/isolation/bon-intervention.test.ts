@@ -365,6 +365,9 @@ describe("la majoration affichée se décide sur les minutes hors ouverture (9I8
     return lignesConditionsFacturation(
       SESSION,
       {
+        // `curatif` : un type FACTURABLE quelconque — ce scénario mesure le
+        // créneau et le mode, jamais la règle RG-INT-09/RG-INT-11.
+        type: "curatif",
         mode_valorisation: mode,
         technicien_id: TECHNICIEN,
         creneau_debut: new Date(debut),
