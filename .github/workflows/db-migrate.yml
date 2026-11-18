@@ -87,31 +87,13 @@ jobs:
     name: migrate & seed
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    env:
-      # La connexion vient exclusivement des secrets : jamais de valeur en clair
-      # dans le dépôt (I9).
-      #
-      # DEUX SECRETS, DEUX RÔLES, et aucun repli de l'un sur l'autre :
-      #   — MIGRATION_DATABASE_URL porte le rôle PRIVILÉGIÉ. Les migrations, le
-      #     seed et la purge en ont besoin : eux seuls font du DDL et écrivent le
-      #     socle. Ce rôle contourne les politiques de cloisonnement par nature,
-      #     c'est voulu, et c'est précisément pourquoi l'application ne doit
-      #     jamais l'utiliser.
-      #   — DATABASE_URL porte le rôle APPLICATIF `codiplan_app`, soumis aux
-      #     politiques. Seule l'étape de contrôle du cloisonnement s'en sert ici.
-      #
-      # Le repli `MIGRATION_DATABASE_URL || DATABASE_URL` a été retiré : depuis
-      # que DATABASE_URL porte le rôle applicatif, ce repli ferait tourner les
-      # migrations sous un rôle sans droits DDL — et masquerait un secret
-      # manquant derrière une erreur sans rapport.
-      # Voir docs/decisions/2026-08-20-inventaire-et-controle-de-cloisonnement.md.
-      # Les QUATRE secrets sont exposés bruts ; c'est l'étape suivante qui
-      # choisit, parce qu'une expression ne sait pas distinguer « absent » de
-      # « autre chose » — voir sa note.
-      SECRET_MIGRATION_DEMONSTRATION: ${{ secrets.MIGRATION_DATABASE_URL }}
-      SECRET_MIGRATION_PRODUCTION: ${{ secrets.PRODUCTION_MIGRATION_DATABASE_URL }}
-      SECRET_APPLICATIF_DEMONSTRATION: ${{ secrets.DATABASE_URL }}
-      SECRET_APPLICATIF_PRODUCTION: ${{ secrets.PRODUCTION_DATABASE_URL }}
+    # UN BLOC `permissions:` N'EST PAS ADDITIF (ci.yml, et même forme que
+    # db-doublons-machine-demo.yml) : il définit l'ENSEMBLE des droits du
+    # jeton. Ce job clone le dépôt et lit des secrets de base de données ;
+    # il n'écrit rien sur GitHub, `contents: read` suffit au `checkout`
+    # (9L22-CI-DURCIE, décision d'Alexis du 10/11/2026).
+    permissions:
+      contents: read
     steps:
       # ── LE CHOIX DE LA BASE, ET POURQUOI IL N'EST PAS UNE EXPRESSION ──────
       #
@@ -160,9 +142,19 @@ jobs:
           echo "CIBLE_RETENUE=$cible" >> "$GITHUB_ENV"
           echo "Cible retenue : $cible (déclenchement ${EVENEMENT}, automatique=$automatique)" >> "$GITHUB_STEP_SUMMARY"
 
+      # LES QUATRE SECRETS DESCENDENT À CETTE SEULE ÉTAPE (9L22-CI-DURCIE,
+      # décision d'Alexis du 10/11/2026). Un secret déclaré au niveau du JOB
+      # est visible de toutes ses étapes — y compris « Installer les
+      # dépendances », qui exécute du code tiers (scripts `postinstall` d'une
+      # dépendance). Le composer ici, et nulle part plus haut, limite son
+      # exposition à l'étape qui en a réellement besoin.
       - name: Choisir la base, et refuser plutôt que se rabattre
         env:
           CIBLE: ${{ steps.cible.outputs.cible }}
+          SECRET_MIGRATION_DEMONSTRATION: ${{ secrets.MIGRATION_DATABASE_URL }}
+          SECRET_MIGRATION_PRODUCTION: ${{ secrets.PRODUCTION_MIGRATION_DATABASE_URL }}
+          SECRET_APPLICATIF_DEMONSTRATION: ${{ secrets.DATABASE_URL }}
+          SECRET_APPLICATIF_PRODUCTION: ${{ secrets.PRODUCTION_DATABASE_URL }}
         run: |
           set -euo pipefail
           if [ "$CIBLE" = "production" ]; then
@@ -185,11 +177,11 @@ jobs:
           echo "DATABASE_URL=$migration" >> "$GITHUB_ENV"
           echo "URL_APPLICATIVE=$applicatif" >> "$GITHUB_ENV"
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version-file: .nvmrc
           cache: pnpm

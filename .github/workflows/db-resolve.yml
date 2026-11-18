@@ -51,13 +51,19 @@ jobs:
     name: résoudre
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    env:
-      # Seul le rôle de MIGRATION écrit dans `_prisma_migrations`. Le rôle
-      # applicatif n'a rien à faire ici : ce flux ne lit aucune donnée métier,
-      # donc aucun contrôle de cloisonnement ne s'y joue, donc DATABASE_URL
-      # applicatif n'est pas demandée.
-      SECRET_MIGRATION_DEMONSTRATION: ${{ secrets.MIGRATION_DATABASE_URL }}
-      SECRET_MIGRATION_PRODUCTION: ${{ secrets.PRODUCTION_MIGRATION_DATABASE_URL }}
+    # UN BLOC `permissions:` N'EST PAS ADDITIF (ci.yml, et même forme que
+    # db-doublons-machine-demo.yml) : il définit l'ENSEMBLE des droits du
+    # jeton. Ce job clone le dépôt et lit un secret ; il n'écrit rien sur
+    # GitHub, `contents: read` suffit au `checkout` (9L22-CI-DURCIE,
+    # décision d'Alexis du 10/11/2026).
+    permissions:
+      contents: read
+    # CE FLUX PEUT ÉCRIRE EN PRODUCTION (l'entrée « cible » le permet), et il
+    # n'a AUCUN autre déclencheur que la main (9L22-CI-DURCIE, décision
+    # d'Alexis du 10/11/2026). L'environnement GitHub « production » porte la
+    # protection — geste d'Alexis, voir la passation — qui ajoute une seconde
+    # validation humaine au nom exact déjà exigé ci-dessous.
+    environment: production
     steps:
       # Le choix de la base se fait dans un SHELL, jamais dans une expression :
       # `cible == 'production' && secrets.X || secrets.Y` a l'air d'un ternaire
@@ -65,9 +71,16 @@ jobs:
       # production absent ferait agir sur la DÉMONSTRATION en croyant agir sur
       # la production. C'est la même note que dans db-migrate.yml, et la même
       # raison.
+      #
+      # LE SECRET DESCEND À CETTE SEULE ÉTAPE (9L22-CI-DURCIE, décision
+      # d'Alexis du 10/11/2026) : déclaré au niveau du JOB, il serait visible
+      # de toutes ses étapes, y compris « Installer les dépendances », qui
+      # exécute du code tiers.
       - name: Choisir la base, et refuser plutôt que se rabattre
         env:
           CIBLE: ${{ inputs.cible }}
+          SECRET_MIGRATION_DEMONSTRATION: ${{ secrets.MIGRATION_DATABASE_URL }}
+          SECRET_MIGRATION_PRODUCTION: ${{ secrets.PRODUCTION_MIGRATION_DATABASE_URL }}
         run: |
           set -euo pipefail
           if [ "$CIBLE" = "production" ]; then
@@ -83,11 +96,11 @@ jobs:
           fi
           echo "DATABASE_URL=$migration" >> "$GITHUB_ENV"
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version-file: .nvmrc
           cache: pnpm

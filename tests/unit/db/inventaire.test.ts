@@ -537,10 +537,20 @@ describe("câblage du workflow", () => {
    * un secret manquant derrière une erreur sans rapport.
    */
   it("n'accepte aucun repli entre les deux secrets pour les migrations", () => {
+    // DEPUIS 9L22-CI-DURCIE (décision d'Alexis du 10/11/2026) : les secrets ne
+    // vivent plus dans l'`env:` du JOB — visible de toute étape, y compris
+    // « Installer les dépendances », qui exécute du code tiers — mais dans
+    // celui de la SEULE étape qui les lit. Le bloc mesuré est donc celui de
+    // cette étape, pas celui du job.
+    const debut = position(
+      "- name: Choisir la base, et refuser plutôt que se rabattre",
+    );
+    const fin = workflow.indexOf("\n      - ", debut + 10);
+    expect(fin, "l'étape suivante n'a pas été retrouvée").toBeGreaterThan(-1);
     // Commentaires retirés : c'est le YAML effectif qui décide, et la décision
     // y est justement commentée — la prose ne doit pas faire échouer le test.
     const env = workflow
-      .slice(position("    env:"), position("    steps:"))
+      .slice(debut, fin)
       .split("\n")
       .filter((ligneYaml) => !ligneYaml.trim().startsWith("#"))
       .join("\n");
