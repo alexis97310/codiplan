@@ -30,8 +30,8 @@ import { estJourSemaineIso, jourSemaineIso } from "./semaine";
  * plage d'ouverture EST une récurrence hebdomadaire, et le fuseau lui vient de
  * l'agence.
  *
- * Le module ne connaît que le « quand ». Ni durée facturable, ni arrondi au
- * quart d'heure : ceux-là appartiennent à la valorisation (D45, L2-09).
+ * Le module ne connaît que le « quand ». Ni durée facturable, ni palier de
+ * facturation : ceux-là appartiennent à la valorisation (D45, L2-09, D224).
  */
 
 /**

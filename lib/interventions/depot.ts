@@ -3381,12 +3381,12 @@ function finDuJour(debutDuJour: Date): Date {
  * rend pas de libellé, et l'écran affiche alors le tiret plutôt qu'un nom
  * qu'il n'a pas le droit de connaître.
  *
- * **La DÉCOMPOSITION de RG-TAR-05 amendée par D83** — temps réel, arrondi au
- * quart d'heure supérieur, plancher d'une heure, temps facturé, taux, total.
- * *C'est la demande explicite de l'exploitation : voir l'arrondi et le plancher
- * s'appliquer sous les yeux.* Elle est calculée par la MÊME fonction que la
- * clôture, jamais recalculée à l'écran — deux lectures d'un même critère
- * divergent en silence (§9, 01/09).
+ * **La DÉCOMPOSITION de RG-TAR-05 amendée par D83, D224** — temps réel, temps
+ * arrondi selon la règle de la société, plancher appliqué, temps facturé,
+ * taux, total. *C'est la demande explicite de l'exploitation : voir le palier
+ * et le plancher s'appliquer sous les yeux.* Elle est calculée par la MÊME
+ * fonction que la clôture, jamais recalculée à l'écran — deux lectures d'un
+ * même critère divergent en silence (§9, 01/09).
  */
 export async function lireFicheIntervention(
   contexte: ContexteSession,

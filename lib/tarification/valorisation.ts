@@ -5,26 +5,31 @@ import { arrondirAuPlusProche, montant, type Montant } from "@/lib/money";
 import type { VerdictMajoration } from "./majoration";
 
 /**
- * VALORISATION DE LA MAIN-D'ŒUVRE — arrondi et plancher (RG-TAR-05, D83).
+ * VALORISATION DE LA MAIN-D'ŒUVRE — plancher et palier, réglables par société
+ * (RG-TAR-05, D83, D224).
  *
  * ## Les deux règles, dans leur ordre
  *
- * 1. **Arrondi.** Le temps d'intervention est arrondi **au quart d'heure
- *    supérieur**.
- * 2. **Plancher.** La main-d'œuvre facturée ne peut être **inférieure à une
- *    heure** au taux en vigueur.
+ * 1. **Plancher.** La première heure est due dès la première minute
+ *    travaillée.
+ * 2. **Palier.** Au-delà, l'excédent se compte par paliers, un palier n'étant
+ *    dû qu'à partir d'un certain nombre de minutes passées dans ce palier —
+ *    voir {@link RegleArrondi}. Le réglage par défaut (60/30/5) remplace
+ *    depuis D224 l'ancienne règle unique (arrondi au quart d'heure supérieur,
+ *    plancher d'une heure), restée disponible par société comme
+ *    {@link REGLE_HISTORIQUE}.
  *
  * **L'ordre est une décision, pas une commodité** : arrondir d'abord puis
  * plancher ensuite donne le même résultat que l'inverse sur toutes les valeurs
- * — le plancher, 60 minutes, est lui-même un multiple de 15 — mais l'écrire
- * dans cet ordre rend le calcul lisible et le rend faux à relire à l'envers si
- * un jour le plancher cesse d'être un multiple du pas.
+ * de l'ancienne règle — le plancher, 60 minutes, est lui-même un multiple de
+ * 15 — mais l'écrire dans cet ordre rend le calcul lisible, et ne dépend pas
+ * de ce que le palier reste ou non un multiple du plancher.
  *
  * **Les deux s'appliquent UNE SEULE FOIS, sur l'intervention ENTIÈRE**, jamais
  * tâche par tâche. C'est D11 pour l'agrégation interne — le temps est cumulé
  * avant d'être arrondi — et D57 pour l'externe : l'arrondi est par
  * intervention, jamais sur le total d'une journée. **Une intervention étalée
- * sur deux jours reste UNE intervention** : un seul arrondi, un seul plancher.
+ * sur deux jours reste UNE intervention** : un seul calcul.
  *
  * ## Ce à quoi le plancher ne s'applique PAS, et pourquoi
  *
@@ -201,7 +206,7 @@ export function arrondirSelonRegle(
  *
  * Le montant est calculé en arithmétique entière exacte — `taux × minutes / 60`
  * passe par {@link arrondirAuPlusProche}, jamais par un flottant : un taux qui
- * ne se divise pas par quatre (un quart d'heure) donnerait sinon un centime de
+ * ne divise pas exactement les minutes facturées donnerait sinon un centime de
  * dérive, et I3 interdit qu'un montant s'en aperçoive.
  */
 export function valoriserTempsPasse(

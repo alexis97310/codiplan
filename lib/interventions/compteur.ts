@@ -10,11 +10,11 @@
  * bougé, ce que ce dépôt refuse partout (D85, `lib/vgp/information.ts`,
  * `lib/demandes/accuse.ts`).
  *
- * **Il ne fait AUCUN arrondi DE PRIX.** L'arrondi au quart d'heure supérieur
- * et le plancher d'une heure vivent dans `lib/tarification/valorisation.ts`,
- * une seule fois, sur l'intervention entière (RG-TAR-05, D83, D89). *Arrondir
- * ici ferait deux lectures d'un même critère, et la seconde déciderait du
- * prix* (§9, 01/09).
+ * **Il ne fait AUCUN arrondi DE PRIX.** Le palier et le plancher de
+ * facturation vivent dans `lib/tarification/valorisation.ts`, une seule fois,
+ * sur l'intervention entière (RG-TAR-05, D83, D89, D224). *Arrondir ici
+ * ferait deux lectures d'un même critère, et la seconde déciderait du prix*
+ * (§9, 01/09).
  *
  * **LA TRONCATURE (`minutesDepuisMillisecondes`) EST UNE CONTRAINTE DE BASE,
  * PAS (PLUS) UN CHOIX DE CE MODULE** (9L06-COMPTEUR-MINUTE-COMMENCEE, D256) —

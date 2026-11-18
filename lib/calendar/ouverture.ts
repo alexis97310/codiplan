@@ -32,9 +32,9 @@ import { jourSemaineIso } from "./semaine";
  * converties en instants — et le décalage est recalculé pour chacune.
  *
  * **Ce module ne connaît pas la facturation** (D45). Il ne sait ni arrondir une
- * durée au quart d'heure, ni appliquer une majoration : il dit seulement ce qui
- * est ouvert et ce qui ne l'est pas. Le taux de +50 % de D12 s'applique
- * ailleurs, à partir de ce que `minutesHorsOuverture` rend.
+ * durée selon la règle de facturation, ni appliquer une majoration : il dit
+ * seulement ce qui est ouvert et ce qui ne l'est pas. Le taux de +50 % de D12
+ * s'applique ailleurs, à partir de ce que `minutesHorsOuverture` rend.
  */
 
 /**
@@ -221,9 +221,9 @@ export function minutesOuvrees(
  * Minutes NON ouvrées entre deux instants — le complément de `minutesOuvrees`.
  *
  * C'est l'assiette de la majoration hors ouverture (D12), et rien de plus : le
- * taux, l'assiette main-d'œuvre et l'arrondi au quart d'heure appartiennent à
- * la valorisation (D45, L2-09). Le calendrier dit « combien de minutes hors
- * ouverture », jamais « combien ça coûte ».
+ * taux, l'assiette main-d'œuvre et le calcul du temps facturé appartiennent à
+ * la valorisation (D45, L2-09, D224). Le calendrier dit « combien de minutes
+ * hors ouverture », jamais « combien ça coûte ».
  */
 export function minutesHorsOuverture(
   calendrier: Calendrier,
