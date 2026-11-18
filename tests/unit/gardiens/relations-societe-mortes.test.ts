@@ -38,7 +38,13 @@ import { corpsDuModele, lireSchema } from "../outils/schema-prisma";
 const schema = lireSchema();
 const corpsSociete = corpsDuModele(schema, "Societe");
 
-const TYPES_SCALAIRES = new Set(["String", "Int", "Boolean", "Float", "DateTime"]);
+const TYPES_SCALAIRES = new Set([
+  "String",
+  "Int",
+  "Boolean",
+  "Float",
+  "DateTime",
+]);
 
 /** Un champ de relation à plusieurs déclaré sur `Societe`, ignoré ou non. */
 type ChampRelation = { readonly nom: string; readonly ignore: boolean };
@@ -47,7 +53,10 @@ function relationsAPlusieursDeSociete(): readonly ChampRelation[] {
   return corpsSociete
     .split("\n")
     .map((ligne) => ligne.trim())
-    .filter((ligne) => ligne.length > 0 && !ligne.startsWith("//") && !ligne.startsWith("@@"))
+    .filter(
+      (ligne) =>
+        ligne.length > 0 && !ligne.startsWith("//") && !ligne.startsWith("@@"),
+    )
     .map((ligne) => {
       const motif = /^(\w+)\s+(\w+)\[\]/.exec(ligne);
       if (motif === null) {
