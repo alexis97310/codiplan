@@ -7,7 +7,10 @@ import {
   cloturerIntervention,
   lignesConditionsFacturation,
 } from "@/lib/interventions/depot";
-import { conditionsDeFacturation } from "@/lib/tarification/conditions";
+import {
+  conditionsDeFacturation,
+  mentionNonFacturee,
+} from "@/lib/tarification/conditions";
 import { REGLE_PAR_DEFAUT } from "@/lib/tarification/valorisation";
 
 import { clientApp, clientOwner, fermerClients } from "./setup/db";
@@ -100,8 +103,16 @@ async function poserLeTechnicien(): Promise<void> {
   }
 }
 
-/** Une intervention close, avec machine, deux segments et un forfait — le décor du bon. */
-async function interventionClose(forfaitId: string): Promise<string> {
+/**
+ * Une intervention close, avec machine, deux segments et un forfait — le
+ * décor du bon. `type` vaut `curatif` par défaut (témoin facturable) —
+ * RG-INT-09/RG-INT-11 l'éprouvent avec `garantie`/`recensement` plus bas,
+ * sans changer aucun appel existant.
+ */
+async function interventionClose(
+  forfaitId: string,
+  type: string = "curatif",
+): Promise<string> {
   const id = uuidv7();
   jetables.push(id);
   await poserLeTechnicien();
@@ -115,7 +126,7 @@ async function interventionClose(forfaitId: string): Promise<string> {
        "type","statut","mode_valorisation","forfait_deplacement_id",
        "technicien_id","creneau_debut","creneau_fin","rapport_valide_par","rapport_valide_le","modifie_le")
      SELECT '${id}', "societe_id", "client_id", "site_id", '${AGENCE_A}',
-            'curatif', 'terminee', 'temps_passe'::"ModeValorisation",
+            '${type}', 'terminee', 'temps_passe'::"ModeValorisation",
             '${forfaitId}',
             '${TECHNICIEN}', '${CRENEAU_DEBUT}'::timestamptz,
             '${CRENEAU_FIN}'::timestamptz, '${UTILISATEUR_PAR_ROLE.adv}', now(), now()
@@ -430,4 +441,37 @@ describe("la majoration affichée se décide sur les minutes hors ouverture (9I8
       }),
     );
   });
+});
+
+/**
+ * RG-INT-09, RG-INT-11 (décision d'Alexis du 10/11/2026) — le bon d'une
+ * garantie ou d'un recensement ne porte AUCUN montant, même décor (taux ET
+ * forfait posés) qu'un témoin facturable juste au-dessus : seul le TYPE
+ * change, et c'est lui seul qui efface le total.
+ */
+describe("le bon d'une garantie ou d'un recensement ne porte aucun montant (RG-INT-09, RG-INT-11)", () => {
+  it.each(["garantie", "recensement"] as const)(
+    "une clôture %s rend un bon sans taux, sans forfait, sans total — et la mention « non facturée »",
+    async (type) => {
+      await poserLeTaux();
+      const forfaitId = await poserUnForfait();
+      const id = await interventionClose(forfaitId, type);
+
+      const cloture = await cloturerIntervention(
+        SESSION,
+        { intervention_id: id, temps_valide_min: TEMPS_MESURE_MIN },
+        clientApp(),
+      );
+      expect(cloture.accepte).toBe(true);
+
+      const bon = await lireBonIntervention(SESSION, id, clientApp());
+      expect(bon).not.toBeNull();
+      if (bon === null) return;
+
+      expect(bon.taux).toBeNull();
+      expect(bon.forfaitMontant).toBeNull();
+      expect(bon.montantTotal).toBeNull();
+      expect(bon.conditionsFacturation).toEqual([mentionNonFacturee(type)]);
+    },
+  );
 });

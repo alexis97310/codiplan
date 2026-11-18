@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { conditionsDeFacturation } from "@/lib/tarification/conditions";
+import {
+  conditionsDeFacturation,
+  estSansMontantClient,
+  mentionNonFacturee,
+} from "@/lib/tarification/conditions";
 import {
   REGLE_HISTORIQUE,
   REGLE_PAR_DEFAUT,
@@ -187,4 +191,54 @@ describe("AUCUNE ligne ne porte jamais un montant", () => {
   // de code de devise ni la forme exacte de `formatMoney`, ce qui suffit à
   // ce que ce module garantit — il ne lui est pas demandé de deviner qu'un
   // libellé saisi ailleurs ne contient aucun chiffre.
+});
+
+/**
+ * RG-INT-09, RG-INT-11 (décision d'Alexis du 10/11/2026) — garantie et
+ * recensement ne génèrent aucun montant CLIENT. `estSansMontantClient`
+ * EST la liste close des deux, et `mentionNonFacturee` la phrase qui les
+ * remplace entièrement sur le bon et sur la fiche.
+ */
+describe("estSansMontantClient — garantie et recensement, et eux seuls", () => {
+  it("dit vrai pour garantie et pour recensement", () => {
+    expect(estSansMontantClient("garantie")).toBe(true);
+    expect(estSansMontantClient("recensement")).toBe(true);
+  });
+
+  it.each([
+    "preventif_contrat",
+    "preventif_hors_contrat",
+    "curatif",
+    "installation",
+    "controle_reglementaire",
+    "expertise",
+    "reprise",
+  ] as const)("dit faux pour %s — un témoin facturable", (type) => {
+    expect(estSansMontantClient(type)).toBe(false);
+  });
+});
+
+describe("mentionNonFacturee — la phrase exacte du bon", () => {
+  it("nomme la garantie", () => {
+    expect(mentionNonFacturee("garantie")).toBe(
+      "Intervention non facturée (garantie).",
+    );
+  });
+
+  it("nomme le recensement", () => {
+    expect(mentionNonFacturee("recensement")).toBe(
+      "Intervention non facturée (recensement).",
+    );
+  });
+
+  it("ne porte aucun chiffre ni symbole de devise", () => {
+    const symbolesDevise = /XPF|€|\$/u;
+    for (const mention of [
+      mentionNonFacturee("garantie"),
+      mentionNonFacturee("recensement"),
+    ]) {
+      expect(mention).not.toMatch(/\d/u);
+      expect(mention).not.toMatch(symbolesDevise);
+    }
+  });
 });

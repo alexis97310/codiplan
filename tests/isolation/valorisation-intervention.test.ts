@@ -115,7 +115,13 @@ async function poserUnForfait(): Promise<string> {
   return id;
 }
 
-/** Une intervention prête à clôturer, dans le mode donné. */
+/**
+ * Une intervention prête à clôturer, dans le mode donné.
+ *
+ * `type` vaut `curatif` par défaut (le témoin facturable de ce fichier) —
+ * RG-INT-09/RG-INT-11 l'éprouvent explicitement avec `garantie` et
+ * `recensement` (voir plus bas), sans changer aucun appel existant.
+ */
 async function interventionAClore(
   mode: string,
   forfaitId: string | null,
@@ -123,6 +129,7 @@ async function interventionAClore(
     debut: CRENEAU_DEBUT,
     fin: CRENEAU_FIN,
   },
+  type: string = "curatif",
 ): Promise<string> {
   const id = uuidv7();
   jetables.push(id);
@@ -139,7 +146,7 @@ async function interventionAClore(
        "type","statut","mode_valorisation","forfait_deplacement_id",
        "technicien_id","creneau_debut","creneau_fin","rapport_valide_par","rapport_valide_le","modifie_le")
      SELECT '${id}', "societe_id", "client_id", "site_id", '${AGENCE_A}',
-            'curatif', 'terminee', '${mode}'::"ModeValorisation",
+            '${type}', 'terminee', '${mode}'::"ModeValorisation",
             ${forfaitId === null ? "NULL" : `'${forfaitId}'`},
             '${TECHNICIEN}', '${creneau.debut}'::timestamptz,
             '${creneau.fin}'::timestamptz, '${TECHNICIEN}', now(), now()
@@ -545,5 +552,63 @@ describe("RG-INT-08 — le pourcentage de majoration est RÉGLÉ PAR LA SOCIÉT�
     const fiche = await lireFicheIntervention(SESSION, id, clientApp());
     expect(fiche?.valorisation?.majoration?.valeur).toBe(majorationFigee);
     expect(fiche?.ligne.montant_ht).toBe(resultat.fiche.ligne.montant_ht);
+  });
+});
+
+/**
+ * RG-INT-09, RG-INT-11 (décision d'Alexis du 10/11/2026) — UNE GARANTIE OU
+ * UN RECENSEMENT NE GÉNÈRE AUCUN MONTANT CLIENT. Mesuré sur `81894e0` : ces
+ * deux types valorisaient et écrivaient un total comme n'importe quel autre
+ * — le même décor que ci-dessus (taux, forfait, créneau dans l'ouverture)
+ * suffit à le prouver puisqu'il PRODUIRAIT un total non nul pour un témoin
+ * facturable.
+ */
+describe("garantie et recensement n'écrivent jamais de montant client (RG-INT-09, RG-INT-11)", () => {
+  it.each(["garantie", "recensement"] as const)(
+    "une clôture %s écrit montant_ht et devise_code à NULL",
+    async (type) => {
+      await poserLeTaux();
+      const forfaitId = await poserUnForfait();
+      const id = await interventionAClore(
+        "temps_passe",
+        forfaitId,
+        undefined,
+        type,
+      );
+
+      const resultat = await cloturerIntervention(
+        SESSION,
+        { intervention_id: id, temps_valide_min: TEMPS_REEL_MIN },
+        clientApp(),
+      );
+      expect(resultat.accepte).toBe(true);
+      if (!resultat.accepte) return;
+
+      expect(resultat.fiche.ligne.montant_ht).toBeNull();
+      expect(resultat.fiche.ligne.devise_code).toBeNull();
+
+      // La fiche relue ensuite confirme ce qui a été ÉCRIT en base, jamais
+      // un recalcul qui diffèrerait de ce que la clôture a réellement posé.
+      const fiche = await lireFicheIntervention(SESSION, id, clientApp());
+      expect(fiche?.ligne.montant_ht).toBeNull();
+      expect(fiche?.ligne.devise_code).toBeNull();
+    },
+  );
+
+  it("un témoin curatif, même décor, écrit bien un montant non nul", async () => {
+    await poserLeTaux();
+    const forfaitId = await poserUnForfait();
+    const id = await interventionAClore("temps_passe", forfaitId);
+
+    const resultat = await cloturerIntervention(
+      SESSION,
+      { intervention_id: id, temps_valide_min: TEMPS_REEL_MIN },
+      clientApp(),
+    );
+    expect(resultat.accepte).toBe(true);
+    if (!resultat.accepte) return;
+
+    expect(resultat.fiche.ligne.montant_ht).not.toBeNull();
+    expect(resultat.fiche.ligne.devise_code).toBe(DEVISE);
   });
 });
