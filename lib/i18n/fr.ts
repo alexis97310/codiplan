@@ -4328,6 +4328,16 @@ export const fr = {
   "machine.fiche.historique_colonne_resultat": "R\u00e9sultat",
   "machine.fiche.historique_vide":
     "Aucune intervention enregistr\u00e9e pour cette machine.",
+  // \u2500\u2500 L'HISTORIQUE DES EMPLACEMENTS (9L20-DEPLACER-MACHINE) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+  "machine.fiche.emplacements_titre": "Historique des emplacements",
+  "machine.fiche.emplacements_colonne_date": "Date",
+  "machine.fiche.emplacements_colonne_ancien_site": "Ancien site",
+  "machine.fiche.emplacements_colonne_nouveau_site": "Nouveau site",
+  "machine.fiche.emplacements_colonne_auteur": "Auteur",
+  "machine.fiche.emplacements_vide":
+    "Cette machine n'a jamais \u00e9t\u00e9 d\u00e9plac\u00e9e.",
+  "machine.fiche.emplacements_auteur_absent": "Auteur non enregistr\u00e9",
+  "machine.fiche.emplacements_auteur_non_communique": "Non communiqu\u00e9",
   "machine.alerte.symbole": "!",
   "machine.alerte.voir_intervention": "Voir l'intervention",
   "machine.qr.eyebrow": "Identification terrain",
@@ -4453,8 +4463,9 @@ export const fr = {
     "Plaque illisible ou absente : préfixez par « SN-INCONNU- » suivi de la référence interne.",
   // LES CHAMPS EN LECTURE SEULE DU FORMULAIRE DE CORRECTION — la même
   // raison que `modifierMachineDans` : le modèle porte l'unicité de la
-  // fiche, et le déménagement (client, site) est un geste daté qu'aucun
-  // formulaire ne porte encore (voir la note de tête du dépôt).
+  // fiche. Le site n'est plus affiché dans ce bloc depuis 9L20-DEPLACER-
+  // MACHINE : le déménagement est désormais un geste daté propre, « Déplacer
+  // la machine », jamais une valeur qui voyage dans ce formulaire.
   "machine.modifier.non_modifiable": "Non modifiable ici",
   "machine.champ.famille": "Famille",
   "machine.champ.marque": "Marque",
@@ -4507,6 +4518,10 @@ export const fr = {
     "Le modèle, le client ou le lieu d'intervention sélectionné est introuvable ou hors de votre société.",
   "machine.refus.introuvable":
     "Cette machine est introuvable, ou hors de votre périmètre.",
+  // 9L20-DEPLACER-MACHINE — l'ancien formulaire ne propose plus le site ;
+  // ce refus ne couvre donc qu'un appel qui le contourne.
+  "machine.refus.deplacement_requis":
+    "Le site ne se corrige pas depuis ce formulaire : utilisez « Déplacer la machine », sur la fiche.",
   "machine.refus.inconnue":
     "Cette machine n'existe pas, ou elle n'est pas dans votre périmètre.",
   "machine.refus.erreur_serveur":
@@ -4533,6 +4548,37 @@ export const fr = {
   "machine.refus.fusionnee": "Une machine fusionnée ne change plus d'état.",
   "machine.refus.sortie_sans_confirmation":
     "Cette sortie du parc (ou ce retour) doit être confirmée.",
+  // ── DÉPLACER LA MACHINE (9L20-DEPLACER-MACHINE, décision d'Alexis du
+  // 10/11/2026) — namespace propre (`machine.deplacer.refus.*`), jamais
+  // `machine.refus.*` : `reference_invalide` y porte déjà un texte qui cite
+  // le modèle et le numéro de série, propre à `modifierMachine`. ───────────
+  "machine.deplacer.bouton": "Déplacer la machine",
+  "machine.deplacer.titre_prefixe": "Déplacer la machine",
+  "machine.deplacer.champ_site": "Nouveau site",
+  "machine.deplacer.confirmation_autre_client":
+    "Je confirme le déplacement vers un autre client.",
+  "machine.deplacer.fermer": "Annuler",
+  "machine.deplacer.reussi": "La machine est déplacée.",
+  "machine.deplacer.refus.introuvable":
+    "Cette machine est introuvable, ou hors de votre périmètre.",
+  "machine.deplacer.refus.reference_invalide":
+    "Ce site est introuvable, ou hors de votre périmètre.",
+  "machine.deplacer.refus.site_identique":
+    "La machine est déjà sur ce site.",
+  "machine.deplacer.refus.confirmation_requise":
+    "Ce site appartient à un autre client : confirmez le déplacement.",
+  "machine.deplacer.refus.saisie": "Choisissez un site de destination.",
+  "machine.deplacer.refus.interventions_ouvertes":
+    "Des interventions ouvertes empêchent ce déplacement.",
+  // LE NOMBRE EST COMPOSÉ, JAMAIS DANS LA CLÉ (§5, L0-11) — voir
+  // `texteDeplacementRefuseInterventionsOuvertes`, `parc/presentation.ts` :
+  // ces deux fragments suivent le nombre que `decompte()` pose en tête
+  // (« 1 intervention ouverte empêche… », « 3 interventions ouvertes
+  // empêchent… »).
+  "machine.deplacer.refus.interventions_ouvertes_singulier":
+    "intervention ouverte empêche ce déplacement.",
+  "machine.deplacer.refus.interventions_ouvertes_pluriel":
+    "interventions ouvertes empêchent ce déplacement.",
   "machine.voir_la_fiche": "Voir la fiche machine",
   // L0-11 (même discipline que `equipe.e2e.*`) : le numéro de série que
   // `tests/e2e/9i8f-statut-machine-modifiable.spec.ts` interroge à l'écran

@@ -8,6 +8,7 @@ import {
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
 
+import { STATUTS_INTERVENTION_OUVERTS } from "@/lib/interventions/cycle-de-vie";
 import { STATUTS_INTERVENTION_FERMES } from "@/lib/interventions/depot";
 import {
   perimetreClientDuTechnicien,
@@ -24,6 +25,7 @@ import {
   LIMITE_RECHERCHE_MAXIMALE,
   LIMITE_RECHERCHE_PAR_DEFAUT,
   type RechercheParc,
+  type SaisieDeplacementMachine,
   type SaisieMachine,
   type StatutMachineChoisissable,
 } from "./saisie";
@@ -1248,6 +1250,21 @@ class ClientHorsPerimetre extends Error {
 }
 
 /**
+ * LE SITE OU LE CLIENT SOUMIS PAR L'ANCIEN FORMULAIRE DIFFÈRE DE LA FICHE
+ * (9L20-DEPLACER-MACHINE, décision d'Alexis du 10/11/2026) — remplace le
+ * silence que `modifierMachineDans` gardait jusqu'ici sur ces deux colonnes.
+ * Voir sa note de tête : la CONDITION DE LEVÉE qu'elle posait (« le jour où
+ * un gabarit portera la date du déménagement ») est atteinte, par
+ * `deplacerMachine` ci-dessous — mais ce n'est QUE ce chemin-là qui écrit,
+ * jamais la correction, qui refuse désormais au lieu d'ignorer.
+ */
+class DeplacementRequis extends Error {
+  constructor() {
+    super("deplacement_requis");
+  }
+}
+
+/**
  * CE MODULE LISAIT, ET NE SAVAIT RIEN ÉCRIRE — mesuré le 16/09/2026.
  *
  * `listerLeParc`, `resumerLeParc`, `lireMachine` : trois lectures, aucune
@@ -1369,22 +1386,22 @@ export async function creerMachinesEnLot(
  * *Zéro ligne touchée n'est pas une erreur technique, c'est la politique qui a
  * refusé*, et elle refuse en silence. Le décompte est rendu, l'appelant décide.
  *
- * **Les trois parents ne sont PAS réécrits, et chacun pour sa raison.** Le
+ * **Les trois parents ne sont PAS réécrits ici, et chacun pour sa raison.** Le
  * MODÈLE fait partie de l'unicité `(societe_id, modele_id, numero_serie)` : une
  * ligne appariée par sa série désigne déjà une fiche, et le déplacer changerait
- * ce que la clé désigne. Le CLIENT et le SITE sont un déménagement — *un geste
- * daté, qui met en jeu la garantie, le contrat et le périmètre d'un compte de
- * portail* —, et un fichier ne décide pas cela (le raisonnement de D56 sur
- * `agence_id`, repris tel quel). **Condition de levée, vérifiable :** le jour où
- * un gabarit portera la DATE du déménagement à côté du site.
+ * ce que la clé désigne — rien ne lève cette raison, et ce module continue de
+ * l'ignorer sans un mot (D-07, revue Codex de #236).
  *
- * **D-07 (revue Codex de #236) ne s'applique donc pas à cette fonction, et
- * c'est écrit plutôt que tu** : `app/api/machines/[id]/modifier/route.ts`
- * reçoit bien `site_id` et `client_id` (`schemaMachine` les exige tous les
- * trois, voir la note de tête de la route), mais ni l'un ni l'autre n'entre
- * dans ce `data` — un couple forgé sur ce chemin est donc VALIDÉ puis
- * IGNORÉ, jamais écrit. La vérification de `SiteHorsClient` (voir
- * `creerMachineDans`) reste propre à la création.
+ * **Le CLIENT et le SITE ont changé de régime (9L20-DEPLACER-MACHINE, décision
+ * d'Alexis du 10/11/2026).** Ils restaient un déménagement — *un geste daté,
+ * qui met en jeu la garantie, le contrat et le périmètre d'un compte de
+ * portail* — qu'aucun formulaire ne portait encore (le raisonnement de D56 sur
+ * `agence_id`, repris tel quel) ; c'était la CONDITION DE LEVÉE écrite ici.
+ * Elle est atteinte : `deplacerMachine`, plus bas dans ce fichier, est ce
+ * geste daté. **Cette fonction-ci continue de ne jamais les écrire** — c'est
+ * `modifierMachine`, son appelant, qui compare désormais la valeur soumise à
+ * la fiche et REFUSE (`DeplacementRequis`) plutôt que d'ignorer en silence
+ * comme avant ce ticket : voir `app/api/machines/[id]/modifier/route.ts`.
  */
 export async function modifierMachineDans(
   tx: Prisma.TransactionClient,
@@ -1444,6 +1461,13 @@ export type MotifRefusMachine =
   | "reference_invalide"
   /** `modifierMachineDans` a touché zéro ligne : la politique a refusé. */
   | "introuvable"
+  /**
+   * LE SITE OU LE CLIENT SOUMIS DIFFÈRE DE LA FICHE (9L20-DEPLACER-MACHINE) —
+   * `modifierMachine` les compare désormais à la valeur actuelle avant
+   * d'écrire ; un écart REFUSE au lieu d'être ignoré. Le geste qui déplace
+   * réellement une machine est `deplacerMachine`, jamais celui-ci.
+   */
+  | "deplacement_requis"
   /** Les deux refus nommés de la garde du statut (`./garde-statut.ts`). */
   | MotifRefusEtatMachine;
 
@@ -1469,6 +1493,7 @@ function cibleUnicite(erreur: Prisma.PrismaClientKnownRequestError): string {
 function motifMachine(erreur: unknown): MotifRefusMachine | null {
   if (erreur instanceof SiteHorsClient) return "reference_invalide";
   if (erreur instanceof ClientHorsPerimetre) return "reference_invalide";
+  if (erreur instanceof DeplacementRequis) return "deplacement_requis";
   if (!(erreur instanceof Prisma.PrismaClientKnownRequestError)) return null;
   if (erreur.code === VIOLATION_UNICITE) {
     return cibleUnicite(erreur).includes("reference_interne")
@@ -1536,10 +1561,17 @@ export async function creerMachine(
  * MODIFIE UNE FICHE EXISTANTE — le jumeau de `creerMachine`.
  *
  * `modifierMachineDans` n'écrit ni le modèle, ni le client, ni le site, ni
- * le statut (voir sa note de tête) : cette fonction ne le contourne pas —
- * elle rend le même refus « introuvable » qu'un identifiant inconnu quand
- * la politique a filtré la ligne, sans jamais réécrire ce que le dépôt a
- * délibérément laissé de côté.
+ * le statut (voir sa note de tête) : cette fonction ne le contourne pas.
+ *
+ * **Un site ou un client soumis qui diffère de la fiche REFUSE, depuis
+ * 9L20-DEPLACER-MACHINE** — avant, cette même situation touchait zéro
+ * colonne en silence, exactement comme un identifiant inconnu filtré par la
+ * politique. *Les deux cas n'ont plus la même forme* : l'ancien formulaire
+ * de correction n'offre plus le champ (voir `components/parc/
+ * formulaire-machine.tsx`), si bien qu'un écart ici ne peut venir que d'un
+ * appel qui contourne l'écran — le refus nomme ce détour plutôt que
+ * d'ignorer ce qu'il demandait, et renvoie vers le geste qui existe pour ça,
+ * `deplacerMachine`.
  */
 export async function modifierMachine(
   contexte: ContexteSession,
@@ -1559,14 +1591,22 @@ export async function modifierMachine(
           tx,
           exigerContexteActif(contexte),
         );
-        if (restriction !== undefined) {
-          const dansLePerimetre = await tx.machine.findFirst({
-            where: { id, ...restriction },
-            select: { id: true },
-          });
-          if (dansLePerimetre === null) {
-            return 0;
-          }
+        // LA FICHE ACTUELLE EST RELUE AVANT D'ÉCRIRE (9L20-DEPLACER-MACHINE)
+        // — pour les DEUX raisons à la fois : le périmètre par personne (ci-
+        // dessus, déjà en place) ET la comparaison site/client qui suit,
+        // qu'aucune des deux lectures précédentes ne pouvait faire seule.
+        const actuelle = await tx.machine.findFirst({
+          where: restriction === undefined ? { id } : { id, ...restriction },
+          select: { site_id: true, client_id: true },
+        });
+        if (actuelle === null) {
+          return 0;
+        }
+        if (
+          actuelle.site_id !== saisie.site_id ||
+          actuelle.client_id !== saisie.client_id
+        ) {
+          throw new DeplacementRequis();
         }
         return modifierMachineDans(tx, id, saisie);
       },
@@ -1663,4 +1703,152 @@ export async function changerStatutMachine(
   return resultat.touchees === 0
     ? { accepte: false, motif: "introuvable" }
     : { accepte: true, id };
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+ * DÉPLACER UNE MACHINE (9L20-DEPLACER-MACHINE, décision d'Alexis du
+ * 10/11/2026) — le geste daté que `modifierMachineDans` attendait pour que
+ * le client et le site d'une fiche puissent enfin changer.
+ * ──────────────────────────────────────────────────────────────────────── */
+
+/**
+ * CE QU'UN REFUS DE DÉPLACEMENT DIT, ET RIEN DE PLUS (D50).
+ *
+ * `reference_invalide` couvre à la fois un site inexistant et un site dont le
+ * client cible sort du périmètre QT-2 du technicien — même raisonnement que
+ * `MotifRefusMachine` sur `SiteHorsClient`/`ClientHorsPerimetre` : séparer
+ * les deux apprendrait à qui demande qu'un identifiant existe ailleurs.
+ */
+export type MotifRefusDeplacementMachine =
+  | "introuvable"
+  | "reference_invalide"
+  /** La cible EST le site actuel : rien à déplacer, rien à tracer. */
+  | "site_identique"
+  /** La cible appartient à un AUTRE client, sans la confirmation explicite. */
+  | "confirmation_requise";
+
+export type ResultatDeplacementMachine =
+  | { readonly accepte: true }
+  /**
+   * NOMME LE NOMBRE (consigne du ticket) — jamais composé ici : c'est la
+   * couche de présentation qui écrit la phrase (L0-11), ce module ne rend
+   * qu'un fait.
+   */
+  | {
+      readonly accepte: false;
+      readonly motif: "interventions_ouvertes";
+      readonly nombre: number;
+    }
+  | { readonly accepte: false; readonly motif: MotifRefusDeplacementMachine };
+
+/**
+ * DÉPLACE UNE MACHINE VERS UN AUTRE SITE — du même client, ou d'un autre
+ * client de la société avec confirmation explicite.
+ *
+ * ## Ce qui suit la machine, ce qui ne suit jamais
+ *
+ * `site_id`, et `client_id` quand le site cible appartient à un autre
+ * client : les deux SEULES colonnes écrites, dans UNE transaction. L'`id`,
+ * le `numero`, le `qr_token` et tout l'historique des interventions
+ * (`lib/machines/historique.ts` : la lecture part de la MACHINE, jamais du
+ * site) restent inchangés — RG-PAR-03.
+ *
+ * ## Le journal n'est pas écrit ici, et c'est voulu
+ *
+ * `machine` porte le déclencheur I8 depuis L2-01 (`20260909150000_machine_
+ * l2_01`) : le simple `tx.machine.update` ci-dessous suffit à journaliser
+ * l'ancien site, le nouveau, l'auteur (`app.utilisateur_id`) et l'horodatage
+ * — une seconde écriture explicite serait une seconde source du même fait
+ * (§9, 01/09). `lib/machines/historique.ts` (`historiqueDesEmplacements`)
+ * lit CE journal, exactement comme sa note de tête l'annonçait déjà : *« le
+ * journal d'audit la porte […] et c'est là qu'il faudra la lire le jour où
+ * quelqu'un la demandera »*.
+ *
+ * ## Les interventions OUVERTES : refusées, nommées, jamais perdues
+ *
+ * 9L16 fait suivre l'agence des interventions ouvertes d'un SITE qui change
+ * d'établissement — un geste qui ne touche aucune donnée déjà posée sur ces
+ * interventions. Faire suivre le SITE d'une intervention déjà planifiée
+ * réécrirait, lui, un fait déjà vécu (le lieu où le rendez-vous a été pris) ;
+ * ce ticket choisit donc l'option que son énoncé admet explicitement :
+ * REFUSER le déplacement tant qu'il en reste, en NOMMANT leur nombre —
+ * jamais une correction silencieuse, jamais un travail de terrain perdu
+ * (I5).
+ */
+export async function deplacerMachine(
+  contexte: ContexteSession,
+  id: string,
+  saisie: SaisieDeplacementMachine,
+  confirmationAutreClient: boolean,
+  client?: PrismaClient,
+): Promise<ResultatDeplacementMachine> {
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const restriction = await perimetreParcDuTechnicien(
+        tx,
+        exigerContexteActif(contexte),
+      );
+      const machine = await tx.machine.findFirst({
+        where: restriction === undefined ? { id } : { id, ...restriction },
+        select: { id: true, site_id: true, client_id: true },
+      });
+      if (machine === null) {
+        return { accepte: false, motif: "introuvable" } as const;
+      }
+      const site = await tx.site.findFirst({
+        where: { id: saisie.nouveau_site_id },
+        select: { id: true, client_id: true },
+      });
+      if (site === null) {
+        return { accepte: false, motif: "reference_invalide" } as const;
+      }
+      if (site.id === machine.site_id) {
+        return { accepte: false, motif: "site_identique" } as const;
+      }
+      const memeClient = site.client_id === machine.client_id;
+      if (!memeClient) {
+        if (!confirmationAutreClient) {
+          return { accepte: false, motif: "confirmation_requise" } as const;
+        }
+        // LE PÉRIMÈTRE PAR PERSONNE SUR LE CLIENT CIBLE (QT-2, D152, même
+        // garde que `creerMachine`) — vérifié seulement ici : le client
+        // ACTUEL de la machine est déjà dans le périmètre du technicien
+        // puisqu'il voit la fiche, nul besoin de le revérifier.
+        const restrictionClient = await perimetreClientDuTechnicien(
+          tx,
+          exigerContexteActif(contexte),
+        );
+        if (restrictionClient !== undefined) {
+          const clientDansLePerimetre = await tx.client.findFirst({
+            where: { id: site.client_id, ...restrictionClient },
+            select: { id: true },
+          });
+          if (clientDansLePerimetre === null) {
+            return { accepte: false, motif: "reference_invalide" } as const;
+          }
+        }
+      }
+      const nombreOuvertes = await tx.intervention.count({
+        where: {
+          machines: { some: { machine_id: id } },
+          statut: { in: [...STATUTS_INTERVENTION_OUVERTS] },
+        },
+      });
+      if (nombreOuvertes > 0) {
+        return {
+          accepte: false,
+          motif: "interventions_ouvertes",
+          nombre: nombreOuvertes,
+        } as const;
+      }
+      await tx.machine.update({
+        where: { id },
+        data: { site_id: site.id, client_id: site.client_id },
+        select: { id: true },
+      });
+      return { accepte: true } as const;
+    },
+    client,
+  );
 }

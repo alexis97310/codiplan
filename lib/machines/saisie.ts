@@ -215,6 +215,27 @@ export const schemaMachine = champsMachine.transform((machine) => ({
 export type SaisieMachine = z.output<typeof schemaMachine>;
 
 /**
+ * LE DÉPLACEMENT D'UNE MACHINE (9L20-DEPLACER-MACHINE, décision d'Alexis du
+ * 10/11/2026) — un schéma À PART, jamais une extension de `champsMachine` :
+ * le déplacement ne revalide ni le numéro de série, ni les dates, ni aucune
+ * autre règle de la fiche, il ne porte que la cible du déménagement.
+ *
+ * `confirmation_autre_client` ne vit PAS ici — même discipline que la
+ * confirmation des sorties du parc (`changer-statut/route.ts`) : c'est un
+ * booléen lu directement sur le formulaire par la route, jamais une valeur
+ * que Zod validerait pour la laisser ensuite sans effet si elle manque.
+ */
+export const schemaDeplacementMachine = z
+  .object({
+    nouveau_site_id: z.uuid(),
+  })
+  .strict();
+
+export type SaisieDeplacementMachine = z.output<
+  typeof schemaDeplacementMachine
+>;
+
+/**
  * LA RECHERCHE DU PARC (AT-07) — câblée depuis AT-04, remplie ici.
  *
  * **Le texte ne cherche que sur des colonnes VISIBLES à l'écran** — numéro de

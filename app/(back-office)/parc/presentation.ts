@@ -269,3 +269,19 @@ export function optionsChangerStatutMachine(
     confirmation: SORTIES_DU_PARC.has(statut) !== actuelEstUneSortie,
   }));
 }
+
+/**
+ * LE REFUS « INTERVENTIONS OUVERTES » DU DÉPLACEMENT, AVEC LEUR NOMBRE
+ * (9L20-DEPLACER-MACHINE) — composé ici plutôt que par `t()`, qui ne prend
+ * aucun paramètre (§5, L0-11) : `nombre` voyage par l'URL
+ * (`?nombre=`), jamais codé dans la clé de traduction.
+ */
+export function texteDeplacementRefuseInterventionsOuvertes(
+  nombre: number,
+): string {
+  return decompte(
+    nombre,
+    t("machine.deplacer.refus.interventions_ouvertes_singulier"),
+    t("machine.deplacer.refus.interventions_ouvertes_pluriel"),
+  );
+}

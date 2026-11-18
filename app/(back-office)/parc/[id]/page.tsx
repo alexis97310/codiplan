@@ -8,6 +8,7 @@ import { cache } from "react";
 import { Page } from "@/components/mise-en-page/page";
 import { ActionsQrMachine } from "@/components/machines/actions-qr";
 import { FormulaireChangerStatutMachine } from "@/components/machines/changer-statut";
+import { DialogueDeplacerMachine } from "@/components/machines/deplacer";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
 import { Badge, type TonBadge } from "@/components/ui/badge";
 import { Icone } from "@/components/ui/icone";
@@ -27,10 +28,12 @@ import { annuaireDesPersonnes, type Annuaire } from "@/lib/auth/annuaire";
 import { obtenirSession } from "@/lib/auth/session";
 import {
   dateCivile,
+  dateCivileLocale,
   instantDuJour,
   jourDe,
   maintenant,
   schemaFuseau,
+  type Fuseau,
 } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import {
@@ -44,7 +47,11 @@ import { estFige } from "@/lib/interventions/cycle-de-vie";
 import { type LigneIntervention } from "@/lib/interventions/depot";
 import { personnesANommer, quiTravaille } from "@/lib/interventions/personnes";
 import { lireMachine, type FicheMachine } from "@/lib/machines/depot";
-import { historiqueDeLaMachine } from "@/lib/machines/historique";
+import {
+  historiqueDeLaMachine,
+  historiqueDesEmplacements,
+  type EmplacementMachine,
+} from "@/lib/machines/historique";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
 import { cn } from "@/lib/utils";
@@ -60,6 +67,7 @@ import {
   optionsChangerStatutMachine,
   origineFicheMachine,
   retourVersParc,
+  texteDeplacementRefuseInterventionsOuvertes,
   type OrigineFicheMachine,
 } from "../presentation";
 
@@ -181,7 +189,7 @@ export default async function PageMachine({
 
   // LE PARC TEL QU'ON L'AVAIT LAISSÉ (79-LIENS-3) — voir `retourVersParc`,
   // `../presentation.ts`, pour le filtrage.
-  const { retour, motif, depuis } = await searchParams;
+  const { retour, motif, depuis, nombre } = await searchParams;
   const hrefRetourParc = retourVersParc(retour);
   // LE PREMIER MAILLON DU FIL SELON L'ORIGINE (addendum du 06/10/2026,
   // reliquat n°2 de 9DR) — `parc` par défaut, comportement inchangé.
@@ -199,8 +207,34 @@ export default async function PageMachine({
   const aujourdHui = instantDuJour(jourDe(maintenant(fuseau).local));
 
   const historique = await historiqueDeLaMachine(contexte, machine.id);
+  // L'HISTORIQUE DES EMPLACEMENTS (9L20-DEPLACER-MACHINE) — lu dans le
+  // journal d'audit (I8), voir `historiqueDesEmplacements`.
+  const emplacements = await historiqueDesEmplacements(contexte, machine.id);
+  const sitesCites = [
+    ...new Set(
+      emplacements.flatMap((e) => [e.ancienSiteId, e.nouveauSiteId]),
+    ),
+  ];
+  const libellesSites =
+    sitesCites.length === 0
+      ? new Map<string, string>()
+      : new Map(
+          (
+            await avecContexteApplicatif(contexte, (tx) =>
+              tx.site.findMany({
+                where: { id: { in: sitesCites } },
+                select: { id: true, libelle: true },
+              }),
+            )
+          ).map((site) => [site.id, site.libelle]),
+        );
   const annuaire = await avecContexteApplicatif(contexte, (tx) =>
-    annuaireDesPersonnes(tx, personnesANommer(historique, [])),
+    annuaireDesPersonnes(tx, [
+      ...personnesANommer(historique, []),
+      ...emplacements
+        .map((e) => e.utilisateurId)
+        .filter((id): id is string => id !== null),
+    ]),
   );
   const information = await informationDeLaMachine(
     contexte,
@@ -248,6 +282,22 @@ export default async function PageMachine({
     {
       cle: "resultat",
       libelle: t("machine.fiche.historique_colonne_resultat"),
+    },
+  ];
+
+  const colonnesEmplacements = [
+    { cle: "date", libelle: t("machine.fiche.emplacements_colonne_date") },
+    {
+      cle: "ancien_site",
+      libelle: t("machine.fiche.emplacements_colonne_ancien_site"),
+    },
+    {
+      cle: "nouveau_site",
+      libelle: t("machine.fiche.emplacements_colonne_nouveau_site"),
+    },
+    {
+      cle: "auteur",
+      libelle: t("machine.fiche.emplacements_colonne_auteur"),
     },
   ];
 
@@ -356,6 +406,12 @@ export default async function PageMachine({
             boutonConfirmer={t("machine.changer_etat.confirmer")}
             boutonRevenir={t("machine.changer_etat.revenir")}
           />
+          {/* DÉPLACER LA MACHINE (9L20-DEPLACER-MACHINE) — vers un site du
+              même client, ou d'un autre client avec confirmation. */}
+          <DialogueDeplacerMachine
+            machineId={machine.id}
+            clientActuelId={machine.client_id}
+          />
           {/* LE SITE ET LA MACHINE ARRIVENT PRÉREMPLIS (LIENS-1) —
               `/interventions/nouvelle` les lit et les présélectionne ; un
               paramètre hors périmètre y est ignoré en silence. Déplacée de
@@ -373,7 +429,20 @@ export default async function PageMachine({
         </>
       }
     >
-      {typeof motif === "string" && estCleTraduction(motif) ? (
+      {/* LE REFUS « INTERVENTIONS OUVERTES » NOMME LEUR NOMBRE
+          (9L20-DEPLACER-MACHINE) — porté par `?nombre=`, jamais par la clé de
+          traduction elle-même (`t()` ne prend aucun paramètre, §5, L0-11) :
+          traité AVANT le cas générique ci-dessous. */}
+      {motif === "machine.deplacer.refus.interventions_ouvertes" ? (
+        <BandeauMotif motif={motif}>
+          {texteDeplacementRefuseInterventionsOuvertes(
+            Number.parseInt(
+              typeof nombre === "string" ? nombre : "0",
+              10,
+            ) || 0,
+          )}
+        </BandeauMotif>
+      ) : typeof motif === "string" && estCleTraduction(motif) ? (
         <BandeauMotif motif={motif}>{t(motif)}</BandeauMotif>
       ) : null}
 
@@ -545,6 +614,50 @@ export default async function PageMachine({
             </ListeCartes>
           </CarteEnTete>
 
+          {/* L'HISTORIQUE DES EMPLACEMENTS (9L20-DEPLACER-MACHINE) — lu dans
+              le journal d'audit (I8), jamais dans une table dédiée (voir
+              `historiqueDesEmplacements`, `lib/machines/historique.ts`). */}
+          <CarteEnTete
+            bloc="carte-emplacements"
+            titre={t("machine.fiche.emplacements_titre")}
+            variante="enTete"
+          >
+            <div data-bloc="emplacements-table" className="max-[900px]:hidden">
+              <Tableau colonnes={colonnesEmplacements} minimum="560px">
+                {emplacements.length === 0 ? (
+                  <LignePleine colonnes={colonnesEmplacements.length}>
+                    {t("machine.fiche.emplacements_vide")}
+                  </LignePleine>
+                ) : null}
+                {emplacements.map((emplacement) => (
+                  <LigneEmplacement
+                    key={emplacement.id}
+                    emplacement={emplacement}
+                    annuaire={annuaire}
+                    libellesSites={libellesSites}
+                    fuseau={fuseau}
+                  />
+                ))}
+              </Tableau>
+            </div>
+            <ListeCartes libelle={t("machine.fiche.emplacements_titre")}>
+              {emplacements.length === 0 ? (
+                <li className="text-app-encre-faible text-13 font-bold">
+                  {t("machine.fiche.emplacements_vide")}
+                </li>
+              ) : null}
+              {emplacements.map((emplacement) => (
+                <CarteEmplacement
+                  key={emplacement.id}
+                  emplacement={emplacement}
+                  annuaire={annuaire}
+                  libellesSites={libellesSites}
+                  fuseau={fuseau}
+                />
+              ))}
+            </ListeCartes>
+          </CarteEnTete>
+
           {/* « Documents » — écart dans l'autre sens, gardé (lib/machines/
               ecarts-maquette.ts, ECARTS_MAQUETTE_AJOUTS_FICHE) : porte L8-02,
               machinePage() ne le dessine pas. Habillée comme les deux cartes
@@ -687,6 +800,87 @@ function CarteHistorique({
       </div>
       <div className="text-12 font-bold">
         {technicienAffiche(ligne, annuaire)}
+      </div>
+    </Carte>
+  );
+}
+
+/** Le libellé d'un site cité par l'historique des emplacements, ou son identifiant si la fiche a disparu. */
+function libelleSiteEmplacement(
+  siteId: string,
+  libellesSites: ReadonlyMap<string, string>,
+): string {
+  return libellesSites.get(siteId) ?? siteId;
+}
+
+/**
+ * L'AUTEUR D'UN DÉPLACEMENT (9L20-DEPLACER-MACHINE) — distingue, comme
+ * `technicienAffiche`, le refus légitime du cloisonnement (ou l'absence
+ * d'auteur sur une écriture hors session : seed, migration) de l'oubli de
+ * l'écran, voir `lib/auth/annuaire.ts`.
+ */
+function auteurEmplacementAffiche(
+  utilisateurId: string | null,
+  annuaire: Annuaire,
+): string {
+  if (utilisateurId === null) {
+    return t("machine.fiche.emplacements_auteur_absent");
+  }
+  const designation = annuaire(utilisateurId);
+  return designation.etat === "nom"
+    ? designation.nom
+    : t("machine.fiche.emplacements_auteur_non_communique");
+}
+
+function LigneEmplacement({
+  emplacement,
+  annuaire,
+  libellesSites,
+  fuseau,
+}: {
+  readonly emplacement: EmplacementMachine;
+  readonly annuaire: Annuaire;
+  readonly libellesSites: ReadonlyMap<string, string>;
+  readonly fuseau: Fuseau;
+}) {
+  return (
+    <tr>
+      <Cellule>{dateCivileLocale(emplacement.horodatage, fuseau)}</Cellule>
+      <Cellule>
+        {libelleSiteEmplacement(emplacement.ancienSiteId, libellesSites)}
+      </Cellule>
+      <Cellule>
+        {libelleSiteEmplacement(emplacement.nouveauSiteId, libellesSites)}
+      </Cellule>
+      <Cellule>{auteurEmplacementAffiche(emplacement.utilisateurId, annuaire)}</Cellule>
+    </tr>
+  );
+}
+
+/** La même ligne, en carte sous 901 px — même gabarit que `CarteHistorique`. */
+function CarteEmplacement({
+  emplacement,
+  annuaire,
+  libellesSites,
+  fuseau,
+}: {
+  readonly emplacement: EmplacementMachine;
+  readonly annuaire: Annuaire;
+  readonly libellesSites: ReadonlyMap<string, string>;
+  readonly fuseau: Fuseau;
+}) {
+  return (
+    <Carte href={`/sites/${emplacement.nouveauSiteId}`}>
+      <div className="text-app-encre-faible text-12 font-bold">
+        {dateCivileLocale(emplacement.horodatage, fuseau)}
+      </div>
+      <div className="text-13 font-bold">
+        {libelleSiteEmplacement(emplacement.ancienSiteId, libellesSites)}
+        {t("ponctuation.fleche")}
+        {libelleSiteEmplacement(emplacement.nouveauSiteId, libellesSites)}
+      </div>
+      <div className="text-12 font-bold">
+        {auteurEmplacementAffiche(emplacement.utilisateurId, annuaire)}
       </div>
     </Carte>
   );

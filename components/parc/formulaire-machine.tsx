@@ -734,7 +734,11 @@ function ChampsLectureSeule({
           dt={t("machine.champ.client")}
           dd={lectureSeule.clientLibelle}
         />
-        <LigneLectureSeule dt={mot("site")} dd={lectureSeule.siteLibelle} />
+        {/* LE SITE N'EST PLUS MONTRÉ DANS CE BLOC (9L20-DEPLACER-MACHINE,
+            décision d'Alexis du 10/11/2026) — ce formulaire ne corrige plus
+            jamais le site, même en lecture : le geste qui le change est
+            désormais « Déplacer la machine » (`components/machines/
+            deplacer.tsx`), sur la fiche. */}
       </dl>
     </div>
   );
