@@ -2,7 +2,7 @@ import { afterAll, afterEach, describe, expect, it } from "vitest";
 
 import { Role } from "@/lib/auth/roles";
 import { uuidv7 } from "@/lib/db/uuid";
-import { lireBonIntervention } from "@/lib/interventions/bon";
+import { lireBonDuParc, lireBonIntervention } from "@/lib/interventions/bon";
 import {
   cloturerIntervention,
   lignesConditionsFacturation,
@@ -16,7 +16,9 @@ import { REGLE_PAR_DEFAUT } from "@/lib/tarification/valorisation";
 import { clientApp, clientOwner, fermerClients } from "./setup/db";
 import {
   AGENCE_A,
+  CLIENT_A1,
   MACHINE_A1,
+  PORTAIL_A_CLIENT,
   SOCIETE_A,
   UTILISATEUR_INTERNE_A,
   UTILISATEUR_PAR_ROLE,
@@ -472,6 +474,58 @@ describe("le bon d'une garantie ou d'un recensement ne porte aucun montant (RG-I
       expect(bon.forfaitMontant).toBeNull();
       expect(bon.montantTotal).toBeNull();
       expect(bon.conditionsFacturation).toEqual([mentionNonFacturee(type)]);
+    },
+  );
+});
+
+/**
+ * 9L24-ROUTES-SANS-CAPACITE — MÊME GARANTIE, EXÉCUTÉE CÔTÉ PORTAIL.
+ *
+ * `lireBonDuParc` partage `composerBon` avec `lireBonIntervention` ci-dessus
+ * (voir l'entête du module `lib/interventions/bon.ts`) : seule la version
+ * back-office était exécutée ici. `tests/unit/portail/bon-sans-montant.test.ts`
+ * ne lit que le TEXTE SOURCE de l'écran portail — il ne prouve jamais que la
+ * composition elle-même, exécutée pour le client réel de l'intervention, rend
+ * bien les montants nuls. Cette épreuve exécute `lireBonDuParc`, pas l'écran.
+ */
+describe("le bon DU PORTAIL d'une garantie ou d'un recensement ne porte aucun montant non plus", () => {
+  it.each(["garantie", "recensement"] as const)(
+    "lireBonDuParc, pour le client réel de l'intervention, rend aussi taux/forfait/total nuls (%s)",
+    async (type) => {
+      await poserLeTaux();
+      const forfaitId = await poserUnForfait();
+      const id = await interventionClose(forfaitId, type);
+      await clientOwner().$executeRawUnsafe(
+        `UPDATE "intervention" SET "client_id" = $1::uuid WHERE "id" = $2::uuid`,
+        CLIENT_A1,
+        id,
+      );
+
+      const cloture = await cloturerIntervention(
+        SESSION,
+        { intervention_id: id, temps_valide_min: TEMPS_MESURE_MIN },
+        clientApp(),
+      );
+      expect(cloture.accepte).toBe(true);
+
+      const bonPortail = await lireBonDuParc(
+        {
+          utilisateurId: PORTAIL_A_CLIENT,
+          societeId: SOCIETE_A,
+          role: Role.client,
+          secondFacteurValide: true,
+          adresseIp: null,
+          clientId: CLIENT_A1,
+        },
+        id,
+        clientApp(),
+      );
+      expect(bonPortail).not.toBeNull();
+      if (bonPortail === null) return;
+
+      expect(bonPortail.taux).toBeNull();
+      expect(bonPortail.forfaitMontant).toBeNull();
+      expect(bonPortail.montantTotal).toBeNull();
     },
   );
 });
