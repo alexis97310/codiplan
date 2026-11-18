@@ -409,6 +409,14 @@ FERME, sans jamais ouvrir.
 
 `614ef27` — `pnpm verify:full` → **EXIT=0**, 1720 · 826 · 27, à `20:48 UTC`.
 
+**Suite, hors de cette nuit — L2-13 LIVRÉ le 05/11/2026.** Le ticket 9J02-PORTAIL-
+INVITATION-LIEN et sa reprise 9J02A ont contourné la contradiction plutôt que de
+trancher Q9 à la lettre : l'invitation ne crée PAS de table distincte sous une
+quatorzième forme de politique — elle ouvre directement une identité `utilisateur` /
+`utilisateur_client`, par le même geste que l'enrôlement interne, sous
+`administrer_utilisateurs` (D230). Le blocage constaté cette nuit-là est donc refermé,
+mais pas par la voie qu'il envisageait ; voir `docs/backlog.md`, L2-13.
+
 ---
 
 ## J6 — R1-07, et le lot 7 fermé avec sa mesure
