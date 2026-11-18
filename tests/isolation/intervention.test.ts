@@ -485,11 +485,7 @@ describe("l'intervention, sous le rôle applicatif", () => {
          SELECT '${id}', "societe_id", "client_id", "site_id", "agence_id",
                 'curatif', '${statut}', DATE '2026-09-14', 60, now()${
                   statut === "cloturee" ? `, 'a_facturer'` : ""
-                }${
-                  statut === "suspendue"
-                    ? `, 'Attente de pièce', now()`
-                    : ""
-                }
+                }${statut === "suspendue" ? `, 'Attente de pièce', now()` : ""}
            FROM "intervention" WHERE "id" = '${INTERVENTION_A1}'`,
       );
       return id;

@@ -143,7 +143,9 @@ async function uneExigence(
     clientApp(),
   );
   if (!habilitation.accepte) {
-    throw new Error(`création de l'habilitation refusée : ${habilitation.motif}`);
+    throw new Error(
+      `création de l'habilitation refusée : ${habilitation.motif}`,
+    );
   }
   habilitationsPosees.push(habilitation.id);
 
@@ -191,7 +193,9 @@ describe("retirer une exigence de site, par la route (décision d'Alexis du 10/1
     );
 
     const reponse = await appeler(id, SITE_B1_S1);
-    expect(motifDeLaRedirection(reponse)).toBe("habilitations.refus.introuvable");
+    expect(motifDeLaRedirection(reponse)).toBe(
+      "habilitations.refus.introuvable",
+    );
     expect(await exigenceExiste(id)).toBe(true);
   });
 });

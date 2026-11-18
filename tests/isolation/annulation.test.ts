@@ -174,7 +174,9 @@ describe("l'annulation, par la route (décision d'Alexis du 10/11/2026)", () => 
 
   it("l'annulation acceptée écrit une ligne dans journal_audit (I8)", async () => {
     const auteur = uuidv7();
-    vi.mocked(exigerCapacite).mockResolvedValueOnce(contexte(auteur, SOCIETE_A));
+    vi.mocked(exigerCapacite).mockResolvedValueOnce(
+      contexte(auteur, SOCIETE_A),
+    );
     const id = await jetable("planifiee", INTERVENTION_A1);
 
     const reponse = await appeler(id, "Client absent, réagendé par téléphone");
