@@ -69,7 +69,12 @@ model Devise {
   // `@ignore` : JAMAIS navigué, même raisonnement que le bloc de `Societe`
   // (9L04A-MEMOIRE-BUILD-CAUSE, D246) — `TauxHoraire` se lit toujours par sa
   // propre requête filtrée sur `societe_id`, jamais par cette réciproque.
-  forfaits      Forfait[]
+  /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : JAMAIS navigué — tous les
+  /// `tx.forfait.*` (`lib/tarification/depot-forfaits.ts`,
+  /// `lib/interventions/depot.ts`, `app/api/portail/tarifs/lecture.ts`)
+  /// sélectionnent `devise_code` en scalaire, jamais cette réciproque.
+  /// Partenaire vérifié : `Forfait.devise` non plus jamais sélectionné.
+  forfaits      Forfait[]      @ignore
 
   @@map("devise")
 }
@@ -240,7 +245,10 @@ model Societe {
   sous_types_materiel          SousTypeMateriel[]                @ignore
   modeles_materiel             ModeleMateriel[]                  @ignore
   taux_horaires                TauxHoraire[]                     @ignore
-  forfaits                     Forfait[]
+  /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : JAMAIS navigué depuis `Societe` —
+  /// même motif que `Devise.forfaits` ci-dessus. Partenaire vérifié :
+  /// `Forfait.societe` non plus jamais sélectionné.
+  forfaits                     Forfait[]                         @ignore
   machines                     Machine[]
   prestations                  Prestation[]
   /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : JAMAIS navigué depuis `Societe` —
@@ -3703,7 +3711,11 @@ model FamilleMateriel {
   /// directement, scalaire `famille_id` seul. Partenaire vérifié :
   /// `SousTypeMateriel.famille` non plus jamais sélectionné (même pattern).
   sous_types        SousTypeMateriel[] @ignore
-  forfaits          Forfait[]
+  /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : JAMAIS navigué depuis
+  /// `FamilleMateriel` — même motif que `Devise.forfaits`. Partenaire
+  /// vérifié : `Forfait.famille` non plus jamais sélectionné (`famille_id`
+  /// seul, en scalaire).
+  forfaits          Forfait[]          @ignore
   /// Les prestations qui la visent, via la table de liaison (9L04J, D259) —
   /// REMPLACE l'ancienne relation directe `Prestation[]` du scalaire
   /// `famille_id`, retirée par la même migration.
