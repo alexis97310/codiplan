@@ -57,7 +57,14 @@ model Devise {
   decimales     Int
   symbole       String? // symbole si la devise en a un, sinon on affiche le code (D19)
   societes      Societe[]
-  parites       Parite[]
+  /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : JAMAIS navigué — `lib/reporting/
+  /// consolidation.ts` (`resoudreParites`) attend ses lignes en paramètre,
+  /// mais AUCUN appelant ne les lit encore via Prisma (le lot de reporting qui
+  /// branchera `tx.parite.*` n'existe pas avant le lot 5, §4 CLAUDE.md) :
+  /// réciproque et accesseur de premier niveau tous deux inutilisés
+  /// aujourd'hui. Partenaire vérifié : `Parite.devise` non plus jamais
+  /// navigué.
+  parites       Parite[]       @ignore
   taux_horaires TauxHoraire[] @ignore
   // `@ignore` : JAMAIS navigué, même raisonnement que le bloc de `Societe`
   // (9L04A-MEMOIRE-BUILD-CAUSE, D246) — `TauxHoraire` se lit toujours par sa
@@ -102,7 +109,13 @@ model Societe {
 
   trajets_par_zone TempsTrajetZone[] @ignore
 
-  intervention_machines InterventionMachine[]
+  /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : JAMAIS navigué depuis `Societe` —
+  /// les deux seuls `select: { intervention_machines: {...} }` du dépôt
+  /// (`lib/machines/depot.ts`, `lib/interventions/perimetre-technicien.ts`)
+  /// portent sur `Machine.intervention_machines`, pas sur cette réciproque.
+  /// Partenaire vérifié : `InterventionMachine.societe` non plus jamais
+  /// sélectionné.
+  intervention_machines InterventionMachine[] @ignore
 
   demandes Demande[]
 
@@ -224,7 +237,12 @@ model Societe {
   forfaits                     Forfait[]
   machines                     Machine[]
   prestations                  Prestation[]
-  verifications_vgp            VgpVerification[]
+  /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : JAMAIS navigué depuis `Societe` —
+  /// l'unique `select: { verifications_vgp: {...} }` du dépôt
+  /// (`lib/vgp/campagne.ts`) porte sur `Machine.verifications_vgp`, pas sur
+  /// cette réciproque. Partenaire vérifié : `VgpVerification.societe` non
+  /// plus jamais sélectionné.
+  verifications_vgp            VgpVerification[]                 @ignore
   observations_vgp             VgpObservation[]                  @ignore
   campagnes_vgp                VgpCampagne[]                     @ignore
   interventionPrestations      InterventionPrestation[]          @ignore
@@ -3665,7 +3683,11 @@ model FamilleMateriel {
 
   societe           Societe            @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
   modeles           ModeleMateriel[]
-  sous_types        SousTypeMateriel[]
+  /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : JAMAIS navigué — `listerLesSousTypes`
+  /// et `lib/imports/parc-sous-types.ts` lisent `tx.sousTypeMateriel`
+  /// directement, scalaire `famille_id` seul. Partenaire vérifié :
+  /// `SousTypeMateriel.famille` non plus jamais sélectionné (même pattern).
+  sous_types        SousTypeMateriel[] @ignore
   forfaits          Forfait[]
   /// Les prestations qui la visent, via la table de liaison (9L04J, D259) —
   /// REMPLACE l'ancienne relation directe `Prestation[]` du scalaire
@@ -4218,9 +4240,16 @@ model Document {
   machine      Machine?        @relation(fields: [societe_id, machine_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
   intervention Intervention?   @relation(fields: [societe_id, intervention_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
 
-  /// Les fichiers du bac qui ont produit cette fiche (L8-07).
-  recus              DocumentRecu[]
-  verifications_vgp  VgpVerification[]
+  /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : JAMAIS navigué — `lib/documents/
+  /// depot.ts` (`CHAMPS_RECU`) lit `document_id` en scalaire, jamais cette
+  /// réciproque. Partenaire vérifié : `DocumentRecu.document` non plus jamais
+  /// sélectionné.
+  recus              DocumentRecu[]    @ignore
+  /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : JAMAIS navigué depuis `Document` —
+  /// les requêtes de `lib/vgp/*.ts` lisent `VgpVerification` par
+  /// `machine_id`/`id`, jamais par cette réciproque. Partenaire vérifié :
+  /// `VgpVerification.document` non plus jamais sélectionné.
+  verifications_vgp  VgpVerification[] @ignore
   /// Les points de checklist qu'elle répond (9K28-CHECKLIST-REPONSE-PHOTO) —
   /// `intervention_id` ci-dessus reste sa seule cible ; ce lien n'est qu'une
   /// ÉTIQUETTE, jamais une seconde cible (`document_cible_unique` inchangée).
