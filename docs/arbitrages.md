@@ -9281,3 +9281,32 @@ Elle ne touche pas `lignesConditionsFacturation` (les lignes de texte SANS monta
 > Le jour où une reprise de données pose `valorisation_figee` sur les clôtures antérieures à 9I8A1-REPRISE-9I8A (à partir d'un historique externe au schéma actuel), `valorisationAncienne` et le message « Valorisation antérieure au 31/10/2026 » deviennent faux pour les lignes reprises — cette décision suppose aujourd'hui qu'aucune reprise de ce genre n'existe.
 
 Portée : `lib/interventions/bon.ts`, `lib/interventions/depot.ts` (export de `depuisJsonValorisationFigee`), `lib/i18n/fr.ts`, `app/(back-office)/interventions/[id]/bon/page.tsx`, `tests/isolation/bon-intervention.test.ts`, `tests/e2e/captures-9l17-bon-valorisation-figee.spec.ts` (nouveau).
+
+## D273 — LES FLUX QUI ÉCRIVENT SUR UNE BASE RÉELLE ÉPINGLENT LEURS ACTIONS PAR EMPREINTE, DESCENDENT LEURS SECRETS À L'ÉTAPE, PORTENT UN `environment: production`, ET LEURS JOURNAUX N'IMPRIMENT PLUS QUE DES TOTAUX (décision d'Alexis du 10/11/2026 ; 9L22-CI-DURCIE)
+
+### CE QUI A ÉTÉ MESURÉ
+
+Les quatre flux qui portent la chaîne de mise en ligne — `db-migrate.yml`, `premier-compte.yml`, `amorcage-base.yml`, `db-resolve.yml` — référençaient leurs trois actions tierces (`actions/checkout`, `actions/setup-node`, `pnpm/action-setup`) par un nom de version mobile (`@v5`, `@v4`) plutôt qu'une empreinte de commit : un compte compromis en amont peut repousser cette étiquette sur un autre contenu sans qu'aucun des deux flux ne bouge d'une ligne. Les secrets de production et de démonstration étaient déclarés dans l'`env:` du JOB, visibles de **toutes** ses étapes — y compris « Installer les dépendances », qui exécute le code `postinstall` d'une dépendance tierce. Aucun des quatre ne portait de bloc `permissions:` : le jeton `GITHUB_TOKEN` hérite alors du défaut de l'organisation, qui peut être plus large qu'« aucun ». Et les journaux de « DB migrate & seed » — lus à chaque migration, y compris sur la cible « production », dans un dépôt PUBLIC — imprimaient l'hôte et le nom de chaque base de données, ainsi que, société par société, son code, son identifiant et le détail de ses volumes.
+
+### LA DÉCISION
+
+**Quatre bornes, sur les quatre flux qui écrivent sur une base réelle :**
+
+1. Toute action tierce (`uses: owner/repo@…`) est épinglée par une empreinte de commit à quarante caractères hexadécimaux, jamais par un nom de version — la version lisible reste en commentaire, à droite de l'empreinte.
+2. Un secret ne vit plus dans l'`env:` du JOB : il descend dans l'`env:` de la SEULE étape qui le lit (« Choisir la base, et refuser plutôt que se rabattre »).
+3. Chaque flux porte un bloc `permissions:` qui ne concède que `contents: read` — rien de plus, et jamais un droit d'écriture.
+4. `premier-compte.yml`, `amorcage-base.yml` et `db-resolve.yml` — purement manuels, et capables d'écrire en production dès que l'entrée « cible » le permet — déclarent `environment: production`. `db-migrate.yml` ne le reçoit PAS : il mélange un déclenchement automatique (`push`, cible toujours « demonstration », jamais une main, D116) et un déclenchement manuel ; geler `environment: production` au niveau du job aurait aussi bloqué le chemin automatique que D116 a justement voulu libre.
+
+**Une cinquième borne, propre à `premier-compte.yml`** : l'entrée « base » (l'URL publique de l'application, utilisée pour composer le lien de premier accès) est refusée si elle ne commence pas par `https://`.
+
+**Une sixième, sur les journaux** : le rapport de l'étape « Inventaire à plat » n'imprime plus que le nombre de sociétés présentes et des totaux table par table, toutes sociétés confondues — plus aucun hôte, rôle, code ni identifiant de société. Le rapport de l'étape « Décrire les connexions (sans secret) » n'imprime plus l'hôte ni le nom de chaque base — seulement si l'URL est lisible, si elle est mutualisée, sa région, si un port est renseigné, et le nombre de paramètres de requête ; la comparaison d'hôte entre les deux URL reste faite, mais seul son résultat (« oui »/« non ») est rendu, jamais les valeurs comparées.
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+Elle ne touche à aucune migration ni à aucun schéma. Elle ne retire aucune information aux fonctions internes qui en ont réellement besoin pour NOMMER une fuite — `ecartsInventaire`, `ecartsAvecContexte` et le fichier d'échange `inventaire-controle.json` continuent de porter le détail complet, société par société ; seul ce qu'une exécution SANS écart imprime dans un journal public change. Elle ne porte pas sur `scripts/controle-cloisonnement.mts`, dont le rapport nomme lui aussi le code de chaque société avec son détail : ce fichier n'est pas l'un des quatre flux visés par ce lot, et le constat est noté pour une suite. Le réglage GitHub « validation requise » sur l'environnement `production` reste un geste dans les paramètres du dépôt, pas une ligne de ce dépôt — voir `docs/propositions/9L22-CI-DURCIE/passation.md`.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où une cinquième action tierce entre dans l'un de ces quatre flux, ou où un secret nouveau y apparaît, cette décision s'applique sans qu'il faille la retrancher : `tests/unit/ci/durcissement-flux.test.ts` la tient sur les trois premières bornes, et rougit sur toute référence mobile ou tout bloc `permissions:` élargi.
+
+Portée : `.github/workflows/db-migrate.yml`, `.github/workflows/premier-compte.yml`, `.github/workflows/amorcage-base.yml`, `.github/workflows/db-resolve.yml`, `scripts/inventaire.mts`, `scripts/decrire-connexions.mts`, `tests/unit/db/inventaire.test.ts`, `tests/unit/ci/durcissement-flux.test.ts` (nouveau).
