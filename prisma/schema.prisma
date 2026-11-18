@@ -108,8 +108,16 @@ model Parite {
 /// Table racine (chapitre 11 §11.2). Une société porte sa devise, sa charte,
 /// son taux horaire, son fuseau. Toutes les tables cloisonnées la référencent.
 model Societe {
-  techniciens Technicien[]
-  absences    Absence[]
+  /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : JAMAIS navigué depuis `Societe`
+  /// (à la différence d'`Agence.techniciens`, NON touché : `agence: {
+  /// select: { libelle: true } }` l'y rend vivant, `lib/techniciens/
+  /// depot.ts`) — aucune requête sur `technicien` ne sélectionne la
+  /// réciproque `societe`.
+  techniciens Technicien[]     @ignore
+  /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : JAMAIS navigué — `tx.absence.*`
+  /// toujours à scalaires, jamais `technicien: {...}` (le nom du champ
+  /// partenaire sur `Absence`). Partenaire vérifié mort.
+  absences    Absence[]        @ignore
   segments    SegmentTravail[]
 
   trajets_par_zone TempsTrajetZone[] @ignore
@@ -122,7 +130,14 @@ model Societe {
   /// sélectionné.
   intervention_machines InterventionMachine[] @ignore
 
-  demandes Demande[]
+  /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : JAMAIS navigué — tous les
+  /// `tx.demande.*` (`lib/portail/demandes.ts`, `lib/demandes/depot.ts`,
+  /// `lib/interventions/depot.ts`) sélectionnent `client_id`/`site_id`/
+  /// `machine_id`/`agence_id`/`contact_id` en scalaires, jamais les
+  /// réciproques. Partenaire vérifié : `Demande.societe` non plus jamais
+  /// sélectionné (même vérification pour les cinq autres réciproques de
+  /// `Demande` ci-dessous).
+  demandes Demande[] @ignore
 
   technicien_calendriers TechnicienCalendrier[] @ignore
 
@@ -240,7 +255,11 @@ model Societe {
   /// réciproque. Partenaire vérifié : `Contact.societe` non plus jamais
   /// sélectionné.
   contacts                     Contact[]                         @ignore
-  habilitations                Habilitation[]
+  /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : JAMAIS navigué — `listerHabilitations`
+  /// (`lib/habilitations/depot.ts`) lit des scalaires, jamais cette
+  /// réciproque. Partenaire vérifié : `Habilitation.societe` non plus jamais
+  /// sélectionné.
+  habilitations                Habilitation[]                    @ignore
   techniciens_habilites        TechnicienHabilitation[]          @ignore
   sites_habilitations          SiteHabilitationRequise[]         @ignore
   clients                      Client[]
@@ -320,7 +339,10 @@ model Societe {
 model Agence {
   techniciens Technicien[]
 
-  demandes Demande[]
+  /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : même motif que `Societe.demandes`
+  /// — `agence_id` lu en scalaire, jamais cette réciproque. Partenaire
+  /// vérifié : `Demande.agence` non plus jamais sélectionné.
+  demandes Demande[] @ignore
 
   interventions Intervention[]
 
@@ -742,7 +764,10 @@ model CalendrierFerie {
 /// — est close des deux côtés : y faire entrer `client` est un arbitrage, pas
 /// une décision de ticket (revue R0, écart É-b).
 model Client {
-  demandes Demande[]
+  /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : même motif que `Societe.demandes`
+  /// — `client_id` lu en scalaire. Partenaire vérifié : `Demande.client` non
+  /// plus jamais sélectionné.
+  demandes Demande[] @ignore
 
   interventions Intervention[]
 
@@ -839,7 +864,10 @@ model Client {
 /// sont pas interchangeables (CLAUDE.md, vocabulaire imposé ; D5, D47), et leur
 /// définition vit sous les clés `vocabulaire.*` de `lib/i18n/fr.ts`.
 model Site {
-  demandes Demande[]
+  /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : même motif que `Societe.demandes`
+  /// — `site_id` lu en scalaire. Partenaire vérifié : `Demande.site` non plus
+  /// jamais sélectionné.
+  demandes Demande[] @ignore
 
   interventions Intervention[]
 
@@ -1091,7 +1119,10 @@ model UtilisateurSociete {
   societe     Societe     @relation(fields: [societe_id], references: [id])
 
   habilitations TechnicienHabilitation[]
-  absences      Absence[]
+  /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : même motif que `Societe.absences`
+  /// — `tx.absence.*` toujours à scalaires. Partenaire vérifié :
+  /// `Absence.technicien` non plus jamais sélectionné.
+  absences      Absence[]                @ignore
   segments      SegmentTravail[]
 
   @@unique([utilisateur_id, societe_id])
@@ -1581,7 +1612,10 @@ model JournalAudit {
 ///
 /// Politique de forme « parc », avec la DISJONCTION que cette nullité impose.
 model Contact {
-  demandes      Demande[]
+  /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : même motif que `Societe.demandes`
+  /// — `contact_id` lu en scalaire. Partenaire vérifié : `Demande.contact`
+  /// non plus jamais sélectionné.
+  demandes      Demande[]      @ignore
   interventions Intervention[]
 
   id         String  @id @db.Uuid
@@ -1685,7 +1719,10 @@ enum TypeForfait {
 model Machine {
   intervention_machines InterventionMachine[]
 
-  demandes Demande[]
+  /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : même motif que `Societe.demandes`
+  /// — `machine_id` lu en scalaire. Partenaire vérifié : `Demande.machine`
+  /// non plus jamais sélectionné.
+  demandes Demande[] @ignore
 
   id         String @id @db.Uuid
   societe_id String @db.Uuid
