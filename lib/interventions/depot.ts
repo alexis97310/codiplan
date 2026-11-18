@@ -1987,6 +1987,11 @@ function depuisMontantFigeJSON(m: MontantFigeJSON | null): Montant | null {
  * jamais recalculée ensuite. Les deux fonctions ci-dessous sont le SEUL
  * chemin d'écriture et de lecture de cette colonne : une seconde paire
  * réinventée ailleurs divergerait en silence sur un champ oublié.
+ *
+ * `depuisJsonValorisationFigee` est EXPORTÉE depuis 9L17-BON-INTERNE-
+ * VALORISATION-FIGEE (décision d'Alexis du 10/11/2026) : `lib/interventions/
+ * bon.ts` la lit pour le bon d'une intervention close, exactement comme
+ * `lireFicheIntervention` plus bas — jamais une seconde lecture du JSON.
  */
 type ValorisationFigeeJSON = {
   readonly minutesReelles: number;
@@ -2021,7 +2026,7 @@ function versJsonValorisationFigee(
   return json as unknown as Prisma.InputJsonValue;
 }
 
-function depuisJsonValorisationFigee(
+export function depuisJsonValorisationFigee(
   json: Prisma.JsonValue,
 ): ValorisationAffichee {
   const v = json as unknown as ValorisationFigeeJSON;

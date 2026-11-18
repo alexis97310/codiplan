@@ -27,6 +27,7 @@ import { tauxEnVigueur } from "@/lib/tarification/taux-horaire";
 import { mesurer, type Segment } from "./compteur";
 import {
   CHAMPS_LIGNE,
+  depuisJsonValorisationFigee,
   instantDeLAgence,
   lignesConditionsFacturation,
   montantDuForfait,
@@ -49,7 +50,8 @@ import {
  * faits une fois, et un bon qui referait ce calcul en serait une seconde
  * lecture (§9, 01/09).
  *
- * ## Le montant total dépend d'un taux encore lisible AUJOURD'HUI
+ * ## Le montant total dépend d'un taux encore lisible AUJOURD'HUI — SEULEMENT
+ * TANT QUE RIEN N'EST ENCORE FIGÉ
  *
  * *Un bon réimprimé doit pouvoir se reproduire.* Si `tauxEnVigueur` ne trouve
  * plus, à la date de l'intervention, aucun taux en vigueur — un historique
@@ -59,6 +61,29 @@ import {
  * jamais la réponse à une valorisation qu'on ne peut plus reconstituer** — le
  * `null` la remplace, et l'écran nomme l'absence plutôt que de l'omettre.
  *
+ * Ceci ne vaut QUE pour une intervention PAS ENCORE close (un aperçu, qui n'a
+ * rien à figer) — voir le point suivant pour une intervention close.
+ *
+ * ## UNE INTERVENTION CLOSE NE RELIT JAMAIS LE BARÈME (9L17-BON-INTERNE-
+ * VALORISATION-FIGEE, décision d'Alexis du 10/11/2026)
+ *
+ * Le taux horaire et le forfait de déplacement affichés sur le bon d'une
+ * intervention close viennent de `intervention.valorisation_figee` — EXACTEMENT
+ * ce qui a servi à établir `montantTotal` à la clôture (D224,
+ * `depuisJsonValorisationFigee`, `lib/interventions/depot.ts`), jamais
+ * `tauxEnVigueur` ni `montantDuForfait` lus en direct. *Un barème qui change
+ * après coup — un nouveau taux posé, un forfait corrigé — ne doit rien
+ * changer à un bon déjà remis à un client* : afficher un taux qui n'est plus
+ * celui facturé, à côté d'un total qui lui reste figé, serait un bon
+ * incohérent avec lui-même.
+ *
+ * Une clôture antérieure à la migration qui a introduit cette colonne
+ * (9I8A1-REPRISE-9I8A, 31/10/2026) ne porte aucune décomposition : ni taux, ni
+ * forfait n'y sont reconstitués (même règle — rien n'est recalculé depuis le
+ * réglage courant). `valorisationAncienne` le signale, et seul le total déjà
+ * écrit en base (`montant_ht`) est repris.
+ *
+
  * ## Les droits sur les montants sont ceux de la fiche, jamais réécrits
  *
  * Ce module rend le taux et le montant SANS décider qui a le droit de les
@@ -143,7 +168,13 @@ export type BonIntervention = {
   };
   readonly segments: readonly SegmentBonAffiche[];
   readonly minutesTotal: number;
-  /** `null` : aucun taux horaire n'est en vigueur à la date de l'intervention. */
+  /**
+   * `null` : soit aucun taux horaire n'est en vigueur à la date de
+   * l'intervention (pas encore close), soit l'intervention est close sur une
+   * clôture antérieure à la migration qui a figé la décomposition
+   * (`valorisationAncienne` ci-dessous le distingue) — voir l'entête du
+   * module.
+   */
   readonly taux: Montant | null;
   readonly forfaitMontant: Montant | null;
   /**
@@ -151,6 +182,15 @@ export type BonIntervention = {
    * l'est : voir l'entête du module.
    */
   readonly montantTotal: Montant | null;
+  /**
+   * `true` SEULEMENT pour une intervention close dont la clôture est
+   * antérieure à 9I8A1-REPRISE-9I8A (31/10/2026) : `valorisation_figee` y est
+   * absente, et `taux`/`forfaitMontant` ne sont PAS reconstitués (voir
+   * l'entête du module) — `montantTotal` seul peut porter une valeur, celle
+   * déjà écrite en base. `false` pour toute intervention pas encore close ou
+   * close avec sa décomposition figée.
+   */
+  readonly valorisationAncienne: boolean;
 
   // ── LES CINQ BLOCS DE BON-2 — jamais `undefined`, une liste vide se lit ──
   readonly prestationsRealisees: readonly PrestationRealisee[];
@@ -379,16 +419,48 @@ async function composerBon(
         })),
       );
 
-      const taux = await tauxEnVigueur(tx, dateVisee);
-      const forfaitMontant = await montantDuForfait(
-        tx,
-        brute.forfait_deplacement_id,
-      );
       const checklist = await checklistDuBon(tx, id, checklist_version_id);
       const montantStocke =
         brute.montant_ht === null || brute.devise_code === null
           ? null
           : montant(brute.montant_ht, brute.devise_code);
+
+      // LA VALORISATION DU BON (9L17-BON-INTERNE-VALORISATION-FIGEE, décision
+      // d'Alexis du 10/11/2026) — voir l'entête du module. Trois issues,
+      // jamais une quatrième : close AVEC sa décomposition figée (la relire,
+      // jamais le barème courant) ; close SANS elle, une clôture antérieure à
+      // 9I8A1-REPRISE-9I8A (ni taux ni forfait reconstitués — seul le total
+      // déjà écrit en base est repris) ; pas encore close (un aperçu, calculé
+      // EN DIRECT, rien à figer).
+      const valorisationAncienne =
+        cloturee_le !== null &&
+        (valorisation_figee === null || valorisation_figee === undefined);
+      let taux: Montant | null;
+      let forfaitMontant: Montant | null;
+      let montantTotal: Montant | null;
+      if (
+        cloturee_le !== null &&
+        valorisation_figee !== null &&
+        valorisation_figee !== undefined
+      ) {
+        const figee = depuisJsonValorisationFigee(valorisation_figee);
+        taux = figee.tauxHoraire;
+        forfaitMontant = figee.forfaitDeplacement;
+        montantTotal = figee.totalHT;
+      } else if (valorisationAncienne) {
+        taux = null;
+        forfaitMontant = null;
+        montantTotal = montantStocke;
+      } else {
+        taux = (await tauxEnVigueur(tx, dateVisee))?.taux ?? null;
+        forfaitMontant = await montantDuForfait(
+          tx,
+          brute.forfait_deplacement_id,
+        );
+        // Voir l'entête du module : un taux qu'on ne peut plus reconstituer
+        // efface le total, même s'il est encore écrit en base.
+        montantTotal = taux === null ? null : montantStocke;
+      }
 
       // ── LES MACHINES IDENTIFIÉES (BON-3) — lues dans CETTE requête, jamais
       // par `libellesDesMachines` (`lib/machines/depot.ts`), qui répond à une
@@ -484,11 +556,10 @@ async function composerBon(
         devise: societe.devise,
         segments,
         minutesTotal: mesure.minutes,
-        taux: taux?.taux ?? null,
+        taux,
         forfaitMontant,
-        // Voir l'entête du module : un taux qu'on ne peut plus reconstituer
-        // efface le total, même s'il est encore écrit en base.
-        montantTotal: taux === null ? null : montantStocke,
+        montantTotal,
+        valorisationAncienne,
         commentaireTechnicien: commentaire_technicien,
         suiteADonner: suite_a_donner,
         checklist,

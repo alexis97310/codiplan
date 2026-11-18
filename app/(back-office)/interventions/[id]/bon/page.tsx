@@ -388,6 +388,22 @@ export default async function PageBonIntervention({
           <p className="text-app-oxyde text-13 font-bold print:hidden">
             {t(montants.cle)}
           </p>
+        ) : bon.valorisationAncienne ? (
+          <div className="flex flex-col gap-2.5">
+            <p className="text-app-oxyde text-13 font-bold">
+              {t("intervention.bon.valorisation_ancienne")}
+            </p>
+            <dl className="grid grid-cols-1 gap-x-3 gap-y-2.5 sm:grid-cols-[132px_1fr]">
+              <Ligne
+                libelle={t("intervention.cloture.total")}
+                valeur={
+                  bon.montantTotal === null
+                    ? t("intervention.cloture.total_inconnu")
+                    : formatMoney(bon.montantTotal, bon.devise)
+                }
+              />
+            </dl>
+          </div>
         ) : bon.taux === null ? (
           <p className="text-app-oxyde text-13 font-bold">
             {t("intervention.bon.taux_absent")}

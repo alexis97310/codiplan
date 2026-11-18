@@ -2910,6 +2910,12 @@ export const fr = {
   // est ici après coup, en train de consulter, jamais en train de clôturer.
   "intervention.bon.taux_absent":
     "Aucun taux horaire n'est en vigueur à la date de cette intervention : le montant ne peut pas être établi.",
+  // UNE CLÔTURE ANTÉRIEURE À 9I8A1-REPRISE-9I8A (31/10/2026, D224) : aucune
+  // décomposition n'a été figée pour elle — voir l'entête de
+  // `lib/interventions/bon.ts`. Le taux et le forfait d'alors ne se
+  // reconstituent pas, seul le total déjà écrit en base est repris.
+  "intervention.bon.valorisation_ancienne":
+    "Valorisation antérieure au 31/10/2026 : seul le total déjà établi à la clôture est repris, sans détail de taux ni de forfait.",
 
   // ── VERSION CLIENT / VERSION INTERNE (D186) — QT-8 (a), arbitrage 3.8 :
   // jamais de montant sur le bon remis au client ; une version interne, à

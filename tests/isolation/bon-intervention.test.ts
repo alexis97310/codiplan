@@ -210,8 +210,8 @@ describe("le bon d'une intervention close rend ce que la base porte déjà", () 
   });
 });
 
-describe("sans taux en vigueur à la date, le bon nomme l'absence et ne rend aucun montant", () => {
-  it("le taux disparu APRÈS la clôture efface le total, même figé en base", async () => {
+describe("une intervention CLOSE ne relit jamais le barème (9L17-BON-INTERNE-VALORISATION-FIGEE, D224)", () => {
+  it("le taux disparu APRÈS la clôture ne change rien au bon : la valorisation figée reste la source", async () => {
     const tauxId = await poserLeTaux();
     const forfaitId = await poserUnForfait();
     const id = await interventionClose(forfaitId);
@@ -223,14 +223,14 @@ describe("sans taux en vigueur à la date, le bon nomme l'absence et ne rend auc
     );
     expect(cloture.accepte).toBe(true);
 
-    // LE TÉMOIN : le montant est bien écrit en base avant qu'on retire le taux.
     const [avant] = await clientOwner().$queryRawUnsafe<
       Array<{ montant_ht: bigint | null }>
     >(`SELECT "montant_ht" FROM "intervention" WHERE "id" = '${id}'`);
     expect(avant?.montant_ht).not.toBeNull();
 
-    // Un historique modifié après coup — le cas que ce test mesure : plus
-    // aucune ligne de `taux_horaire` ne couvre la date de cette intervention.
+    // Un historique modifié APRÈS COUP — exactement le cas que D224 tranche :
+    // plus aucune ligne de `taux_horaire` ne couvre la date de cette
+    // intervention, et pourtant le bon ne doit rien en perdre.
     await clientOwner().$executeRawUnsafe(
       `DELETE FROM "taux_horaire" WHERE "id" = '${tauxId}'`,
     );
@@ -239,11 +239,62 @@ describe("sans taux en vigueur à la date, le bon nomme l'absence et ne rend auc
     expect(bon).not.toBeNull();
     if (bon === null) return;
 
+    expect(bon.valorisationAncienne).toBe(false);
+    // LE TAUX ET LE TOTAL RESTENT CEUX FIGÉS À LA CLÔTURE — jamais relus sur
+    // `taux_horaire`, qui ne porte plus aucune ligne couvrant cette date.
+    expect(bon.taux?.valeur).toBe(TAUX_MINEUR);
+    expect(bon.montantTotal?.valeur).toBe(avant?.montant_ht);
+  });
+});
+
+describe("pas encore close, sans taux en vigueur à la date : un aperçu, qui nomme l'absence", () => {
+  it("rien n'est encore figé pour une intervention qui n'est pas close — l'aperçu ne rend aucun montant", async () => {
+    const forfaitId = await poserUnForfait();
+    // RESTE « terminee » — `interventionClose` ne clôture pas elle-même, et
+    // ce test n'appelle jamais `cloturerIntervention` : AUCUN taux ne couvre
+    // la date visée (le harnais ne sème que ceux posés par `poserLeTaux`).
+    const id = await interventionClose(forfaitId);
+
+    const bon = await lireBonIntervention(SESSION, id, clientApp());
+    expect(bon).not.toBeNull();
+    if (bon === null) return;
+
+    expect(bon.valorisationAncienne).toBe(false);
     expect(bon.taux).toBeNull();
-    // Le montant reste TU, alors même que `montant_ht` porte encore une
-    // valeur en base : un total qu'on ne peut plus reconstituer ne s'affiche
-    // pas, quelle que soit la colonne qui le porte encore.
     expect(bon.montantTotal).toBeNull();
+  });
+});
+
+describe("une clôture ANTÉRIEURE à 9I8A1-REPRISE-9I8A (sans décomposition figée)", () => {
+  const ANCIEN_MONTANT_MINEUR = BigInt(123456);
+
+  it("le bon nomme l'ancienneté et reprend seulement le total déjà écrit en base", async () => {
+    // « Avant cette migration » ne se simule pas en figeant puis en effaçant
+    // (une intervention close ne se modifie plus, I5/D160) : elle s'insère
+    // directement déjà close, `valorisation_figee` jamais posée — exactement
+    // ce qu'une ligne d'avant cette migration porte encore.
+    const id = uuidv7();
+    jetables.push(id);
+    await poserLeTechnicien();
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "intervention" ("id","societe_id","client_id","site_id","agence_id",
+         "type","statut","mode_valorisation","technicien_id",
+         "temps_valide_min","montant_ht","devise_code","cloturee_le","modifie_le")
+       SELECT '${id}', "societe_id", "client_id", "site_id", '${AGENCE_A}',
+              'curatif', 'cloturee', 'temps_passe'::"ModeValorisation",
+              '${TECHNICIEN}', ${TEMPS_MESURE_MIN}, ${ANCIEN_MONTANT_MINEUR}, '${DEVISE}',
+              now(), now()
+         FROM "intervention" WHERE "statut" = 'planifiee' AND "societe_id" = '${SOCIETE_A}' LIMIT 1`,
+    );
+
+    const bon = await lireBonIntervention(SESSION, id, clientApp());
+    expect(bon).not.toBeNull();
+    if (bon === null) return;
+
+    expect(bon.valorisationAncienne).toBe(true);
+    expect(bon.taux).toBeNull();
+    expect(bon.forfaitMontant).toBeNull();
+    expect(bon.montantTotal?.valeur).toBe(ANCIEN_MONTANT_MINEUR);
   });
 });
 
