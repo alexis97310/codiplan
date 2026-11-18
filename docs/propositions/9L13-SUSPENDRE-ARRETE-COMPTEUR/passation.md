@@ -174,3 +174,66 @@ Rien n'a été modifié dans `lib/interventions/depot.ts`,
 n'a été rejouée au-delà des mesures ci-dessus : le mandat ne demande les
 étapes 5 et 6 (rejouer `verify`, rebase final) qu'après une réduction
 effective, qui ne s'applique pas ici.
+
+## Reprise 9L13B-REPRISE-SUSPENDRE-COMPTEUR (18/11/2026, 14:44-15:10 Nouméa)
+
+Troisième et dernier essai de la chaîne 9L13 (règle D23). Les deux essais
+précédents ont mesuré, sans y toucher, une cause commune à tous les lots du
+18/11 : la marge nulle de `pnpm build` sur `origin/main` seul. Cette cause a
+été refermée entre-temps par **9L16A-MEMOIRE-BUILD-MARGE** (publié sur
+`origin/main`, 36 réciproques Prisma `@ignore`, marge annoncée ~300 Mo, même
+plafond `--max-old-space-size=6144`) : ce lot n'avait donc plus qu'à vérifier
+que le diff de 9L13 passe désormais, pas à corriger quoi que ce soit.
+
+Reporté (cherry-pick, sans modification) les quatre commits de
+`9L13A-REPRISE-MEMOIRE-BUILD-garde` — les trois commits originaux de 9L13
+(`21bd0ecb7`, `b6267e6d3`, `9edd565f9`) plus le commit de mesure de la
+reprise A (`91f606ad5`) — sur une branche partant d'`origin/main`
+(`3aa6c74bb`, tip au moment du rebase). Cherry-pick sans conflit, dans cet
+ordre, sur les quatre commits.
+
+**Numéro d'arbitrage** : D270 était déjà le numéro porté par les commits
+reportés. Vérifié sur `origin/main` au moment du rebase (`3aa6c74bb`) :
+`docs/arbitrages.md` s'arrête à D269, et aucune autre occurrence de
+« D270 » n'existe dans le dépôt — D270 était donc le numéro suivant LIBRE,
+sans collision avec la D270 écrite par 9L15 (celle-ci n'est pas encore
+entrée sur `origin/main`). Aucune renumérotation nécessaire.
+
+Le diff de ce lot (`3aa6c74bb..`, 9 fichiers, 675 lignes) ne touche ni
+`prisma/schema.prisma` ni `lib/i18n/fr.ts` : aucune réciproque Prisma
+nouvelle à marquer `@ignore`, aucun libellé neuf ou renommé, donc rien à
+balayer dans les localisateurs `getByText`/`getByRole` de `tests/e2e/**`
+pour ce lot.
+
+### Mesure du pic de `pnpm build` (`/usr/bin/time -v`, cache vidé)
+
+| État | Commande | Pic RSS | Résultat |
+|---|---|---|---|
+| Ce lot sur `origin/main` (3aa6c74bb + 4 commits 9L13) | `pnpm build` | 5 994 136 Ko | **VERT** |
+
+Plafond : `--max-old-space-size=6144` → 6 291 456 Ko. Marge mesurée :
+**≈ 297 320 Ko (≈ 290 Mo)** — cohérente avec la marge ~300 Mo annoncée par
+9L16A. Le débordement mesuré par les deux essais précédents (reprise 9L13 et
+reprise 9L13A, pic ≥ 6 464 856 Ko sur `origin/main` d'alors) a disparu avec
+le correctif de 9L16A ; ce lot n'a rien ajouté pour l'obtenir.
+
+### Épreuves rejouées au premier plan (`CI=1`, `--workers=1` où applicable)
+
+- `tests/e2e/9l13-suspendre-arrete-compteur.spec.ts`, `tests/e2e/fiche-suspendue-gestes.spec.ts`
+  (famille « suspen* »), `tests/e2e/9k13-terrain-attente-piece.spec.ts`,
+  `tests/e2e/9l04g-terrain-barre-fixe-terminer.spec.ts`,
+  `tests/e2e/tous-les-ecrans-rendent.spec.ts` : 70 passés, 4 ignorés
+  (préexistants, non liés à ce lot).
+- `pnpm test:isolation` : 250 fichiers, 2299 tests, VERT.
+- `CI=1 pnpm verify` (format:check, typecheck, lint, test, test:isolation,
+  build) : VERT de bout en bout, aucune étape rouge.
+
+### Captures
+
+Celles de 9L13 (375/1280 px, avant/après) restent la référence : ce lot n'a
+touché aucun écran, rien à refaire.
+
+### Conclusion
+
+La chaîne 9L13 se clôt ici, verte. Rien d'autre à committer : `git status`
+propre après le rebase final sur `origin/main`.
