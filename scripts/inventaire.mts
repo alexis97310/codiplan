@@ -149,26 +149,26 @@ async function compterAPlat(tx: Prisma.TransactionClient): Promise<{
   return { societes: inventaire, temoins };
 }
 
-/** Rapport de journal — l'inventaire, société par société. */
+/**
+ * Rapport de journal — DES TOTAUX, jamais un hôte, un rôle, ni le code ou
+ * l'identifiant d'une société (9L22-CI-DURCIE, décision d'Alexis du
+ * 10/11/2026).
+ *
+ * Ce dépôt est PUBLIC, et ce rapport entre dans le journal d'exécution de
+ * chaque migration, y compris sur la cible « production ». Il nommait
+ * jusqu'ici la base, le rôle connecté, le rôle de lecture, et le CODE et
+ * L'IDENTIFIANT de chaque société avec son détail table par table : une
+ * empreinte exploitable du client réel sur une cible de production, écrite
+ * dans un journal que quiconque peut lire. `inventaire` lui-même continue de
+ * porter ce détail — `ecartsInventaire`, `ecartsAvecContexte` et le fichier
+ * d'échange avec l'étape de contrôle en ont besoin pour NOMMER une fuite le
+ * jour où il y en a une — seul ce qui s'IMPRIME ici, sur le chemin qui
+ * réussit, change.
+ */
 function rapport(inventaire: Inventaire): string {
   const lignes = [
     "── Inventaire à plat ─────────────────────",
-    `Base            : ${inventaire.identite.base}`,
-    `Rôle connecté   : ${inventaire.identite.role_connecte}`,
-    `Lecture sous    : ${inventaire.identite.identite_exemptee} (exempté des politiques)`,
-    "",
-  ];
-
-  for (const societe of inventaire.societes) {
-    lignes.push(
-      `Société ${societe.code ?? "SANS CODE"} — ${societe.societe_id}`,
-    );
-    for (const table of TABLES_CLOISONNEES) {
-      lignes.push(`  ${table.padEnd(20)} : ${societe.decomptes[table]}`);
-    }
-  }
-
-  lignes.push(
+    `Sociétés présentes : ${inventaire.societes.length}`,
     "",
     "Total toutes sociétés",
     ...TABLES_CLOISONNEES.map(
@@ -181,7 +181,7 @@ function rapport(inventaire: Inventaire): string {
         `  ${table.padEnd(20)} : ${inventaire.hors_cloisonnement[table]}`,
     ),
     "",
-  );
+  ];
 
   return lignes.join("\n");
 }

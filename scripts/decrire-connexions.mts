@@ -13,13 +13,28 @@ import {
  * Les runs #80 et #82 (cible production) ont rougi sur « Can't reach database
  * server » au contrôle de cloisonnement, alors que la migration, juste avant,
  * avait joint la même base sans incident. Avant de supposer une différence
- * d'hôte, de rôle ou de point de mutualisation entre `MIGRATION_DATABASE_URL`
- * et `DATABASE_URL`, cette étape les NOMME — hôte, port, base, mutualisation,
- * région, noms des paramètres — sans jamais recopier ni l'utilisateur, ni le
- * mot de passe, ni la valeur d'un paramètre. Voir `scripts/lib/decrire-connexion.ts`.
+ * de rôle ou de point de mutualisation entre `MIGRATION_DATABASE_URL` et
+ * `DATABASE_URL`, cette étape compare les deux — mutualisation, région,
+ * présence d'un port, nombre de paramètres, et si les deux hôtes sont LES
+ * MÊMES (comparaison interne, jamais imprimée en clair) — sans jamais
+ * recopier l'utilisateur, le mot de passe, la valeur d'un paramètre, ni,
+ * depuis 9L22-CI-DURCIE, l'hôte ou le nom de la base eux-mêmes. Voir
+ * `scripts/lib/decrire-connexion.ts`.
  *
  * Purement lecture, et aucune connexion à la base : elle n'analyse que le
  * texte des deux URL.
+ *
+ * ── CE QUE LE RAPPORT N'IMPRIME PLUS (9L22-CI-DURCIE, décision d'Alexis du
+ *    10/11/2026) ──────────────────────────────────────────────────────────
+ *
+ * Ce dépôt est PUBLIC, et ce rapport entre dans le journal d'exécution — lu
+ * à chaque migration, y compris sur la cible « production ». Il imprimait
+ * l'HÔTE et la BASE de chaque connexion : ni l'un ni l'autre n'est un secret
+ * au sens d'un mot de passe, mais les deux identifient l'infrastructure
+ * hébergée, et un journal public n'a aucune raison de les porter.
+ * `decrireConnexion` continue de les RENDRE — c'est elle que `decrireConnexion.
+ * test.ts` éprouve en détail — seul ce que CETTE ÉTAPE imprime change : des
+ * totaux et des booléens, jamais une valeur qui identifie la base.
  */
 
 function ligne(nom: string, description: DescriptionConnexion): string {
@@ -28,15 +43,10 @@ function ligne(nom: string, description: DescriptionConnexion): string {
   }
   const region =
     description.region !== null ? `, région \`${description.region}\`` : "";
-  const parametres =
-    description.parametres.length > 0
-      ? description.parametres.join(", ")
-      : "aucun";
   return (
-    `- ${nom} : hôte \`${description.hote}\` ` +
-    `(${description.mutualise ? "mutualisé" : "direct"}${region}), ` +
-    `port \`${description.port || "(absent)"}\`, base \`${description.base}\`, ` +
-    `paramètres : ${parametres}`
+    `- ${nom} : lisible, ${description.mutualise ? "mutualisé" : "direct"}${region}, ` +
+    `port renseigné : ${description.port ? "oui" : "non"}, ` +
+    `${description.parametres.length} paramètre(s) de requête`
   );
 }
 
