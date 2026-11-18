@@ -8181,6 +8181,12 @@ export const fr = {
   "9l04h.e2e.prestation_libelle": "zz9L04H Révision filtre",
   "9l04h.e2e.point_libelle": "zz9L04H Niveau liquide",
   "9l04h.e2e.contact_nom": "zz9L04H Jean Dupont",
+
+  // ── FIXTURE DE L'ÉPREUVE DE CAPTURES (9L17-BON-INTERNE-VALORISATION-
+  // FIGEE, tests/e2e/captures-9l17-bon-valorisation-figee.spec.ts) — sa
+  // PROPRE scène, préfixée `9L17-CAP-`, créée et supprimée par l'épreuve.
+  "9l17.e2e.client": "9L17 — client de l'épreuve",
+  "9l17.e2e.lieu": "9L17 — lieu de l'épreuve",
 } as const;
 
 export type CleTraduction = keyof typeof fr;
