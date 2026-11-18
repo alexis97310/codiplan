@@ -9185,3 +9185,27 @@ Elle ne rouvre ni D120 (le compteur reste la seule source du temps) ni D131 (le 
 > Le jour où un écran de correction du temps validé APRÈS clôture est ouvert à un rôle autre que le responsable ou l'ADV, cette décision se relit pour y étendre le même refus nommé — elle suppose aujourd'hui qu'aucun chemin de ce genre n'existe hors de `cloturerIntervention`.
 
 Portée : `lib/interventions/depot.ts` (`cloturerIntervention`, import de `dansLePerimetre`/`perimetreParPersonne`), `lib/i18n/fr.ts`, `components/interventions/dialogue-cloturer.tsx`, `app/(back-office)/interventions/[id]/page.tsx`, `tests/isolation/droits-cycle-de-vie.test.ts`.
+
+## D272 — LE BON D'UNE INTERVENTION CLOSE LIT SA VALORISATION FIGÉE, JAMAIS LE BARÈME COURANT ; UNE CLÔTURE SANS DÉCOMPOSITION FIGÉE NE RECONSTITUE NI TAUX NI FORFAIT (décision d'Alexis du 10/11/2026 ; 9L17-BON-INTERNE-VALORISATION-FIGEE)
+
+### CE QUI A ÉTÉ MESURÉ
+
+Sur `81894e0` : `composerBon` (`lib/interventions/bon.ts`) relisait `tauxEnVigueur` et `montantDuForfait` EN DIRECT pour construire le taux horaire et le montant du forfait de déplacement affichés sur le bon — y compris pour une intervention DÉJÀ CLOSE, dont le total (`montantTotal`) était lui déjà figé en base (`montant_ht`). Un taux posé ou retiré après la clôture changeait donc ce qu'affichait le bon sans rien changer au total : un bon réimprimé pouvait montrer un taux qui n'avait jamais servi à établir le montant qu'il affiche juste en dessous — incohérent avec lui-même. `lireFicheIntervention`, lui, relit déjà `valorisation_figee` quand elle existe (9I8A1-REPRISE-9I8A, D224, décision A du 31/10/2026) ; `composerBon` ne le faisait pas.
+
+### LA DÉCISION
+
+**Pour une intervention close dont `valorisation_figee` est posée, le bon lit le taux horaire, le forfait de déplacement et le total dans cette décomposition — jamais `tauxEnVigueur` ni `montantDuForfait`.** Même fonction de décodage que la fiche (`depuisJsonValorisationFigee`, `lib/interventions/depot.ts`, désormais exportée) : une seconde lecture du même JSON aurait pu diverger en silence le jour où un champ s'y ajoute. **Pour une clôture antérieure à cette décomposition (9I8A1-REPRISE-9I8A, 31/10/2026), rien ne se reconstitue** : ni le taux ni le forfait ne sont recalculés depuis le réglage courant — le bon nomme l'ancienneté (`valorisationAncienne`, « Valorisation antérieure au 31/10/2026 ») et ne reprend que le total déjà écrit en base (`montant_ht`). Pour une intervention PAS ENCORE close, rien n'est figé : le bon continue de rendre un APERÇU calculé en direct, comme avant cette décision.
+
+### CE QUI A ÉTÉ MESURÉ SUR LA BASE DE TEST, ET N'EST PAS MIGRÉ
+
+Sur `codiplan_test`, au moment de ce ticket : aucune ligne `cloturee` sans `valorisation_figee` en dehors des scènes d'épreuves de bout en bout qui en simulent volontairement une (`tests/e2e/fiche-intervention.spec.ts`) — 0 à 3 selon l'exécution précédente, toutes supprimées par leur propre `afterAll` à terme. Rien n'indique qu'une telle ligne existe ailleurs qu'en environnement hébergé antérieur à 9I8A1-REPRISE-9I8A ; **aucune donnée n'a été migrée ou reprise par ce ticket** — ce n'était pas son objet, et une reprise suppose de retrouver, pour chaque ligne ancienne, le taux et le forfait RÉELLEMENT appliqués alors, ce qu'aucune colonne ne porte plus.
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+Elle ne touche pas `lignesConditionsFacturation` (les lignes de texte SANS montant, 9I8B-CONDITIONS-DE-FACTURATION-SANS-MONTANT) : cette fonction relit déjà la règle figée ou `REGLE_HISTORIQUE` selon le même critère, inchangé par ce ticket. Elle n'ajoute aucune migration : `valorisation_figee` existait déjà depuis 9I8A1-REPRISE-9I8A, et ce ticket ne fait que la LIRE depuis un second appelant.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où une reprise de données pose `valorisation_figee` sur les clôtures antérieures à 9I8A1-REPRISE-9I8A (à partir d'un historique externe au schéma actuel), `valorisationAncienne` et le message « Valorisation antérieure au 31/10/2026 » deviennent faux pour les lignes reprises — cette décision suppose aujourd'hui qu'aucune reprise de ce genre n'existe.
+
+Portée : `lib/interventions/bon.ts`, `lib/interventions/depot.ts` (export de `depuisJsonValorisationFigee`), `lib/i18n/fr.ts`, `app/(back-office)/interventions/[id]/bon/page.tsx`, `tests/isolation/bon-intervention.test.ts`, `tests/e2e/captures-9l17-bon-valorisation-figee.spec.ts` (nouveau).

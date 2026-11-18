@@ -69,7 +69,7 @@ import {
  *
  * Le taux horaire et le forfait de déplacement affichés sur le bon d'une
  * intervention close viennent de `intervention.valorisation_figee` — EXACTEMENT
- * ce qui a servi à établir `montantTotal` à la clôture (D224,
+ * ce qui a servi à établir `montantTotal` à la clôture (D272,
  * `depuisJsonValorisationFigee`, `lib/interventions/depot.ts`), jamais
  * `tauxEnVigueur` ni `montantDuForfait` lus en direct. *Un barème qui change
  * après coup — un nouveau taux posé, un forfait corrigé — ne doit rien

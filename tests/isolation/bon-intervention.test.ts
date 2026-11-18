@@ -210,7 +210,7 @@ describe("le bon d'une intervention close rend ce que la base porte déjà", () 
   });
 });
 
-describe("une intervention CLOSE ne relit jamais le barème (9L17-BON-INTERNE-VALORISATION-FIGEE, D224)", () => {
+describe("une intervention CLOSE ne relit jamais le barème (9L17-BON-INTERNE-VALORISATION-FIGEE, D272)", () => {
   it("le taux disparu APRÈS la clôture ne change rien au bon : la valorisation figée reste la source", async () => {
     const tauxId = await poserLeTaux();
     const forfaitId = await poserUnForfait();
@@ -228,7 +228,7 @@ describe("une intervention CLOSE ne relit jamais le barème (9L17-BON-INTERNE-VA
     >(`SELECT "montant_ht" FROM "intervention" WHERE "id" = '${id}'`);
     expect(avant?.montant_ht).not.toBeNull();
 
-    // Un historique modifié APRÈS COUP — exactement le cas que D224 tranche :
+    // Un historique modifié APRÈS COUP — exactement le cas que D272 tranche :
     // plus aucune ligne de `taux_horaire` ne couvre la date de cette
     // intervention, et pourtant le bon ne doit rien en perdre.
     await clientOwner().$executeRawUnsafe(
