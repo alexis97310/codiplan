@@ -660,20 +660,27 @@ describe("le mode modification ne rend ni le modèle, ni le client, ni le site, 
     ).toHaveAttribute("value", "site-1");
   });
 
-  it("la famille, la marque, la référence, le client et le site s'affichent quand même — en lecture", () => {
+  it("la famille, la marque, la référence et le client s'affichent quand même — en lecture ; le site n'y est plus (9L20-DEPLACER-MACHINE)", () => {
     // Ne compare pas le texte rendu à une chaîne recopiée ici (ce serait
     // exactement la « forme 3 » que `sans-chaine-visible-en-dur.test.ts`
     // refuse : une constante littérale de CE fichier, affichée là). La
-    // preuve porte sur la STRUCTURE — cinq paires `<dt>/<dd>` non vides —
+    // preuve porte sur la STRUCTURE — QUATRE paires `<dt>/<dd>` non vides —
     // jamais sur le contenu, que `LECTURE_SEULE_MACHINE_1` définit une seule
     // fois pour la scène ci-dessus.
+    //
+    // LE SITE N'EST PLUS DE CES QUATRE (décision d'Alexis du 10/11/2026) :
+    // ce formulaire ne corrige plus jamais le site, pas même en lecture — le
+    // geste qui le change est désormais « Déplacer la machine »
+    // (`components/machines/deplacer.tsx`), sur la fiche. `site_id` voyage
+    // toujours en champ CACHÉ (voir l'épreuve précédente), qui n'a rien à
+    // faire ici : cette épreuve-ci ne porte que sur ce qui s'AFFICHE.
     const { container } = formulaireDeModification();
     const bloc = container.querySelector("dl");
     expect(bloc).not.toBeNull();
     const valeurs = [...bloc!.querySelectorAll("dd")].map(
       (dd) => dd.textContent,
     );
-    expect(valeurs).toHaveLength(5);
+    expect(valeurs).toHaveLength(4);
     for (const valeur of valeurs) {
       expect(valeur, "une valeur de lecture seule est vide").toBeTruthy();
     }

@@ -40,18 +40,19 @@ import {
   documentsDeLaMachine,
   type DocumentDeMachine,
 } from "@/lib/documents/depot";
+import { peutPleinement } from "@/lib/auth/habilitations";
 import { estUuid } from "@/lib/identifiant";
 import { estCleTraduction, t } from "@/lib/i18n/fr";
-import { mot } from "@/lib/i18n/vocabulaire";
+import { mot, motDansUnePhrase } from "@/lib/i18n/vocabulaire";
 import { estFige } from "@/lib/interventions/cycle-de-vie";
 import { type LigneIntervention } from "@/lib/interventions/depot";
 import { personnesANommer, quiTravaille } from "@/lib/interventions/personnes";
 import { lireMachine, type FicheMachine } from "@/lib/machines/depot";
 import {
-  historiqueDeLaMachine,
   historiqueDesEmplacements,
   type EmplacementMachine,
-} from "@/lib/machines/historique";
+} from "@/lib/machines/emplacements";
+import { historiqueDeLaMachine } from "@/lib/machines/historique";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
 import { cn } from "@/lib/utils";
@@ -190,6 +191,13 @@ export default async function PageMachine({
   // LE PARC TEL QU'ON L'AVAIT LAISSÉ (79-LIENS-3) — voir `retourVersParc`,
   // `../presentation.ts`, pour le filtrage.
   const { retour, motif, depuis, nombre } = await searchParams;
+  // LE NOMBRE D'INTERVENTIONS OUVERTES QUI ONT REFUSÉ UN DÉPLACEMENT
+  // (9L20-DEPLACER-MACHINE) — calculé ICI, hors JSX : un littéral posé dans
+  // l'arbre rendu, même un repli technique comme « 0 », rougirait le gardien
+  // des chaînes visibles (L0-11), qui ne sait pas distinguer un repli d'un
+  // texte affiché.
+  const nombreInterventionsOuvertesRefusees =
+    typeof nombre === "string" ? Number.parseInt(nombre, 10) || 0 : 0;
   const hrefRetourParc = retourVersParc(retour);
   // LE PREMIER MAILLON DU FIL SELON L'ORIGINE (addendum du 06/10/2026,
   // reliquat n°2 de 9DR) — `parc` par défaut, comportement inchangé.
@@ -208,8 +216,19 @@ export default async function PageMachine({
 
   const historique = await historiqueDeLaMachine(contexte, machine.id);
   // L'HISTORIQUE DES EMPLACEMENTS (9L20-DEPLACER-MACHINE) — lu dans le
-  // journal d'audit (I8), voir `historiqueDesEmplacements`.
-  const emplacements = await historiqueDesEmplacements(contexte, machine.id);
+  // journal d'audit (I8), dont la politique `journal_audit_lecture` (migration
+  // `20260829120000_journal_audit`) ne s'ouvre qu'à `admin_societe` et
+  // `direction` (matrice §5.2, `consulter_journal_audit`) : un rôle qui ne
+  // l'a pas recevrait zéro ligne SOUS RLS, ce qui dirait « jamais déplacée »
+  // d'une machine qui l'a pourtant été — un FAUX NÉGATIF, pas un refus
+  // honnête (D50 ne couvre que les refus qui ne mentent pas). Le bloc est
+  // donc ABSENT pour les autres rôles, jamais montré vide.
+  const peutConsulterEmplacements =
+    contexte.role !== null &&
+    peutPleinement(contexte.role, "consulter_journal_audit");
+  const emplacements = peutConsulterEmplacements
+    ? await historiqueDesEmplacements(contexte, machine.id)
+    : [];
   const sitesCites = [
     ...new Set(
       emplacements.flatMap((e) => [e.ancienSiteId, e.nouveauSiteId]),
@@ -289,11 +308,11 @@ export default async function PageMachine({
     { cle: "date", libelle: t("machine.fiche.emplacements_colonne_date") },
     {
       cle: "ancien_site",
-      libelle: t("machine.fiche.emplacements_colonne_ancien_site"),
+      libelle: `${t("machine.fiche.emplacements_colonne_ancien_prefixe")} ${motDansUnePhrase("site")}`,
     },
     {
       cle: "nouveau_site",
-      libelle: t("machine.fiche.emplacements_colonne_nouveau_site"),
+      libelle: `${t("machine.fiche.emplacements_colonne_nouveau_prefixe")} ${motDansUnePhrase("site")}`,
     },
     {
       cle: "auteur",
@@ -436,10 +455,7 @@ export default async function PageMachine({
       {motif === "machine.deplacer.refus.interventions_ouvertes" ? (
         <BandeauMotif motif={motif}>
           {texteDeplacementRefuseInterventionsOuvertes(
-            Number.parseInt(
-              typeof nombre === "string" ? nombre : "0",
-              10,
-            ) || 0,
+            nombreInterventionsOuvertesRefusees,
           )}
         </BandeauMotif>
       ) : typeof motif === "string" && estCleTraduction(motif) ? (
@@ -616,21 +632,44 @@ export default async function PageMachine({
 
           {/* L'HISTORIQUE DES EMPLACEMENTS (9L20-DEPLACER-MACHINE) — lu dans
               le journal d'audit (I8), jamais dans une table dédiée (voir
-              `historiqueDesEmplacements`, `lib/machines/historique.ts`). */}
-          <CarteEnTete
-            bloc="carte-emplacements"
-            titre={t("machine.fiche.emplacements_titre")}
-            variante="enTete"
-          >
-            <div data-bloc="emplacements-table" className="max-[900px]:hidden">
-              <Tableau colonnes={colonnesEmplacements} minimum="560px">
+              `historiqueDesEmplacements`, `lib/machines/historique.ts`).
+              ABSENT, jamais vide, pour un rôle sans `consulter_journal_audit`
+              — voir la note au-dessus de `peutConsulterEmplacements`. */}
+          {peutConsulterEmplacements ? (
+            <CarteEnTete
+              bloc="carte-emplacements"
+              titre={t("machine.fiche.emplacements_titre")}
+              variante="enTete"
+            >
+              <div
+                data-bloc="emplacements-table"
+                className="max-[900px]:hidden"
+              >
+                <Tableau colonnes={colonnesEmplacements} minimum="560px">
+                  {emplacements.length === 0 ? (
+                    <LignePleine colonnes={colonnesEmplacements.length}>
+                      {t("machine.fiche.emplacements_vide")}
+                    </LignePleine>
+                  ) : null}
+                  {emplacements.map((emplacement) => (
+                    <LigneEmplacement
+                      key={emplacement.id}
+                      emplacement={emplacement}
+                      annuaire={annuaire}
+                      libellesSites={libellesSites}
+                      fuseau={fuseau}
+                    />
+                  ))}
+                </Tableau>
+              </div>
+              <ListeCartes libelle={t("machine.fiche.emplacements_titre")}>
                 {emplacements.length === 0 ? (
-                  <LignePleine colonnes={colonnesEmplacements.length}>
+                  <li className="text-app-encre-faible text-13 font-bold">
                     {t("machine.fiche.emplacements_vide")}
-                  </LignePleine>
+                  </li>
                 ) : null}
                 {emplacements.map((emplacement) => (
-                  <LigneEmplacement
+                  <CarteEmplacement
                     key={emplacement.id}
                     emplacement={emplacement}
                     annuaire={annuaire}
@@ -638,25 +677,9 @@ export default async function PageMachine({
                     fuseau={fuseau}
                   />
                 ))}
-              </Tableau>
-            </div>
-            <ListeCartes libelle={t("machine.fiche.emplacements_titre")}>
-              {emplacements.length === 0 ? (
-                <li className="text-app-encre-faible text-13 font-bold">
-                  {t("machine.fiche.emplacements_vide")}
-                </li>
-              ) : null}
-              {emplacements.map((emplacement) => (
-                <CarteEmplacement
-                  key={emplacement.id}
-                  emplacement={emplacement}
-                  annuaire={annuaire}
-                  libellesSites={libellesSites}
-                  fuseau={fuseau}
-                />
-              ))}
-            </ListeCartes>
-          </CarteEnTete>
+              </ListeCartes>
+            </CarteEnTete>
+          ) : null}
 
           {/* « Documents » — écart dans l'autre sens, gardé (lib/machines/
               ecarts-maquette.ts, ECARTS_MAQUETTE_AJOUTS_FICHE) : porte L8-02,

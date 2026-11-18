@@ -1759,10 +1759,10 @@ export type ResultatDeplacementMachine =
  * l2_01`) : le simple `tx.machine.update` ci-dessous suffit à journaliser
  * l'ancien site, le nouveau, l'auteur (`app.utilisateur_id`) et l'horodatage
  * — une seconde écriture explicite serait une seconde source du même fait
- * (§9, 01/09). `lib/machines/historique.ts` (`historiqueDesEmplacements`)
- * lit CE journal, exactement comme sa note de tête l'annonçait déjà : *« le
- * journal d'audit la porte […] et c'est là qu'il faudra la lire le jour où
- * quelqu'un la demandera »*.
+ * (§9, 01/09). `lib/machines/emplacements.ts` (`historiqueDesEmplacements`)
+ * lit CE journal, exactement comme `lib/machines/historique.ts` l'annonçait
+ * déjà (`sitesTraverses`) : *« le journal d'audit la porte […] et c'est là
+ * qu'il faudra la lire le jour où quelqu'un la demandera »*.
  *
  * ## Les interventions OUVERTES : refusées, nommées, jamais perdues
  *

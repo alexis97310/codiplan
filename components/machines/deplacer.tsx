@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/selecteur-recherche";
 import { t } from "@/lib/i18n/fr";
 import { libelleChampObligatoire } from "@/lib/i18n/obligatoire";
+import { mot } from "@/lib/i18n/vocabulaire";
 
 type OptionSite = OptionRecherche & { readonly clientId: string };
 
@@ -64,7 +65,7 @@ export function DialogueDeplacerMachine({
           <SelecteurRecherche<OptionSite>
             nom="nouveau_site_id"
             url="/api/recherche/sites"
-            libelle={libelleChampObligatoire(t("machine.deplacer.champ_site"))}
+            libelle={libelleChampObligatoire(mot("site"))}
             libelleAucunResultat={t("selecteur.aucun_resultat")}
             libelleVoirPlus={t("selecteur.voir_plus")}
             obligatoire

@@ -148,13 +148,14 @@ describe("le gardien de composition — la carte « Documents », un AJOUT struc
   });
 
   it("n'est plus un <section> nu : elle passe par CarteEnTete, comme carte-identite et carte-historique", () => {
-    // Le témoin de non-régression tient dans les DEUX SENS : les trois
-    // cartes de la colonne de gauche (identité, historique, documents)
-    // portent le MÊME composant `CarteEnTete` qu'une quatrième carte,
-    // « qr-card », dans la colonne de droite (9G9E, 25/10/2026, `balise=
-    // "aside"`, sans titre) — un `<section` ou un `<aside` de carte
-    // resterait nu sans que ce compte bouge.
+    // Le témoin de non-régression tient dans les DEUX SENS : les QUATRE
+    // cartes de la colonne de gauche (identité, historique, emplacements
+    // depuis 9L20-DEPLACER-MACHINE, documents) portent le MÊME composant
+    // `CarteEnTete` qu'une cinquième carte, « qr-card », dans la colonne de
+    // droite (9G9E, 25/10/2026, `balise="aside"`, sans titre) — un
+    // `<section` ou un `<aside` de carte resterait nu sans que ce compte
+    // bouge.
     const appelsCarteEnTete = (SOURCES.match(/<CarteEnTete/g) ?? []).length;
-    expect(appelsCarteEnTete).toBe(4);
+    expect(appelsCarteEnTete).toBe(5);
   });
 });

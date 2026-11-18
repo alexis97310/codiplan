@@ -4331,8 +4331,11 @@ export const fr = {
   // \u2500\u2500 L'HISTORIQUE DES EMPLACEMENTS (9L20-DEPLACER-MACHINE) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   "machine.fiche.emplacements_titre": "Historique des emplacements",
   "machine.fiche.emplacements_colonne_date": "Date",
-  "machine.fiche.emplacements_colonne_ancien_site": "Ancien site",
-  "machine.fiche.emplacements_colonne_nouveau_site": "Nouveau site",
+  // LE MOT IMPOSÉ (D5/D47) SE COMPOSE AU RENDU, JAMAIS ICI — ces deux clés ne
+  // portent que le préfixe ; `app/(back-office)/parc/[id]/page.tsx` compose
+  // « Ancien site »/« Nouveau site » avec `motDansUnePhrase("site")`.
+  "machine.fiche.emplacements_colonne_ancien_prefixe": "Ancien",
+  "machine.fiche.emplacements_colonne_nouveau_prefixe": "Nouveau",
   "machine.fiche.emplacements_colonne_auteur": "Auteur",
   "machine.fiche.emplacements_vide":
     "Cette machine n'a jamais \u00e9t\u00e9 d\u00e9plac\u00e9e.",
@@ -4519,9 +4522,11 @@ export const fr = {
   "machine.refus.introuvable":
     "Cette machine est introuvable, ou hors de votre périmètre.",
   // 9L20-DEPLACER-MACHINE — l'ancien formulaire ne propose plus le site ;
-  // ce refus ne couvre donc qu'un appel qui le contourne.
+  // ce refus ne couvre donc qu'un appel qui le contourne. « Emplacement »,
+  // jamais « site » (D5/D47, MOTS_IMPOSES ne s'écrit qu'au dictionnaire des
+  // notions imposées, jamais en dur ici).
   "machine.refus.deplacement_requis":
-    "Le site ne se corrige pas depuis ce formulaire : utilisez « Déplacer la machine », sur la fiche.",
+    "Cet emplacement ne se corrige pas depuis ce formulaire : utilisez « Déplacer la machine », sur la fiche.",
   "machine.refus.inconnue":
     "Cette machine n'existe pas, ou elle n'est pas dans votre périmètre.",
   "machine.refus.erreur_serveur":
@@ -4554,20 +4559,25 @@ export const fr = {
   // le modèle et le numéro de série, propre à `modifierMachine`. ───────────
   "machine.deplacer.bouton": "Déplacer la machine",
   "machine.deplacer.titre_prefixe": "Déplacer la machine",
-  "machine.deplacer.champ_site": "Nouveau site",
+  // LE LIBELLÉ DU CHAMP EST `mot("site")`, JAMAIS UNE CLÉ ICI — même
+  // discipline que `formulaire-machine.tsx` pour le site de création (D5/D47) :
+  // voir `components/machines/deplacer.tsx`.
   "machine.deplacer.confirmation_autre_client":
     "Je confirme le déplacement vers un autre client.",
   "machine.deplacer.fermer": "Annuler",
   "machine.deplacer.reussi": "La machine est déplacée.",
+  // « EMPLACEMENT », JAMAIS « SITE », DANS CES QUATRE REFUS (D5/D47) — ils ne
+  // composent rien au rendu (une seule clé, pas de paramètre, §5/L0-11),
+  // contrairement aux colonnes de l'historique ci-dessus.
   "machine.deplacer.refus.introuvable":
     "Cette machine est introuvable, ou hors de votre périmètre.",
   "machine.deplacer.refus.reference_invalide":
-    "Ce site est introuvable, ou hors de votre périmètre.",
+    "Cet emplacement est introuvable, ou hors de votre périmètre.",
   "machine.deplacer.refus.site_identique":
-    "La machine est déjà sur ce site.",
+    "La machine est déjà à cet emplacement.",
   "machine.deplacer.refus.confirmation_requise":
-    "Ce site appartient à un autre client : confirmez le déplacement.",
-  "machine.deplacer.refus.saisie": "Choisissez un site de destination.",
+    "Cet emplacement appartient à un autre client : confirmez le déplacement.",
+  "machine.deplacer.refus.saisie": "Choisissez un emplacement de destination.",
   "machine.deplacer.refus.interventions_ouvertes":
     "Des interventions ouvertes empêchent ce déplacement.",
   // LE NOMBRE EST COMPOSÉ, JAMAIS DANS LA CLÉ (§5, L0-11) — voir

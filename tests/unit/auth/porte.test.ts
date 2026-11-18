@@ -90,6 +90,8 @@ const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   "app/api/machines/creer/route.ts": "gerer_machine",
   "app/api/machines/[id]/modifier/route.ts": "gerer_machine",
   "app/api/machines/[id]/changer-statut/route.ts": "gerer_machine",
+  // « Déplacer la machine » (9L20-DEPLACER-MACHINE).
+  "app/api/machines/[id]/deplacer/route.ts": "gerer_machine",
   // « Créer / modifier un client ou un site » (D130).
   "app/api/clients/creer/route.ts": "gerer_client_site",
   "app/api/clients/[id]/modifier/route.ts": "gerer_client_site",
@@ -743,7 +745,8 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
     // `.../equipe/[id]/retablir-acces/route.ts`.
     // 117 depuis 9L04E-TERRAIN-PHOTOS-EPUREES — `.../photos/supprimer/
     // route.ts` et `.../photos/legende/route.ts`.
-    expect(Object.keys(ROUTE_CAPACITE).length).toBe(117);
+    // 118 depuis 9L20-DEPLACER-MACHINE — `.../machines/[id]/deplacer/route.ts`.
+    expect(Object.keys(ROUTE_CAPACITE).length).toBe(118);
   });
 
   it("aucune exemption ne survit à son objet — adossement dans les deux sens", () => {
