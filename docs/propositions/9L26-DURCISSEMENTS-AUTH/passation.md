@@ -108,3 +108,46 @@ verify:full` est laissé à la file, comme demandé.
 `main` était extrait ailleurs au démarrage (HEAD détachée sur `origin/main`, comme les lots
 précédents de cette série) : le travail est posé en détaché, commit par commit, sur ce même point de
 départ. Aucun push.
+
+## Reprise 9L26A-REPRISE-DURCISSEMENTS-AUTH (19/11/2026)
+
+Le lot ci-dessus était recalé — rouge deux fois, même cause : `pnpm format:check` (Prettier) échouait
+sur `tests/isolation/inscription-fermee-option.test.ts` et
+`tests/unit/auth/second-facteur-sans-trust-device.test.ts`, avant toute épreuve. Rien d'autre n'avait
+été jugé par la vérification indépendante.
+
+**Note de transparence** : `tickets/recales/9L26-DURCISSEMENTS-AUTH.md` et les traces
+`traces/9L26-DURCISSEMENTS-AUTH-verify-1.txt` / `-verify-2.txt`, cités comme la référence du contrat
+de reprise, n'existent nulle part dans ce dépôt ni dans les autres copies locales trouvées
+(`codiplan`, `codiplan-equipe`, `codiplan-voie2`) — ni dans l'historique d'aucune branche. Reprise
+faite sur la seule base du texte de la consigne et d'une mesure directe (Prettier rejoue bien en échec
+sur les deux fichiers avant correction), par défaut de pouvoir relire le contrat original.
+
+Déroulé :
+- Branche `9L26A-REPRISE-DURCISSEMENTS-AUTH` posée sur `origin/main` (`e1bd967a1`, qui porte déjà
+  jusqu'à D273). Les six commits de `9L26-DURCISSEMENTS-AUTH-garde` (points 1 à 4, D274, passation)
+  reportés par cherry-pick, sans conflit, sans modification de fond.
+- D274 restait LIBRE sur `origin/main` au moment du rebase (dernier arbitrage publié : D273,
+  9L22-CI-DURCIE) — aucune renumérotation nécessaire.
+- `npx prettier --write` sur les deux seuls fichiers cités (mise en forme seule — retours de ligne,
+  aucune assertion touchée, diff vérifié ligne à ligne) ; commit séparé.
+- Recherche dans `tests/e2e/**` de localisateurs `getByText`/`getByRole` non exacts qui pourraient
+  rencontrer l'écran modifié par le point 4 (`/parametres/equipe`, bandeau « lien d'accès envoyé ») :
+  aucun trouvé portant sur ce bandeau (`destinataire`, "lien d'accès"). Le texte rendu par ce bandeau
+  est resté identique à l'ancien (seule la SOURCE de l'adresse a changé, côté serveur) — confirmé en
+  relisant le diff du point 4 : aucun écran ni libellé neuf ou renommé dans l'ensemble des six
+  commits reportés. Rien à rendre précis.
+- Aucune épreuve e2e nommée `9L26-DURCISSEMENTS-AUTH` n'existe (le lot n'avait créé que des épreuves
+  unitaires et d'isolation) — case vide, signalée plutôt que supposée couverte.
+- Rejoué au premier plan, `CI=1 --workers=1` : les 51 épreuves e2e de connexion / second facteur /
+  premier accès / scan (`9edz-connexion*`, `9ewb3-connexion-maquette`, `marque-connexion`,
+  `deconnexion`, `9ia-*`, `9ia1-*`, `captures-9ia*`, `captures-9cw-tp-s6-second-facteur`,
+  `9g6-point3-premier-acces`, `9i00-installation-apres-premier-acces`,
+  `captures-9j21-premier-acces-adresse`, `9g10-scanner-qr`, `captures-9g10-scanner-qr`,
+  `9i1-scanner-hors-reseau`) — 51 passées. Puis `tests/e2e/tous-les-ecrans-rendent.spec.ts` — 61
+  passées, 4 ignorées (préexistant, sans rapport). Puis `pnpm test:isolation` seul — 258 fichiers,
+  2514 tests, tous passés. Puis `CI=1 pnpm verify` jusqu'au bout (format, typecheck, lint, 537
+  fichiers/6019 tests unitaires, 258 fichiers/2514 tests d'isolation, build) — vert sans erreur ni
+  avertissement.
+- Aucune assertion retirée ni élargie, aucun `skip`/`fixme`/`retries` ajouté, aucune règle changée.
+  `verify:full` non joué ici — laissé à la file, comme demandé.
