@@ -35,13 +35,13 @@ connexion, exactement comme avant ce lot).
 fabriquées, aucune base ouverte) :
 
 ```
-URL_MIGRATION="postgresql://migration-fictif:secret-mig@ep-cool-leaf-a7qb6r2i-pooler.ap-southeast-2.aws.neon.tech:5432/codiplan?sslmode=require"
-URL_APPLICATIVE="postgresql://codiplan_app:secret-app@ep-cool-leaf-a7qb6r2i-pooler.ap-southeast-2.aws.neon.tech:5432/codiplan?sslmode=require&connect_timeout=30"
+URL_MIGRATION="postgresql://migration-fictif:secret-mig@ep-exemple-pooler.exemple-region.invalid:5432/codiplan?sslmode=require"
+URL_APPLICATIVE="postgresql://codiplan_app:secret-app@ep-exemple-pooler.exemple-region.invalid:5432/codiplan?sslmode=require&connect_timeout=30"
 
 ### Connexions décrites (sans secret)
 
-- Migration : hôte `ep-cool-leaf-a7qb6r2i-pooler.ap-southeast-2.aws.neon.tech` (mutualisé, région `ap-southeast-2`), port `5432`, base `codiplan`, paramètres : sslmode
-- Applicative : hôte `ep-cool-leaf-a7qb6r2i-pooler.ap-southeast-2.aws.neon.tech` (mutualisé, région `ap-southeast-2`), port `5432`, base `codiplan`, paramètres : sslmode, connect_timeout
+- Migration : hôte `ep-exemple-pooler.exemple-region.invalid` (mutualisé, région `exemple-region`), port `5432`, base `codiplan`, paramètres : sslmode
+- Applicative : hôte `ep-exemple-pooler.exemple-region.invalid` (mutualisé, région `exemple-region`), port `5432`, base `codiplan`, paramètres : sslmode, connect_timeout
 
 Même hôte : oui.
 ```
@@ -51,7 +51,7 @@ Et sur une URL applicative vide (le cas où le secret manquerait) :
 ```
 ### Connexions décrites (sans secret)
 
-- Migration : hôte `ep-cool-leaf-a7qb6r2i.ap-southeast-2.aws.neon.tech` (direct, région `ap-southeast-2`), port `5432`, base `codiplan`, paramètres : aucun
+- Migration : hôte `ep-exemple.exemple-region.invalid` (direct, région `exemple-region`), port `5432`, base `codiplan`, paramètres : aucun
 - Applicative : URL illisible (vide, absente, ou non analysable).
 
 Au moins une des deux URL est illisible : la comparaison d'hôte n'est pas faite.
