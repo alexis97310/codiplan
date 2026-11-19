@@ -6,6 +6,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
  * et REFUSE NOMMÉMENT une référence sans sa date (ou l'inverse) AVANT
  * d'atteindre `suspendreIntervention` — le dépôt reste un mock, seule la
  * FORME de la réponse et le ROUTAGE du refus sont en jeu ici.
+ *
+ * **9L28-PORTAIL-PHOTOS-BORNES-D236** : la route n'accepte plus AUCUN motif
+ * venu du formulaire — elle y substitue toujours le même texte fixe — et
+ * refuse désormais un appel direct qui omettrait la pièce ET sa date (un
+ * `motif` seul, sans les deux autres, n'est plus une saisie valide pour ce
+ * geste terrain, à la différence du bureau).
  */
 
 const ID = "33333333-3333-7333-8333-333333333333";
@@ -109,7 +115,7 @@ describe("POST /api/terrain/{id}/suspendre", () => {
     expect(suspendreIntervention).not.toHaveBeenCalled();
   });
 
-  it("motif absent : refus nommé, le dépôt n'est jamais appelé", async () => {
+  it("motif absent, pièce ET date présentes : accepté quand même — le motif n'est jamais une saisie", async () => {
     const reponse = await postSuspendre(
       requeteJson({
         piece_attendue_ref: "REF-42",
@@ -118,11 +124,45 @@ describe("POST /api/terrain/{id}/suspendre", () => {
       params(),
     );
     expect(reponse.status).toBe(200);
+    expect(await reponse.json()).toStrictEqual({ ok: true, motif: null });
+    expect(suspendreIntervention).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        motif: "Attente de pièce signalée depuis le terrain.",
+      }),
+    );
+  });
+
+  it("ni pièce ni date, même avec un motif : refus nommé, le dépôt n'est jamais appelé", async () => {
+    const reponse = await postSuspendre(
+      requeteJson({ motif: "Un motif quelconque" }),
+      params(),
+    );
+    expect(reponse.status).toBe(200);
     expect(await reponse.json()).toStrictEqual({
       ok: false,
-      motif: "intervention.refus.motif_manquant",
+      motif: "intervention.refus.piece_et_date",
     });
     expect(suspendreIntervention).not.toHaveBeenCalled();
+  });
+
+  it("D236 — un motif LIBRE soumis par l'appelant est IGNORÉ, remplacé par le texte fixe", async () => {
+    const reponse = await postSuspendre(
+      requeteJson({
+        motif: "Je décide de suspendre sans aucune pièce, en fait",
+        piece_attendue_ref: "REF-42",
+        date_dispo_prevue: "2026-12-01",
+      }),
+      params(),
+    );
+    expect(reponse.status).toBe(200);
+    expect(await reponse.json()).toStrictEqual({ ok: true, motif: null });
+    expect(suspendreIntervention).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        motif: "Attente de pièce signalée depuis le terrain.",
+      }),
+    );
   });
 
   it("refus du dépôt (déjà suspendue) : la route le propage", async () => {

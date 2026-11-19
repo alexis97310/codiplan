@@ -1,6 +1,7 @@
 import { type ContexteActif } from "@/lib/auth/contexte";
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { exigerCapacite, motifDuRefus } from "@/lib/auth/porte";
+import { t } from "@/lib/i18n/fr";
 import { suspendreIntervention } from "@/lib/interventions/depot";
 import { perimetreDuPlanning } from "@/lib/interventions/perimetre-technicien";
 import { schemaSuspension } from "@/lib/interventions/saisie";
@@ -18,8 +19,13 @@ import { schemaSuspension } from "@/lib/interventions/saisie";
  * **RÉFÉRENCE ET DATE TOUJOURS ENSEMBLE, LE MOTIF TOUJOURS UN TEXTE FIXE** —
  * contrairement au dialogue du bureau, qui peut suspendre SANS pièce avec un
  * motif libre, ce geste terrain ne porte qu'un seul sens : une attente de
- * pièce. `schemaSuspension` (RG-INT-06) reste inchangé — seul cet appelant
- * garantit que les deux champs voyagent toujours remplis.
+ * pièce. `schemaSuspension` (RG-INT-06) reste inchangé — lui seul admet
+ * encore les deux absentes à la fois, pour le bureau — **c'est CET appelant**
+ * qui exige les deux avant même de lui soumettre la saisie, et qui ignore
+ * tout motif venu du formulaire pour y substituer systématiquement
+ * `terrain.suspendre.motif_auto` (décision d'Alexis du 10/11/2026, D236) :
+ * un appel direct à cette route, hors de l'écran, ne peut ni omettre la
+ * pièce ni se faire passer pour une suspension libre.
  *
  * **AVEC FILET : jamais de 500** — même garde que `terminer`, pour la même
  * raison (un identifiant mal formé lèverait à la base, sans ce filet).
@@ -73,19 +79,32 @@ async function traiter(requete: Request, id: string): Promise<Response> {
   }
   try {
     const formulaire = await requete.formData();
-    const motif = formulaire.get("motif");
     const piece = formulaire.get("piece_attendue_ref");
     const date = formulaire.get("date_dispo_prevue");
 
+    // D236 — LES DEUX, TOUJOURS, AVANT MÊME `schemaSuspension` : ce schéma
+    // reste celui du bureau, qui admet encore les deux absentes à la fois.
+    // Ce geste terrain n'a qu'un seul sens, et un appel direct qui omettrait
+    // l'une des deux est refusé ICI, jamais relayé.
+    if (
+      typeof piece !== "string" ||
+      piece.trim().length === 0 ||
+      typeof date !== "string" ||
+      date.trim().length === 0
+    ) {
+      return reponse(requete, id, false, "intervention.refus.piece_et_date");
+    }
+
     const saisie = schemaSuspension.safeParse({
       intervention_id: id,
-      motif: typeof motif === "string" ? motif : "",
-      piece_attendue_ref: typeof piece === "string" ? piece : null,
+      // LE MOTIF N'EST JAMAIS CELUI DU FORMULAIRE (D236) : un texte fixe,
+      // toujours le même, quoi que l'appelant ait soumis sous ce nom.
+      motif: t("terrain.suspendre.motif_auto"),
+      piece_attendue_ref: piece,
       // Un jour lu en UTC, jamais par un `Date` local — même garde que la
       // route du bureau (`app/api/interventions/[id]/suspendre`) : UTC+11
       // décalerait le jour d'un cran.
-      date_dispo_prevue:
-        typeof date === "string" ? new Date(`${date}T00:00:00.000Z`) : null,
+      date_dispo_prevue: new Date(`${date}T00:00:00.000Z`),
     });
     if (!saisie.success) {
       // Même distinction que la route du bureau (IN-22, audit du 28/09) :
