@@ -1,8 +1,14 @@
+import { headers } from "next/headers";
+
+import { type ContexteSession } from "@/lib/auth/contexte";
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { exigerCapacite } from "@/lib/auth/porte";
-import { lireDocument } from "@/lib/documents/depot";
+import { estRolePortail } from "@/lib/auth/roles";
+import { obtenirSession } from "@/lib/auth/session";
+import { lireDocument, octetsDocumentDuParc } from "@/lib/documents/depot";
 import { formatImageReconnu } from "@/lib/documents/formats-image";
 import { lireObjet } from "@/lib/documents/stockage";
+import { rattachementsDuCompte } from "@/lib/portail/depot";
 
 /**
  * `GET /api/documents/{id}/octets` — LES OCTETS D'UN DOCUMENT (BON-2).
@@ -14,8 +20,15 @@ import { lireObjet } from "@/lib/documents/stockage";
  * exactement comme n'importe quelle autre lecture de cette table.
  *
  * `consulter_planning` est la capacité la plus large qui couvre déjà l'accès
- * au bon — pas de capacité neuve pour un octet qu'une lecture cloisonnée
- * protège déjà.
+ * au bon côté bureau et terrain — pas de capacité neuve pour un octet qu'une
+ * lecture cloisonnée protège déjà.
+ *
+ * **Le portail n'a pas cette capacité** (décision d'Alexis du 10/11/2026) :
+ * un compte client n'est jamais `peut(role, "consulter_planning")`, et le
+ * bon du portail (`bonInterventionDuParc`) montre pourtant des photos — ce
+ * même `<img>`, partagé avec le bureau (`components/interventions/bon-
+ * tuiles.tsx`), demande donc cette même route. Un second essai, sous le rôle
+ * portail et `octetsDocumentDuParc`, couvre ce cas SANS toucher au premier.
  */
 export async function GET(
   _requete: Request,
@@ -24,14 +37,38 @@ export async function GET(
   return dansUnEchangeAuth(() => traiter(params));
 }
 
+async function contexteParc(): Promise<ContexteSession | null> {
+  const session = await obtenirSession(await headers());
+  if (
+    session === null ||
+    session.contexte.societeId === null ||
+    session.contexte.role === null ||
+    !estRolePortail(session.contexte.role)
+  ) {
+    return null;
+  }
+  const rattachements = await rattachementsDuCompte(
+    session.contexte.utilisateurId,
+  );
+  const premier = rattachements.find(
+    (r) => r.societeId === session.contexte.societeId,
+  );
+  if (premier === undefined) {
+    return null;
+  }
+  return { ...session.contexte, clientId: premier.clientId };
+}
+
 async function traiter(params: Promise<{ id: string }>): Promise<Response> {
   const { id } = await params;
-  const contexte = await exigerCapacite("consulter_planning");
-  if (contexte === null) {
-    return new Response(null, { status: 404 });
-  }
-
-  const document = await lireDocument(contexte, id);
+  const contexteBureau = await exigerCapacite("consulter_planning");
+  const document =
+    contexteBureau !== null
+      ? await lireDocument(contexteBureau, id)
+      : await (async () => {
+          const contexte = await contexteParc();
+          return contexte === null ? null : octetsDocumentDuParc(contexte, id);
+        })();
   if (document === null) {
     return new Response(null, { status: 404 });
   }

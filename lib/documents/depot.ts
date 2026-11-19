@@ -698,6 +698,66 @@ export async function lireDocument(
 }
 
 /**
+ * LES OCTETS D'UN DOCUMENT, POUR LE PORTAIL (décision d'Alexis du
+ * 10/11/2026) — sous la seule politique « héritage » de `document` et la
+ * forme « parc » de `intervention` (D84, D93) ; AUCUNE COMPARAISON ÉCRITE
+ * ICI, exactement la doctrine de ce module (voir son en-tête).
+ *
+ * `lireDocument` revérifie `accesSurCetteIntervention`, une fonction du
+ * PÉRIMÈTRE PAR PERSONNE qui n'a pas de sens pour un compte client. Le
+ * portail n'a besoin d'aucune revérification applicative : la politique
+ * « parc » et la classe de `document` (« client » seule) tranchent déjà
+ * tout, exactement comme {@link photosDeLIntervention} ci-dessous.
+ *
+ * `null` quand la cible n'est pas encore close — le bon du portail
+ * (`bonInterventionDuParc`) ne montre jamais de photo avant la clôture, et
+ * cette fonction tient la même règle pour qui demanderait l'octet seul.
+ */
+export async function octetsDocumentDuParc(
+  contexte: ContexteSession,
+  id: string,
+  client?: PrismaClient,
+): Promise<{
+  readonly objet_cle: string;
+  readonly type_mime: string;
+  readonly nom_fichier: string;
+  readonly octets: Uint8Array | null;
+} | null> {
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const document = await tx.document.findFirst({
+        where: { id },
+        select: {
+          objet_cle: true,
+          type_mime: true,
+          nom_fichier: true,
+          octets: true,
+          intervention_id: true,
+          intervention: { select: { cloturee_le: true } },
+        },
+      });
+      if (document === null) {
+        return null;
+      }
+      if (
+        document.intervention_id !== null &&
+        document.intervention?.cloturee_le === null
+      ) {
+        return null;
+      }
+      return {
+        objet_cle: document.objet_cle,
+        type_mime: document.type_mime,
+        nom_fichier: document.nom_fichier,
+        octets: document.octets,
+      };
+    },
+    client,
+  );
+}
+
+/**
  * LES PHOTOS D'UNE INTERVENTION, dans l'ordre où elles ont été prises.
  *
  * `null` si l'intervention n'est pas visible — hors périmètre, hors société,
