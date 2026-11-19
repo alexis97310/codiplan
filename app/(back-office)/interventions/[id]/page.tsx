@@ -34,7 +34,7 @@ import { Onglets } from "@/components/ui/onglets";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { absencesDeLaPeriode } from "@/lib/absences/depot";
-import { annuaireDesPersonnes } from "@/lib/auth/annuaire";
+import { annuaireDesPersonnes, type Annuaire } from "@/lib/auth/annuaire";
 import { type ChecklistFiche } from "@/lib/checklists/depot";
 import { type ContexteActif } from "@/lib/auth/contexte";
 import { peut, peutPleinement } from "@/lib/auth/habilitations";
@@ -83,6 +83,10 @@ import {
   type ValorisationAffichee,
 } from "@/lib/interventions/depot";
 import { explicationRegle } from "@/lib/interventions/presentation-partagee";
+import {
+  saisiesApresClotureDeLIntervention,
+  type SaisieApresClotureAffichee,
+} from "@/lib/interventions/saisie-tardive";
 import {
   aSectionPiecesRemplacees,
   derniereSignature,
@@ -513,6 +517,7 @@ export default async function PageIntervention({
       ...techniciensActifs.map((technicien) => technicien.utilisateur_id),
       ...(ligne.technicien_id === null ? [] : [ligne.technicien_id]),
       ...(fiche.tempsValidePar === null ? [] : [fiche.tempsValidePar]),
+      ...(saisiesApresCloture ?? []).map((s) => s.auteurId),
     ]),
   );
   const nomValidateur = ((): string | null => {
@@ -729,6 +734,7 @@ export default async function PageIntervention({
     signatureFiche,
     piecesRemplaceesFiche,
     historiqueStatut,
+    saisiesApresCloture,
   ] = await Promise.all([
     // LES MACHINES DU SITE DE L'INTERVENTION — connu côté serveur, aucun
     // filtrage JS n'est nécessaire ici (à la différence du formulaire de
@@ -762,6 +768,9 @@ export default async function PageIntervention({
     // LE TEMPS PAR ÉTAT (9J08A-HISTORIQUE-DES-ETATS) — triée par change_le
     // croissant, c'est l'ordre que `dureesParEtat` exige.
     historiqueStatutDeLIntervention(session.contexte, ligne.id),
+    // LES SAISIES TERRAIN GARDÉES À PART (9L14-FIGE-A-LA-CLOTURE) — jamais
+    // appliquées, visibles ici en lecture seule.
+    saisiesApresClotureDeLIntervention(session.contexte, ligne.id),
   ]);
   const libellesMachines = new Map(
     [...donneesMaterielFiche].map(([machineId, donnees]) => [
@@ -1980,14 +1989,21 @@ export default async function PageIntervention({
         )}
 
         {onglet !== "rapport" ? null : (
-          <RealisationRapport
-            prestations={prestationsRealiseesFiche ?? []}
-            commentaireTechnicien={fiche.commentaireTechnicien}
-            suiteADonner={fiche.suiteADonner}
-            signature={signatureFiche}
-            clotureeLe={fiche.clotureeLe}
-            fuseau={fiche.fuseau}
-          />
+          <>
+            <RealisationRapport
+              prestations={prestationsRealiseesFiche ?? []}
+              commentaireTechnicien={fiche.commentaireTechnicien}
+              suiteADonner={fiche.suiteADonner}
+              signature={signatureFiche}
+              clotureeLe={fiche.clotureeLe}
+              fuseau={fiche.fuseau}
+            />
+            <SaisiesApresCloture
+              saisies={saisiesApresCloture ?? []}
+              annuaire={annuaire}
+              fuseau={fiche.fuseau}
+            />
+          </>
         )}
 
         {onglet !== "valorisation" ? null : (
@@ -2777,6 +2793,59 @@ function Pauses({
                 </p>
               </li>
             ))}
+          </ul>
+        )}
+      </div>
+    </Carte>
+  );
+}
+
+/**
+ * LES SAISIES ARRIVÉES APRÈS LA CLÔTURE (9L14-FIGE-A-LA-CLOTURE, décision
+ * d'Alexis du 10/11/2026) — EN LECTURE SEULE, jamais appliquées :
+ * `saisiesApresClotureDeLIntervention` (`lib/interventions/saisie-tardive.
+ * ts`), la plus ANCIENNE en tête (l'ordre dans lequel le bureau doit les
+ * traiter). Visible même VIDE — sa seule présence rappelle que le dossier
+ * peut en recevoir.
+ */
+function SaisiesApresCloture({
+  saisies,
+  annuaire,
+  fuseau,
+}: {
+  saisies: readonly SaisieApresClotureAffichee[];
+  annuaire: Annuaire;
+  fuseau: Fuseau;
+}) {
+  return (
+    <Carte titre={t("intervention.saisies_apres_cloture.titre")}>
+      <div className="px-4 py-3.5">
+        {saisies.length === 0 ? (
+          <p className="text-app-encre-faible text-[12px] font-bold">
+            {t("intervention.saisies_apres_cloture.aucune")}
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-3">
+            {saisies.map((saisie) => {
+              const designation = annuaire(saisie.auteurId);
+              const nomAuteur =
+                designation.etat === "nom" ? designation.nom : TIRET;
+              return (
+                <li
+                  key={saisie.id}
+                  className="border-app-bord flex flex-col gap-1 border-b pb-3 text-13 font-bold last:border-b-0 last:pb-0"
+                >
+                  <p className="font-semibold">
+                    {t(`intervention.saisies_apres_cloture.type.${saisie.type}`)}
+                  </p>
+                  <p className="text-app-encre-faible">
+                    {nomAuteur}
+                    {t("ponctuation.separateur")}
+                    {dateHeureLocale(saisie.creeLe, fuseau)}
+                  </p>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
