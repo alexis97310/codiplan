@@ -204,6 +204,12 @@ const CLASSIFICATION_LECTURE: Record<string, ClassificationLecture> = {
   // à la différence de ses quatre voisines ci-dessus et ci-dessous, qui
   // portent chacune un scénario « compte portail » explicite.
   intervention_pause: "fermee",
+  // `saisie_apres_cloture` (9L14-FIGE-A-LA-CLOTURE) est de forme « filiation »
+  // elle aussi, mais même raisonnement qu'`intervention_pause` juste
+  // au-dessus : aucun chemin du portail ni aucun scénario d'isolation dédié
+  // ne la lit, et 9K16 lui pose en plus un verrou d'ÉCRITURE portail —
+  // posé à sa propre naissance, cette fois, voir sa migration.
+  saisie_apres_cloture: "fermee",
   intervention_piece_remplacee: "client", // parent : intervention
   intervention_statut_historique: "client", // parent : intervention
   demande_statut_historique: "client", // parent : demande

@@ -230,7 +230,7 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
     );
   });
 
-  it("les quarante-neuf tables auditées aujourd'hui sont exactement celles attendues", () => {
+  it("les cinquante tables auditées aujourd'hui sont exactement celles attendues", () => {
     // Le décompte, écrit en toutes lettres, pour qu'un déclencheur posé
     // ailleurs — ou disparu — se voie. C'est la constitution confrontée aux
     // migrations, pas les migrations confrontées à elles-mêmes.
@@ -400,6 +400,12 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
       // litige au même titre qu'un changement de durée standard.
       "prestation_famille_materiel",
       "prestation_type_intervention",
+      // `saisie_apres_cloture` s'y ajoute au ticket 9L14-FIGE-A-LA-CLOTURE,
+      // décision d'Alexis du 10/11/2026, et par le même chemin : première
+      // catégorie de I1, donc auditée à sa naissance. « Qui a tenté cette
+      // saisie après la clôture, et quand » est exactement la question que
+      // pose une saisie gardée à part.
+      "saisie_apres_cloture",
       // `segment_travail` s'y ajoute à R5-02, et par le même chemin : première
       // catégorie de I1, donc auditée à sa naissance. **Elle le mérite plus que
       // la plupart** — le compteur FAIT FOI pour le temps (D119), et la table

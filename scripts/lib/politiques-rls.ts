@@ -2658,6 +2658,16 @@ export const TABLES_FILIATION = [
     parent: "prestation",
     cle: "prestation_id",
   },
+  // `saisie_apres_cloture` REJOINT LA FILIATION au ticket
+  // 9L14-FIGE-A-LA-CLOTURE, décision d'Alexis du 10/11/2026. Même
+  // raisonnement qu'`intervention_pause` (D103) : une saisie gardée est
+  // visible si son intervention l'est, et aucune clause de société n'y est
+  // ajoutée — la clé étrangère composite l'empêche déjà de dériver.
+  {
+    table: "saisie_apres_cloture",
+    parent: "intervention",
+    cle: "intervention_id",
+  },
 ] as const;
 
 /** Les entrées que l'arbitrage autorise. Recopiées : c'est la doctrine. */
@@ -2699,6 +2709,9 @@ const FILIATION_ARBITREE = [
   // Ticket 9L04J-PRESTATIONS-PAR-MATERIEL, 13/11/2026 — les familles de
   // matériel où une prestation du catalogue est proposée.
   "prestation_famille_materiel",
+  // Ticket 9L14-FIGE-A-LA-CLOTURE, décision d'Alexis du 10/11/2026 — la
+  // saisie terrain gardée à part après la clôture.
+  "saisie_apres_cloture",
 ];
 
 /** Écarts de la liste « filiation » — additions comme retraits. */

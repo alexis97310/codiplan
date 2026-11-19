@@ -94,6 +94,7 @@ function ligne(surcharge: Partial<LigneInventaire> = {}): LigneInventaire {
       prestation_type_intervention: 0,
       checklist_modele_type_intervention: 0,
       prestation_famille_materiel: 0,
+      saisie_apres_cloture: 0,
     },
     ...surcharge,
   };
@@ -160,6 +161,7 @@ function inventaire(surcharge: Partial<Inventaire> = {}): Inventaire {
         prestation_type_intervention: 0,
         checklist_modele_type_intervention: 0,
         prestation_famille_materiel: 0,
+        saisie_apres_cloture: 0,
       },
     }),
   ];
@@ -260,6 +262,9 @@ describe("inventaire à plat", () => {
       // 9L04J-PRESTATIONS-PAR-MATERIEL — même chemin : la table est entrée
       // le jour où elle est née.
       prestation_famille_materiel: 0,
+      // 9L14-FIGE-A-LA-CLOTURE — même chemin : la table est entrée le jour
+      // où elle est née.
+      saisie_apres_cloture: 0,
     });
   });
 
