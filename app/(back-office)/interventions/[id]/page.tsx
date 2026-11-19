@@ -17,6 +17,7 @@ import { DialogueDeplacer } from "@/components/interventions/dialogue-deplacer";
 import { DialoguePlanifier } from "@/components/interventions/dialogue-planifier";
 import { DialogueSuspendre } from "@/components/interventions/dialogue-suspendre";
 import { DialogueTransmettre } from "@/components/interventions/dialogue-transmettre";
+import { SaisiesApresCloture } from "@/components/interventions/saisies-apres-cloture";
 import { TrouverCreneau } from "@/components/interventions/trouver-creneau";
 import { Page } from "@/components/mise-en-page/page";
 import {
@@ -34,7 +35,7 @@ import { Onglets } from "@/components/ui/onglets";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { absencesDeLaPeriode } from "@/lib/absences/depot";
-import { annuaireDesPersonnes, type Annuaire } from "@/lib/auth/annuaire";
+import { annuaireDesPersonnes } from "@/lib/auth/annuaire";
 import { type ChecklistFiche } from "@/lib/checklists/depot";
 import { type ContexteActif } from "@/lib/auth/contexte";
 import { peut, peutPleinement } from "@/lib/auth/habilitations";
@@ -83,10 +84,7 @@ import {
   type ValorisationAffichee,
 } from "@/lib/interventions/depot";
 import { explicationRegle } from "@/lib/interventions/presentation-partagee";
-import {
-  saisiesApresClotureDeLIntervention,
-  type SaisieApresClotureAffichee,
-} from "@/lib/interventions/saisie-tardive";
+import { saisiesApresClotureDeLIntervention } from "@/lib/interventions/saisie-tardive";
 import {
   aSectionPiecesRemplacees,
   derniereSignature,
@@ -517,7 +515,6 @@ export default async function PageIntervention({
       ...techniciensActifs.map((technicien) => technicien.utilisateur_id),
       ...(ligne.technicien_id === null ? [] : [ligne.technicien_id]),
       ...(fiche.tempsValidePar === null ? [] : [fiche.tempsValidePar]),
-      ...(saisiesApresCloture ?? []).map((s) => s.auteurId),
     ]),
   );
   const nomValidateur = ((): string | null => {
@@ -772,6 +769,18 @@ export default async function PageIntervention({
     // appliquées, visibles ici en lecture seule.
     saisiesApresClotureDeLIntervention(session.contexte, ligne.id),
   ]);
+  // UN SECOND ANNUAIRE, PROPRE À CE BLOC (9L14-FIGE-A-LA-CLOTURE) — jamais
+  // fusionné dans `annuaire` ci-dessus : `saisiesApresCloture` naît ICI,
+  // APRÈS lui, et l'y lire l'aurait référencé avant son initialisation
+  // (TDZ), mesuré en exécutant la fiche pour de vrai.
+  const annuaireSaisiesTardives = await avecContexteApplicatif(
+    session.contexte,
+    (tx) =>
+      annuaireDesPersonnes(
+        tx,
+        (saisiesApresCloture ?? []).map((s) => s.auteurId),
+      ),
+  );
   const libellesMachines = new Map(
     [...donneesMaterielFiche].map(([machineId, donnees]) => [
       machineId,
@@ -2000,8 +2009,10 @@ export default async function PageIntervention({
             />
             <SaisiesApresCloture
               saisies={saisiesApresCloture ?? []}
-              annuaire={annuaire}
-              fuseau={fiche.fuseau}
+              annuaire={annuaireSaisiesTardives}
+              dateAffichee={(saisie) =>
+                dateHeureLocale(saisie.creeLe, fiche.fuseau)
+              }
             />
           </>
         )}
@@ -2793,59 +2804,6 @@ function Pauses({
                 </p>
               </li>
             ))}
-          </ul>
-        )}
-      </div>
-    </Carte>
-  );
-}
-
-/**
- * LES SAISIES ARRIVÉES APRÈS LA CLÔTURE (9L14-FIGE-A-LA-CLOTURE, décision
- * d'Alexis du 10/11/2026) — EN LECTURE SEULE, jamais appliquées :
- * `saisiesApresClotureDeLIntervention` (`lib/interventions/saisie-tardive.
- * ts`), la plus ANCIENNE en tête (l'ordre dans lequel le bureau doit les
- * traiter). Visible même VIDE — sa seule présence rappelle que le dossier
- * peut en recevoir.
- */
-function SaisiesApresCloture({
-  saisies,
-  annuaire,
-  fuseau,
-}: {
-  saisies: readonly SaisieApresClotureAffichee[];
-  annuaire: Annuaire;
-  fuseau: Fuseau;
-}) {
-  return (
-    <Carte titre={t("intervention.saisies_apres_cloture.titre")}>
-      <div className="px-4 py-3.5">
-        {saisies.length === 0 ? (
-          <p className="text-app-encre-faible text-[12px] font-bold">
-            {t("intervention.saisies_apres_cloture.aucune")}
-          </p>
-        ) : (
-          <ul className="flex flex-col gap-3">
-            {saisies.map((saisie) => {
-              const designation = annuaire(saisie.auteurId);
-              const nomAuteur =
-                designation.etat === "nom" ? designation.nom : TIRET;
-              return (
-                <li
-                  key={saisie.id}
-                  className="border-app-bord flex flex-col gap-1 border-b pb-3 text-13 font-bold last:border-b-0 last:pb-0"
-                >
-                  <p className="font-semibold">
-                    {t(`intervention.saisies_apres_cloture.type.${saisie.type}`)}
-                  </p>
-                  <p className="text-app-encre-faible">
-                    {nomAuteur}
-                    {t("ponctuation.separateur")}
-                    {dateHeureLocale(saisie.creeLe, fuseau)}
-                  </p>
-                </li>
-              );
-            })}
           </ul>
         )}
       </div>
