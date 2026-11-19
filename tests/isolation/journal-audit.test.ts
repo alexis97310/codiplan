@@ -662,7 +662,7 @@ describe("le journal ne recopie pas document.octets (D202, 9EWB2-AUDIT-SANS-OCTE
       clientApp(),
     );
     expect(depot).not.toBeNull();
-    const id = depot?.id as string;
+    const id = (depot as { readonly id: string } | null)?.id as string;
 
     try {
       const lignes = await clientOwner().$queryRawUnsafe<

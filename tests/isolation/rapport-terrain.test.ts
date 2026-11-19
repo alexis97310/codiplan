@@ -904,7 +904,7 @@ describe("la signature — HISTORISÉE, jamais réécrite", () => {
     expect(Number(n)).toBe(2);
   });
 
-  it("s'ajoute même sur une intervention CLÔTURÉE — I5, le travail terrain n'est jamais perdu", async () => {
+  it("est REFUSÉE et GARDÉE À PART sur une intervention CLÔTURÉE — 9L14-FIGE-A-LA-CLOTURE, précisant I5", async () => {
     // LA MATRICE D8 (D160) : la clôture ne part que de TERMINEE — la ligne
     // est amenée ici par la seule chaîne que D8 permet, avant d'être close.
     // DÉJÀ « en_cours » (9L08B, baseline du `beforeAll` de ce fichier) :
@@ -913,14 +913,16 @@ describe("la signature — HISTORISÉE, jamais réécrite", () => {
     await clientOwner().$executeRawUnsafe(
       `UPDATE "intervention" SET "statut" = 'terminee' WHERE "id" = '${INTERVENTION_A1}'`,
     );
-    // RAPPORT VALIDÉ POSÉ ICI (RG-INT-03, D135, 9H1) : ce scénario éprouve
-    // I5 (le travail terrain n'est jamais perdu), pas la validation du
-    // rapport — posée à part dans `rapport-valide-avant-cloture.test.ts`.
     await clientOwner().$executeRawUnsafe(
       `UPDATE "intervention" SET "statut" = 'cloturee', "temps_valide_min" = 60, "rapport_valide_par" = '${UTILISATEUR_INTERNE_A}', "rapport_valide_le" = now() WHERE "id" = '${INTERVENTION_A1}'`,
     );
     try {
-      const ecrite = await enregistrerSignature(
+      // AVANT 9L14-FIGE-A-LA-CLOTURE, décision d'Alexis du 10/11/2026 : I5
+      // lisait l'inverse — « le travail terrain n'est jamais perdu, même
+      // sur une intervention clôturée » comme une autorisation d'écrire
+      // après coup. La décision le précise : désormais GARDÉE À PART,
+      // jamais appliquée.
+      const refus = await enregistrerSignature(
         SESSION_A,
         INTERVENTION_A1,
         {
@@ -930,7 +932,38 @@ describe("la signature — HISTORISÉE, jamais réécrite", () => {
         },
         clientApp(),
       );
-      expect(ecrite).not.toBeNull();
+      expect(refus).toEqual({
+        refuse: true,
+        cle: "intervention.refus.cloturee_saisie_gardee",
+      });
+
+      // RIEN N'EST ÉCRIT SUR `intervention_signature` — la base mord aussi
+      // (le déclencheur `intervention_signature_figee_a_la_cloture`
+      // refuserait l'INSERT, mais l'appel ne l'atteint même pas).
+      const [{ n }] = await clientOwner().$queryRawUnsafe<
+        Array<{ n: bigint }>
+      >(
+        `SELECT count(*) AS "n" FROM "intervention_signature" WHERE "intervention_id" = '${INTERVENTION_A1}' AND "image_base64" = 'data:image/png;base64,CCCC'`,
+      );
+      expect(Number(n)).toBe(0);
+
+      // GARDÉE À PART — jamais perdue — et l'ADV est prévenue.
+      const gardee = await clientOwner().saisieApresCloture.findFirst({
+        where: { intervention_id: INTERVENTION_A1, type: "signature" },
+      });
+      expect(gardee?.auteur_id).toBe(UTILISATEUR_INTERNE_A);
+      expect(
+        (gardee?.contenu as { signataireNom?: string } | null)
+          ?.signataireNom,
+      ).toBe("Jean Dupont");
+
+      const notifiee = await clientOwner().notification.findFirst({
+        where: {
+          intervention_id: INTERVENTION_A1,
+          evenement: "saisie_apres_cloture",
+        },
+      });
+      expect(notifiee?.capacite_requise).toBe("consulter_clients_sites");
     } finally {
       // RESTAURATION : une intervention clôturée refuse toute modification
       // hors annulation (`intervention_cycle_de_vie`) — le trigger est
@@ -938,6 +971,12 @@ describe("la signature — HISTORISÉE, jamais réécrite", () => {
       // : « en_cours », posé par le `beforeAll` de ce fichier, jamais
       // « planifiee »), sur CETTE connexion (propriétaire) et pour la durée
       // de ces deux requêtes.
+      await clientOwner().$executeRawUnsafe(
+        `DELETE FROM "saisie_apres_cloture" WHERE "intervention_id" = '${INTERVENTION_A1}'`,
+      );
+      await clientOwner().$executeRawUnsafe(
+        `DELETE FROM "notification" WHERE "intervention_id" = '${INTERVENTION_A1}' AND "evenement" = 'saisie_apres_cloture'`,
+      );
       await clientOwner().$executeRawUnsafe(
         `ALTER TABLE "intervention" DISABLE TRIGGER "intervention_cycle_de_vie"`,
       );
@@ -1035,7 +1074,9 @@ describe("les photos — `document`, forme « héritage » à trois cibles", () 
       INTERVENTION_A1,
       clientApp(),
     );
-    expect(lues?.map((p) => p.id)).toEqual([depot?.id]);
+    expect(lues?.map((p) => p.id)).toEqual([
+      (depot as { readonly id: string } | null)?.id,
+    ]);
 
     const horsSociete = await photosDeLIntervention(
       SESSION_B,

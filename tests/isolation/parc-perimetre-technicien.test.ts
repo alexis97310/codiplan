@@ -90,28 +90,47 @@ async function jetableIntervention(options: {
   readonly technicienId: string | null;
   readonly decalageJours: number;
   readonly statut: "planifiee" | "annulee" | "cloturee";
+  /**
+   * Rattachée SOUS L'EXEMPTION « fixture_isolation » (9L14-FIGE-A-LA-
+   * CLOTURE) — une intervention `cloturee`/`annulee` figée refuse
+   * désormais `intervention_machine` en base ; ce réglage, LOCAL À LA
+   * TRANSACTION (`SET LOCAL`), dit au déclencheur que la ligne JETABLE n'a
+   * jamais été « vivante » avant d'être close — voir le docblock du
+   * déclencheur dans la migration.
+   */
+  readonly machineId?: string;
 }): Promise<string> {
   const id = uuidv7();
   jetables.push(id);
-  await clientOwner().$executeRawUnsafe(
-    `INSERT INTO "intervention" ("id","societe_id","client_id","site_id","agence_id",
-       "type","statut","date_planifiee","technicien_id","duree_estimee_min","modifie_le")
-     VALUES ('${id}', '${SOCIETE_A}', '${CLIENT_A1}', '${SITE_A1_S1}', '${AGENCE_A}',
-             'curatif', '${options.statut}', DATE '${dateSql(options.decalageJours)}',
-             ${options.technicienId === null ? "NULL" : `'${options.technicienId}'`},
-             60, now())`,
-  );
+  if (options.machineId === undefined) {
+    await clientOwner().$executeRawUnsafe(
+      `INSERT INTO "intervention" ("id","societe_id","client_id","site_id","agence_id",
+         "type","statut","date_planifiee","technicien_id","duree_estimee_min","modifie_le")
+       VALUES ('${id}', '${SOCIETE_A}', '${CLIENT_A1}', '${SITE_A1_S1}', '${AGENCE_A}',
+               'curatif', '${options.statut}', DATE '${dateSql(options.decalageJours)}',
+               ${options.technicienId === null ? "NULL" : `'${options.technicienId}'`},
+               60, now())`,
+    );
+    return id;
+  }
+  await clientOwner().$transaction([
+    clientOwner().$executeRawUnsafe(
+      `SET LOCAL "fige_a_la_cloture.exemption" = 'fixture_isolation'`,
+    ),
+    clientOwner().$executeRawUnsafe(
+      `INSERT INTO "intervention" ("id","societe_id","client_id","site_id","agence_id",
+         "type","statut","date_planifiee","technicien_id","duree_estimee_min","modifie_le")
+       VALUES ('${id}', '${SOCIETE_A}', '${CLIENT_A1}', '${SITE_A1_S1}', '${AGENCE_A}',
+               'curatif', '${options.statut}', DATE '${dateSql(options.decalageJours)}',
+               ${options.technicienId === null ? "NULL" : `'${options.technicienId}'`},
+               60, now())`,
+    ),
+    clientOwner().$executeRawUnsafe(
+      `INSERT INTO "intervention_machine" ("id","societe_id","intervention_id","machine_id","modifie_le")
+       VALUES ('${uuidv7()}', '${SOCIETE_A}', '${id}', '${options.machineId}', now())`,
+    ),
+  ]);
   return id;
-}
-
-async function relier(
-  interventionId: string,
-  machineId: string,
-): Promise<void> {
-  await clientOwner().$executeRawUnsafe(
-    `INSERT INTO "intervention_machine" ("id","societe_id","intervention_id","machine_id","modifie_le")
-     VALUES ('${uuidv7()}', '${SOCIETE_A}', '${interventionId}', '${machineId}', now())`,
-  );
 }
 
 afterEach(async () => {
@@ -203,12 +222,12 @@ describe("le parc — branche « clients visités sous sept jours » (choix 5, Q
 
 describe("le parc — branche « ses propres interventions » (choix 5, QT-2) et le registre VGP", () => {
   it("une intervention PASSÉE, non annulée, rend la machine présente — sans borne de date", async () => {
-    const id = await jetableIntervention({
+    await jetableIntervention({
       technicienId: TECHNICIEN,
       decalageJours: -30,
       statut: "cloturee",
+      machineId: MACHINE_A3,
     });
-    await relier(id, MACHINE_A3);
     const fiches = await rechercherLeParc(
       SESSION_TECH,
       TOUT,
@@ -224,12 +243,12 @@ describe("le parc — branche « ses propres interventions » (choix 5, QT-2) et
   });
 
   it("une intervention passée mais ANNULÉE ne rend pas la machine présente", async () => {
-    const id = await jetableIntervention({
+    await jetableIntervention({
       technicienId: TECHNICIEN,
       decalageJours: -30,
       statut: "annulee",
+      machineId: MACHINE_A3,
     });
-    await relier(id, MACHINE_A3);
     const fiches = await rechercherLeParc(
       SESSION_TECH,
       TOUT,

@@ -138,17 +138,28 @@ async function surUneInterventionJetable(
   travail: (interventionId: string) => Promise<void>,
 ): Promise<void> {
   const id = uuidv7();
-  await clientOwner().$executeRawUnsafe(
-    `INSERT INTO "intervention"
-       ("id", "societe_id", "client_id", "site_id", "agence_id", "type", "statut", "technicien_id", "duree_estimee_min", "modifie_le")
-     VALUES ('${id}', '${params.societeId}', '${params.clientId}', '${params.siteId}', '${params.agenceId}', 'curatif', '${params.statut}', ${
-       params.technicienId === null ? "NULL" : `'${params.technicienId}'`
-     }, 60, now())`,
-  );
-  await clientOwner().$executeRawUnsafe(
-    `INSERT INTO "intervention_machine" ("id", "societe_id", "intervention_id", "machine_id", "modifie_le")
-     VALUES ('${uuidv7()}', '${params.societeId}', '${id}', '${params.machineId}', now())`,
-  );
+  // LE RATTACHEMENT DE LA MACHINE, SOUS L'EXEMPTION « fixture_isolation »
+  // (9L14-FIGE-A-LA-CLOTURE) — une intervention `cloturee`/`annulee` figée
+  // refuse désormais `intervention_machine` en base ; ce réglage, LOCAL À
+  // CETTE TRANSACTION (`SET LOCAL`), dit au déclencheur que la ligne
+  // JETABLE n'a jamais été « vivante » avant d'être close — voir le
+  // docblock du déclencheur dans la migration.
+  await clientOwner().$transaction([
+    clientOwner().$executeRawUnsafe(
+      `SET LOCAL "fige_a_la_cloture.exemption" = 'fixture_isolation'`,
+    ),
+    clientOwner().$executeRawUnsafe(
+      `INSERT INTO "intervention"
+         ("id", "societe_id", "client_id", "site_id", "agence_id", "type", "statut", "technicien_id", "duree_estimee_min", "modifie_le")
+       VALUES ('${id}', '${params.societeId}', '${params.clientId}', '${params.siteId}', '${params.agenceId}', 'curatif', '${params.statut}', ${
+         params.technicienId === null ? "NULL" : `'${params.technicienId}'`
+       }, 60, now())`,
+    ),
+    clientOwner().$executeRawUnsafe(
+      `INSERT INTO "intervention_machine" ("id", "societe_id", "intervention_id", "machine_id", "modifie_le")
+       VALUES ('${uuidv7()}', '${params.societeId}', '${id}', '${params.machineId}', now())`,
+    ),
+  ]);
   try {
     await travail(id);
   } finally {

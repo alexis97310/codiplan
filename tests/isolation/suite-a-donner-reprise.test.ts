@@ -109,22 +109,54 @@ async function interventionJetable(options?: {
   readonly priorite?: string;
   readonly contactId?: string;
   readonly referenceClient?: string;
+  /**
+   * NÉE `terminee` plutôt que directement `cloturee` (9L14-FIGE-A-LA-
+   * CLOTURE) — pour les deux seuls appelants qui doivent encore RATTACHER
+   * une machine avant la clôture : une intervention `cloturee` figée
+   * refuse désormais `intervention_machine` en base, y compris un `INSERT`
+   * brut. `rapport_valide_par`/`le` et `temps_valide_min` sont posés dès la
+   * naissance pour que `clorerBrut`, plus bas, puisse ensuite transiter vers
+   * `cloturee` sans heurter `intervention_cycle_de_vie`/`intervention_
+   * rapport_validation_tracee`.
+   */
+  readonly neeTerminee?: boolean;
 }): Promise<string> {
   const id = uuidv7();
   const priorite = options?.priorite ?? "p3";
   const contactId = options?.contactId ?? null;
   const referenceClient = options?.referenceClient ?? null;
+  const terminee = options?.neeTerminee ?? false;
   await clientOwner().$executeRawUnsafe(
     `INSERT INTO "intervention" ("id", "societe_id", "client_id", "site_id",
        "agence_id", "type", "statut", "priorite", "duree_estimee_min",
-       "contact_id", "reference_client", "modifie_le")
+       "contact_id", "reference_client", "modifie_le",
+       "temps_valide_min", "rapport_valide_par", "rapport_valide_le")
      SELECT '${id}', "societe_id", "client_id", "site_id", "agence_id",
-            "type", 'cloturee', '${priorite}'::"PrioriteIntervention", 60,
+            "type", ${terminee ? "'terminee'" : "'cloturee'"},
+            '${priorite}'::"PrioriteIntervention", 60,
             ${contactId === null ? "NULL" : `'${contactId}'`},
-            ${referenceClient === null ? "NULL" : `'${referenceClient}'`}, now()
+            ${referenceClient === null ? "NULL" : `'${referenceClient}'`}, now(),
+            ${terminee ? "60" : "NULL"},
+            ${terminee ? `'${UTILISATEUR_INTERNE_A}'` : "NULL"},
+            ${terminee ? "now()" : "NULL"}
        FROM "intervention" WHERE "id" = '${INTERVENTION_A1}'`,
   );
   return id;
+}
+
+/**
+ * CLÔTURE, APRÈS COUP — pour les deux appelants qui ont dû naître
+ * `terminee` (`neeTerminee`) le temps de rattacher une machine
+ * (9L14-FIGE-A-LA-CLOTURE). `temps_valide_min` et `rapport_valide_par` sont
+ * déjà posés par `interventionJetable` : cette transition `terminee →
+ * cloturee` est celle que la matrice D8 permet, et les deux triggers de
+ * clôture la laissent passer.
+ */
+async function clorerBrut(id: string): Promise<void> {
+  await clientOwner().$executeRawUnsafe(
+    `UPDATE "intervention" SET "statut" = 'cloturee', "cloturee_le" = now()
+       WHERE "id" = '${id}'`,
+  );
 }
 
 /**
@@ -363,10 +395,12 @@ describe("creerReprise — I6 : reprise complète (machine, contact, référence
     const origineId = await interventionJetable({
       contactId: CONTACT_A1_COMPTABLE,
       referenceClient: "BON-9K10-A",
+      neeTerminee: true,
     });
     let repriseId: string | null = null;
     try {
       await rattacherMachine(origineId, MACHINE_A1);
+      await clorerBrut(origineId);
       const suiteId = await suiteAReplanifier(origineId);
       try {
         const resultat = await creerReprise(
@@ -407,10 +441,11 @@ describe("creerReprise — I6 : reprise complète (machine, contact, référence
   it("crée la reprise SANS machine, sans refus, quand celle de l'origine est hors parc actif", async () => {
     const machineFerraillee = await machineJetable("ferraillee");
     try {
-      const origineId = await interventionJetable();
+      const origineId = await interventionJetable({ neeTerminee: true });
       let repriseId: string | null = null;
       try {
         await rattacherMachine(origineId, machineFerraillee);
+        await clorerBrut(origineId);
         const suiteId = await suiteAReplanifier(origineId);
         try {
           const resultat = await creerReprise(

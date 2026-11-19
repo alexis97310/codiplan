@@ -64,31 +64,72 @@ function contexteInterne(): ContexteSession {
 }
 
 /**
- * Une intervention jetable du client A1, sur le site de son périmètre.
- * `cloturee` quand `close` est vrai, `en_cours` sinon — même geste que
- * `surUneInterventionAvecSegment` du fichier voisin, sans le segment, que ce
- * point n'éprouve pas.
+ * Une intervention jetable du client A1, sur le site de son périmètre,
+ * toujours créée `en_cours` — même geste que `surUneInterventionAvecSegment`
+ * du fichier voisin, sans le segment, que ce point n'éprouve pas.
+ *
+ * **La clôture, quand `close` est vrai, arrive APRÈS que `travail` ait
+ * déposé sa photo** (`clore`, fourni à `travail`), jamais avant
+ * (9L14-FIGE-A-LA-CLOTURE, décision d'Alexis du 10/11/2026) : déposer une
+ * photo NOUVELLE sur une intervention déjà close est désormais refusé, en
+ * base — ce que ce fichier n'éprouve pas, il éprouve la VISIBILITÉ au
+ * portail d'une photo déposée AVANT la clôture.
  */
 async function surUneIntervention(
   close: boolean,
-  travail: (id: string) => Promise<void>,
+  travail: (id: string, clore: () => Promise<void>) => Promise<void>,
 ): Promise<void> {
   const id = uuidv7();
   await clientOwner().$executeRawUnsafe(
     `INSERT INTO "intervention" ("id", "societe_id", "client_id", "site_id",
        "agence_id", "type", "statut", "technicien_id", "duree_estimee_min",
-       "modifie_le", "cloturee_le")
+       "modifie_le")
      SELECT '${id}', "societe_id", "client_id", "site_id", "agence_id",
-            'curatif'::"TypeIntervention", ${close ? "'cloturee'" : "'en_cours'"},
-            "technicien_id", 60, now(), ${close ? "now()" : "NULL"}
+            'curatif'::"TypeIntervention", 'en_cours',
+            "technicien_id", 60, now()
        FROM "intervention" WHERE "id" = '${INTERVENTION_A1}'`,
   );
-  try {
-    await travail(id);
-  } finally {
+  const clore = async (): Promise<void> => {
+    if (!close) {
+      return;
+    }
+    // La matrice D8 ne porte qu'`EN_COURS → TERMINEE → CLOTUREE`, jamais
+    // `EN_COURS → CLOTUREE` directement — et la clôture exige déjà
+    // `temps_valide_min`/`rapport_valide_par` (posés ici, bruts, pour la
+    // seule raison de satisfaire ces deux déclencheurs).
     await clientOwner().$executeRawUnsafe(
-      `DELETE FROM "document" WHERE "intervention_id" = '${id}'`,
+      `UPDATE "intervention"
+          SET "statut" = 'terminee', "temps_valide_min" = 60,
+              "rapport_valide_par" = "technicien_id", "rapport_valide_le" = now()
+        WHERE "id" = '${id}'`,
     );
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "intervention" SET "statut" = 'cloturee', "cloturee_le" = now()
+         WHERE "id" = '${id}'`,
+    );
+  };
+  try {
+    await travail(id, clore);
+  } finally {
+    // La ligne peut être `cloturee` à ce stade (`clore` ci-dessus) : le
+    // déclencheur `document_figee_a_la_cloture` (9L14-FIGE-A-LA-CLOTURE)
+    // refuse alors le `DELETE` comme il refuserait n'importe quelle autre
+    // écriture — exactement ce qu'il doit faire pour le rôle applicatif.
+    // Désactivé ICI pour la SEULE durée du nettoyage d'une fixture jetable,
+    // par le rôle PROPRIÉTAIRE — jamais par `codiplan_app`, qui ne détient
+    // pas le privilège `ALTER TABLE`.
+    await clientOwner().$executeRawUnsafe(
+      `ALTER TABLE "document" DISABLE TRIGGER "document_figee_a_la_cloture"`,
+    );
+    try {
+      await clientOwner().$executeRawUnsafe(
+        `DELETE FROM "document" WHERE "intervention_id" = '${id}'`,
+      );
+    } finally {
+      await clientOwner().$executeRawUnsafe(
+        `ALTER TABLE "document" ENABLE TRIGGER "document_figee_a_la_cloture"`,
+      );
+    }
     await clientOwner().$executeRawUnsafe(
       `DELETE FROM "intervention" WHERE "id" = '${id}'`,
     );
@@ -97,7 +138,7 @@ async function surUneIntervention(
 
 describe("les photos du bon, au portail (9L28, D236)", () => {
   it("le client DE l'intervention close voit SA photo", async () => {
-    await surUneIntervention(true, async (id) => {
+    await surUneIntervention(true, async (id, clore) => {
       const depot = await deposerPhotoIntervention(
         contexteInterne(),
         id,
@@ -111,10 +152,11 @@ describe("les photos du bon, au portail (9L28, D236)", () => {
         clientApp(),
       );
       expect(depot).not.toBeNull();
+      await clore();
 
       const octets = await octetsDocumentDuParc(
         contextePortail(PORTAIL_A_CLIENT, CLIENT_A1),
-        depot?.id as string,
+        (depot as { readonly id: string } | null)?.id as string,
         clientApp(),
       );
       expect(octets).not.toBeNull();
@@ -123,7 +165,7 @@ describe("les photos du bon, au portail (9L28, D236)", () => {
   });
 
   it("un AUTRE client ne voit pas cette photo (404)", async () => {
-    await surUneIntervention(true, async (id) => {
+    await surUneIntervention(true, async (id, clore) => {
       const depot = await deposerPhotoIntervention(
         contexteInterne(),
         id,
@@ -137,10 +179,11 @@ describe("les photos du bon, au portail (9L28, D236)", () => {
         clientApp(),
       );
       expect(depot).not.toBeNull();
+      await clore();
 
       const octets = await octetsDocumentDuParc(
         contextePortail(PORTAIL_A2_CLIENT, CLIENT_A2),
-        depot?.id as string,
+        (depot as { readonly id: string } | null)?.id as string,
         clientApp(),
       );
       expect(octets).toBeNull();
@@ -148,7 +191,7 @@ describe("les photos du bon, au portail (9L28, D236)", () => {
   });
 
   it("une photo de classe `interne` reste fermée au portail (404)", async () => {
-    await surUneIntervention(true, async (id) => {
+    await surUneIntervention(true, async (id, clore) => {
       const depot = await deposerPhotoIntervention(
         contexteInterne(),
         id,
@@ -162,10 +205,11 @@ describe("les photos du bon, au portail (9L28, D236)", () => {
         clientApp(),
       );
       expect(depot).not.toBeNull();
+      await clore();
 
       const octets = await octetsDocumentDuParc(
         contextePortail(PORTAIL_A_CLIENT, CLIENT_A1),
-        depot?.id as string,
+        (depot as { readonly id: string } | null)?.id as string,
         clientApp(),
       );
       expect(octets).toBeNull();
@@ -173,7 +217,7 @@ describe("les photos du bon, au portail (9L28, D236)", () => {
   });
 
   it("TÉMOIN — la même photo, sous le contexte interne, reste visible", async () => {
-    await surUneIntervention(true, async (id) => {
+    await surUneIntervention(true, async (id, clore) => {
       const depot = await deposerPhotoIntervention(
         contexteInterne(),
         id,
@@ -187,9 +231,10 @@ describe("les photos du bon, au portail (9L28, D236)", () => {
         clientApp(),
       );
       expect(depot).not.toBeNull();
+      await clore();
 
       const lue = await clientApp().document.findFirst({
-        where: { id: depot?.id as string },
+        where: { id: (depot as { readonly id: string } | null)?.id as string },
         select: { id: true },
       });
       // Sans contexte RLS posé : la lecture nue, sous le rôle applicatif,
@@ -217,7 +262,7 @@ describe("les photos du bon, au portail (9L28, D236)", () => {
 
       const octets = await octetsDocumentDuParc(
         contextePortail(PORTAIL_A_CLIENT, CLIENT_A1),
-        depot?.id as string,
+        (depot as { readonly id: string } | null)?.id as string,
         clientApp(),
       );
       expect(octets).toBeNull();

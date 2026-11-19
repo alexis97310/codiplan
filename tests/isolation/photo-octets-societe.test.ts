@@ -89,7 +89,7 @@ describe("la route des octets d'un document ne franchit pas la société", () =>
       },
     );
     expect(depot).not.toBeNull();
-    const id = depot?.id as string;
+    const id = (depot as { readonly id: string } | null)?.id as string;
 
     try {
       vi.mocked(exigerCapacite).mockResolvedValueOnce(contexteSocieteA());
