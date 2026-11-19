@@ -37,6 +37,12 @@ import { afterAll, describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/auth/porte", () => ({
   exigerCapacite: vi.fn().mockResolvedValue(null),
   exigerCapaciteComplete: vi.fn().mockResolvedValue(null),
+  // 9L28 — `exigerSessionActive` est la SEULE autre porte de ce module
+  // qu'une route puisse appeler : `app/api/documents/[id]/octets/route.ts`
+  // l'utilise en second essai (le portail n'a aucune capacité), et elle doit
+  // rendre `null` ici pour la même raison que les deux ci-dessus — sans
+  // quoi ce second essai relirait `headers()` hors de toute requête Next.
+  exigerSessionActive: vi.fn().mockResolvedValue(null),
   motifDuRefus: vi.fn().mockResolvedValue("9L24-SANS-CAPACITE-REFUS"),
 }));
 

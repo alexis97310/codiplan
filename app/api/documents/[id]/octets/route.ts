@@ -1,10 +1,7 @@
-import { headers } from "next/headers";
-
 import { type ContexteSession } from "@/lib/auth/contexte";
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
-import { exigerCapacite } from "@/lib/auth/porte";
+import { exigerCapacite, exigerSessionActive } from "@/lib/auth/porte";
 import { estRolePortail } from "@/lib/auth/roles";
-import { obtenirSession } from "@/lib/auth/session";
 import { lireDocument, octetsDocumentDuParc } from "@/lib/documents/depot";
 import { formatImageReconnu } from "@/lib/documents/formats-image";
 import { lireObjet } from "@/lib/documents/stockage";
@@ -29,6 +26,13 @@ import { rattachementsDuCompte } from "@/lib/portail/depot";
  * même `<img>`, partagé avec le bureau (`components/interventions/bon-
  * tuiles.tsx`), demande donc cette même route. Un second essai, sous le rôle
  * portail et `octetsDocumentDuParc`, couvre ce cas SANS toucher au premier.
+ *
+ * **`exigerSessionActive`, jamais `headers()` relu ici** (9EZ-LOGO-SOCIETE-1)
+ * — même couture de lecture qu'`exigerCapacite`, pour que les deux gardes de
+ * cette route restent mockables par le même module dans les scénarios qui
+ * remplacent `@/lib/auth/porte` entièrement (`tests/isolation/9l24-routes-
+ * sans-capacite.test.ts`) : relire `headers()` nous-mêmes y lèverait hors de
+ * toute requête Next.
  */
 export async function GET(
   _requete: Request,
@@ -38,25 +42,16 @@ export async function GET(
 }
 
 async function contexteParc(): Promise<ContexteSession | null> {
-  const session = await obtenirSession(await headers());
-  if (
-    session === null ||
-    session.contexte.societeId === null ||
-    session.contexte.role === null ||
-    !estRolePortail(session.contexte.role)
-  ) {
+  const actif = await exigerSessionActive();
+  if (actif === null || !estRolePortail(actif.role)) {
     return null;
   }
-  const rattachements = await rattachementsDuCompte(
-    session.contexte.utilisateurId,
-  );
-  const premier = rattachements.find(
-    (r) => r.societeId === session.contexte.societeId,
-  );
+  const rattachements = await rattachementsDuCompte(actif.utilisateurId);
+  const premier = rattachements.find((r) => r.societeId === actif.societeId);
   if (premier === undefined) {
     return null;
   }
-  return { ...session.contexte, clientId: premier.clientId };
+  return { ...actif, clientId: premier.clientId };
 }
 
 async function traiter(params: Promise<{ id: string }>): Promise<Response> {
