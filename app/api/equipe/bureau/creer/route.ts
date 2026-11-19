@@ -69,7 +69,6 @@ async function traiter(requete: Request): Promise<Response> {
           onglet: "bureau",
           motif: "equipe.acces.non_parti",
           compte: resultat.utilisateurId,
-          destinataire: envoi.destinataire,
           raison: envoi.envoi.motif,
         });
         return new Response(null, {

@@ -304,12 +304,12 @@ export default async function PageEquipe({
   // LE COMPTE RENDU APRÈS « ENVOYER LE LIEN D'ACCÈS » (D162) — même discipline
   // que l'avertissement de désactivation ci-dessus : un simple `motif` ne
   // porte qu'une clé FIXE (D26), jamais une adresse ni le motif d'un
-  // prestataire — `destinataire` et `raison` l'accompagnent dans la même
-  // redirection (`app/api/equipe/[id]/envoyer-acces/route.ts` POUR un
-  // technicien, `app/api/equipe/bureau/[id]/envoyer-acces/route.ts` POUR un
-  // compte de bureau — ce second chemin nomme sa cible `compte`, jamais
-  // `technicien` : SOLDE 182, relecture de 9ET-COMPTES-BUREAU-2, qui mesurait
-  // ce bandeau invisible depuis l'onglet « Comptes de bureau »).
+  // prestataire — `raison` l'accompagne dans la même redirection
+  // (`app/api/equipe/[id]/envoyer-acces/route.ts` POUR un technicien,
+  // `app/api/equipe/bureau/[id]/envoyer-acces/route.ts` POUR un compte de
+  // bureau — ce second chemin nomme sa cible `compte`, jamais `technicien` :
+  // SOLDE 182, relecture de 9ET-COMPTES-BUREAU-2, qui mesurait ce bandeau
+  // invisible depuis l'onglet « Comptes de bureau »).
   const compteBureauCibleId =
     typeof params.compte === "string" ? params.compte : undefined;
   const accesCibleEstConnue = cibleAccesConnue(
@@ -318,8 +318,20 @@ export default async function PageEquipe({
     techniciens,
     comptesBureau,
   );
-  const accesDestinataire =
-    typeof params.destinataire === "string" ? params.destinataire : undefined;
+  // LE DESTINATAIRE NE VOYAGE JAMAIS DANS L'URL (décision d'Alexis du
+  // 10/11/2026) — une adresse électronique dans une redirection reste dans
+  // l'historique du navigateur comme dans les journaux du serveur. La route
+  // ne nomme plus que la CIBLE, déjà connue (`avertissementTechnicienId`/
+  // `compteBureauCibleId`, ci-dessus) ; l'adresse affichée se relit ici, sur
+  // la même liste déjà chargée pour le tableau — jamais recopiée depuis une
+  // valeur que la requête aurait pu inventer.
+  const accesDestinataire = (
+    avertissementTechnicienId !== undefined
+      ? techniciens.find((t) => t.utilisateurId === avertissementTechnicienId)
+      : compteBureauCibleId !== undefined
+        ? comptesBureau.find((c) => c.utilisateurId === compteBureauCibleId)
+        : undefined
+  )?.email;
   const accesRaison =
     typeof params.raison === "string" ? params.raison : undefined;
   const accesEnvoye =

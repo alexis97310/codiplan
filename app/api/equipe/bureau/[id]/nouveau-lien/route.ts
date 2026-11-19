@@ -39,7 +39,6 @@ async function traiter(params: Promise<{ id: string }>): Promise<Response> {
       ? "equipe.acces.envoye"
       : "equipe.acces.non_parti",
     compte: id,
-    destinataire: resultat.destinataire,
   });
   if (!resultat.envoi.parti) {
     suite.set("raison", resultat.envoi.motif);

@@ -66,7 +66,6 @@ async function traiter(requete: Request): Promise<Response> {
         const suite = new URLSearchParams({
           motif: "equipe.acces.non_parti",
           technicien: resultat.utilisateurId,
-          destinataire: envoi.destinataire,
           raison: envoi.envoi.motif,
         });
         return new Response(null, {

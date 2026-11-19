@@ -79,7 +79,7 @@ afterEach(() => {
 });
 
 describe("POST /api/techniciens/creer — l'interrupteur « envoyer le lien en l'ajoutant »", () => {
-  it("SOLDE 183 — un envoi accepté mais NON PARTI redirige vers « non parti », avec destinataire et raison", async () => {
+  it("SOLDE 183 — un envoi accepté mais NON PARTI redirige vers « non parti », avec raison — jamais l'adresse en clair dans l'URL (décision d'Alexis du 10/11/2026)", async () => {
     envoyerLienDAcces.mockResolvedValue({
       accepte: true,
       destinataire: "technicien@9eta0.e2e.test",
@@ -90,9 +90,7 @@ describe("POST /api/techniciens/creer — l'interrupteur « envoyer le lien en l
     const url = urlDeRetour(reponse);
     expect(url.searchParams.get("motif")).toBe("equipe.acces.non_parti");
     expect(url.searchParams.get("technicien")).toBe(UTILISATEUR_ID);
-    expect(url.searchParams.get("destinataire")).toBe(
-      "technicien@9eta0.e2e.test",
-    );
+    expect(url.searchParams.get("destinataire")).toBeNull();
     expect(url.searchParams.get("raison")).toBe("canal non configuré");
   });
 

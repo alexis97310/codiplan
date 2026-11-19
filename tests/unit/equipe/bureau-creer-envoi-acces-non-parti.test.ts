@@ -72,7 +72,7 @@ afterEach(() => {
 });
 
 describe("POST /api/equipe/bureau/creer — l'interrupteur « envoyer le lien en l'ajoutant »", () => {
-  it("SOLDE 183 — un envoi accepté mais NON PARTI redirige vers « non parti », avec compte, destinataire et raison", async () => {
+  it("SOLDE 183 — un envoi accepté mais NON PARTI redirige vers « non parti », avec compte et raison — jamais l'adresse en clair dans l'URL (décision d'Alexis du 10/11/2026)", async () => {
     envoyerLienDAccesBureau.mockResolvedValue({
       accepte: true,
       destinataire: "compte@9eta0.e2e.test",
@@ -84,7 +84,7 @@ describe("POST /api/equipe/bureau/creer — l'interrupteur « envoyer le lien en
     expect(url.searchParams.get("onglet")).toBe("bureau");
     expect(url.searchParams.get("motif")).toBe("equipe.acces.non_parti");
     expect(url.searchParams.get("compte")).toBe(UTILISATEUR_ID);
-    expect(url.searchParams.get("destinataire")).toBe("compte@9eta0.e2e.test");
+    expect(url.searchParams.get("destinataire")).toBeNull();
     expect(url.searchParams.get("raison")).toBe("canal non configuré");
   });
 
