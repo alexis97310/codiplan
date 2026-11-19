@@ -4,8 +4,8 @@ import { Role } from "@/lib/auth/roles";
 import { uuidv7 } from "@/lib/db/uuid";
 import { engendrerJetonQr } from "@/lib/machines/qr";
 
-import { resolutionScanBureau } from "@/components/machines/scan-qr-bureau";
-import { resolutionScanTerrain } from "@/components/machines/scan-qr-terrain";
+import { resolutionScanBureau } from "@/components/machines/scan-qr-bureau-resolution";
+import { resolutionScanTerrain } from "@/components/machines/scan-qr-terrain-resolution";
 
 import { clientApp, clientOwner, fermerClients } from "./setup/db";
 import {
@@ -29,9 +29,13 @@ import {
  * cours), jamais rejouées depuis une variante écrite pour l'occasion.
  *
  * `resolutionScanBureau`/`resolutionScanTerrain` sont les moitiés qui
- * prennent un `ContexteActif` directement (L1-02d) — `resoudreScanBureau`/
- * `resoudreScanTerrain`, elles, lisent `headers()`, qui lève hors d'une
- * requête Next.js.
+ * prennent un `ContexteActif` directement (L1-02d) — hors des fichiers
+ * `"use server"` depuis la décision d'Alexis du 10/11/2026, précisément pour
+ * que ce fichier puisse les appeler avec un contexte construit par le
+ * harnais. `resoudreScanBureau`/`resoudreScanTerrain`, elles, lisent
+ * `headers()`, qui lève hors d'une requête Next.js — ce sont les seules
+ * exportées des fichiers `"use server"` (`scan-qr-bureau.ts`/
+ * `scan-qr-terrain.ts`), et elles ne prennent jamais de contexte en argument.
  */
 describe("résolution d'un scan — bureau et terrain (9G10)", () => {
   const idsACreer: string[] = [];
