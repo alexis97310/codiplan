@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  LONGUEUR_MAXIMALE,
   LONGUEUR_MINIMALE,
   choisirLePremierMotDePasse,
 } from "@/lib/auth/premier-acces";
@@ -71,6 +72,32 @@ describe("premier accès — les refus de saisie", () => {
     // ce qu'il advient d'un jeton réellement présenté. La longueur exacte avec
     // deux saisies IDENTIQUES atteindrait la bibliothèque et la base — c'est un
     // scénario d'isolation, `tests/isolation/premier-acces.test.ts`.
+  });
+
+  it("refuse un mot de passe démesuré, SANS toucher au jeton (9L28, D236)", async () => {
+    // Avant cette borne, `motDePasse` était un `z.string()` nu : un appelant
+    // direct pouvait soumettre un texte de plusieurs mégaoctets, haché par
+    // bcrypt comme n'importe quel autre. `safeParse` échoue AVANT le
+    // contrôle de discordance — c'est `refuse`, pas `discordance`, même si
+    // les deux saisies soumises ici sont identiques.
+    const demesure = "a".repeat(LONGUEUR_MAXIMALE + 1);
+    const issue = await choisirLePremierMotDePasse({
+      jeton: JETON_QUI_N_EXISTE_PAS,
+      motDePasse: demesure,
+      confirmation: demesure,
+    });
+    expect(issue.issue).toBe("refuse");
+  });
+
+  it("la longueur maximale EXACTE passe le contrôle de saisie", async () => {
+    const juste = "a".repeat(LONGUEUR_MAXIMALE);
+    const autreDeMemeLongueur = `${"a".repeat(LONGUEUR_MAXIMALE - 1)}b`;
+    const issue = await choisirLePremierMotDePasse({
+      jeton: JETON_QUI_N_EXISTE_PAS,
+      motDePasse: juste,
+      confirmation: autreDeMemeLongueur,
+    });
+    expect(issue.issue).toBe("discordance");
   });
 
   it("un jeton vide est refusé comme un jeton faux — aucun oracle", async () => {

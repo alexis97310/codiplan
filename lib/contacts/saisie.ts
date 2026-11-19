@@ -137,12 +137,38 @@ function exigerCourrielSiCanalEmail<
   }
 }
 
+/**
+ * BORNES DE TAILLE (9L28-PORTAIL-PHOTOS-BORNES-D236, décision d'Alexis du
+ * 10/11/2026) — sans elles, un contact saisi depuis le portail (comme
+ * depuis le bureau) n'avait qu'un `.min(1)` : aucun plafond. `NOM_MAXIMALE`
+ * reprend la borne déjà posée pour un libellé humain ailleurs (`libelle`,
+ * `lib/sites/saisie.ts`, et `RAISON_SOCIALE_LONGUEUR_MAXIMALE`,
+ * `lib/clients/saisie.ts`) plutôt que d'en inventer une seconde. `EMAIL_
+ * MAXIMALE` est la borne RFC 5321 de l'adresse électronique, pas un choix
+ * arbitraire.
+ */
+const NOM_MAXIMALE = 200;
+const TELEPHONE_MAXIMALE = 40;
+const EMAIL_MAXIMALE = 254;
+
 const champsCommuns = {
-  nom: z.string().trim().min(1),
-  fonction: z.string().trim().min(1).nullable().default(null),
-  telephone: z.string().trim().min(1).nullable().default(null),
-  mobile: z.string().trim().min(1).nullable().default(null),
-  email: z.email().nullable().default(null),
+  nom: z.string().trim().min(1).max(NOM_MAXIMALE),
+  fonction: z.string().trim().min(1).max(NOM_MAXIMALE).nullable().default(null),
+  telephone: z
+    .string()
+    .trim()
+    .min(1)
+    .max(TELEPHONE_MAXIMALE)
+    .nullable()
+    .default(null),
+  mobile: z
+    .string()
+    .trim()
+    .min(1)
+    .max(TELEPHONE_MAXIMALE)
+    .nullable()
+    .default(null),
+  email: z.email().max(EMAIL_MAXIMALE).nullable().default(null),
   roles: ensembleClos(ROLES_CONTACT, "rôle"),
   canaux: ensembleClos(CANAUX_CONNUS, "canal").default([CANAL_PAR_DEFAUT]),
 };

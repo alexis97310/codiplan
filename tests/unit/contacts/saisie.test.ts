@@ -136,3 +136,51 @@ describe("le rattachement — ce qui se modifie et ce qui ne se modifie pas", ()
     expect(lu.site_id).toBeNull();
   });
 });
+
+describe("les bornes de taille (9L28-PORTAIL-PHOTOS-BORNES-D236)", () => {
+  it("accepte un nom et une fonction de longueur ordinaire", () => {
+    const lu = schemaCreationContact.safeParse({
+      ...VALIDE,
+      nom: "Jean Dupont",
+      fonction: "Responsable maintenance",
+    });
+    expect(lu.success).toBe(true);
+  });
+
+  it("refuse un nom démesuré — un `.min(1)` seul ne plafonnait rien", () => {
+    const lu = schemaCreationContact.safeParse({
+      ...VALIDE,
+      nom: "x".repeat(10_000),
+    });
+    expect(lu.success).toBe(false);
+  });
+
+  it("refuse une fonction, un téléphone ou un mobile démesurés", () => {
+    expect(
+      schemaCreationContact.safeParse({
+        ...VALIDE,
+        fonction: "x".repeat(10_000),
+      }).success,
+    ).toBe(false);
+    expect(
+      schemaCreationContact.safeParse({
+        ...VALIDE,
+        telephone: "6".repeat(10_000),
+      }).success,
+    ).toBe(false);
+    expect(
+      schemaCreationContact.safeParse({
+        ...VALIDE,
+        mobile: "6".repeat(10_000),
+      }).success,
+    ).toBe(false);
+  });
+
+  it("refuse une adresse électronique au-delà de la borne RFC 5321", () => {
+    const lu = schemaCreationContact.safeParse({
+      ...VALIDE,
+      email: `${"x".repeat(250)}@exemple.invalid`,
+    });
+    expect(lu.success).toBe(false);
+  });
+});

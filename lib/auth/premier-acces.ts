@@ -68,10 +68,19 @@ import { avecDesignationAuth } from "./lecture-identite";
 /** Le plancher de longueur, celui de Better Auth — écrit ici pour être lisible. */
 export const LONGUEUR_MINIMALE = 8;
 
+/**
+ * LE PLAFOND (9L28-PORTAIL-PHOTOS-BORNES-D236, décision d'Alexis du
+ * 10/11/2026) — sans lui, `motDePasse` était un `z.string()` nu, sans
+ * aucune borne : un appelant direct pouvait soumettre un texte de plusieurs
+ * mégaoctets, haché par bcrypt comme n'importe quel autre. 128 dépasse
+ * largement tout mot de passe choisi à la main ou par un gestionnaire.
+ */
+export const LONGUEUR_MAXIMALE = 128;
+
 const Saisie = z.object({
   jeton: z.string().trim().min(1),
-  motDePasse: z.string(),
-  confirmation: z.string(),
+  motDePasse: z.string().max(LONGUEUR_MAXIMALE),
+  confirmation: z.string().max(LONGUEUR_MAXIMALE),
 });
 
 export type SaisiePremierAcces = z.input<typeof Saisie>;

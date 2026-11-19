@@ -7,6 +7,7 @@ import {
   changerSonMotDePasse,
   type SaisieChangementMotDePasse,
 } from "@/lib/auth/mon-compte";
+import { LONGUEUR_MAXIMALE } from "@/lib/auth/premier-acces";
 import { Role } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import { avecContexteRls } from "@/lib/db/rls";
@@ -188,6 +189,52 @@ describe("changer son mot de passe en étant connecté", () => {
     );
     expect(issue.issue).toBe("trop_court");
     expect(await ouvre(email, MOT_DE_PASSE)).toBe(true);
+  });
+
+  it("un mot de passe DÉMESURÉ refuse, et ne change rien (9L28, D236)", async () => {
+    // Avant cette borne, `motDePasse` était un `z.string()` nu : rien n'y
+    // plafonnait la taille soumise. `Saisie.safeParse` échoue avant même de
+    // lire `entetes` — le compte reste ouvert avec son mot de passe d'avant.
+    const email = await compteHabilite(Role.adv);
+    const entetes = await connecter(email);
+    const demesure = "a".repeat(LONGUEUR_MAXIMALE + 1);
+
+    const issue = await changerSonMotDePasse(
+      {
+        motDePasseActuel: MOT_DE_PASSE,
+        motDePasse: demesure,
+        confirmation: demesure,
+      },
+      entetes,
+      auth,
+      clientApp(),
+    );
+    expect(issue.issue).toBe("refuse");
+    expect(await ouvre(email, MOT_DE_PASSE)).toBe(true);
+  });
+
+  it("TÉMOIN — la longueur maximale EXACTE change réellement le mot de passe", async () => {
+    // §9, 11/09 : à côté du refus ci-dessus, un cas qui doit rester vert
+    // pour SA PROPRE RAISON — sans lui, un contrôle qui refuserait tout mot
+    // de passe resterait indiscernable de celui qui ne refuse que les
+    // démesurés.
+    const email = await compteHabilite(Role.adv);
+    const entetes = await connecter(email);
+    const juste = "a".repeat(LONGUEUR_MAXIMALE);
+
+    const issue = await changerSonMotDePasse(
+      {
+        motDePasseActuel: MOT_DE_PASSE,
+        motDePasse: juste,
+        confirmation: juste,
+      },
+      entetes,
+      auth,
+      clientApp(),
+    );
+    expect(issue.issue).toBe("abouti");
+    expect(await ouvre(email, MOT_DE_PASSE)).toBe(false);
+    expect(await ouvre(email, juste)).toBe(true);
   });
 
   it("une tentative de désigner un AUTRE compte reste sans effet : seul le compte de la session change", async () => {

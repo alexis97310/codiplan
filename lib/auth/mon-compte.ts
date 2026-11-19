@@ -7,7 +7,7 @@ import { VARIABLE_SESSION_UTILISATEUR } from "@/lib/db/rls";
 
 import { auth, type Auth } from "./config";
 import { dansUnEchangeAuth } from "./echange";
-import { LONGUEUR_MINIMALE } from "./premier-acces";
+import { LONGUEUR_MAXIMALE, LONGUEUR_MINIMALE } from "./premier-acces";
 import { type Role } from "./roles";
 import { obtenirSession } from "./session";
 
@@ -82,9 +82,9 @@ import { obtenirSession } from "./session";
  */
 
 const Saisie = z.object({
-  motDePasseActuel: z.string().min(1),
-  motDePasse: z.string(),
-  confirmation: z.string(),
+  motDePasseActuel: z.string().min(1).max(LONGUEUR_MAXIMALE),
+  motDePasse: z.string().max(LONGUEUR_MAXIMALE),
+  confirmation: z.string().max(LONGUEUR_MAXIMALE),
 });
 
 /**
