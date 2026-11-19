@@ -23,9 +23,10 @@ import { fichiersSource, sansCommentaires } from "../outils/fichiers-source";
  * champ redevient vrai sans vérification effective. Ce gardien rougit ce
  * jour-là plutôt que de laisser la régression passer inaperçue.
  */
-const SOURCES = fichiersSource(["app", "components", "lib"]).map(
-  (fichier) => ({ ...fichier, sansCommentaires: sansCommentaires(fichier.contenu) }),
-);
+const SOURCES = fichiersSource(["app", "components", "lib"]).map((fichier) => ({
+  ...fichier,
+  sansCommentaires: sansCommentaires(fichier.contenu),
+}));
 
 describe("l'appareil de confiance de Better Auth reste inerte (gardien)", () => {
   it("aucun appel du dépôt ne passe `trustDevice` — le mécanisme ne peut donc jamais poser son cookie", () => {

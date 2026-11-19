@@ -53,9 +53,9 @@ describe("inscription fermée par l'option de la bibliothèque (décision d'Alex
     });
     expect(cree).toBeTruthy();
 
-    const relu = await avecDesignationAuth(clientApp()).utilisateur.findFirst(
-      { where: { email: adresse } },
-    );
+    const relu = await avecDesignationAuth(clientApp()).utilisateur.findFirst({
+      where: { email: adresse },
+    });
     expect(relu?.email).toBe(adresse);
   });
 
@@ -80,9 +80,9 @@ describe("inscription fermée par l'option de la bibliothèque (décision d'Alex
     );
     expect(reponse.status).not.toBe(200);
 
-    const relu = await avecDesignationAuth(clientApp()).utilisateur.findFirst(
-      { where: { email: adresse } },
-    );
+    const relu = await avecDesignationAuth(clientApp()).utilisateur.findFirst({
+      where: { email: adresse },
+    });
     expect(relu).toBeNull();
   });
 
@@ -101,9 +101,9 @@ describe("inscription fermée par l'option de la bibliothèque (décision d'Alex
     );
     expect(reponse.status).not.toBe(200);
 
-    const relu = await avecDesignationAuth(clientApp()).utilisateur.findFirst(
-      { where: { email: adresse } },
-    );
+    const relu = await avecDesignationAuth(clientApp()).utilisateur.findFirst({
+      where: { email: adresse },
+    });
     expect(relu).toBeNull();
   });
 });
