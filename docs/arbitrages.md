@@ -9310,3 +9310,28 @@ Elle ne touche à aucune migration ni à aucun schéma. Elle ne retire aucune in
 > Le jour où une cinquième action tierce entre dans l'un de ces quatre flux, ou où un secret nouveau y apparaît, cette décision s'applique sans qu'il faille la retrancher : `tests/unit/ci/durcissement-flux.test.ts` la tient sur les trois premières bornes, et rougit sur toute référence mobile ou tout bloc `permissions:` élargi.
 
 Portée : `.github/workflows/db-migrate.yml`, `.github/workflows/premier-compte.yml`, `.github/workflows/amorcage-base.yml`, `.github/workflows/db-resolve.yml`, `scripts/inventaire.mts`, `scripts/decrire-connexions.mts`, `tests/unit/db/inventaire.test.ts`, `tests/unit/ci/durcissement-flux.test.ts` (nouveau).
+
+## D274 — L'INSCRIPTION SE FERME PAR L'OPTION DE LA BIBLIOTHÈQUE EN PLUS DU FILTRE DE CHEMIN, AUCUNE ACTION SERVEUR EXPORTÉE NE PREND UN CONTEXTE FOURNI PAR L'APPELANT, ET L'ADRESSE D'UN DESTINATAIRE NE VOYAGE JAMAIS DANS UNE URL DE REDIRECTION (décision d'Alexis du 10/11/2026 ; 9L26-DURCISSEMENTS-AUTH)
+
+### CE QUI A ÉTÉ MESURÉ
+
+Sur `81894e0` : le filtre de `lib/auth/inscription-fermee.ts` reconnaît les chemins fermés en comparant des chaînes — par construction sensible à la casse et à l'encodage — sans que l'option dédiée de Better Auth (`disableSignUp`) ne soit posée en plus ; `resolutionScanBureau` et `resolutionScanTerrain` (`components/machines/scan-qr-bureau.ts`, `scan-qr-terrain.ts`) prenaient un `ContexteActif` en paramètre tout en restant exportées d'un fichier `"use server"`, ce qui en fait un point d'entrée invocable directement par le navigateur avec un contexte de son choix ; et six routes qui redirigent vers `/parametres/equipe` après l'envoi d'un lien d'accès (`app/api/equipe/[id]/envoyer-acces`, `.../nouveau-lien`, les deux équivalents `.../bureau/...`, `app/api/equipe/bureau/creer`, `app/api/techniciens/creer`) portaient l'adresse du destinataire dans la query string de l'URL de redirection.
+
+### LA DÉCISION
+
+**Quatre bornes :**
+
+1. L'instance Better Auth de PRODUCTION (`creerAuth()`, sans contexte administratif) pose désormais `disableSignUp: true` — la bibliothèque refuse `signUpEmail` À L'INTÉRIEUR de son point d'entrée, quelle que soit la forme du chemin qui y a conduit, en plus du filtre de `inscription-fermee.ts` qui reste en place. Les instances ADMINISTRATIVES (l'amorçage Q1/D65, le chemin d'Équipe D162), seules à encore appeler `auth.api.signUpEmail` directement, ne portent pas cette option.
+2. Aucune fonction exportée d'un fichier `"use server"` ne prend plus un contexte de session en argument. `resolutionScanBureau`/`resolutionScanTerrain` vivent désormais dans des modules sans directive ; seules `resoudreScanBureau`/`resoudreScanTerrain`, qui lisent leur contexte depuis `headers()`, restent exportées des fichiers `"use server"`.
+3. Les six routes citées ne portent plus `destinataire` dans leur redirection ; l'adresse affichée dans le bandeau se relit côté serveur, par la cible déjà nommée (`technicien`/`compte`), sur la liste déjà chargée pour l'écran — jamais recopiée depuis une valeur que la requête aurait pu fournir.
+4. `second_facteur_valide` (`lib/auth/config.ts`), déduit de `mfa_actif` à la création de session, a été mesuré sans correction nécessaire : les deux chemins qui pourraient en principe le rendre vrai sans vérification à la connexion courante — une session transitoire créée pendant la vérification des identifiants, et l'« appareil de confiance » de Better Auth — restent fermés, le premier par construction de la bibliothèque (vérifié à l'exécution), le second par l'absence de tout appel du dépôt qui le solliciterait (désormais gardée statiquement).
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+Elle ne change aucune règle métier du chapitre 10 : l'inscription en libre-service n'existait déjà pas (L1-02c), et ce lot renforce la fermeture plutôt que de la redéfinir. Elle n'ajoute aucune migration. Elle ne touche à aucune des capacités de la matrice d'habilitations : `resolutionScanBureau`/`resolutionScanTerrain` revérifient le même rôle qu'avant, seulement depuis un endroit où ce qu'elles vérifient ne peut plus être fourni par l'appelant.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où un écran propose de « se souvenir de cet appareil » à la connexion, cette décision se relit avant de solliciter l'appareil de confiance de Better Auth : `tests/unit/auth/second-facteur-sans-trust-device.test.ts` rougit au premier appel qui le ferait, et le raisonnement qui le justifie doit être repris, pas contourné.
+
+Portée : `lib/auth/config.ts`, `lib/auth/inscription-fermee.ts`, `components/machines/scan-qr-bureau.ts` (et `scan-qr-bureau-resolution.ts`, nouveau), `components/machines/scan-qr-terrain.ts` (et `scan-qr-terrain-resolution.ts`, nouveau), `app/(back-office)/parametres/equipe/page.tsx`, `app/api/equipe/[id]/envoyer-acces/route.ts`, `app/api/equipe/[id]/nouveau-lien/route.ts`, `app/api/equipe/bureau/[id]/envoyer-acces/route.ts`, `app/api/equipe/bureau/[id]/nouveau-lien/route.ts`, `app/api/equipe/bureau/creer/route.ts`, `app/api/techniciens/creer/route.ts`, `tests/isolation/inscription-fermee-option.test.ts` (nouveau), `tests/isolation/second-facteur-session-pre-verification.test.ts` (nouveau), `tests/unit/auth/second-facteur-sans-trust-device.test.ts` (nouveau), `tests/isolation/resolution-scan.test.ts`.
