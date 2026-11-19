@@ -109,6 +109,14 @@ export async function creerInterventionsRepriseEnLot(
   });
   const rattachees = lignes.filter((l) => l.saisie.machine_id !== null);
   if (rattachees.length === 0) return;
+  // UNE INTERVENTION REPRISE NAÎT `cloturee`, MACHINE COMPRISE
+  // (9L14-FIGE-A-LA-CLOTURE) — ce rattachement n'est pas une saisie arrivée
+  // APRÈS la clôture, c'est un fait archivé déjà clos à sa naissance même.
+  // `SET LOCAL` retombe de lui-même à la fin de CETTE transaction, jamais
+  // besoin d'un `RESET` ; voir le docblock du déclencheur dans la migration.
+  await tx.$executeRawUnsafe(
+    `SET LOCAL "fige_a_la_cloture.exemption" = 'reprise_historique'`,
+  );
   await tx.interventionMachine.createMany({
     data: rattachees.map(({ id, saisie }) => ({
       id: uuidv7(),

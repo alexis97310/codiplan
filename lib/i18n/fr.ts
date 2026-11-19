@@ -2684,6 +2684,17 @@ export const fr = {
   // n'est plus vrai depuis que la matrice D8 retire cette flèche.
   "intervention.refus.cloturee_figee":
     "Clôturée : elle ne se modifie plus, y compris pour être annulée.",
+  // 9L14-FIGE-A-LA-CLOTURE (décision d'Alexis du 10/11/2026) — dès
+  // « terminée », le créneau, la date et le technicien ne bougent plus au
+  // serveur (D197 n'avait retiré que les boutons).
+  "intervention.refus.terminee_figee":
+    "Intervention terminée : le créneau et le technicien ne se modifient plus.",
+  // 9L14-FIGE-A-LA-CLOTURE — la saisie est GARDÉE (jamais perdue), mais plus
+  // appliquée d'office : voir `garderSaisieTardive`
+  // (`lib/interventions/saisie-tardive.ts`). Affiché par `LigneRefus`
+  // (`components/terrain/bouton-envoyer.tsx`).
+  "intervention.refus.cloturee_saisie_gardee":
+    "Gardé : l'intervention a été clôturée, le bureau est prévenu.",
   // 9L08B-SAISIE-APRES-DEMARRER (décision d'Alexis du 16/11/2026) — checklist,
   // rapport, prestations et signature exigent toutes le même préalable.
   "intervention.refus.non_demarree":
@@ -2823,6 +2834,16 @@ export const fr = {
   // ── LES PAUSES — L'HISTORIQUE, LA PLUS RÉCENTE EN TÊTE (50-INTERVENTIONS-2) ──
   "intervention.pauses.titre": "Pauses",
   "intervention.pauses.aucune": "Aucune pause enregistrée.",
+  // 9L14-FIGE-A-LA-CLOTURE — les saisies terrain gardées à part, jamais
+  // appliquées.
+  "intervention.saisies_apres_cloture.titre":
+    "Saisies arrivées après la clôture",
+  "intervention.saisies_apres_cloture.aucune":
+    "Aucune saisie arrivée après la clôture.",
+  "intervention.saisies_apres_cloture.type.prestations": "Prestations",
+  "intervention.saisies_apres_cloture.type.signature": "Signature",
+  "intervention.saisies_apres_cloture.type.photo": "Photo",
+  "intervention.saisies_apres_cloture.type.machine": "Machine",
   "intervention.pauses.en_cours": "En cours",
   "intervention.pauses.duree": "Durée",
   "intervention.pauses.motif": "Motif",
@@ -8184,6 +8205,10 @@ export const fr = {
   "notifications.evenement.accord_attendu_en_retard":
     "Accord en attente de réponse",
   "notifications.evenement.piece_recue": "Pièce reçue",
+  // 9L14-FIGE-A-LA-CLOTURE — une saisie terrain refusée pour cause de
+  // clôture, gardée à part.
+  "notifications.evenement.saisie_apres_cloture":
+    "Saisie terrain après clôture",
 
   // ── 9J04-PORTAIL-DEMANDES — le client dépose une demande (CLI-4) ────────
   "portail.demandes.titre": "Vos demandes",

@@ -15,6 +15,7 @@ const LIBELLES_EVENEMENT: Partial<Record<string, CleTraduction>> = {
   devis_en_retard: "notifications.evenement.devis_en_retard",
   accord_attendu_en_retard: "notifications.evenement.accord_attendu_en_retard",
   piece_recue: "notifications.evenement.piece_recue",
+  saisie_apres_cloture: "notifications.evenement.saisie_apres_cloture",
 };
 
 export function libelleEvenement(evenement: string): string {

@@ -25,6 +25,7 @@ import {
   type StatutIntervention,
   type TypeIntervention,
 } from "@/lib/interventions/saisie";
+import { garderSaisieTardive } from "@/lib/interventions/saisie-tardive";
 
 export { aSectionPiecesRemplacees };
 
@@ -59,7 +60,8 @@ export { aSectionPiecesRemplacees };
  * inexistante rendent la même chose (D35, D50) : distinguer les deux dirait à
  * un technicien restreint qu'une intervention d'un collègue existe.
  *
- * ## AUCUN STATUT NE BLOQUE L'AJOUT — sauf ce que `intervention` bloque déjà
+ * ## TOUT EST FIGÉ À LA CLÔTURE, DÉSORMAIS (9L14-FIGE-A-LA-CLOTURE, décision
+ * d'Alexis du 10/11/2026, précisant I5)
  *
  * `commentaire_technicien` et `suite_a_donner` sont des COLONNES de
  * `intervention` : une intervention FIGÉE (annulée ou clôturée, `estFige`) ne
@@ -68,10 +70,17 @@ export { aSectionPiecesRemplacees };
  * sans ce refus NOMMÉ, la base lève une exception non rattrapée (23514, une
  * figée jamais vue par le terrain, mesuré par la passation de
  * 9DD-PG-G14C-TERRAIN-TRANSMISES) et la route rend une page d'erreur brute au
- * lieu d'un motif lisible. Les prestations réalisées, les photos et la
- * signature vivent dans des tables FILLES et n'héritent PAS de cette borne —
- * I5 garantit que le travail terrain n'est jamais perdu, même sur une
- * intervention clôturée ou annulée entre-temps.
+ * lieu d'un motif lisible. **Les prestations réalisées et la signature
+ * REJUGENT désormais la même borne, exactement pour la même raison** —
+ * `intervention_prestation_figee_a_la_cloture` et `intervention_signature_
+ * figee_a_la_cloture` (migration `20261120080000_fige_a_la_cloture_9l14`)
+ * refusent déjà en base, et ce module le dit AVANT, avec un motif. **Avant ce
+ * ticket, I5 lisait l'inverse** — « le travail terrain n'est jamais perdu,
+ * même sur une intervention clôturée ou annulée » comme une autorisation
+ * d'écrire après coup. La décision du 10/11/2026 précise : le travail
+ * terrain reste gardé, mais plus appliqué d'office — voir
+ * `garderSaisieTardive` (`lib/interventions/saisie-tardive.ts`), appelée ICI
+ * à la place de l'écriture refusée, dans la MÊME transaction.
  *
  * ## LES PRESTATIONS DU TERRAIN SE DÉFINISSENT PAR UNE DIFFÉRENCE, jamais un
  * ENSEMBLE ENTIER (D143, décision d'Alexis du 22/10/2026)
@@ -346,7 +355,11 @@ export async function definirPrestationsRealiseesDepuisFile(
     async (tx) => {
       const intervention = await tx.intervention.findFirst({
         where: { id: interventionId },
-        select: { id: true, technicien_id: true, statut: true },
+        select: {
+          id: true,
+          technicien_id: true,
+          statut: true,
+        },
       });
       if (
         intervention === null ||
@@ -380,6 +393,27 @@ export async function definirPrestationsRealiseesDepuisFile(
         retirer.some((id) => !estUuid(id))
       ) {
         return null;
+      }
+      // FIGÉE À LA CLÔTURE (9L14-FIGE-A-LA-CLOTURE) — un ajout ou un retrait
+      // tenté après la clôture n'est jamais appliqué : il est gardé à part,
+      // signalé à l'ADV, jamais perdu pour autant (I5, précisée). Un appel
+      // qui ne tente RIEN (les deux listes vides) n'a rien à garder — il
+      // tombe dans le reste de la fonction, sans effet, quel que soit le
+      // statut.
+      if (
+        estFige(intervention.statut as StatutIntervention) &&
+        (ajouter.length > 0 || retirer.length > 0)
+      ) {
+        await garderSaisieTardive(contexte, tx, {
+          societeId,
+          interventionId,
+          type: "prestations",
+          contenu: { ajouterIds: ajouter, retirerIds: retirer },
+        });
+        return {
+          refuse: true,
+          cle: "intervention.refus.cloturee_saisie_gardee",
+        };
       }
       if (ajouter.length > 0) {
         // UN `ajouter_id` D'UNE AUTRE SOCIÉTÉ EST REFUSÉ, PROPREMENT (point 4,
@@ -435,13 +469,10 @@ export async function definirPrestationsRealiseesDepuisFile(
       // UN RAPPORT MODIFIÉ ANNULE SA VALIDATION (RG-INT-03, D135, 9H1B) —
       // même motif que `enregistrerRapportTexte` : les prestations réalisées
       // faisaient partie de ce qu'un responsable a jugé en validant (BON-2),
-      // au même titre que le texte. SAUF SUR UNE FIGÉE (`estFige`) : I5
-      // garantit que ce dépôt n'est jamais bloqué par le statut, mais
-      // `intervention_cycle_de_vie` refuse TOUTE modification d'une ligne
-      // déjà `cloturee`/`annulee` — y écrire ferait échouer tout l'envoi,
-      // prestations comprises, pour une validation qu'une clôture déjà
-      // close n'a plus de sens à défaire.
-      if (modifiee && !estFige(intervention.statut as StatutIntervention)) {
+      // au même titre que le texte. `modifiee` ne peut être vrai sur une
+      // figée (9L14-FIGE-A-LA-CLOTURE) : ce cas est déjà sorti plus haut,
+      // gardé à part.
+      if (modifiee) {
         await tx.intervention.updateMany({
           where: { id: interventionId },
           data: { rapport_valide_par: null, rapport_valide_le: null },
@@ -625,7 +656,11 @@ export async function enregistrerSignature(
       async (tx) => {
         const intervention = await tx.intervention.findFirst({
           where: { id: interventionId },
-          select: { id: true, technicien_id: true, statut: true },
+          select: {
+            id: true,
+            technicien_id: true,
+            statut: true,
+          },
         });
         if (
           intervention === null ||
@@ -666,6 +701,30 @@ export async function enregistrerSignature(
         ) {
           return { id: derniere.id };
         }
+        // FIGÉE À LA CLÔTURE (9L14-FIGE-A-LA-CLOTURE) — passé les deux
+        // rejeux ci-dessus (même `id`, ou même contenu que la dernière
+        // signature déjà écrite AVANT la clôture), toute signature
+        // VRAIMENT NOUVELLE tentée après la clôture n'est jamais appliquée :
+        // gardée à part, signalée à l'ADV.
+        if (estFige(intervention.statut as StatutIntervention)) {
+          await garderSaisieTardive(contexte, tx, {
+            societeId,
+            interventionId,
+            type: "signature",
+            contenu:
+              saisie.issue === "signee"
+                ? {
+                    issue: saisie.issue,
+                    signataireNom: saisie.signataire_nom,
+                    signataireQualite: saisie.signataire_qualite ?? null,
+                  }
+                : { issue: saisie.issue, motif: saisie.motif },
+          });
+          return {
+            refuse: true,
+            cle: "intervention.refus.cloturee_saisie_gardee",
+          };
+        }
         const creee = await tx.interventionSignature.create({
           data:
             saisie.issue === "signee"
@@ -690,14 +749,13 @@ export async function enregistrerSignature(
         // UN RAPPORT MODIFIÉ ANNULE SA VALIDATION (RG-INT-03, D135, 9H1B) —
         // même motif que `enregistrerRapportTexte` et les prestations
         // réalisées : la signature fait partie de ce qu'un responsable a
-        // jugé en validant (BON-2). SAUF SUR UNE FIGÉE (`estFige`), pour la
-        // même raison que les prestations — voir leur commentaire.
-        if (!estFige(intervention.statut as StatutIntervention)) {
-          await tx.intervention.updateMany({
-            where: { id: interventionId },
-            data: { rapport_valide_par: null, rapport_valide_le: null },
-          });
-        }
+        // jugé en validant (BON-2). Le cas FIGÉ ne retombe jamais ici
+        // (9L14-FIGE-A-LA-CLOTURE) : il est déjà sorti plus haut, gardé à
+        // part.
+        await tx.intervention.updateMany({
+          where: { id: interventionId },
+          data: { rapport_valide_par: null, rapport_valide_le: null },
+        });
         return creee;
       },
       client,

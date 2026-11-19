@@ -10,8 +10,13 @@ import {
 import { enregistrerReponsePhoto } from "@/lib/checklists/depot";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { uuidv7 } from "@/lib/db/uuid";
+import { estFige } from "@/lib/interventions/cycle-de-vie";
 import { accesSurCetteIntervention } from "@/lib/interventions/perimetre-technicien";
-import type { TypeIntervention as TypeInterventionSaisie } from "@/lib/interventions/saisie";
+import type {
+  StatutIntervention,
+  TypeIntervention as TypeInterventionSaisie,
+} from "@/lib/interventions/saisie";
+import { garderSaisieTardive } from "@/lib/interventions/saisie-tardive";
 
 import {
   colonnesDeCible,
@@ -525,7 +530,11 @@ export async function deposerPhotoIntervention(
     readonly checklistPointId?: string;
   },
   client?: PrismaClient,
-): Promise<{ readonly id: string } | null> {
+): Promise<
+  | { readonly id: string }
+  | { readonly refuse: true; readonly cle: string }
+  | null
+> {
   const societeId = exigerSocieteActive(contexte);
   const empreinte = createHash("sha256").update(saisie.octets).digest("hex");
   const classe =
@@ -540,6 +549,7 @@ export async function deposerPhotoIntervention(
             technicien_id: true,
             type: true,
             checklist_version_id: true,
+            statut: true,
           },
         });
         if (
@@ -566,6 +576,30 @@ export async function deposerPhotoIntervention(
             select: { id: true },
           });
           document = existante;
+        }
+        // FIGÉE À LA CLÔTURE (9L14-FIGE-A-LA-CLOTURE, décision d'Alexis du
+        // 10/11/2026, précisant I5) — passé les deux rejeux ci-dessus (même
+        // `operationId`, ou même empreinte qu'une photo déjà déposée AVANT
+        // la clôture), toute photo VRAIMENT NOUVELLE tentée après la
+        // clôture n'est jamais appliquée : gardée à part, signalée à l'ADV.
+        if (document === null && estFige(intervention.statut as StatutIntervention)) {
+          await garderSaisieTardive(contexte, tx, {
+            societeId,
+            interventionId,
+            type: "photo",
+            contenu: {
+              classe,
+              libelle: saisie.libelle,
+              nomFichier: saisie.nom_fichier,
+              typeMime: saisie.type_mime,
+              tailleOctets: saisie.octets.byteLength,
+              checklistPointId: saisie.checklistPointId ?? null,
+            },
+          });
+          return {
+            refuse: true,
+            cle: "intervention.refus.cloturee_saisie_gardee",
+          };
         }
         document ??= await tx.document.create({
           data: {

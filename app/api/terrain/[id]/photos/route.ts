@@ -165,9 +165,8 @@ async function traiter(requete: Request, id: string): Promise<Response> {
     checklistPointId: checklistPointIdDuFormulaire(formulaire),
   });
 
-  return reponse(
-    requete,
-    id,
-    depot === null ? "terrain.photos.refus" : undefined,
-  );
+  if (depot !== null && "refuse" in depot) {
+    return reponse(requete, id, depot.cle);
+  }
+  return reponse(requete, id, depot === null ? "terrain.photos.refus" : undefined);
 }
