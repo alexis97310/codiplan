@@ -25,6 +25,11 @@ photo, un autre client ne la voit pas (404), une photo de classe `interne` reste
 photo reste lisible côté interne (témoin), et une intervention pas encore close referme la photo
 même pour son propre client.
 
+**Correctif mesuré par un gardien existant** : le second chemin lisait `headers()` lui-même, ce qui
+lève hors de toute requête Next sous `tests/isolation/9l24-routes-sans-capacite.test.ts` (qui
+remplace `@/lib/auth/porte` entièrement). Il passe désormais par `exigerSessionActive` — déjà dans ce
+module, même couture de lecture qu'`exigerCapacite` — et le gardien la mocke au même titre.
+
 ## Point 2 — bornes de taille sur les saisies du portail
 
 Mesuré : `lib/contacts/saisie.ts` (nom, fonction, téléphone, mobile, courriel) n'avait qu'un
