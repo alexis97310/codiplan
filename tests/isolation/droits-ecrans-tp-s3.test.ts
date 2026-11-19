@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 /**
  * D153 (03/10/2026, TP-S3, 9DH-TP-S3-DROITS-ECRANS) — LES ROUTES TRAVERSÉES,
@@ -294,13 +294,24 @@ describe("D199 (13/10/2026, décision n° 85) — regler_trajets : le ● de la 
 });
 
 describe("D153 — gerer_client_site : une exigence porte sur UN SITE (CS31)", () => {
-  it("prépare l'habilitation référentielle de l'épreuve", async () => {
+  // AMORÇAGE, PAS UNE ÉPREUVE (9L25-TESTS-FRAGILES) : la première rédaction
+  // posait cette habilitation référentielle dans un `it` sans aucune
+  // assertion — une tautologie, toujours verte quoi qu'il arrive. Le
+  // `beforeAll` est le bon endroit pour une préparation, et l'assertion
+  // qu'il porte maintenant est RÉELLE : si l'insertion échouait en silence,
+  // les deux épreuves suivantes échoueraient toutes les deux pour une
+  // raison qui n'est pas la leur, sans qu'on sache pourquoi.
+  beforeAll(async () => {
     await clientOwner().$executeRawUnsafe(
       `INSERT INTO "habilitation" ("id","societe_id","code","libelle")
        VALUES ($1::uuid, $2::uuid, '9DH-EPREUVE', 'Habilitation épreuve 9DH')`,
       HABILITATION_ID,
       SOCIETE_A,
     );
+    const compte = await clientOwner().habilitation.count({
+      where: { id: HABILITATION_ID, societe_id: SOCIETE_A },
+    });
+    expect(compte).toBe(1);
   });
 
   it("l'ADV exige cette habilitation sur un site → accepté", async () => {
