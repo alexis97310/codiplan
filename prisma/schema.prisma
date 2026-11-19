@@ -64,7 +64,7 @@ model Devise {
   /// réciproque et accesseur de premier niveau tous deux inutilisés
   /// aujourd'hui. Partenaire vérifié : `Parite.devise` non plus jamais
   /// navigué.
-  parites       Parite[]       @ignore
+  parites       Parite[]      @ignore
   taux_horaires TauxHoraire[] @ignore
   // `@ignore` : JAMAIS navigué, même raisonnement que le bloc de `Societe`
   // (9L04A-MEMOIRE-BUILD-CAUSE, D246) — `TauxHoraire` se lit toujours par sa
@@ -74,7 +74,7 @@ model Devise {
   /// `lib/interventions/depot.ts`, `app/api/portail/tarifs/lecture.ts`)
   /// sélectionnent `devise_code` en scalaire, jamais cette réciproque.
   /// Partenaire vérifié : `Forfait.devise` non plus jamais sélectionné.
-  forfaits      Forfait[]      @ignore
+  forfaits      Forfait[]     @ignore
 
   @@map("devise")
 }
@@ -294,7 +294,7 @@ model Societe {
   campagnes_vgp                VgpCampagne[]                     @ignore
   interventionPrestations      InterventionPrestation[]          @ignore
   prestationTypesIntervention  PrestationTypeIntervention[]      @ignore
-  prestationFamillesMateriel   PrestationFamilleMateriel[]        @ignore
+  prestationFamillesMateriel   PrestationFamilleMateriel[]       @ignore
   interventionSignatures       InterventionSignature[]           @ignore
   /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : JAMAIS navigué — `InterventionPause`
   /// se lit toujours par sa propre requête filtrée sur `intervention_id`
@@ -302,6 +302,11 @@ model Societe {
   /// réciproque. Partenaire vérifié : `InterventionPause.societe` n'est non plus
   /// jamais sélectionné (même pattern que le bloc ci-dessus).
   interventionPauses           InterventionPause[]               @ignore
+  /// `@ignore` (9L14-FIGE-A-LA-CLOTURE) : JAMAIS navigué — seul l'accesseur
+  /// de premier niveau `tx.saisieApresCloture` est lu (`lib/interventions/
+  /// saisie-tardive.ts`), jamais cette réciproque. Partenaire
+  /// `SaisieApresCloture.societe` non plus jamais sélectionné.
+  saisiesApresCloture          SaisieApresCloture[]              @ignore
   piecesRemplacees             InterventionPieceRemplacee[]
   /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : JAMAIS navigué — seul l'accesseur
   /// de premier niveau `tx.interventionStatutHistorique` est lu
@@ -1090,7 +1095,7 @@ model Utilisateur {
   /// `lib/auth/reinitialisation.ts`), jamais par cette réciproque. Le texte du
   /// schéma reste visible au gardien `tests/unit/auth/utilisateur-sans-donnee-
   /// metier.test.ts` (lecture du SCHÉMA, pas du client Prisma).
-  seconds_facteurs SecondFacteur[]  @ignore
+  seconds_facteurs SecondFacteur[]      @ignore
   /// PAS `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) — mesuré à tort comme non lue
   /// en ne vérifiant que CE champ : `@ignore` ici retire aussi
   /// `JournalAcces.utilisateur` (même relation, deux sens), qui EST lu
@@ -1386,10 +1391,10 @@ model SecondFacteur {
 /// de compteur : la fenêtre glissante de quinze minutes se calcule en
 /// comptant les lignes récentes, jamais en relisant une horloge mémorisée.
 model TentativeConnexion {
-  id          String    @id @db.Uuid
+  id          String   @id @db.Uuid
   identifiant String
   adresse_ip  String?
-  survenue_le DateTime  @default(now())
+  survenue_le DateTime @default(now())
 
   @@index([identifiant, survenue_le])
   @@index([adresse_ip, survenue_le])
@@ -1907,7 +1912,7 @@ model Intervention {
   /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : JAMAIS navigué — même motif que
   /// `Societe.notifications` ci-dessus, même vérification du partenaire
   /// (`Notification.intervention`).
-  notifications           Notification[] @ignore
+  notifications           Notification[]                 @ignore
   /// Les prestations RÉALISÉES sur cette intervention (BON-2), distinctes du
   /// catalogue `Prestation` qu'elles référencent.
   prestations_realisees   InterventionPrestation[]
@@ -1925,6 +1930,13 @@ model Intervention {
   /// `suspendue_le` ci-dessous, qui restent l'ÉTAT COURANT lu par d'autres
   /// écrans (le terrain, notamment).
   pauses                  InterventionPause[]
+  /// LES SAISIES TERRAIN ARRIVÉES APRÈS LA CLÔTURE (9L14-FIGE-A-LA-CLOTURE) —
+  /// voir `SaisieApresCloture`.
+  /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : JAMAIS navigué depuis
+  /// `Intervention` — `lib/interventions/saisie-tardive.ts` lit
+  /// `tx.saisieApresCloture` en accesseur de premier niveau, jamais cette
+  /// réciproque.
+  saisies_apres_cloture   SaisieApresCloture[]           @ignore
   /// L'HISTORIQUE DES CHANGEMENTS DE STATUT (9J08A-HISTORIQUE-DES-ETATS) —
   /// alimenté par déclencheur, jamais écrit par le dépôt. Sans reprise du
   /// passé (option A retenue par Alexis le 29/10/2026, `etude-equipe/synthese.md`
@@ -2483,7 +2495,7 @@ model Demande {
   /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : JAMAIS navigué — même motif que
   /// `Societe.notifications`, même vérification du partenaire
   /// (`Notification.demande`).
-  notifications     Notification[] @ignore
+  notifications     Notification[]            @ignore
 
   @@unique([societe_id, id])
   @@unique([societe_id, annee, numero])
@@ -2754,6 +2766,72 @@ model InterventionPause {
   @@unique([societe_id, id])
   @@index([societe_id, intervention_id, debut])
   @@map("intervention_pause")
+}
+
+/// LES QUATRE DOMAINES QU'UNE SAISIE TERRAIN PEUT TENTER APRÈS LA CLÔTURE —
+/// voir `SaisieApresCloture`. Fermée : le chapitre 10 ne connaît que ces
+/// quatre tables filles figées (signature, prestations, photos, machine) ;
+/// le commentaire du rapport et les pièces remplacées restent gardés par
+/// `estFige` dans `enregistrerRapportTexte` depuis avant ce ticket et n'ont
+/// pas besoin de cette table pour rester visibles (I6 : rien n'est effacé).
+enum TypeSaisieApresCloture {
+  prestations
+  signature
+  photo
+  machine
+}
+
+/// UNE SAISIE TERRAIN ARRIVÉE APRÈS LA CLÔTURE (9L14-FIGE-A-LA-CLOTURE,
+/// décision d'Alexis du 10/11/2026, option 1, précisant I5) — « gardée à
+/// part », jamais appliquée d'office.
+///
+/// **Ce que I5 disait avant ce ticket** : le travail terrain n'est jamais
+/// perdu, même sur une intervention clôturée ou annulée — `signature`,
+/// `prestations`, `photos` et `machine` restaient donc ouvertes À L'ÉCRITURE
+/// après la clôture. **Ce que la décision du 10/11/2026 précise** : ces
+/// quatre tables filles sont désormais figées à la clôture, EN BASE — et ce
+/// que le terrain tente quand même (téléphone resté hors réseau pendant la
+/// clôture, par exemple) n'est plus perdu pour autant : il est écrit ICI,
+/// jamais appliqué à la table visée, signalé à l'ADV, et visible sur la
+/// fiche bureau. *Le travail terrain reste conservé — il n'est simplement
+/// plus appliqué d'office.*
+///
+/// Forme de politique « filiation » (D103), comme `InterventionPause` :
+/// une fille est visible si son parent l'est.
+model SaisieApresCloture {
+  id         String @id @db.Uuid
+  societe_id String @db.Uuid
+
+  intervention_id String @db.Uuid
+
+  type TypeSaisieApresCloture
+
+  /// Le contenu tel que l'appareil l'a envoyé — pour que le bureau voie CE
+  /// QUI a été tenté, jamais seulement qu'une tentative a eu lieu.
+  contenu Json
+
+  /// QUI a tenté cette saisie — jamais NULL : l'auteur d'une tentative
+  /// terrain est toujours la session qui l'a envoyée. Aucune relation
+  /// Prisma déclarée vers `Utilisateur` — même choix que `Document.
+  /// depose_par` (D39) : une relation ferait naître son inverse, que le
+  /// gardien de D39 refuserait.
+  auteur_id String @db.Uuid
+
+  /// QUAND LE SERVEUR L'A REÇUE — aucune des quatre saisies visées
+  /// (prestations, signature, photo, machine) ne porte aujourd'hui d'heure
+  /// D'APPAREIL propre (contrairement au compteur ou à « terminer ») :
+  /// inventer une heure appareil serait la faute que le §8 du CLAUDE.md
+  /// interdit. Cette colonne reste donc la seule heure de cette table.
+  cree_le DateTime @default(now()) @db.Timestamptz(3)
+
+  societe      Societe      @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  /// `ON DELETE CASCADE`, comme `intervention_pause` : une ligne gardée n'a
+  /// aucun sens sans son intervention.
+  intervention Intervention @relation(fields: [societe_id, intervention_id], references: [societe_id, id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@unique([societe_id, id])
+  @@index([societe_id, intervention_id, cree_le])
+  @@map("saisie_apres_cloture")
 }
 
 /// L'HISTORIQUE DES CHANGEMENTS DE STATUT D'UNE INTERVENTION
@@ -3606,7 +3684,7 @@ model PrestationFamilleMateriel {
 
   cree_le DateTime @default(now())
 
-  societe    Societe @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  societe    Societe         @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
   /// `Cascade` : une ligne « cette prestation vise cette famille » n'a aucune
   /// vie propre sans sa prestation (même raisonnement que `prestation_type_
   /// intervention` vers `prestation`, D103).
@@ -3761,18 +3839,18 @@ model FamilleMateriel {
 
   actif Boolean @default(true)
 
-  societe           Societe            @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  societe           Societe                     @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
   modeles           ModeleMateriel[]
   /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : JAMAIS navigué — `listerLesSousTypes`
   /// et `lib/imports/parc-sous-types.ts` lisent `tx.sousTypeMateriel`
   /// directement, scalaire `famille_id` seul. Partenaire vérifié :
   /// `SousTypeMateriel.famille` non plus jamais sélectionné (même pattern).
-  sous_types        SousTypeMateriel[] @ignore
+  sous_types        SousTypeMateriel[]          @ignore
   /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : JAMAIS navigué depuis
   /// `FamilleMateriel` — même motif que `Devise.forfaits`. Partenaire
   /// vérifié : `Forfait.famille` non plus jamais sélectionné (`famille_id`
   /// seul, en scalaire).
-  forfaits          Forfait[]          @ignore
+  forfaits          Forfait[]                   @ignore
   /// Les prestations qui la visent, via la table de liaison (9L04J, D259) —
   /// REMPLACE l'ancienne relation directe `Prestation[]` du scalaire
   /// `famille_id`, retirée par la même migration.
@@ -3786,14 +3864,14 @@ model FamilleMateriel {
   /// l'est, via `count`/`createMany`/`deleteMany`) — à la différence de
   /// `Prestation.realisations` ci-dessous, ignorer ce champ ne casse aucun
   /// partenaire réellement lu.
-  prestations       PrestationFamilleMateriel[]       @ignore
+  prestations       PrestationFamilleMateriel[] @ignore
   /// PAS `@ignore` sur `campagnes_vgp` (9L04A-MEMOIRE-BUILD-CAUSE, D246) —
   /// mesuré à tort comme non lue en ne vérifiant que ce champ : `@ignore`
   /// ici retire aussi `VgpCampagne.famille` (même relation, deux sens) du
   /// client généré, qui EST lu (`lib/vgp/campagne.ts`). Voir le commentaire
   /// sur `Prestation.realisations`, même famille d'erreur.
   campagnes_vgp     VgpCampagne[]
-  checklist_modeles ChecklistModele[]  @ignore
+  checklist_modeles ChecklistModele[]           @ignore
 
   /// Cible du chaînage composite de `modele_materiel` : elle rend le couple
   /// (société, famille) référençable d'un seul geste, de sorte qu'un modèle ne
@@ -4328,12 +4406,12 @@ model Document {
   /// depot.ts` (`CHAMPS_RECU`) lit `document_id` en scalaire, jamais cette
   /// réciproque. Partenaire vérifié : `DocumentRecu.document` non plus jamais
   /// sélectionné.
-  recus              DocumentRecu[]    @ignore
+  recus              DocumentRecu[]          @ignore
   /// `@ignore` (9L16A-MEMOIRE-BUILD-MARGE) : JAMAIS navigué depuis `Document` —
   /// les requêtes de `lib/vgp/*.ts` lisent `VgpVerification` par
   /// `machine_id`/`id`, jamais par cette réciproque. Partenaire vérifié :
   /// `VgpVerification.document` non plus jamais sélectionné.
-  verifications_vgp  VgpVerification[] @ignore
+  verifications_vgp  VgpVerification[]       @ignore
   /// Les points de checklist qu'elle répond (9K28-CHECKLIST-REPONSE-PHOTO) —
   /// `intervention_id` ci-dessus reste sa seule cible ; ce lien n'est qu'une
   /// ÉTIQUETTE, jamais une seconde cible (`document_cible_unique` inchangée).
@@ -4609,6 +4687,12 @@ enum EvenementNotification {
   /// (`lib/suite-a-donner/depot.ts`) dans la MÊME transaction que le passage
   /// du statut à `a_replanifier`.
   piece_recue
+  /// 9L14-FIGE-A-LA-CLOTURE : une saisie terrain (prestations, signature,
+  /// photo ou machine) refusée parce que l'intervention est déjà clôturée
+  /// ou annulée. Posée par `garderSaisieTardive` (`lib/interventions/
+  /// saisie-tardive.ts`), dans la MÊME transaction que la ligne gardée dans
+  /// `SaisieApresCloture`.
+  saisie_apres_cloture
 }
 
 /// LA NOTIFICATION (D229). Table métier de la PREMIÈRE catégorie de I1, de
