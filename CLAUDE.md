@@ -108,7 +108,7 @@ pas diverger en silence.
 | I2 | Jamais de conversion de devise ligne à ligne | Montants stockés dans la devise de la société avec leur code ; seule `convertForConsolidation`, réservée à `lib/reporting`, convertit, et elle exige une date de parité explicite |
 | I3 | Décimales portées par la devise | XPF zéro décimale, EUR deux ; jamais de `toFixed(2)` en dur, tout formatage passe par `formatMoney(montant, devise)` |
 | I4 | Le terrain fonctionne sans réseau | Toute fonctionnalité de l'application technicien est utilisable en mode avion ; une fonctionnalité mobile qui exige le réseau est refusée |
-| I5 | Préséance en cas de conflit de synchronisation | Terrain sur le travail, back-office sur la planification, statut par préséance `ANNULEE` > `CLOTUREE` > … ; le travail terrain n'est jamais perdu |
+| I5 | Préséance en cas de conflit de synchronisation | Terrain sur le travail, back-office sur la planification, statut par préséance `CLOTUREE` > `ANNULEE` > … ; le travail terrain n'est jamais perdu — conservé, pas appliqué, dès la clôture (9L14) |
 | I6 | Aucun import appliqué sans contrôle préalable | Un rapport d'abord, une validation explicite ensuite ; annulation partielle et sûre, jamais de suppression en cascade |
 | I7 | Calendriers propres à chaque agence | Aucun calendrier global codé en dur ; le calendrier de référence dépend de l'usage — SLA, majoration, conflit à la pose, site fermé |
 | I8 | Traçabilité | Toute écriture sur une table du périmètre est journalisée (auteur, horodatage, avant/après) par déclencheur PostgreSQL ; périmètre **inversé** — audité par défaut, exempté par écrit — et une seule maison, `scripts/lib/perimetre-audit.ts` |

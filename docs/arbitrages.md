@@ -9359,3 +9359,33 @@ Elle ne change ni le défaut (`60`, posé par 9I8A1-REPRISE-9I8A), ni les deux a
 > Le jour où un palier pourrait compter depuis le plancher plutôt que depuis `0`, cette décision se relit avant de changer la formule : `tests/unit/tarification/valorisation.test.ts` fixe le comportement actuel, et le changer sans le relire romprait le point 3 ci-dessus en silence.
 
 Portée : `lib/tarification/valorisation.ts`, `components/tarifs/formulaire-regle-facturation.tsx`, `prisma/migrations/20261120113000_plancher_facturation_jamais_zero_9l27/` (nouveau), `lib/db/migrations-attendues.ts`, `tests/unit/tarification/valorisation.test.ts`, `tests/isolation/regle-arrondi-societe.test.ts`.
+
+## D276 — TOUT EST FIGÉ À LA CLÔTURE, EN BASE ; UNE SAISIE TERRAIN ARRIVÉE APRÈS EST GARDÉE À PART ET SIGNALÉE À L'ADV — PRÉCISE I5 (décision d'Alexis du 10/11/2026, option 1 ; 9L14-FIGE-A-LA-CLOTURE)
+
+### CE QUI A ÉTÉ MESURÉ
+
+Sur `b356a2f74` : les tables filles d'une intervention restaient modifiables après sa clôture ou son annulation. `definirPrestationsRealiseesDepuisFile` et `enregistrerSignature` (`lib/interventions/depot-rapport-terrain.ts`) ne rejugeaient que `peutSaisirSurTerrain` (le démarrage), jamais `estFige` — contrairement à `enregistrerRapportTexte`, qui refusait déjà toute écriture sur une figée. `deposerPhotoIntervention` (`lib/documents/depot.ts`) ne rejugeait aucun statut. En base, aucun déclencheur ne couvrait `intervention_prestation`, `intervention_signature`, `intervention_machine` ni `document` : le schéma documentait même l'inverse, en toutes lettres (`intervention_signature` : « Aucun statut de l'intervention ne bloque l'ajout d'une signature, pas même `cloturee` ou `annulee` : I5 garantit que le travail terrain n'est jamais perdu »).
+
+Deux points liés, mesurés dans le même lot : `peutDeplacer`/`peutAffecter` (`lib/interventions/cycle-de-vie.ts`) ne refusaient que `annulee`/`cloturee` — une intervention `terminee` restait déplaçable et réaffectable au serveur, alors que D197 n'en avait retiré que les boutons de l'écran. Et `demarrerLeCompteur` (`lib/interventions/depot-compteur.ts`), seul chemin qui fait passer une intervention `terminee` à `en_cours` (donc sa réouverture de facto), ne touchait jamais `rapport_valide_par`/`rapport_valide_le` — contrairement à toute écriture du rapport lui-même, qui les annule déjà (RG-INT-03).
+
+### LA DÉCISION
+
+**Signature, prestations réalisées, photos (`document`, cible intervention) et machine (`intervention_machine`) sont désormais FIGÉES, EN BASE, dès qu'une intervention est `cloturee` ou `annulee`.** Quatre déclencheurs `BEFORE` (une seule fonction partagée, `intervention_fille_figee_a_la_cloture`) refusent nommément toute écriture — `INSERT`/`UPDATE`/`DELETE` selon ce que le rôle applicatif détient déjà sur chaque table — en lisant le statut de l'intervention parente. Les fonctions de dépôt rejugent la même borne (`estFige`) AVANT la base, pour rendre un motif lisible plutôt qu'une exception brute.
+
+**Ce qu'une saisie refusée pour cette seule raison devient : GARDÉE, PAS PERDUE.** `garderSaisieTardive` (`lib/interventions/saisie-tardive.ts`), appelée à la place de l'écriture refusée, dans la MÊME transaction : une ligne `saisie_apres_cloture` (contenu, auteur, date de réception) et une `notification` (`saisie_apres_cloture`, capacité `consulter_clients_sites` — l'ADV, sans le technicien) naissent ensemble. Rien n'est appliqué d'office ; le bureau voit la saisie gardée sur la fiche de l'intervention et décide. C'est la précision même d'I5 : le travail terrain reste conservé, il n'est simplement plus appliqué après la clôture.
+
+**Dès `terminee`, le créneau et le technicien ne bougent plus au serveur** (`peutDeplacer`/`peutAffecter` refusent aussi `terminee`, motif `intervention.refus.terminee_figee`) — une borne APPLICATIVE, pas une garde de base : la matrice D8 autorisait déjà `TERMINEE → EN_COURS`/`CLOTUREE`, et aucun des deux ne concerne le créneau ou le technicien.
+
+**Rouvrir annule la validation du rapport, dans la même transaction** (RG-INT-03) : `demarrerLeCompteur`, en faisant repasser une `terminee` à `en_cours`, pose désormais `rapport_valide_par`/`rapport_valide_le` à `NULL` dans la même écriture que le changement de statut — ce chemin EST la réouverture, et aucun autre ne la nomme.
+
+**Une exemption, nommée, jamais implicite** : `fige_a_la_cloture.exemption` (réglage `SET LOCAL`, donc borné à sa transaction) vaut `reprise_historique` pour le seul `lib/interventions/depot-reprise.ts` — une intervention reprise d'archive NAÎT `cloturee`, machine comprise (D127) : ce n'est pas une saisie arrivée après la clôture, c'est un fait déjà clos à sa naissance même. `fixture_isolation` est la seconde et dernière valeur reconnue, posée par les scénarios d'isolation qui doivent, pour les mêmes raisons, fabriquer une intervention JETABLE déjà close.
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+Elle ne touche pas `enregistrerRapportTexte` ni les pièces remplacées, déjà figées avant ce ticket par leur propre `estFige`. Elle ne construit aucun écran de paramétrage. Elle ne redéfinit aucune transition de la matrice D8 : `cloturerIntervention`/`annulerIntervention` restent inchangées, et `TERMINEE → EN_COURS`/`CLOTUREE` restaient déjà permises — ce lot ferme seulement ce que ces transitions laissaient ouvert sur les tables filles et sur le créneau/technicien.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où une CINQUIÈME valeur d'exemption de `fige_a_la_cloture.exemption` apparaît dans le dépôt, cette décision se relit : la liste est fermée à deux entrées (`reprise_historique`, `fixture_isolation`), et une troisième réclamerait un motif écrit du même poids que les deux premières, jamais une addition silencieuse.
+
+Portée : `prisma/schema.prisma` (modèles `SaisieApresCloture`, enum `TypeSaisieApresCloture`, valeur `saisie_apres_cloture` de `EvenementNotification`), `prisma/migrations/20261121010000_fige_a_la_cloture_9l14/` (nouvelle), `lib/interventions/saisie-tardive.ts` (nouveau), `lib/interventions/depot-rapport-terrain.ts`, `lib/documents/depot.ts`, `lib/interventions/cycle-de-vie.ts`, `lib/interventions/depot-compteur.ts`, `lib/interventions/depot-reprise.ts`, `lib/i18n/fr.ts`, `app/(back-office)/notifications/presentation.ts`, `app/api/terrain/[id]/photos/route.ts`, `scripts/lib/politiques-rls.ts`, `docs/cahier-des-charges.md` (chapitre 11.2), `docs/constitution/invariants.md` (I5), `CLAUDE.md` (I5).
