@@ -18,14 +18,19 @@
  * seule raison : un gardien doit pouvoir l'éprouver sans monter Next.js.
  *
  * **Ce qu'il ferme, et ce qu'il ne ferme pas.** Il ferme la SURFACE — ce qu'un
- * navigateur peut atteindre. L'API serveur `auth.api.signUpEmail` reste
- * appelable par notre propre code, et c'est ce qui rend l'acte administratif
- * possible ; la politique `utilisateur_ouverture` la borne en base, en exigeant
- * une société active et le rôle qui administre. `disableSignUp` de Better Auth
- * fermerait les deux d'un coup — mesuré — et c'est ce qu'il faudra faire le
- * jour où le chemin administratif d'ouverture de compte existera. Il n'existe
- * pas encore : le fermer aujourd'hui retirerait le seul moyen de créer une
- * identité avec ses identifiants. Inscrit au registre plutôt que caché ici.
+ * navigateur peut atteindre — en comparant le CHEMIN de la requête à une liste
+ * close, par construction sensible à la casse et à l'encodage. L'acte
+ * administratif reste possible : la politique `utilisateur_ouverture` le
+ * borne en base, en exigeant une société active et le rôle qui administre.
+ *
+ * **Depuis le 10/11/2026, `disableSignUp` ferme le POINT D'ENTRÉE, en plus de
+ * ce filtre** (`lib/auth/config.ts`) — mesuré nécessaire une fois le chemin
+ * administratif d'ouverture de compte en place (l'amorçage, Q1/D65 ; le
+ * chemin d'Équipe, D162) : la bibliothèque lit cette option À L'INTÉRIEUR de
+ * `signUpEmail`, quelle que soit la forme — casse, encodage — du chemin qui y
+ * a conduit. L'instance de PRODUCTION la porte ; les instances
+ * ADMINISTRATIVES, qui appellent encore `auth.api.signUpEmail` pour ces deux
+ * gestes, ne la portent pas.
  */
 
 /**

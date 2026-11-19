@@ -236,6 +236,22 @@ export function creerAuth(
     // un navigateur anonyme.
     emailAndPassword: {
       enabled: true,
+      // INSCRIPTION FERMÉE PAR L'OPTION DE LA BIBLIOTHÈQUE, EN PLUS DU
+      // FILTRE DE CHEMIN (décision d'Alexis du 10/11/2026) — le filtre de
+      // `lib/auth/inscription-fermee.ts` compare des CHAÎNES (sensible à la
+      // casse, à l'encodage) ; `disableSignUp`, lui, est lu PAR LA
+      // BIBLIOTHÈQUE À L'INTÉRIEUR du point d'entrée `signUpEmail`, quel que
+      // soit le chemin qui l'a atteint. Les deux défenses ne se recouvrent
+      // pas : l'une ferme une SURFACE nommée par son texte, l'autre ferme un
+      // POINT D'ENTRÉE, quelle que soit la forme du texte qui y a conduit.
+      //
+      // `administration === undefined` DISTINGUE l'instance de PRODUCTION —
+      // celle que `/api/auth/[...all]` sert à un navigateur anonyme — des
+      // instances ADMINISTRATIVES construites par ce même module pour un
+      // geste précis (l'amorçage, Q1/D65 ; le chemin d'Équipe, D162) : ce
+      // sont elles, et elles seules, qui appellent encore
+      // `auth.api.signUpEmail`.
+      disableSignUp: administration === undefined,
       ...(canalPremierAcces === undefined
         ? {}
         : {
