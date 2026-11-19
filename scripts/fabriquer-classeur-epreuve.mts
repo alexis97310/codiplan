@@ -48,7 +48,12 @@ import {
  * rien de ce qu'Excel acceptera.* La décision reste un point d'arrêt du §8.
  *
  * Usage :
- *   pnpm exec tsx scripts/fabriquer-classeur-epreuve.mts
+ *   pnpm exec tsx scripts/fabriquer-classeur-epreuve.mts [chemin-de-sortie]
+ *
+ * `chemin-de-sortie` est optionnel et sert au gardien de refabrication
+ * (`tests/unit/imports/classeur-fabrique.test.ts`, 9L25) : il écrit dans un
+ * répertoire temporaire plutôt que d'écraser `CHEMIN_EPREUVE`, qui reste la
+ * cible par défaut pour un appel sans argument.
  */
 
 /** La lettre d'une colonne : 0 → A, 26 → AA. */
@@ -239,7 +244,7 @@ function archiver(): Buffer {
   return Buffer.concat([...locaux, repertoire, fin]);
 }
 
-const CIBLE = join(process.cwd(), CHEMIN_EPREUVE);
+const CIBLE = process.argv[2] ?? join(process.cwd(), CHEMIN_EPREUVE);
 const octets = archiver();
 writeFileSync(CIBLE, octets);
 process.stdout.write(

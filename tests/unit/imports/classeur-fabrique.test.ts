@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -47,6 +48,16 @@ import {
  * script écrit — *aucun gardien ne peut décider si un nom est réel, mais il
  * peut exiger qu'il soit l'un des trois qu'on a choisis.*
  *
+ * ## LE SCRIPT ÉCRIT DANS UN RÉPERTOIRE TEMPORAIRE, JAMAIS SUR LE DÉPÔT
+ *
+ * Décision d'Alexis du 10/11/2026 (9L25-TESTS-FRAGILES) : la première
+ * rédaction appelait le script SANS argument, qui écrasait alors
+ * `tests/fixtures/clients-fabrique.xlsx` — un fichier SUIVI — à chaque
+ * exécution de `pnpm test`, instable sous charge. `scripts/fabriquer-
+ * classeur-epreuve.mts` accepte désormais un chemin de sortie optionnel ;
+ * ce fichier le fournit dans un répertoire `mkdtempSync`, nettoyé en fin
+ * d'épreuve — le fichier du dépôt n'est plus jamais ouvert en écriture ici.
+ *
  * ## CE BLOC N'A PLUS DE TÉMOIN INDÉPENDANT, et c'est écrit plutôt que caché
  *
  * `tests/fixtures/dates-excel.xlsx` servait ici de fichier AUTHENTIQUE — un
@@ -71,18 +82,36 @@ const SCRIPT = "scripts/fabriquer-classeur-epreuve.mts";
 const INVENTEES = RAISONS_INVENTEES;
 
 describe("le classeur d'épreuve se refabrique à l'identique", () => {
-  it("le fichier du dépôt est EXACTEMENT ce que le script produit", () => {
-    const avant = readFileSync(FIXTURE);
-    // TÉMOIN : un fichier vide serait égal à un autre fichier vide.
-    expect(avant.length).toBeGreaterThan(500);
+  // DÉLAI EXPLICITE (9L25-TESTS-FRAGILES) : le défaut de vitest (5 s) a été
+  // mesuré insuffisant sous charge pour un `execFileSync` qui démarre `tsx`
+  // dans un processus neuf.
+  const DELAI_FABRICATION_MS = 30_000;
 
-    execFileSync("node", ["--import", "tsx", SCRIPT], {
-      cwd: RACINE,
-      stdio: "ignore",
-    });
-    const apres = readFileSync(FIXTURE);
-    expect(apres.equals(avant)).toBe(true);
-  });
+  it(
+    "le fichier du dépôt est EXACTEMENT ce que le script produit",
+    () => {
+      const attendu = readFileSync(FIXTURE);
+      // TÉMOIN : un fichier vide serait égal à un autre fichier vide.
+      expect(attendu.length).toBeGreaterThan(500);
+
+      // ÉCRIT HORS DU DÉPÔT (9L25-TESTS-FRAGILES) : `FIXTURE` n'est ouvert
+      // qu'en LECTURE ci-dessus — le script refabrique dans un répertoire
+      // temporaire, jamais sur le fichier suivi.
+      const dossier = mkdtempSync(join(tmpdir(), "codiplan-classeur-"));
+      const sortie = join(dossier, "clients-fabrique.xlsx");
+      try {
+        execFileSync("node", ["--import", "tsx", SCRIPT, sortie], {
+          cwd: RACINE,
+          stdio: "ignore",
+        });
+        const produit = readFileSync(sortie);
+        expect(produit.equals(attendu)).toBe(true);
+      } finally {
+        rmSync(dossier, { recursive: true, force: true });
+      }
+    },
+    DELAI_FABRICATION_MS,
+  );
 
   it("il ne porte QUE des raisons sociales inventées (I9)", async () => {
     const feuilles = await lireClasseur(FIXTURE);
