@@ -119,13 +119,24 @@ export function peutSaisirSurTerrain(statut: StatutIntervention): Verdict {
   return PERMIS;
 }
 
-/** Peut-on DÉPLACER cette intervention — créneau ou technicien ? */
+/**
+ * Peut-on DÉPLACER cette intervention — créneau ou technicien ?
+ *
+ * **Dès `terminee`, le créneau et le technicien ne bougent plus**
+ * (9L14-FIGE-A-LA-CLOTURE, décision d'Alexis du 10/11/2026) — D197 n'avait
+ * retiré que les BOUTONS de l'écran ; ce verdict ferme le même geste au
+ * serveur, pour un appel qui ne passerait pas par l'écran (glisser-déposer
+ * déjà ouvert avant la fin, ou appel direct de la route).
+ */
 export function peutDeplacer(statut: StatutIntervention): Verdict {
   if (statut === "annulee") {
     return { refuse: true, cle: "intervention.refus.annulee_figee" };
   }
   if (statut === "cloturee") {
     return { refuse: true, cle: "intervention.refus.cloturee_figee" };
+  }
+  if (statut === "terminee") {
+    return { refuse: true, cle: "intervention.refus.terminee_figee" };
   }
   return PERMIS;
 }

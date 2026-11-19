@@ -244,10 +244,24 @@ export async function demarrerLeCompteur(
         // compteur commence. »* Une écriture conditionnelle plutôt
         // qu'inconditionnelle : une intervention DÉJÀ en cours ne se réécrit
         // pas, ce qui éviterait au journal d'audit une ligne qui ne dit rien.
+        //
+        // RÉOUVRIR ANNULE LA VALIDATION DU RAPPORT, DANS LA MÊME TRANSACTION
+        // (9L14-FIGE-A-LA-CLOTURE, décision d'Alexis du 10/11/2026, RG-INT-03)
+        // — ce chemin (`terminee → en_cours`, déjà permis par la matrice D8)
+        // EST la réouverture : aucune autre fonction ne la nomme. Avant ce
+        // ticket, `rapport_valide_par`/`rapport_valide_le` survivaient à ce
+        // passage — seules les écritures du rapport lui-même
+        // (`depot-rapport-terrain.ts`) les annulaient, jamais celle-ci.
         if (intervention.statut !== "en_cours") {
+          const rouvre = intervention.statut === "terminee";
           await tx.intervention.update({
             where: { id: interventionId },
-            data: { statut: "en_cours" },
+            data: {
+              statut: "en_cours",
+              ...(rouvre
+                ? { rapport_valide_par: null, rapport_valide_le: null }
+                : {}),
+            },
           });
         }
 

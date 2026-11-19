@@ -106,6 +106,20 @@ describe("déplacer et affecter", () => {
     );
   });
 
+  // 9L14-FIGE-A-LA-CLOTURE (décision d'Alexis du 10/11/2026) — dès
+  // « terminée », le créneau et le technicien ne bougent plus, avant même
+  // la clôture.
+  it("sont refusés dès « terminée », avec sa propre raison", () => {
+    const surDeplacement = peutDeplacer("terminee");
+    expect(surDeplacement.refuse && surDeplacement.cle).toBe(
+      "intervention.refus.terminee_figee",
+    );
+    const surAffectation = peutAffecter("terminee");
+    expect(surAffectation.refuse && surAffectation.cle).toBe(
+      "intervention.refus.terminee_figee",
+    );
+  });
+
   it("passent sur une intervention vivante", () => {
     expect(peutDeplacer("planifiee").refuse).toBe(false);
     expect(peutAffecter("en_cours").refuse).toBe(false);
