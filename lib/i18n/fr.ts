@@ -3496,14 +3496,6 @@ export const fr = {
   "terrain.suspendre.enregistrer": "Enregistrer",
   "terrain.suspendre.motif_auto":
     "Attente de pièce signalée depuis le terrain.",
-  // ── « REPRENDRE » DEPUIS LE TERRAIN (9L08C-TERRAIN-REPRENDRE-SUSPENSION,
-  // décision d'Alexis du 16/11/2026) — même geste que la reprise du bureau,
-  // vu du terrain.
-  "terrain.reprendre.bouton": "Reprendre",
-  "terrain.reprendre.titre": "Reprendre l'intervention ?",
-  "terrain.reprendre.aide":
-    "L'intervention retrouve l'état que son créneau dicte désormais.",
-  "terrain.reprendre.confirmer": "Oui, reprendre",
   // ── CONSULTATION SANS RÉSEAU (9F4H1-HORS-RESEAU-CONSULTATION) ────────────
   "terrain.hors_reseau.titre": "Journée hors connexion",
   "terrain.hors_reseau.aucune_copie":

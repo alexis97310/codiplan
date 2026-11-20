@@ -37,7 +37,6 @@ import {
 import { BandeauReseau } from "./bandeau-reseau";
 import { BoutonCompteurTerrain } from "./compteur-terrain";
 import { RapportTerrainAutomatique } from "./rapport-automatique";
-import { BoutonReprendreTerrain } from "./reprendre-terrain";
 import { BoutonSuspendreTerrain } from "./suspendre-terrain";
 import {
   creneauDeLaFiche,
@@ -489,19 +488,6 @@ function Fiche({
       {/* « J'ATTENDS UNE PIÈCE » (9K13-TERRAIN-ATTENTE-PIECE) — même
           emplacement que `/terrain/[id]`, juste après le compteur. */}
       <BoutonSuspendreTerrain
-        interventionId={fiche.id}
-        utilisateurId={utilisateurId}
-        societeId={societeId}
-        statut={fiche.statut as StatutIntervention}
-        motifSuspension={fiche.motifSuspension}
-        pieceAttendueRef={fiche.pieceAttendueRef}
-        dateDispoPrevue={fiche.dateDispoPrevue}
-        sansSession
-      />
-
-      {/* « REPRENDRE » (9L08C-TERRAIN-REPRENDRE-SUSPENSION) — même emplacement
-          que `/terrain/[id]`, juste après « J'attends une pièce ». */}
-      <BoutonReprendreTerrain
         interventionId={fiche.id}
         utilisateurId={utilisateurId}
         societeId={societeId}

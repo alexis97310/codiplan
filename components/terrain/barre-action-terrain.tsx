@@ -29,9 +29,9 @@ const ConteneurBarreAction = createContext<HTMLDivElement | null>(null);
  * déjà (§9, 01/09).
  *
  * `empty:hidden` efface la barre (et sa bordure) quand aucun bouton n'y a
- * porté — par exemple une intervention SUSPENDUE dont la reprise attend
- * déjà le réseau (`BoutonReprendreTerrain`, 9L08C-TERRAIN-REPRENDRE-
- * SUSPENSION, même patron que D236 pour « Suspendre »).
+ * porté — une intervention SUSPENDUE n'a aujourd'hui aucun geste terrain à y
+ * proposer (voir la passation : « Reprendre » depuis le terrain reste à
+ * faire, même patron que D236 pour « Suspendre »).
  */
 export function BarreActionTerrain({
   children,

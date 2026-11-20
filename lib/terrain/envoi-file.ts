@@ -37,14 +37,6 @@ type Identite = { readonly utilisateurId: string; readonly societeId: string };
 // prestations, AVANT « terminer » qu'il rend impossible — une intervention
 // SUSPENDUE n'est plus EN_COURS, condition que `peutTerminer` exige.
 //
-// « reprendre » (9L08C-TERRAIN-REPRENDRE-SUSPENSION) PARTAGE LE RANG DE
-// « suspendre » — une reprise ne peut suivre QU'une suspension de la même
-// intervention, jamais la précéder dans un usage réel de l'écran (le bouton
-// « Reprendre » ne se rend que sur une fiche déjà `suspendue`). À rang égal,
-// `trieeParPipeline` ci-dessous départage par `id` (l'ordre chronologique
-// d'écriture) : la suspension, posée en premier par l'écran, porte
-// toujours le plus petit `id` des deux.
-//
 // « checklist » (9K21-CHECKLIST-TERRAIN-SAISIE, CK5) PARTAGE LE RANG DES
 // PRESTATIONS — les deux sont indépendantes l'une de l'autre (aucune ne
 // conditionne l'autre), donc aucun ordre fixe ne s'impose entre elles ;
@@ -57,7 +49,6 @@ const ORDRE_PIPELINE: Readonly<Record<Geste["type"], number>> = {
   prestations: 2,
   checklist: 2,
   suspendre: 3,
-  reprendre: 3,
   photo: 4,
   // MÊME RANG QUE `photo` (9L04E-TERRAIN-PHOTOS-EPUREES) — supprimer une
   // photo n'a aucune dépendance d'ordre avec le reste du pipeline ; à rang
@@ -158,9 +149,6 @@ function corpsDe(entree: EntreeFile): FormData {
       corps.set("piece_attendue_ref", geste.pieceAttendueRef);
       corps.set("date_dispo_prevue", geste.dateDispoPrevue);
       corps.set("operation_id", entree.id);
-      return corps;
-    case "reprendre":
-      // AUCUNE SAISIE (voir `GesteReprendre`) — même corps vide que la route.
       return corps;
     case "checklist":
       // MÊME FORME QUE LE SCHÉMA DE LA ROUTE (`schemaDifference`,

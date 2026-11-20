@@ -31,7 +31,6 @@ import {
   type PointChecklistEcran,
 } from "@/components/terrain/checklist-terrain";
 import { RapportTerrainAutomatique } from "@/components/terrain/rapport-automatique";
-import { BoutonReprendreTerrain } from "@/components/terrain/reprendre-terrain";
 import { BoutonSuspendreTerrain } from "@/components/terrain/suspendre-terrain";
 import { BandeauMotif } from "@/components/ui/bandeau-motif";
 import { Button } from "@/components/ui/button";
@@ -496,8 +495,8 @@ export default async function PageInterventionTerrain({
     // porte ou non un bouton pour CE statut : elle ne se mesure qu'au rendu
     // CLIENT, une fois le portail attaché (`BarreActionTerrain`) — une
     // réserve qui dépendrait de son contenu resterait fausse pendant toute
-    // l'hydratation, y compris sur une « Suspendue » (elle porte désormais
-    // « Reprendre », 9L08C-TERRAIN-REPRENDRE-SUSPENSION).
+    // l'hydratation, et sur une « Suspendue » qui n'a aujourd'hui rien à y
+    // porter (voir la passation).
     <BarreActionTerrain>
       <main className="flex flex-col gap-4 pb-16">
         {/*
@@ -696,19 +695,6 @@ export default async function PageInterventionTerrain({
           le compteur, même emplacement que le geste principal : se vide
           elle-même (`null`) hors `en_cours`/`suspendue`. */}
         <BoutonSuspendreTerrain
-          interventionId={id}
-          utilisateurId={contexte.utilisateurId}
-          societeId={contexte.societeId}
-          statut={statut}
-          motifSuspension={ligne.motif_suspension}
-          pieceAttendueRef={ligne.piece_attendue_ref}
-          dateDispoPrevue={ligne.date_dispo_prevue?.toISOString() ?? null}
-        />
-
-        {/* « REPRENDRE » (9L08C-TERRAIN-REPRENDRE-SUSPENSION) — le seul geste
-          terrain d'une fiche `suspendue` ; se vide elle-même (`null`) hors
-          ce statut, voir son docblock. */}
-        <BoutonReprendreTerrain
           interventionId={id}
           utilisateurId={contexte.utilisateurId}
           societeId={contexte.societeId}
