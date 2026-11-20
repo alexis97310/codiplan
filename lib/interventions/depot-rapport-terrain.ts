@@ -73,7 +73,7 @@ export { aSectionPiecesRemplacees };
  * lieu d'un motif lisible. **Les prestations réalisées et la signature
  * REJUGENT désormais la même borne, exactement pour la même raison** —
  * `intervention_prestation_figee_a_la_cloture` et `intervention_signature_
- * figee_a_la_cloture` (migration `20261120080000_fige_a_la_cloture_9l14`)
+ * figee_a_la_cloture` (migration `20261121010000_fige_a_la_cloture_9l14`)
  * refusent déjà en base, et ce module le dit AVANT, avec un motif. **Avant ce
  * ticket, I5 lisait l'inverse** — « le travail terrain n'est jamais perdu,
  * même sur une intervention clôturée ou annulée » comme une autorisation
