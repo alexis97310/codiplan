@@ -9335,3 +9335,27 @@ Elle ne change aucune règle métier du chapitre 10 : l'inscription en libre-ser
 > Le jour où un écran propose de « se souvenir de cet appareil » à la connexion, cette décision se relit avant de solliciter l'appareil de confiance de Better Auth : `tests/unit/auth/second-facteur-sans-trust-device.test.ts` rougit au premier appel qui le ferait, et le raisonnement qui le justifie doit être repris, pas contourné.
 
 Portée : `lib/auth/config.ts`, `lib/auth/inscription-fermee.ts`, `components/machines/scan-qr-bureau.ts` (et `scan-qr-bureau-resolution.ts`, nouveau), `components/machines/scan-qr-terrain.ts` (et `scan-qr-terrain-resolution.ts`, nouveau), `app/(back-office)/parametres/equipe/page.tsx`, `app/api/equipe/[id]/envoyer-acces/route.ts`, `app/api/equipe/[id]/nouveau-lien/route.ts`, `app/api/equipe/bureau/[id]/envoyer-acces/route.ts`, `app/api/equipe/bureau/[id]/nouveau-lien/route.ts`, `app/api/equipe/bureau/creer/route.ts`, `app/api/techniciens/creer/route.ts`, `tests/isolation/inscription-fermee-option.test.ts` (nouveau), `tests/isolation/second-facteur-session-pre-verification.test.ts` (nouveau), `tests/unit/auth/second-facteur-sans-trust-device.test.ts` (nouveau), `tests/isolation/resolution-scan.test.ts`.
+
+## D275 — LE PLANCHER DE FACTURATION DU TEMPS N'EST JAMAIS 0 ; LE CHAMP EST OBLIGATOIRE, AU MOINS UNE MINUTE (décision d'Alexis du 10/11/2026, « Non, jamais 0 » ; 9L27-PLANCHER-JAMAIS-ZERO)
+
+### CE QUI A ÉTÉ MESURÉ
+
+Sur `81894e0` : `schemaRegleArrondi` (`lib/tarification/valorisation.ts`) acceptait `plancherMinutes: 0`, et `app/api/parametres/tarifs/regle-facturation/route.ts` coerce un champ vide ou absent à `0` avant validation (`Number(formulaire.get("plancher_min"))`) — un champ laissé vide aurait donc posé un plancher nul, et une intervention de quelques minutes aurait facturé zéro. La contrainte en base (`societe_facturation_plancher_borne`, posée par 9I8A1-REPRISE-9I8A) acceptait la même valeur.
+
+### LA DÉCISION
+
+Le plancher est un champ obligatoire, d'au moins une minute :
+
+1. `schemaRegleArrondi.plancherMinutes` exige désormais `min(1)` — un champ vide ou absent, coercé à `0` par la route, est refusé par cette même borne.
+2. La contrainte `societe_facturation_plancher_borne` est resserrée à `BETWEEN 1 AND 240` (migration `20261120113000_plancher_facturation_jamais_zero_9l27`), sans `NOT VALID` : la règle vaut pour toute société, sans exception transitoire.
+3. Le palier et son seuil ne changent pas ; ils sont comptés depuis `0`, pas depuis le plancher (`lib/tarification/valorisation.ts`) — identique tant que le plancher reste un multiple du palier, ce que cette décision ne modifie pas.
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+Elle ne change ni le défaut (`60`, posé par 9I8A1-REPRISE-9I8A), ni les deux autres bornes de la famille, ni la formule de `valoriserTempsPasse`. Elle ne touche à aucun montant déjà facturé : `valorisation_figee` protège toute intervention déjà clôturée, et aucune donnée n'est réécrite par la migration.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où un palier pourrait compter depuis le plancher plutôt que depuis `0`, cette décision se relit avant de changer la formule : `tests/unit/tarification/valorisation.test.ts` fixe le comportement actuel, et le changer sans le relire romprait le point 3 ci-dessus en silence.
+
+Portée : `lib/tarification/valorisation.ts`, `components/tarifs/formulaire-regle-facturation.tsx`, `prisma/migrations/20261120113000_plancher_facturation_jamais_zero_9l27/` (nouveau), `lib/db/migrations-attendues.ts`, `tests/unit/tarification/valorisation.test.ts`, `tests/isolation/regle-arrondi-societe.test.ts`.
