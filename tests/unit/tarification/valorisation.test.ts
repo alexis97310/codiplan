@@ -303,7 +303,7 @@ describe("schemaRegleArrondi — le plancher n'est jamais 0 (9L27-PLANCHER-JAMAI
     expect(schemaRegleArrondi.safeParse(saisie(0)).success).toBe(false);
   });
 
-  it("un champ vide, coercé comme le fait la route (Number(\"\")), est refusé", () => {
+  it('un champ vide, coercé comme le fait la route (Number("")), est refusé', () => {
     expect(schemaRegleArrondi.safeParse(saisie(Number(""))).success).toBe(
       false,
     );
