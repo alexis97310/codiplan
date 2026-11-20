@@ -1394,6 +1394,13 @@ export type InterventionDemoSeed = {
    */
   readonly motifSuspension?: string;
   /**
+   * L'ANNULATION (9L19, `intervention_annulee_a_son_motif`). Obligatoire dès
+   * que `statut` vaut `annulee` — la base le refuse autrement, pour la même
+   * raison que `motifSuspension` juste au-dessus : une intervention annulée
+   * sans qu'on sache pourquoi est une intervention perdue.
+   */
+  readonly motifAnnulation?: string;
+  /**
    * L'ATTENTE DE PIÈCE, et les deux vont ENSEMBLE. La date est donnée en jours
    * depuis `LUNDI_DEMONSTRATION`, comme le créneau.
    */
@@ -1543,6 +1550,7 @@ export const INTERVENTIONS_DEMONSTRATION: readonly InterventionDemoSeed[] = [
     debutMinutes: 450,
     dureeMin: 60,
     temps_valide_min: null,
+    motifAnnulation: "Client absent au rendez-vous",
   },
   {
     rang: 5,
@@ -1593,7 +1601,12 @@ export const INTERVENTIONS_DEMONSTRATION: readonly InterventionDemoSeed[] = [
     priorite: "p2",
     statut: "affectee",
     joursDepuisLundi: 0,
-    debutMinutes: 540,
+    // L'après-midi, et non la matinée (9L19) : le technicien que l'indice
+    // retombe dessus (`index % sitesEcrits.length`, 5 sites depuis
+    // CONTRAT-SITE-1) tient déjà le rang 2 le matin du même jour — même
+    // horaire, deux lignes, c'est l'exclusion `intervention_sans_chevauchement_
+    // technicien` qui le dit. Mesuré en écrivant la garde de 9L19.
+    debutMinutes: 780,
     dureeMin: 180,
     temps_valide_min: null,
   },
@@ -1604,7 +1617,9 @@ export const INTERVENTIONS_DEMONSTRATION: readonly InterventionDemoSeed[] = [
     priorite: "p1",
     statut: "en_cours",
     joursDepuisLundi: 1,
-    debutMinutes: 450,
+    // L'après-midi (9L19) : le rang 18 occupe désormais la même matinée pour
+    // le même technicien — voir la note au-dessus du rang 18 plus bas.
+    debutMinutes: 780,
     dureeMin: 150,
     temps_valide_min: null,
   },
@@ -1614,7 +1629,9 @@ export const INTERVENTIONS_DEMONSTRATION: readonly InterventionDemoSeed[] = [
     priorite: "p3",
     statut: "planifiee",
     joursDepuisLundi: 1,
-    debutMinutes: 780,
+    // Le matin (9L19) : le rang 19 occupe désormais la même après-midi pour
+    // le même technicien — voir la note au-dessus du rang 19 plus bas.
+    debutMinutes: 450,
     dureeMin: 120,
     temps_valide_min: null,
   },
@@ -1652,7 +1669,11 @@ export const INTERVENTIONS_DEMONSTRATION: readonly InterventionDemoSeed[] = [
     priorite: "p3",
     statut: "planifiee",
     joursDepuisLundi: 3,
-    debutMinutes: 450,
+    // L'après-midi (9L19) : le rang 17 occupe désormais la même matinée pour
+    // le même technicien — voir sa note plus bas (l'indice décide du lieu, et
+    // donc du technicien, et un cinquième site s'est ajouté depuis que cette
+    // ligne a été écrite).
+    debutMinutes: 780,
     dureeMin: 120,
     temps_valide_min: null,
   },
@@ -1734,13 +1755,27 @@ export const INTERVENTIONS_DEMONSTRATION: readonly InterventionDemoSeed[] = [
   // aurait changé un montant sur un autre écran : *on ne fabrique pas une
   // image en déplaçant un chiffre que quelqu'un d'autre lit.*
   // Le RANG 17 tombe sur l'indice 16, et l'indice décide du LIEU : le semis
-  // choisit `sitesEcrits[index % sitesEcrits.length]`, et la société
-  // néo-calédonienne en porte quatre — atelier de Ducos, dépôt de brousse,
-  // garage de Koné, ancien chantier de Dolbeau, dans cet ordre (mesuré sur la
-  // base semée). *L'indice 16 retombe donc sur Ducos, quoi qu'on écrive ici* :
-  // cette ligne n'est pas un remplissage, elle est la conséquence d'un tour de
-  // roue qu'on ne contourne pas sans changer la règle pour tout le monde. Elle
-  // est posée le JEUDI MATIN, seule demi-journée libre du technicien de Ducos.
+  // choisit `sitesEcrits[index % sitesEcrits.length]`.
+  //
+  // **CORRIGÉ LE 20/11/2026 (9L19SA)** : ce paragraphe affirmait que la
+  // société néo-calédonienne porte QUATRE sites et que l'indice 16 retombe
+  // sur Ducos. C'était vrai au moment où c'était écrit ; ça ne l'est plus
+  // depuis que CONTRAT-SITE-1 a ajouté un CINQUIÈME site chez le premier
+  // client (« Atelier sous contrat »), inséré avant celui de Koné dans
+  // `sites`. `16 % 5 = 1`, et le site d'indice 1 est le dépôt de brousse,
+  // rattaché à KONÉ — pas Ducos. *Ce n'est pas un défaut* : ça retombe
+  // justement sur le technicien UNIQUE que ce bloc de commentaire vise
+  // depuis le début (voir plus haut), par un autre chemin que celui prévu.
+  // Le rang 12, posé l'après-midi du même jeudi depuis 9L19, tombe sur ce
+  // même technicien (Koné) par la même arithmétique (`11 % 5 = 1`) : la
+  // garde `intervention_sans_chevauchement_technicien` (9L19) l'a mesuré en
+  // les trouvant tous les deux le matin — voir sa note, plus haut sur le
+  // rang 12. Le JEUDI entier (matin ET après-midi) porte donc désormais le
+  // technicien de Koné, ce qui ne fait que renforcer le trajet qui franchit
+  // le seuil plutôt que l'affaiblir. *L'arithmétique d'index sur un tableau
+  // qui grossit ne se fige pas au commit qui l'a lue une fois* (même famille
+  // que §9 du 21/09 sur `LUNDI_DEMONSTRATION`) : un ajout de site ailleurs
+  // dans ce fichier peut déplacer silencieusement une ligne écrite ici.
   {
     rang: 17,
     type: "preventif_contrat",

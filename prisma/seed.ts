@@ -731,6 +731,9 @@ async function seed(): Promise<void> {
               creneau_fin: intervention.creneau_fin,
               duree_estimee_min: intervention.dureeMin,
               temps_valide_min: intervention.temps_valide_min,
+              // L'ANNULATION (9L19) — exigée par `intervention_annulee_a_son_motif`
+              // dès que `statut` vaut `annulee` ; `null` pour tout autre statut.
+              motif_annulation: intervention.motifAnnulation ?? null,
               // LA SUSPENSION (L2-10, RG-INT-06, D104). Les quatre colonnes
               // vont ensemble, et la base le refuse autrement — *le verrou fait
               // son travail sur le premier chemin venu, y compris le nôtre.*
