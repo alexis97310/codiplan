@@ -8,6 +8,7 @@ import {
   PLANCHER_MINUTES,
   REGLE_HISTORIQUE,
   REGLE_PAR_DEFAUT,
+  schemaRegleArrondi,
   valoriserTempsPasse,
 } from "@/lib/tarification/valorisation";
 
@@ -278,5 +279,47 @@ describe("l'ancienne règle, généralisée, ne change AUCUN résultat historiqu
     const v = valoriserTempsPasse(227, TAUX, REGLE_HISTORIQUE);
     expect(v.minutesFacturees).toBe(240);
     expect(v.mainDoeuvre.valeur).toBe(BigInt(34000));
+  });
+});
+
+/**
+ * Le plancher n'est jamais 0 (9L27-PLANCHER-JAMAIS-ZERO, décision d'Alexis
+ * du 10/11/2026, « Non, jamais 0 ») — un champ obligatoire, d'au moins une
+ * minute. La route (`app/api/parametres/tarifs/regle-facturation/route.ts`)
+ * ne fait que `Number(formulaire.get("plancher_min"))` avant d'appeler ce
+ * schéma : un champ VIDE ou ABSENT s'y coerce à `0` exactement comme un champ
+ * rempli avec `0`, donc une seule borne suffit aux deux cas.
+ */
+describe("schemaRegleArrondi — le plancher n'est jamais 0 (9L27-PLANCHER-JAMAIS-ZERO)", () => {
+  function saisie(plancherMinutes: number) {
+    return {
+      plancherMinutes,
+      palierMinutes: 30,
+      seuilPalierMinutes: 5,
+    };
+  }
+
+  it("0 est refusé", () => {
+    expect(schemaRegleArrondi.safeParse(saisie(0)).success).toBe(false);
+  });
+
+  it("un champ vide, coercé comme le fait la route (Number(\"\")), est refusé", () => {
+    expect(schemaRegleArrondi.safeParse(saisie(Number(""))).success).toBe(
+      false,
+    );
+  });
+
+  it("un champ absent, coercé comme le fait la route (Number(null)), est refusé", () => {
+    expect(schemaRegleArrondi.safeParse(saisie(Number(null))).success).toBe(
+      false,
+    );
+  });
+
+  it("1 (le minimum) est accepté", () => {
+    expect(schemaRegleArrondi.safeParse(saisie(1)).success).toBe(true);
+  });
+
+  it("60 (le défaut) est accepté", () => {
+    expect(schemaRegleArrondi.safeParse(saisie(60)).success).toBe(true);
   });
 });

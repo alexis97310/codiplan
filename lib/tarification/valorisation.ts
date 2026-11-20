@@ -106,14 +106,21 @@ export const REGLE_PAR_DEFAUT: RegleArrondi = {
 /**
  * LA SAISIE DU RÉGLAGE, VALIDÉE (9I8A1-REPRISE-9I8A) — MÊMES bornes que les
  * trois `CHECK` posés par la migration
- * (`prisma/migrations/20261031100000_regle_facturation_temps_9i8a1`) : une
- * saisie que ce schéma accepterait et que la base refuserait serait une
- * erreur 500 au lieu d'un refus nommé. `seuilPalierMinutes <= palierMinutes`
- * est la même contrainte que `societe_facturation_seuil_palier_borne`.
+ * (`prisma/migrations/20261031100000_regle_facturation_temps_9i8a1`,
+ * resserrée sur le plancher par
+ * `20261120113000_plancher_facturation_jamais_zero_9l27`) : une saisie que ce
+ * schéma accepterait et que la base refuserait serait une erreur 500 au lieu
+ * d'un refus nommé. `seuilPalierMinutes <= palierMinutes` est la même
+ * contrainte que `societe_facturation_seuil_palier_borne`.
+ *
+ * `plancherMinutes` est au moins `1` (9L27-PLANCHER-JAMAIS-ZERO, décision
+ * d'Alexis du 10/11/2026, « Non, jamais 0 ») : un champ vide, coercé à `0` par
+ * l'appelant (`Number(formulaire.get(...))`), est refusé par cette même
+ * borne — aucun chemin séparé n'est nécessaire pour « vide ».
  */
 export const schemaRegleArrondi = z
   .object({
-    plancherMinutes: z.number().int().min(0).max(240),
+    plancherMinutes: z.number().int().min(1).max(240),
     palierMinutes: z.number().int().min(1).max(120),
     seuilPalierMinutes: z.number().int().min(1).max(120),
   })

@@ -31,7 +31,7 @@ function minutesFactureesExemple(regle: RegleArrondi): number | null {
     regle.palierMinutes < 1 ||
     regle.seuilPalierMinutes < 1 ||
     regle.seuilPalierMinutes > regle.palierMinutes ||
-    regle.plancherMinutes < 0
+    regle.plancherMinutes < 1
   ) {
     return null;
   }
@@ -88,7 +88,7 @@ export function FormulaireRegleFacturation({
           <input
             name="plancher_min"
             type="number"
-            min={0}
+            min={1}
             max={240}
             step={1}
             required

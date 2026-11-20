@@ -124,6 +124,51 @@ describe("la règle d'arrondi suit la société active, et rien d'autre (I1)", (
     ).toEqual(HISTORIQUE);
   });
 
+  it("`facturation_plancher_min` à 0 est refusé EN BASE (societe_facturation_plancher_borne) — 9L27-PLANCHER-JAMAIS-ZERO", async () => {
+    await expect(
+      clientOwner().societe.update({
+        where: { id: SOCIETE_A },
+        data: { facturation_plancher_min: 0 },
+      }),
+    ).rejects.toThrow(/societe_facturation_plancher_borne/);
+
+    const deA = await clientOwner().societe.findUniqueOrThrow({
+      where: { id: SOCIETE_A },
+      select: { facturation_plancher_min: true },
+    });
+    expect(deA.facturation_plancher_min).toBe(60);
+  });
+
+  it("JUMEAU — la contrainte retirée, `facturation_plancher_min` à 0 PASSE", async () => {
+    try {
+      await clientOwner().$executeRawUnsafe(
+        `ALTER TABLE "societe" DROP CONSTRAINT "societe_facturation_plancher_borne"`,
+      );
+      await clientOwner().societe.update({
+        where: { id: SOCIETE_A },
+        data: { facturation_plancher_min: 0 },
+      });
+      const deA = await clientOwner().societe.findUniqueOrThrow({
+        where: { id: SOCIETE_A },
+        select: { facturation_plancher_min: true },
+      });
+      expect(deA.facturation_plancher_min).toBe(0);
+    } finally {
+      // RÉTABLIE DANS LES DEUX SENS — la contrainte, puis une valeur
+      // conforme : sinon la ligne resterait à 0 pour les épreuves suivantes,
+      // que `afterEach` ne corrige pas en cas d'échec avant son tour.
+      await clientOwner().societe.update({
+        where: { id: SOCIETE_A },
+        data: { facturation_plancher_min: 60 },
+      });
+      await clientOwner().$executeRawUnsafe(
+        `ALTER TABLE "societe"
+           ADD CONSTRAINT "societe_facturation_plancher_borne"
+             CHECK ("facturation_plancher_min" BETWEEN 1 AND 240)`,
+      );
+    }
+  });
+
   it("le journal d'audit trace l'écriture", async () => {
     await enregistrerRegleArrondi(
       contexteSur(SOCIETE_A, Role.admin_societe),
