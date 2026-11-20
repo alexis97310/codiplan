@@ -205,13 +205,17 @@ describe("R5-02 — les verrous du compteur", () => {
       await sousInterne((tx) =>
         tx.$executeRawUnsafe(sql(neuf(), TECHNICIEN, H14, null)),
       );
+      // 9L19 pose un déclencheur plus spécifique sur ce même refus — un
+      // segment déjà FERMÉ ne se modifie plus (`segment_travail_ferme_non_
+      // modifiable`) — et il tranche AVANT que Postgres n'atteigne l'index
+      // partiel : le refus reste, le mécanisme change.
       await expect(
         sousInterne((tx) =>
           tx.$executeRawUnsafe(
             `UPDATE "segment_travail" SET "fin" = NULL WHERE "id" = '${ferme}'`,
           ),
         ),
-      ).rejects.toThrow(/23505/);
+      ).rejects.toThrow(/ne se modifie plus/);
     });
 
     it("UPSERT : le verbe du semis, et l'index partiel n'est PAS sa cible de conflit", async () => {
