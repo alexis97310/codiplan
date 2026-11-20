@@ -81,7 +81,9 @@ async function jetable(
   await clientOwner().$executeRawUnsafe(
     `INSERT INTO "intervention" ("id","societe_id","client_id","site_id","agence_id",
        "type","statut","technicien_id","duree_estimee_min","modifie_le"${
-         validee ? `,"temps_valide_min","rapport_valide_par","rapport_valide_le"` : ""
+         validee
+           ? `,"temps_valide_min","rapport_valide_par","rapport_valide_le"`
+           : ""
        }${statut === "cloturee" ? `,"cloturee_le"` : ""})
      SELECT '${id}', "societe_id", "client_id", "site_id", "agence_id",
             'curatif', '${statut}', '${TECHNICIEN}', 60, now()${

@@ -168,5 +168,9 @@ async function traiter(requete: Request, id: string): Promise<Response> {
   if (depot !== null && "refuse" in depot) {
     return reponse(requete, id, depot.cle);
   }
-  return reponse(requete, id, depot === null ? "terrain.photos.refus" : undefined);
+  return reponse(
+    requete,
+    id,
+    depot === null ? "terrain.photos.refus" : undefined,
+  );
 }

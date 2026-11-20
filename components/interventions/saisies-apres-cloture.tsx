@@ -48,7 +48,9 @@ export function SaisiesApresCloture({
                   className="border-app-bord flex flex-col gap-1 border-b pb-3 text-13 font-bold last:border-b-0 last:pb-0"
                 >
                   <p className="font-semibold">
-                    {t(`intervention.saisies_apres_cloture.type.${saisie.type}`)}
+                    {t(
+                      `intervention.saisies_apres_cloture.type.${saisie.type}`,
+                    )}
                   </p>
                   <p className="text-app-encre-faible">
                     {nomAuteur}

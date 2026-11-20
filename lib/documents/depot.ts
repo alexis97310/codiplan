@@ -582,7 +582,10 @@ export async function deposerPhotoIntervention(
         // `operationId`, ou même empreinte qu'une photo déjà déposée AVANT
         // la clôture), toute photo VRAIMENT NOUVELLE tentée après la
         // clôture n'est jamais appliquée : gardée à part, signalée à l'ADV.
-        if (document === null && estFige(intervention.statut as StatutIntervention)) {
+        if (
+          document === null &&
+          estFige(intervention.statut as StatutIntervention)
+        ) {
           await garderSaisieTardive(contexte, tx, {
             societeId,
             interventionId,

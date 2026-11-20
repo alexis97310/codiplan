@@ -9,10 +9,7 @@ import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
 import { reperesDeLaScene } from "./setup/reperes";
-import {
-  COMPTE_TECHNICIEN_EPREUVE,
-  MOT_DE_PASSE_EPREUVE,
-} from "./setup/scene";
+import { COMPTE_TECHNICIEN_EPREUVE, MOT_DE_PASSE_EPREUVE } from "./setup/scene";
 import { ouvrirUneSession } from "./setup/session";
 
 /**

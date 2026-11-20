@@ -1,4 +1,8 @@
-import { type Prisma, type PrismaClient, type TypeSaisieApresCloture } from "@prisma/client";
+import {
+  type Prisma,
+  type PrismaClient,
+  type TypeSaisieApresCloture,
+} from "@prisma/client";
 
 import { type ContexteSession } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";

@@ -940,9 +940,7 @@ describe("la signature — HISTORISÉE, jamais réécrite", () => {
       // RIEN N'EST ÉCRIT SUR `intervention_signature` — la base mord aussi
       // (le déclencheur `intervention_signature_figee_a_la_cloture`
       // refuserait l'INSERT, mais l'appel ne l'atteint même pas).
-      const [{ n }] = await clientOwner().$queryRawUnsafe<
-        Array<{ n: bigint }>
-      >(
+      const [{ n }] = await clientOwner().$queryRawUnsafe<Array<{ n: bigint }>>(
         `SELECT count(*) AS "n" FROM "intervention_signature" WHERE "intervention_id" = '${INTERVENTION_A1}' AND "image_base64" = 'data:image/png;base64,CCCC'`,
       );
       expect(Number(n)).toBe(0);
@@ -953,8 +951,7 @@ describe("la signature — HISTORISÉE, jamais réécrite", () => {
       });
       expect(gardee?.auteur_id).toBe(UTILISATEUR_INTERNE_A);
       expect(
-        (gardee?.contenu as { signataireNom?: string } | null)
-          ?.signataireNom,
+        (gardee?.contenu as { signataireNom?: string } | null)?.signataireNom,
       ).toBe("Jean Dupont");
 
       const notifiee = await clientOwner().notification.findFirst({
