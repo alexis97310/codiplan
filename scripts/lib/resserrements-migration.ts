@@ -164,7 +164,7 @@ export function resserrements(
       // posé la veille qui l'a dit, pas la relecture* : il existait pour
       // rougir ce jour-là, et il a rougi.
       // **`EXCLUDE` EST ÉCRIT DEPUIS LE 20/11/2026** — la migration
-      // `20261120010000_gardes_chevauchement_segments_9l19` pose
+      // `20261120120000_gardes_chevauchement_segments_9l19` pose
       // `intervention_sans_chevauchement_technicien` (9L19) : une contrainte
       // d'exclusion GiST, nécessaire pour fermer la course entre deux
       // planificateurs concurrents, là où un déclencheur `SELECT EXISTS`
