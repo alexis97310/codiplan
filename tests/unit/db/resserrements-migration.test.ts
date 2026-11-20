@@ -173,7 +173,7 @@ describe("ce qui est un resserrement", () => {
   });
 });
 
-describe("les formes absentes du dépôt — et celle qui a cessé de l'être", () => {
+describe("les formes absentes du dépôt — et celles qui ont cessé de l'être", () => {
   /*
    * ── `VALIDATE CONSTRAINT` EST ÉCRIT DEPUIS LE 12/09/2026 (R3-02, D117) ────
    *
@@ -194,6 +194,18 @@ describe("les formes absentes du dépôt — et celle qui a cessé de l'être", 
    * contrainte sans passer par un arbitrage fera rougir ce fichier — et c'est
    * le même service que rendait l'absence, sur une population qui a cessé
    * d'être vide.
+   *
+   * ── `EXCLUDE` EST ÉCRIT DEPUIS LE 20/11/2026 (9L19) ───────────────────────
+   *
+   * Il a rougi une seconde fois : la migration
+   * `20261120010000_gardes_chevauchement_segments_9l19` pose
+   * `intervention_sans_chevauchement_technicien`, une contrainte d'exclusion
+   * — la mesure qui l'a imposée est dans l'en-tête de cette migration, et
+   * dans `README.md`. **Elle n'est PAS traitée comme `VALIDATE CONSTRAINT` :**
+   * une contrainte d'exclusion, comme un `CHECK` ou un index unique, juge les
+   * lignes qui s'écrivent À PARTIR d'elle — elle ne rend rien vrai sur des
+   * lignes déjà posées. Rien n'inverse donc la phrase en liste fermée : la
+   * phrase se retire, point, exactement comme ce scénario l'annonçait.
    */
   const VALIDATIONS_DECIDEES: readonly string[] = [
     "20260913250000_rattrapage_suspensions_r3_02",
@@ -207,23 +219,34 @@ describe("les formes absentes du dépôt — et celle qui a cessé de l'être", 
         .join("\n"),
     );
 
-  it("ATTACH PARTITION et EXCLUDE n'apparaissent toujours nulle part", () => {
+  it("ATTACH PARTITION n'apparaît toujours nulle part", () => {
     const lues = executables();
     expect(lues.length).toBeGreaterThan(40);
 
-    for (const forme of [
-      /ATTACH\s+PARTITION/i,
-      /ADD\s+CONSTRAINT\s+"?[a-z0-9_]+"?\s+EXCLUDE\b/i,
-    ]) {
-      const ecrivent = REELLES.filter((_, i) => forme.test(lues[i]!)).map(
-        (m) => m.nom,
-      );
-      expect(
-        ecrivent,
-        `${forme} apparaît désormais : le rejeu la reconnaît, mais la phrase ` +
-          "« le dépôt ne l'écrit pas » doit être retirée du README et du module.",
-      ).toEqual([]);
-    }
+    const ecrivent = REELLES.filter((_, i) =>
+      /ATTACH\s+PARTITION/i.test(lues[i]!),
+    ).map((m) => m.nom);
+    expect(
+      ecrivent,
+      "ATTACH PARTITION apparaît désormais : le rejeu la reconnaît, mais la " +
+        "phrase « le dépôt ne l'écrit pas » doit être retirée du README et " +
+        "du module.",
+    ).toEqual([]);
+  });
+
+  it("EXCLUDE n'apparaît QUE dans la garde du chevauchement de technicien (9L19)", () => {
+    const lues = executables();
+    const forme = /ADD\s+CONSTRAINT\s+"?[a-z0-9_]+"?\s+EXCLUDE\b/i;
+    const ecrivent = REELLES.filter((_, i) => forme.test(lues[i]!)).map(
+      (m) => m.nom,
+    );
+
+    // TÉMOIN : la liste attendue n'est pas vide, sans quoi l'assertion
+    // suivante serait trivialement vraie sur une population qui n'écrit rien
+    // (§9, 31/08).
+    expect(ecrivent).toEqual([
+      "20261120010000_gardes_chevauchement_segments_9l19",
+    ]);
   });
 
   it("VALIDATE CONSTRAINT n'est écrit QUE là où un arbitrage l'a décidé", () => {

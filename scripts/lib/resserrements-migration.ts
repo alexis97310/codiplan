@@ -154,7 +154,7 @@ export function resserrements(
         ajoute("FOREIGN KEY", table, fk[1]!);
       }
 
-      // ── TROIS FORMES RECONNUES, ET L'UNE D'ELLES A CESSÉ D'ÊTRE ABSENTE ─
+      // ── TROIS FORMES RECONNUES, ET DEUX ONT CESSÉ D'ÊTRE ABSENTES ───────
       //
       // ~~Mesuré le 11/09/2026 sur les 47 migrations : `VALIDATE CONSTRAINT`,
       // `ATTACH PARTITION` et `EXCLUDE` n'y apparaissent **nulle part**.~~
@@ -162,17 +162,24 @@ export function resserrements(
       // migration `20260913250000_rattrapage_suspensions_r3_02` valide les
       // deux contraintes de suspension (R3-02, D117). *Et c'est le témoin
       // posé la veille qui l'a dit, pas la relecture* : il existait pour
-      // rougir ce jour-là, et il a rougi. `ATTACH PARTITION` et `EXCLUDE`
-      // restent absentes, mesurées.
-      // Elles sont reconnues quand même, et ce n'est pas de la précaution
-      // décorative : *un lecteur qui ne connaît que ce qui existe devient faux
-      // le jour où quelqu'un écrit autre chose*, et il le devient EN SILENCE —
-      // la direction permissive, celle qui ne produit aucun signal.
+      // rougir ce jour-là, et il a rougi.
+      // **`EXCLUDE` EST ÉCRIT DEPUIS LE 20/11/2026** — la migration
+      // `20261120010000_gardes_chevauchement_segments_9l19` pose
+      // `intervention_sans_chevauchement_technicien` (9L19) : une contrainte
+      // d'exclusion GiST, nécessaire pour fermer la course entre deux
+      // planificateurs concurrents, là où un déclencheur `SELECT EXISTS`
+      // reste aveugle sous `FORCE ROW LEVEL SECURITY` (voir l'en-tête de
+      // cette migration). `ATTACH PARTITION` reste seule absente, mesurée.
+      // Les trois formes sont reconnues quand même, et ce n'est pas de la
+      // précaution décorative : *un lecteur qui ne connaît que ce qui existe
+      // devient faux le jour où quelqu'un écrit autre chose*, et il le
+      // devient EN SILENCE — la direction permissive, celle qui ne produit
+      // aucun signal.
       //
-      // Elles sont éprouvées sur des migrations FABRIQUÉES, faute de réelles :
-      // c'est le seul cas où le §9 du 21/08 — « un gardien vert sur un cas
-      // fabriqué n'est pas un gardien éprouvé » — ne peut pas être satisfait,
-      // et la limite est écrite plutôt que tue.
+      // `ATTACH PARTITION` reste éprouvée sur une migration FABRIQUÉE, faute
+      // de réelle : c'est le seul cas où le §9 du 21/08 — « un gardien vert
+      // sur un cas fabriqué n'est pas un gardien éprouvé » — ne peut pas être
+      // satisfait, et la limite est écrite plutôt que tue.
       for (const validation of corps.matchAll(
         /VALIDATE\s+CONSTRAINT\s+"?([a-z0-9_]+)"?/gi,
       )) {
