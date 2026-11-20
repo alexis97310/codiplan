@@ -88,6 +88,7 @@ function squelette(
   // rejetée par la contrainte, pas par la règle que ce test éprouve.
   duree_estimee_min: number;
   description: string;
+  motif_annulation?: string;
 } {
   interventionsPosees.push(id);
   return {
@@ -105,6 +106,9 @@ function squelette(
       statut === "affectee" ? UTILISATEUR_PAR_ROLE.technicien : null,
     duree_estimee_min: 60,
     description: "TPA6- épreuve d'isolation, supprimée en fin de scénario",
+    ...(statut === "annulee"
+      ? { motif_annulation: "TPA6-épreuve d'isolation" }
+      : {}),
   };
 }
 

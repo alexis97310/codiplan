@@ -116,14 +116,16 @@ async function poserIntervention(
   const id = uuidv7();
   await clientOwner().$executeRawUnsafe(
     `INSERT INTO "intervention"
-       ("id", "societe_id", "client_id", "site_id", "agence_id", "type", "statut", "technicien_id", "modifie_le")
-     VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif', $6::"StatutIntervention", NULL, now())`,
+       ("id", "societe_id", "client_id", "site_id", "agence_id", "type", "statut", "technicien_id", "modifie_le", "motif_annulation", "temps_valide_min")
+     VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif', $6::"StatutIntervention", NULL, now(), $7, $8)`,
     id,
     societeId,
     clientId,
     siteId,
     agenceId,
     statut,
+    statut === "annulee" ? "QT16 — épreuve" : null,
+    statut === "cloturee" ? 60 : null,
   );
   return id;
 }

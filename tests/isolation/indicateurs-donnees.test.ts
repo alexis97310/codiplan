@@ -105,10 +105,12 @@ beforeAll(async () => {
     const [ligne] = await clientOwner().$queryRawUnsafe<{ id: string }[]>(
       `INSERT INTO "intervention"
          ("id", "societe_id", "client_id", "site_id", "agence_id", "type",
-          "statut", "cree_le", "cloturee_le", "modifie_le")
+          "statut", "cree_le", "cloturee_le", "modifie_le"${
+            statut === "cloturee" ? `, "temps_valide_min"` : ""
+          })
        VALUES (gen_random_uuid(), $1::uuid, $2::uuid, $3::uuid, $4::uuid,
          $5::"TypeIntervention", $6::"StatutIntervention", $7::timestamptz,
-         $8::timestamptz, now())
+         $8::timestamptz, now()${statut === "cloturee" ? `, 60` : ""})
        RETURNING "id"`,
       societeId,
       clientId,

@@ -62,14 +62,16 @@ async function poserFiche(
   statut: "a_planifier" | "cloturee",
 ): Promise<void> {
   // `cloturee` exige `statut_facturation` non nul
-  // (`intervention_cloture_a_son_statut_facturation`) ; `a_planifier` ne
-  // porte aucune autre contrainte (RG-TAR, D120) — la fiche OUVERTE n'a donc
-  // besoin que de son type et de son statut.
+  // (`intervention_cloture_a_son_statut_facturation`) et `temps_valide_min`
+  // positif (`intervention_cloturee_a_son_temps_valide_positif`) ;
+  // `a_planifier` ne porte aucune autre contrainte (RG-TAR, D120) — la fiche
+  // OUVERTE n'a donc besoin que de son type et de son statut.
   const statutFacturation = statut === "cloturee" ? "'non_facturable'" : "NULL";
+  const tempsValideMin = statut === "cloturee" ? "60" : "NULL";
   await clientOwner().$executeRawUnsafe(
     `INSERT INTO "intervention"
-       ("id", "societe_id", "client_id", "site_id", "agence_id", "type", "statut", "technicien_id", "date_planifiee", "statut_facturation", "modifie_le")
-     VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'garantie', '${statut}', NULL, $6::date, ${statutFacturation}, now())
+       ("id", "societe_id", "client_id", "site_id", "agence_id", "type", "statut", "technicien_id", "date_planifiee", "statut_facturation", "temps_valide_min", "modifie_le")
+     VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'garantie', '${statut}', NULL, $6::date, ${statutFacturation}, ${tempsValideMin}, now())
      ON CONFLICT ("id") DO NOTHING`,
     id,
     societeId,

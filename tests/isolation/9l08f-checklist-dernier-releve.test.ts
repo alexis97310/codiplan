@@ -144,16 +144,18 @@ async function surUneInterventionJetable(
   // CETTE TRANSACTION (`SET LOCAL`), dit au déclencheur que la ligne
   // JETABLE n'a jamais été « vivante » avant d'être close — voir le
   // docblock du déclencheur dans la migration.
+  // `temps_valide_min` POSÉ SI `cloturee` (9L19, garde 4) : une clôture sans
+  // temps validé strictement positif est refusée en base.
   await clientOwner().$transaction([
     clientOwner().$executeRawUnsafe(
       `SET LOCAL "fige_a_la_cloture.exemption" = 'fixture_isolation'`,
     ),
     clientOwner().$executeRawUnsafe(
       `INSERT INTO "intervention"
-         ("id", "societe_id", "client_id", "site_id", "agence_id", "type", "statut", "technicien_id", "duree_estimee_min", "modifie_le")
+         ("id", "societe_id", "client_id", "site_id", "agence_id", "type", "statut", "technicien_id", "duree_estimee_min", "modifie_le", "temps_valide_min")
        VALUES ('${id}', '${params.societeId}', '${params.clientId}', '${params.siteId}', '${params.agenceId}', 'curatif', '${params.statut}', ${
          params.technicienId === null ? "NULL" : `'${params.technicienId}'`
-       }, 60, now())`,
+       }, 60, now(), ${params.statut === "cloturee" ? "60" : "NULL"})`,
     ),
     clientOwner().$executeRawUnsafe(
       `INSERT INTO "intervention_machine" ("id", "societe_id", "intervention_id", "machine_id", "modifie_le")

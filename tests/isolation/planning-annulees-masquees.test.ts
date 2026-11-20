@@ -71,6 +71,7 @@ function squelette(
   statut: "annulee";
   date_planifiee: Date | null;
   description: string;
+  motif_annulation: string;
 } {
   interventionsPosees.push(id);
   return {
@@ -85,6 +86,7 @@ function squelette(
     // Identifie la ligne dans un export de base, sans effet sur aucune
     // requête ni aucun décompte lu par une autre épreuve.
     description: "PGA8- épreuve d'isolation, supprimée en fin de scénario",
+    motif_annulation: "PGA8- épreuve d'isolation",
   };
 }
 

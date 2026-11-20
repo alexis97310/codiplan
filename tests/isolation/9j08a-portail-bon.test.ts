@@ -55,11 +55,12 @@ async function surUneInterventionJetable(
   await clientOwner().$executeRawUnsafe(
     `INSERT INTO "intervention" ("id", "societe_id", "client_id", "site_id",
        "agence_id", "type", "statut", "duree_estimee_min", "modifie_le",
-       "cloturee_le")
+       "cloturee_le", "temps_valide_min")
      SELECT '${id}', "societe_id", "client_id", "site_id", "agence_id",
             'curatif'::"TypeIntervention",
             '${cloturee ? "cloturee" : "terminee"}',
-            60, now(), ${cloturee ? "now()" : "NULL"}
+            60, now(), ${cloturee ? "now()" : "NULL"},
+            ${cloturee ? "60" : "NULL"}
        FROM "intervention" WHERE "id" = '${INTERVENTION_A1}'`,
   );
   try {

@@ -71,6 +71,7 @@ function squelette(
   // `planifiee` ou `affectee` (D104, PARCOURS-1).
   duree_estimee_min: number;
   description: string;
+  motif_annulation?: string;
 } {
   interventionsPosees.push(id);
   return {
@@ -86,6 +87,9 @@ function squelette(
     // Identifie la ligne dans un export de base, sans effet sur aucune
     // requête ni aucun décompte lu par une autre épreuve.
     description: "9DD- épreuve d'isolation, supprimée en fin de scénario",
+    ...(statut === "annulee"
+      ? { motif_annulation: "9DD-épreuve d'isolation" }
+      : {}),
   };
 }
 

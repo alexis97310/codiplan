@@ -458,6 +458,9 @@ describe("l'intervention, sous le rôle applicatif", () => {
       if (statut === "suspendue") {
         return `, "motif_suspension" = 'Attente de pièce', "suspendue_le" = now()`;
       }
+      if (statut === "annulee") {
+        return `, "motif_annulation" = 'Motif de test (matrice D8)'`;
+      }
       return "";
     }
 
@@ -480,12 +483,18 @@ describe("l'intervention, sous le rôle applicatif", () => {
       await clientOwner().$executeRawUnsafe(
         `INSERT INTO "intervention" ("id","societe_id","client_id","site_id","agence_id",
            "type","statut","date_planifiee","duree_estimee_min","modifie_le"${
-             statut === "cloturee" ? `,"statut_facturation"` : ""
-           }${statut === "suspendue" ? `,"motif_suspension","suspendue_le"` : ""})
+             statut === "cloturee"
+               ? `,"statut_facturation","temps_valide_min"`
+               : ""
+           }${statut === "suspendue" ? `,"motif_suspension","suspendue_le"` : ""}${
+             statut === "annulee" ? `,"motif_annulation"` : ""
+           })
          SELECT '${id}', "societe_id", "client_id", "site_id", "agence_id",
                 'curatif', '${statut}', DATE '2026-09-14', 60, now()${
-                  statut === "cloturee" ? `, 'a_facturer'` : ""
-                }${statut === "suspendue" ? `, 'Attente de pièce', now()` : ""}
+                  statut === "cloturee" ? `, 'a_facturer', 90` : ""
+                }${statut === "suspendue" ? `, 'Attente de pièce', now()` : ""}${
+                  statut === "annulee" ? `, 'Motif de test (matrice D8)'` : ""
+                }
            FROM "intervention" WHERE "id" = '${INTERVENTION_A1}'`,
       );
       return id;

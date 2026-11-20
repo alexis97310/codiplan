@@ -55,15 +55,18 @@ async function creer(champs: {
   const suspendueLe = champs.statut === "suspendue" ? new Date() : null;
   const motifSuspension =
     champs.statut === "suspendue" ? "PGC2 — motif forgé par l'épreuve" : null;
+  const motifAnnulation =
+    champs.statut === "annulee" ? "PGC2 — motif forgé par l'épreuve" : null;
+  const tempsValideMin = champs.statut === "cloturee" ? 60 : null;
   await clientOwner().$executeRawUnsafe(
     `INSERT INTO "intervention" ("id", "societe_id", "client_id", "site_id",
        "agence_id", "type", "statut", "priorite", "date_planifiee",
        "duree_estimee_min", "description", "suspendue_le", "motif_suspension",
-       "cree_le", "modifie_le")
+       "motif_annulation", "temps_valide_min", "cree_le", "modifie_le")
      VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif',
              $6::"StatutIntervention", 'p3', $7::date, $8::int,
              'PGC2 — intervention forgée par l''épreuve', $9::timestamptz,
-             $10, now(), now())`,
+             $10, $11, $12::int, now(), now())`,
     id,
     SOCIETE_A,
     CLIENT_A1,
@@ -74,6 +77,8 @@ async function creer(champs: {
     champs.dureeEstimeeMin,
     suspendueLe,
     motifSuspension,
+    motifAnnulation,
+    tempsValideMin,
   );
   if (champs.aUnSegment === true) {
     // `fin` DOIT suivre STRICTEMENT `debut` (`segment_travail_fin_apres_debut`)

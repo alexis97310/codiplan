@@ -101,10 +101,10 @@ beforeAll(async () => {
   );
   await clientOwner().$executeRawUnsafe(
     `INSERT INTO "intervention"
-       ("id", "societe_id", "client_id", "site_id", "agence_id", "type", "statut", "technicien_id", "duree_estimee_min", "modifie_le")
+       ("id", "societe_id", "client_id", "site_id", "agence_id", "type", "statut", "technicien_id", "duree_estimee_min", "motif_annulation", "modifie_le")
      VALUES
-       ($1::uuid, $3::uuid, $4::uuid, $5::uuid, $6::uuid, 'curatif', 'planifiee', NULL, 60, now()),
-       ($2::uuid, $3::uuid, $4::uuid, $5::uuid, $6::uuid, 'curatif', 'annulee', NULL, 60, now())
+       ($1::uuid, $3::uuid, $4::uuid, $5::uuid, $6::uuid, 'curatif', 'planifiee', NULL, 60, NULL, now()),
+       ($2::uuid, $3::uuid, $4::uuid, $5::uuid, $6::uuid, 'curatif', 'annulee', NULL, 60, 'Fermée (épreuve FICHE-360-1)', now())
      ON CONFLICT ("id") DO NOTHING`,
     INTERVENTION_F360_OUVERTE,
     INTERVENTION_F360_FERMEE,

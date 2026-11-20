@@ -161,14 +161,19 @@ async function poserIntervention(
   siteId: string,
   statut: string,
 ): Promise<void> {
+  const motifAnnulation =
+    statut === "annulee" ? "9EB2 — motif de scénario" : null;
+  const tempsValideMin = statut === "cloturee" ? 60 : null;
   await clientOwner().$executeRawUnsafe(
-    `INSERT INTO "intervention" ("id", "societe_id", "client_id", "site_id", "agence_id", "type", "statut", "modifie_le")
-     VALUES (gen_random_uuid(), $1::uuid, $2::uuid, $3::uuid, $4::uuid, 'curatif', $5::"StatutIntervention", now())`,
+    `INSERT INTO "intervention" ("id", "societe_id", "client_id", "site_id", "agence_id", "type", "statut", "motif_annulation", "temps_valide_min", "modifie_le")
+     VALUES (gen_random_uuid(), $1::uuid, $2::uuid, $3::uuid, $4::uuid, 'curatif', $5::"StatutIntervention", $6, $7::int, now())`,
     SOCIETE_A,
     clientId,
     siteId,
     AGENCE_A,
     statut,
+    motifAnnulation,
+    tempsValideMin,
   );
 }
 

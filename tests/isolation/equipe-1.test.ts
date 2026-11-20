@@ -94,9 +94,13 @@ function insertion(
   return clientOwner().$executeRawUnsafe(
     `INSERT INTO "intervention"
        ("id", "societe_id", "client_id", "site_id", "agence_id", "type",
-        "statut", "technicien_id", "date_planifiee", "duree_estimee_min", "modifie_le")
+        "statut", "technicien_id", "date_planifiee", "duree_estimee_min", "modifie_le"${
+          statut === "cloturee" ? `, "temps_valide_min"` : ""
+        })
      VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif',
-             $6::"StatutIntervention", $7::uuid, $8::date, 60, now())`,
+             $6::"StatutIntervention", $7::uuid, $8::date, 60, now()${
+               statut === "cloturee" ? `, 60` : ""
+             })`,
     id,
     societeId,
     clientId,

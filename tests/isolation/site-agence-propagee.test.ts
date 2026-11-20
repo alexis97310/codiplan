@@ -194,7 +194,9 @@ describe("modifierSite — l'agence des interventions suit ou reste, selon leur 
         extra: `"temps_valide_min" = 60, "rapport_valide_par" = '${RAPPORT_VALIDE_PAR}', "rapport_valide_le" = now()`,
       },
     ]);
-    await avancerVers(annulee.fiche.id, [{ statut: "annulee" }]);
+    await avancerVers(annulee.fiche.id, [
+      { statut: "annulee", extra: `"motif_annulation" = 'AGP-épreuve'` },
+    ]);
     // `a_planifier` reste tel quel — c'est le cas de `aPlanifier.fiche`.
 
     const resultat = await modifierSite(

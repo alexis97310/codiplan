@@ -155,12 +155,15 @@ async function surUneInterventionJetable(
   travail: (interventionId: string) => Promise<void>,
 ): Promise<void> {
   const id = uuidv7();
+  const statut = params.statut ?? "planifiee";
   await clientOwner().$executeRawUnsafe(
     `INSERT INTO "intervention"
-       ("id", "societe_id", "client_id", "site_id", "agence_id", "type", "statut", "technicien_id", "duree_estimee_min", "modifie_le")
-     VALUES ('${id}', '${params.societeId}', '${params.clientId}', '${params.siteId}', '${params.agenceId}', '${params.type ?? "curatif"}', '${params.statut ?? "planifiee"}', ${
+       ("id", "societe_id", "client_id", "site_id", "agence_id", "type", "statut", "technicien_id", "duree_estimee_min", "modifie_le", "motif_annulation", "temps_valide_min")
+     VALUES ('${id}', '${params.societeId}', '${params.clientId}', '${params.siteId}', '${params.agenceId}', '${params.type ?? "curatif"}', '${statut}', ${
        params.technicienId === null ? "NULL" : `'${params.technicienId}'`
-     }, 60, now())`,
+     }, 60, now(), ${
+       statut === "annulee" ? "'ISO-FIGEE — épreuve'" : "NULL"
+     }, ${statut === "cloturee" ? "60" : "NULL"})`,
   );
   if (params.machineId !== undefined) {
     await clientOwner().$executeRawUnsafe(

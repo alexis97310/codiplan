@@ -75,12 +75,19 @@ async function jetable(
 ): Promise<string> {
   const id = uuidv7();
   jetables.push(id);
+  const colonneMotifAnnulation =
+    statut === "annulee" ? `, "motif_annulation"` : "";
+  const valeurMotifAnnulation =
+    statut === "annulee" ? `, 'jetable-épreuve'` : "";
+  const colonneTempsValideMin =
+    statut === "cloturee" ? `, "temps_valide_min"` : "";
+  const valeurTempsValideMin = statut === "cloturee" ? `, 60` : "";
   await clientOwner().$executeRawUnsafe(
     `INSERT INTO "intervention" ("id","societe_id","client_id","site_id","agence_id",
-       "type","statut","date_planifiee","technicien_id","duree_estimee_min","modifie_le")
+       "type","statut","date_planifiee","technicien_id","duree_estimee_min","modifie_le"${colonneMotifAnnulation}${colonneTempsValideMin})
      SELECT '${id}', "societe_id", "client_id", "site_id", "agence_id",
             'curatif', '${statut}', DATE '2026-09-14',
-            '${technicienId}', 60, now()
+            '${technicienId}', 60, now()${valeurMotifAnnulation}${valeurTempsValideMin}
        FROM "intervention" WHERE "id" = '${INTERVENTION_A1}'`,
   );
   return id;

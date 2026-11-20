@@ -30,24 +30,25 @@
 -- CLÔTURÉE AVEC "cloturee_le" — LE CAS QUE LE RATTRAPAGE DOIT REPRENDRE.
 INSERT INTO "intervention" ("id", "societe_id", "client_id", "site_id",
                             "agence_id", "type", "statut", "cloturee_le",
-                            "modifie_le")
+                            "temps_valide_min", "modifie_le")
 VALUES ('01920000-0000-7000-8000-00000000a00b',
         '01920000-0000-7000-8000-00000000a001',
         '01920000-0000-7000-8000-00000000a004',
         '01920000-0000-7000-8000-00000000a005',
         '01920000-0000-7000-8000-00000000a003',
         'preventif_contrat', 'cloturee',
-        TIMESTAMPTZ '2026-06-01 08:00:00+11', now());
+        TIMESTAMPTZ '2026-06-01 08:00:00+11', 60, now());
 
 -- CLÔTURÉE SANS "cloturee_le" — LE `WHERE` DU RATTRAPAGE DOIT L'EXCLURE.
 INSERT INTO "intervention" ("id", "societe_id", "client_id", "site_id",
-                            "agence_id", "type", "statut", "modifie_le")
+                            "agence_id", "type", "statut", "temps_valide_min",
+                            "modifie_le")
 VALUES ('01920000-0000-7000-8000-00000000a00c',
         '01920000-0000-7000-8000-00000000a001',
         '01920000-0000-7000-8000-00000000a004',
         '01920000-0000-7000-8000-00000000a005',
         '01920000-0000-7000-8000-00000000a003',
-        'curatif', 'cloturee', now());
+        'curatif', 'cloturee', 60, now());
 
 -- ANNULÉE — le même déclencheur bloque aussi `OLD.statut = 'annulee'`.
 INSERT INTO "intervention" ("id", "societe_id", "client_id", "site_id",

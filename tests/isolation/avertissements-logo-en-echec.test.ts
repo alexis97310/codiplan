@@ -137,10 +137,10 @@ async function creerLigne(
   await clientOwner().$executeRawUnsafe(
     `INSERT INTO "intervention" ("id", "societe_id", "client_id", "site_id",
        "agence_id", "type", "statut", "technicien_id", "date_planifiee",
-       "creneau_debut", "duree_estimee_min", "modifie_le")
+       "creneau_debut", "duree_estimee_min", "modifie_le", "motif_annulation")
      VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif',
              $6::"StatutIntervention", $7::uuid, '2026-11-02'::date,
-             '2026-11-02T08:00:00.000Z'::timestamptz, 60, now())`,
+             '2026-11-02T08:00:00.000Z'::timestamptz, 60, now(), $8)`,
     id,
     SOCIETE_A,
     CLIENT_A1,
@@ -148,6 +148,7 @@ async function creerLigne(
     AGENCE_A,
     statut,
     TECHNICIEN,
+    statut === "annulee" ? "avertissements-logo-en-echec — épreuve" : null,
   );
 }
 

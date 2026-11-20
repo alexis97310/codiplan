@@ -53,9 +53,10 @@ async function interventionJetable(statut = "cloturee"): Promise<string> {
   const id = uuidv7();
   await clientOwner().$executeRawUnsafe(
     `INSERT INTO "intervention" ("id", "societe_id", "client_id", "site_id",
-       "agence_id", "type", "statut", "duree_estimee_min", "modifie_le")
+       "agence_id", "type", "statut", "duree_estimee_min", "temps_valide_min",
+       "modifie_le")
      SELECT '${id}', "societe_id", "client_id", "site_id", "agence_id",
-            "type", '${statut}', 60, now()
+            "type", '${statut}', 60, 60, now()
        FROM "intervention" WHERE "id" = '${INTERVENTION_A1}'`,
   );
   return id;

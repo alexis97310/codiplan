@@ -368,8 +368,8 @@ describe("sans durée, à venir — le critère de la tuile ET de son lien (AFFI
     );
     await clientOwner().$executeRawUnsafe(
       `INSERT INTO "intervention"
-         ("id", "societe_id", "client_id", "site_id", "agence_id", "type", "statut", "technicien_id", "date_planifiee", "duree_estimee_min", "modifie_le")
-       VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif', 'cloturee', NULL, $6::date, NULL, now())
+         ("id", "societe_id", "client_id", "site_id", "agence_id", "type", "statut", "technicien_id", "date_planifiee", "duree_estimee_min", "temps_valide_min", "modifie_le")
+       VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif', 'cloturee', NULL, $6::date, NULL, 60, now())
        ON CONFLICT ("id") DO NOTHING`,
       PASSEE_CLOTUREE_SANS_DUREE,
       SOCIETE_A,
@@ -609,8 +609,8 @@ describe("les onglets du registre — vue, sur la vraie table (52-REGISTRE-1)", 
     );
     await clientOwner().$executeRawUnsafe(
       `INSERT INTO "intervention"
-         ("id","societe_id","client_id","site_id","agence_id","type","statut","technicien_id","date_planifiee","modifie_le")
-       VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6::"TypeIntervention",'cloturee',NULL,$7::date,now())
+         ("id","societe_id","client_id","site_id","agence_id","type","statut","technicien_id","date_planifiee","temps_valide_min","modifie_le")
+       VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6::"TypeIntervention",'cloturee',NULL,$7::date,60,now())
        ON CONFLICT ("id") DO NOTHING`,
       REG_HISTORIQUE_CLOTUREE,
       SOCIETE_A,
@@ -622,8 +622,8 @@ describe("les onglets du registre — vue, sur la vraie table (52-REGISTRE-1)", 
     );
     await clientOwner().$executeRawUnsafe(
       `INSERT INTO "intervention"
-         ("id","societe_id","client_id","site_id","agence_id","type","statut","technicien_id","date_planifiee","modifie_le")
-       VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6::"TypeIntervention",'annulee',NULL,$7::date,now())
+         ("id","societe_id","client_id","site_id","agence_id","type","statut","technicien_id","date_planifiee","motif_annulation","modifie_le")
+       VALUES ($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::uuid,$6::"TypeIntervention",'annulee',NULL,$7::date,'Historique (épreuve REGISTRE-1)',now())
        ON CONFLICT ("id") DO NOTHING`,
       REG_HISTORIQUE_ANNULEE,
       SOCIETE_A,

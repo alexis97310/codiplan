@@ -84,10 +84,10 @@ async function surUneInterventionAvecSegment(
   await clientOwner().$executeRawUnsafe(
     `INSERT INTO "intervention" ("id", "societe_id", "client_id", "site_id",
        "agence_id", "type", "statut", "technicien_id", "duree_estimee_min",
-       "modifie_le", "cloturee_le")
+       "modifie_le", "cloturee_le", "temps_valide_min")
      SELECT '${id}', "societe_id", "client_id", "site_id", "agence_id",
             'curatif'::"TypeIntervention", 'cloturee', "technicien_id", 60,
-            now(), now()
+            now(), now(), 60
        FROM "intervention" WHERE "id" = '${INTERVENTION_A1}'`,
   );
   await clientOwner().$executeRawUnsafe(

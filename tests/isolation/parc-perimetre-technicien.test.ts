@@ -102,14 +102,20 @@ async function jetableIntervention(options: {
 }): Promise<string> {
   const id = uuidv7();
   jetables.push(id);
+  const motifAnnulation =
+    options.statut === "annulee" ? "parc-perimetre-technicien" : null;
+  const tempsValideMin = options.statut === "cloturee" ? 60 : null;
   if (options.machineId === undefined) {
     await clientOwner().$executeRawUnsafe(
       `INSERT INTO "intervention" ("id","societe_id","client_id","site_id","agence_id",
-         "type","statut","date_planifiee","technicien_id","duree_estimee_min","modifie_le")
+         "type","statut","date_planifiee","technicien_id","duree_estimee_min","modifie_le",
+         "motif_annulation","temps_valide_min")
        VALUES ('${id}', '${SOCIETE_A}', '${CLIENT_A1}', '${SITE_A1_S1}', '${AGENCE_A}',
                'curatif', '${options.statut}', DATE '${dateSql(options.decalageJours)}',
                ${options.technicienId === null ? "NULL" : `'${options.technicienId}'`},
-               60, now())`,
+               60, now(),
+               ${motifAnnulation === null ? "NULL" : `'${motifAnnulation}'`},
+               ${tempsValideMin === null ? "NULL" : tempsValideMin})`,
     );
     return id;
   }
@@ -119,11 +125,14 @@ async function jetableIntervention(options: {
     ),
     clientOwner().$executeRawUnsafe(
       `INSERT INTO "intervention" ("id","societe_id","client_id","site_id","agence_id",
-         "type","statut","date_planifiee","technicien_id","duree_estimee_min","modifie_le")
+         "type","statut","date_planifiee","technicien_id","duree_estimee_min","modifie_le",
+         "motif_annulation","temps_valide_min")
        VALUES ('${id}', '${SOCIETE_A}', '${CLIENT_A1}', '${SITE_A1_S1}', '${AGENCE_A}',
                'curatif', '${options.statut}', DATE '${dateSql(options.decalageJours)}',
                ${options.technicienId === null ? "NULL" : `'${options.technicienId}'`},
-               60, now())`,
+               60, now(),
+               ${motifAnnulation === null ? "NULL" : `'${motifAnnulation}'`},
+               ${tempsValideMin === null ? "NULL" : tempsValideMin})`,
     ),
     clientOwner().$executeRawUnsafe(
       `INSERT INTO "intervention_machine" ("id","societe_id","intervention_id","machine_id","modifie_le")
