@@ -70,12 +70,15 @@ test.beforeAll(async () => {
     });
 
     // SANS DATE — la file d'attente, quand le filtre les remontre.
+    // `motif_annulation` (9L19SA) : `intervention_annulee_a_son_motif`
+    // refuse désormais une ligne `annulee` sans motif.
     await client.$executeRawUnsafe(
       `INSERT INTO "intervention"
          ("id", "societe_id", "client_id", "site_id", "agence_id", "type",
-          "priorite", "statut", "modifie_le")
+          "priorite", "statut", "motif_annulation", "modifie_le")
        VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif',
-               'p3', 'annulee'::"StatutIntervention", now())`,
+               'p3', 'annulee'::"StatutIntervention",
+               'PGA8CAP — annulée pour l''épreuve', now())`,
       INTERVENTION_SANS_DATE,
       reperes.societeId,
       CLIENT_PGA8CAP,
@@ -87,10 +90,11 @@ test.beforeAll(async () => {
     await client.$executeRawUnsafe(
       `INSERT INTO "intervention"
          ("id", "societe_id", "client_id", "site_id", "agence_id",
-          "technicien_id", "type", "priorite", "statut", "date_planifiee",
-          "duree_estimee_min", "modifie_le")
+          "technicien_id", "type", "priorite", "statut", "motif_annulation",
+          "date_planifiee", "duree_estimee_min", "modifie_le")
        VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, $6::uuid,
-               'curatif', 'p3', 'annulee'::"StatutIntervention", $7::date, 60,
+               'curatif', 'p3', 'annulee'::"StatutIntervention",
+               'PGA8CAP — annulée pour l''épreuve', $7::date, 60,
                now())`,
       INTERVENTION_DATEE,
       reperes.societeId,
