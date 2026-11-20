@@ -1,10 +1,10 @@
 # 9L19-GARDES-BASE-CHEVAUCHEMENT-SEGMENTS — passation
 
-Quatre gardes en base, décision d'Alexis du 10/11/2026 (« OK »), arbitrage **D275**
+Quatre gardes en base, décision d'Alexis du 10/11/2026 (« OK »), arbitrage **D276**
 (`docs/arbitrages.md`) — une règle change pour la quatrième garde (l'exemption nommée de l'archive,
 voir plus bas). Une seule migration, aucun écran dont le rendu change — aucune capture.
 
-**MIGRATION À JOUER par Alexis : `20261120010000_gardes_chevauchement_segments_9l19` — staging
+**MIGRATION À JOUER par Alexis : `20261120120000_gardes_chevauchement_segments_9l19` — staging
 puis `DB migrate & seed`, puis Vercel.**
 
 ## Ce que la migration pose
@@ -51,7 +51,7 @@ puis `DB migrate & seed`, puis Vercel.**
    D127), qui clôture l'archive SANS AUCUN temps par décision déjà écrite là-bas. Mesuré en écrivant
    la garde : sans cette exemption, la contrainte casse l'import d'historique — `intervention.test.ts`
    (matrice D8) et `9h1c-numerotation-reprise.test.ts`, `application-import-historique.test.ts`,
-   `refus-creation-agence-inactive.test.ts` l'ont montré en échouant. Voir D275 pour le détail et sa
+   `refus-creation-agence-inactive.test.ts` l'ont montré en échouant. Voir D276 pour le détail et sa
    condition de réouverture.
 
 ## Requêtes de contrôle — À LANCER EN PRODUCTION, LECTURE SEULE, AVANT de jouer la migration
