@@ -59,6 +59,10 @@ test.beforeAll(async () => {
       select: { id: true, client_id: true },
     });
 
+    // NAÎT `en_cours` : la signature est rattachée pendant le travail, PUIS
+    // seulement l'intervention est clôturée (9L14SB — ordre réel, le
+    // figement à la clôture refuse désormais ce rattachement sur une
+    // intervention déjà `cloturee`).
     await client.intervention.create({
       data: {
         id: INTERVENTION_SIGNEE,
@@ -68,10 +72,9 @@ test.beforeAll(async () => {
         site_id: site.id,
         technicien_id: reperes.technicienDucos,
         type: "curatif",
-        statut: "cloturee",
+        statut: "en_cours",
         statut_facturation: "non_facturable",
         date_planifiee: new Date("2026-09-10T00:00:00.000Z"),
-        cloturee_le: new Date("2026-09-10T22:00:00.000Z"),
       },
     });
     await client.interventionSignature.create({
@@ -83,6 +86,26 @@ test.beforeAll(async () => {
         image_base64:
           "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
         signataire_nom: "9I7C — Signataire de la capture",
+      },
+    });
+    // PUIS la clôture — l'ordre réel, rien n'est rattaché après (même patron
+    // que `tests/e2e/9l14-fige-a-la-cloture.spec.ts` : la matrice D8 ne
+    // clôture qu'à partir de `terminee`, temps validé et rapport validé) ;
+    // `cloturee_le` reprend la date fixe que le bon affiche.
+    await client.intervention.update({
+      where: { id: INTERVENTION_SIGNEE },
+      data: {
+        statut: "terminee",
+        temps_valide_min: 60,
+        rapport_valide_par: reperes.technicienDucos,
+        rapport_valide_le: new Date("2026-09-10T22:00:00.000Z"),
+      },
+    });
+    await client.intervention.update({
+      where: { id: INTERVENTION_SIGNEE },
+      data: {
+        statut: "cloturee",
+        cloturee_le: new Date("2026-09-10T22:00:00.000Z"),
       },
     });
 

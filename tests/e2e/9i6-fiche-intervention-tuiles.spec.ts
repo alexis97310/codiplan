@@ -91,10 +91,12 @@ test.beforeAll(async () => {
       },
     });
 
-    // FICHE_COMPLETE — CLÔTURÉE, SIGNÉE, TOUTE DONNÉE PRÉSENTE (statut posé
-    // directement : `intervention_cycle_de_vie` ne garde que les
-    // TRANSITIONS, jamais la naissance — même remarque que
-    // `bon-intervention.spec.ts`).
+    // FICHE_COMPLETE — statut posé directement : `intervention_cycle_de_vie`
+    // ne garde que les TRANSITIONS, jamais la naissance — même remarque que
+    // `bon-intervention.spec.ts`. NAÎT `en_cours` : machine, signature et
+    // photo sont rattachées pendant le travail, PUIS seulement l'intervention
+    // est clôturée (9L14SB — ordre réel, le figement à la clôture refuse
+    // désormais ces écritures sur une intervention déjà `cloturee`).
     await client.$executeRawUnsafe(
       `INSERT INTO "intervention"
          ("id", "societe_id", "client_id", "site_id", "agence_id", "contact_id",
@@ -103,7 +105,7 @@ test.beforeAll(async () => {
           "commentaire_technicien", "suite_a_donner", "mode_valorisation",
           "devise_code", "modifie_le")
        VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, $6::uuid,
-               $7::uuid, 'curatif', 'p1', 'cloturee', '2026-01-15', $8,
+               $7::uuid, 'curatif', 'p1', 'en_cours', '2026-01-15', $8,
                $9, $10, $11, $12, 'temps_passe', 'XPF', now())`,
       FICHE_COMPLETE,
       reperes.societeId,
@@ -153,6 +155,23 @@ test.beforeAll(async () => {
         octets: octetsPhoto,
       },
     });
+    // PUIS la clôture — l'ordre réel, rien n'est rattaché après (même patron
+    // que `tests/e2e/9l14-fige-a-la-cloture.spec.ts` : la matrice D8 ne
+    // clôture qu'à partir de `terminee`, temps validé et rapport validé).
+    await client.$executeRawUnsafe(
+      `UPDATE "intervention"
+          SET "statut" = 'terminee', "temps_valide_min" = $1,
+              "rapport_valide_par" = $2::uuid, "rapport_valide_le" = now()
+        WHERE "id" = $3::uuid`,
+      DUREE_ESTIMEE_MIN,
+      reperes.technicienDucos,
+      FICHE_COMPLETE,
+    );
+    await client.$executeRawUnsafe(
+      `UPDATE "intervention" SET "statut" = 'cloturee', "cloturee_le" = now()
+        WHERE "id" = $1::uuid`,
+      FICHE_COMPLETE,
+    );
 
     // FICHE_VIDE — `a_planifier`, rien d'autre que ce que `Intervention`
     // exige : ni machine, ni commentaire, ni suite à donner, ni photo, ni
@@ -179,11 +198,19 @@ test.afterAll(async () => {
   try {
     // LE DOCUMENT D'ABORD — sa clé étrangère vers `intervention` est en
     // `Restrict` (BON-2), contrairement à `intervention_signature`, qui
-    // suit en cascade.
-    await client.$executeRawUnsafe(
-      `DELETE FROM "document" WHERE "intervention_id" = $1::uuid`,
-      FICHE_COMPLETE,
-    );
+    // suit en cascade. SOUS L'EXEMPTION « fixture_isolation »
+    // (9L14-FIGE-A-LA-CLOTURE) : FICHE_COMPLETE est déjà `cloturee`, et le
+    // déclencheur refuse aussi le `DELETE` — même patron que
+    // `captures-9l28-portail-bon-photos.spec.ts`.
+    await client.$transaction([
+      client.$executeRawUnsafe(
+        `SET LOCAL "fige_a_la_cloture.exemption" = 'fixture_isolation'`,
+      ),
+      client.$executeRawUnsafe(
+        `DELETE FROM "document" WHERE "intervention_id" = $1::uuid`,
+        FICHE_COMPLETE,
+      ),
+    ]);
     await client.$executeRawUnsafe(
       `DELETE FROM "intervention" WHERE "client_id" = $1::uuid`,
       CLIENT_9I6,

@@ -158,7 +158,11 @@ test.beforeAll(async () => {
       },
     });
 
-    // ── L'INTERVENTION ANCIENNE, DÉJÀ CLÔTURÉE, PORTE LE RELEVÉ ───────────
+    // ── L'INTERVENTION ANCIENNE, PORTE LE RELEVÉ ───────────────────────────
+    // NAÎT `en_cours` : la machine est rattachée pendant le travail, PUIS
+    // seulement l'intervention est clôturée (9L14SB — ordre réel, le
+    // figement à la clôture refuse désormais ce rattachement sur une
+    // intervention déjà `cloturee`).
     await client.intervention.create({
       data: {
         id: INTERVENTION_ANCIENNE_ID,
@@ -169,7 +173,7 @@ test.beforeAll(async () => {
         technicien_id: reperes.technicienDucos,
         type: "curatif",
         priorite: "p3",
-        statut: "cloturee",
+        statut: "en_cours",
         date_planifiee: null,
         duree_estimee_min: 60,
         mode_valorisation: "temps_passe",
@@ -184,6 +188,22 @@ test.beforeAll(async () => {
         intervention_id: INTERVENTION_ANCIENNE_ID,
         machine_id: MACHINE_ID,
       },
+    });
+    // PUIS la clôture — l'ordre réel, rien n'est rattaché après (même patron
+    // que `tests/e2e/9l14-fige-a-la-cloture.spec.ts` : la matrice D8 ne
+    // clôture qu'à partir de `terminee`, temps validé et rapport validé).
+    await client.intervention.update({
+      where: { id: INTERVENTION_ANCIENNE_ID },
+      data: {
+        statut: "terminee",
+        temps_valide_min: 60,
+        rapport_valide_par: reperes.technicienDucos,
+        rapport_valide_le: new Date(),
+      },
+    });
+    await client.intervention.update({
+      where: { id: INTERVENTION_ANCIENNE_ID },
+      data: { statut: "cloturee", cloturee_le: new Date() },
     });
     await client.checklistReponse.create({
       data: {
@@ -239,16 +259,10 @@ test.afterAll(async () => {
     await client.checklistReponse.deleteMany({
       where: { intervention_id: INTERVENTION_ANCIENNE_ID },
     });
-    await client.interventionMachine.deleteMany({
-      where: {
-        id: {
-          in: [
-            INTERVENTION_MACHINE_ANCIENNE_ID,
-            INTERVENTION_MACHINE_COURANTE_ID,
-          ],
-        },
-      },
-    });
+    // `intervention_machine` CASCADE depuis `intervention`, jamais l'inverse
+    // (même raisonnement que `9l04j-prestations-par-materiel.spec.ts`) :
+    // un `DELETE` explicite ici tomberait sur le figement à la clôture de
+    // `INTERVENTION_ANCIENNE_ID`, désormais `cloturee`.
     await client.intervention.deleteMany({
       where: {
         id: { in: [INTERVENTION_ANCIENNE_ID, INTERVENTION_COURANTE_ID] },

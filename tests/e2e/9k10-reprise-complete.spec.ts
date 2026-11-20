@@ -167,6 +167,10 @@ test.beforeAll(async () => {
       },
     });
 
+    // NAÎT `en_cours` : la machine est rattachée pendant le travail, PUIS
+    // seulement l'intervention est clôturée (9L14SB — ordre réel, le
+    // figement à la clôture refuse désormais ce rattachement sur une
+    // intervention déjà `cloturee`).
     interventionOrigineId = uuidv7();
     await client.intervention.create({
       data: {
@@ -176,13 +180,12 @@ test.beforeAll(async () => {
         site_id: SITE_9K10,
         agence_id: agence.id,
         type: "curatif",
-        statut: "cloturee",
+        statut: "en_cours",
         duree_estimee_min: 60,
         technicien_id: technicien.id,
         suite_a_donner: "9K10 — pièce à commander",
         contact_id: CONTACT_9K10,
         reference_client: REFERENCE_CLIENT_9K10,
-        cloturee_le: new Date(),
       },
     });
     await client.$executeRawUnsafe(
@@ -193,6 +196,22 @@ test.beforeAll(async () => {
       interventionOrigineId,
       MACHINE_9K10,
     );
+    // PUIS la clôture — l'ordre réel, rien n'est rattaché après (même patron
+    // que `tests/e2e/9l14-fige-a-la-cloture.spec.ts` : la matrice D8 ne
+    // clôture qu'à partir de `terminee`, temps validé et rapport validé).
+    await client.intervention.update({
+      where: { id: interventionOrigineId },
+      data: {
+        statut: "terminee",
+        temps_valide_min: 60,
+        rapport_valide_par: technicien.id,
+        rapport_valide_le: new Date(),
+      },
+    });
+    await client.intervention.update({
+      where: { id: interventionOrigineId },
+      data: { statut: "cloturee", cloturee_le: new Date() },
+    });
 
     const contexte: ContexteSession = {
       utilisateurId: utilisateur.id,

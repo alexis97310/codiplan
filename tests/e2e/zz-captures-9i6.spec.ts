@@ -57,15 +57,22 @@ function admin(): PrismaClient {
 }
 
 async function nettoyer(client: PrismaClient): Promise<void> {
-  await client.document.deleteMany({ where: { id: DOCUMENT_9I6 } });
-  await client.$executeRawUnsafe(
-    `DELETE FROM "intervention_signature" WHERE "id" = $1::uuid`,
-    SIGNATURE_9I6,
-  );
-  await client.$executeRawUnsafe(
-    `DELETE FROM "intervention_machine" WHERE "intervention_id" = $1::uuid`,
-    INTERVENTION_9I6,
-  );
+  // LE DOCUMENT D'ABORD, SOUS L'EXEMPTION « fixture_isolation »
+  // (9L14-FIGE-A-LA-CLOTURE) : sa clé étrangère vers `intervention` est en
+  // `Restrict`, et INTERVENTION_9I6 est déjà `cloturee` — même patron que
+  // `captures-9l28-portail-bon-photos.spec.ts`. `intervention_signature` et
+  // `intervention_machine` CASCADENT depuis `intervention`, jamais
+  // l'inverse (même raisonnement que `9l04j-prestations-par-materiel.
+  // spec.ts`) : aucun `DELETE` explicite sur elles ici.
+  await client.$transaction([
+    client.$executeRawUnsafe(
+      `SET LOCAL "fige_a_la_cloture.exemption" = 'fixture_isolation'`,
+    ),
+    client.$executeRawUnsafe(
+      `DELETE FROM "document" WHERE "id" = $1::uuid`,
+      DOCUMENT_9I6,
+    ),
+  ]);
   await client.intervention.deleteMany({ where: { id: INTERVENTION_9I6 } });
   await client.contact.deleteMany({ where: { id: CONTACT_9I6 } });
   await client.site.deleteMany({ where: { id: SITE_9I6 } });
@@ -124,6 +131,11 @@ test.beforeAll(async () => {
         actif: true,
       },
     });
+    // NAÎT `en_cours` : machine, signature et photo sont rattachées pendant
+    // le travail, PUIS seulement l'intervention est clôturée (9L14SB —
+    // ordre réel ; le matrice D8 refusait déjà `en_cours → cloturee` en
+    // direct AVANT ce lot, ce fichier passe donc sans modification sur le
+    // code d'avant comme sur celui-ci).
     await client.intervention.create({
       data: {
         id: INTERVENTION_9I6,
@@ -135,7 +147,7 @@ test.beforeAll(async () => {
         technicien_id: technicien.utilisateur_id,
         type: "curatif",
         priorite: "p1",
-        statut: "cloturee",
+        statut: "en_cours",
         date_planifiee: new Date("2026-01-15T00:00:00Z"),
         duree_estimee_min: 90,
         description: "9I6-CAPT-Panne signalée",
@@ -180,6 +192,20 @@ test.beforeAll(async () => {
         objet_cle: `bd:${empreinte}`,
         octets: octetsPhoto,
       },
+    });
+    // PUIS la clôture — l'ordre réel : rien n'est rattaché après.
+    await client.intervention.update({
+      where: { id: INTERVENTION_9I6 },
+      data: {
+        statut: "terminee",
+        temps_valide_min: 90,
+        rapport_valide_par: technicien.utilisateur_id,
+        rapport_valide_le: new Date(),
+      },
+    });
+    await client.intervention.update({
+      where: { id: INTERVENTION_9I6 },
+      data: { statut: "cloturee", cloturee_le: new Date() },
     });
   } finally {
     await client.$disconnect();
