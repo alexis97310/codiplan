@@ -63,11 +63,17 @@ function caseDeSemaine(page: Page, technicienId: string, jourRang: number) {
 test("« Annuler », pendant le délai, remet la carte en place sans aucune requête", async ({
   page,
 }) => {
+  // 10 h 30-11 h 30, PAS UNE AUTRE HEURE (9L19SA) : `intervention_sans_
+  // chevauchement_technicien` refuse désormais ce que rien n'empêchait avant
+  // — 9 h-10 h tombait ENTIÈREMENT dans `SCENE.obstacle` (8 h-10 h, même
+  // technicien, même MARDI, posé une fois pour toute la suite par
+  // `scene.ts`). Ce créneau évite aussi `SCENE.chevauchante` (13 h-14 h) et
+  // `SCENE.redimensionnable` (14 h-15 h).
   const id = await poserInterventionGlisser(reperes, {
     codeAgence: "DUCOS",
     technicienId: reperes.technicienDucos,
     rang: MARDI,
-    debut: 9 * 60,
+    debut: 10 * 60 + 30,
     duree: 60,
   });
   try {
