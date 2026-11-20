@@ -301,6 +301,14 @@ export type GesteSuspendre = {
 };
 
 /**
+ * « REPRENDRE » (9L08C-TERRAIN-REPRENDRE-SUSPENSION, décision d'Alexis du
+ * 16/11/2026) — AUCUNE saisie, même raison que la route : le statut retrouvé
+ * se déduit du CRÉNEAU (`peutReprendre`), jamais d'un champ que ce geste
+ * porterait.
+ */
+export type GesteReprendre = { readonly type: "reprendre" };
+
+/**
  * LES RÉPONSES DE CHECKLIST (9K21-CHECKLIST-TERRAIN-SAISIE, CK5) —
  * `difference` est la DIFFÉRENCE CUMULÉE depuis la dernière base connue de
  * CET appareil (la dernière version envoyée avec succès, ou l'instantané au
@@ -326,6 +334,7 @@ export type Geste =
   | GesteSuppressionPhoto
   | GesteTerminer
   | GesteSuspendre
+  | GesteReprendre
   | GesteChecklist;
 
 export type EntreeFile = {
@@ -349,6 +358,7 @@ const TYPES_COALESCABLES: ReadonlySet<Geste["type"]> = new Set([
   "signature",
   "terminer",
   "suspendre",
+  "reprendre",
   "checklist",
 ]);
 
@@ -501,6 +511,8 @@ function gesteReconnu(brut: unknown): Geste | null {
         : null;
     case "terminer":
       return { type: "terminer" };
+    case "reprendre":
+      return { type: "reprendre" };
     case "suspendre":
       return typeof g.motif === "string" &&
         typeof g.pieceAttendueRef === "string" &&

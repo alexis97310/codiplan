@@ -274,6 +274,10 @@ export const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   // même porte ; `suspendreIntervention` revérifie ensuite
   // `suspendre_reprendre_intervention` SUR CETTE intervention (D131).
   "app/api/terrain/[id]/suspendre/route.ts": "saisir_rapport",
+  // « Reprendre » (9L08C-TERRAIN-REPRENDRE-SUSPENSION) — même capacité, même
+  // porte ; `reprendreIntervention` revérifie ensuite
+  // `suspendre_reprendre_intervention` SUR CETTE intervention (D131).
+  "app/api/terrain/[id]/reprendre/route.ts": "saisir_rapport",
   // La saisie des réponses de checklist (9K18-CHECKLIST-DOMAINE) — même
   // porte que le rapport et la signature.
   "app/api/terrain/[id]/checklist/route.ts": "saisir_rapport",
