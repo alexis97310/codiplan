@@ -191,6 +191,21 @@ Toute l'instrumentation de mesure a été retirée (`git diff` contre le dernier
 commit de ce lot est vide avant le commit de passation ; confirmé par `git status
 --porcelain`).
 
+## Point 5 — épreuves finales, sur l'arbre final (sans le bouton)
+
+`pnpm test` (6024/6024), `pnpm test:isolation` (2516/2516), `CI=1 pnpm verify`
+(format:check, typecheck, lint, test, test:isolation, build) : tous verts sur
+l'arbre final, qui est redevenu STRICTEMENT identique à `origin/main` hors ce
+dossier de passation (`git diff origin/main HEAD -- . ':!docs/propositions/
+9L29-RELECTURE-REPRENDRE-P2025'` est vide). Les commits de ce lot sont, dans
+l'ordre : report du bouton pour la mesure, constat du point 1, relecture et
+mesure du point 2, puis retrait du bouton (revert) pour que l'arbre final
+n'en porte aucune trace — conformément au point 4 du ticket.
+
+Aucune captures 375 px n'a été prise : le point 3 du ticket (captures,
+« Reprendre » du bureau) ne s'applique que si le bouton revient, ce qui n'est
+pas le cas ici.
+
 ## Ce qui reste dû, pour qui reprend
 
 1. Jouer l'épreuve nommée ci-dessus (script Node isolé, `connection_limit=1`,
