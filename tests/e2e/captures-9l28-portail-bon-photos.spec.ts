@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 
@@ -9,7 +10,6 @@ import { inviterClientAuPortail } from "@/lib/auth/lien-d-acces";
 import { choisirLePremierMotDePasse } from "@/lib/auth/premier-acces";
 import { Role } from "@/lib/auth/roles";
 import { uuidv7 } from "@/lib/db/uuid";
-import { deposerPhotoIntervention } from "@/lib/documents/depot";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration, urlApplicative } from "./setup/base";
@@ -131,21 +131,34 @@ async function preparerLaScene(): Promise<void> {
       datasources: { db: { url: urlApplicative() } },
     });
     try {
-      const depot = await deposerPhotoIntervention(
-        contexteAdmin,
-        interventionId,
-        {
-          classe: "client",
-          libelle: "Avant/après — joint démonté",
-          nom_fichier: "avant-apres.png",
-          type_mime: "image/png",
-          octets: PIXEL_PNG,
-        },
-        applicatif,
-      );
-      if (depot === null) {
-        throw new Error("Le dépôt de la photo de l'épreuve a été refusé.");
-      }
+      // POSÉE DIRECTEMENT, SOUS L'EXEMPTION « fixture_isolation »
+      // (9L14-FIGE-A-LA-CLOTURE), PLUTÔT QUE PAR `deposerPhotoIntervention` —
+      // cette intervention JETABLE naît déjà `cloturee` ; depuis ce ticket,
+      // la fonction applicative refuse (et garde à part) tout dépôt sur une
+      // intervention déjà figée, ce que cette scène ne veut PAS éprouver :
+      // elle veut une intervention close qui A une photo, posée avant.
+      const documentId = uuidv7();
+      const empreinte = createHash("sha256").update(PIXEL_PNG).digest("hex");
+      await admin.$transaction([
+        admin.$executeRawUnsafe(
+          `SET LOCAL "fige_a_la_cloture.exemption" = 'fixture_isolation'`,
+        ),
+        admin.$executeRawUnsafe(
+          `INSERT INTO "document"
+             ("id", "societe_id", "intervention_id", "classe", "libelle", "nom_fichier", "type_mime", "taille_octets", "empreinte", "objet_cle", "octets", "modifie_le")
+           VALUES ($1::uuid, $2::uuid, $3::uuid, 'client', $4, $5, $6, $7, $8, $9, $10, now())`,
+          documentId,
+          societeId,
+          interventionId,
+          "Avant/après — joint démonté",
+          "avant-apres.png",
+          "image/png",
+          PIXEL_PNG.length,
+          empreinte,
+          `bd:${empreinte}`,
+          PIXEL_PNG,
+        ),
+      ]);
 
       const invitation = await inviterClientAuPortail(
         contexteAdmin,
@@ -196,10 +209,18 @@ async function effacerLaScene(): Promise<void> {
     datasources: { db: { url: urlAdministration() } },
   });
   try {
-    await admin.$executeRawUnsafe(
-      `DELETE FROM "document" WHERE "intervention_id" = $1::uuid`,
-      interventionId,
-    );
+    // SOUS L'EXEMPTION « fixture_isolation » — le document cible une
+    // intervention `cloturee` figée (9L14-FIGE-A-LA-CLOTURE), et le
+    // déclencheur refuse aussi le `DELETE`.
+    await admin.$transaction([
+      admin.$executeRawUnsafe(
+        `SET LOCAL "fige_a_la_cloture.exemption" = 'fixture_isolation'`,
+      ),
+      admin.$executeRawUnsafe(
+        `DELETE FROM "document" WHERE "intervention_id" = $1::uuid`,
+        interventionId,
+      ),
+    ]);
     await admin.$executeRawUnsafe(
       `DELETE FROM "intervention" WHERE "id" = $1::uuid`,
       interventionId,

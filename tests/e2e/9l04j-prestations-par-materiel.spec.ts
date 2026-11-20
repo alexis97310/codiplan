@@ -180,26 +180,35 @@ test.beforeAll(async () => {
     // UNE INTERVENTION PASSÉE, déjà clôturée, avec la prestation DÉJÀ
     // déclarée réalisée — point 5, « historique gardé » : le bon doit la
     // montrer même si rien ne la filtre plus.
-    await client.intervention.create({
-      data: {
-        id: INTERVENTION_HISTORIQUE_9L04J,
-        societe_id: reperes.societeId,
-        client_id: CLIENT_9L04J,
-        site_id: SITE_9L04J,
-        agence_id: agence.id,
-        technicien_id: reperes.technicienDucos,
-        type: "curatif",
-        statut: "cloturee",
-        date_planifiee: new Date("2026-09-20T00:00:00Z"),
-        duree_estimee_min: 60,
-        machines: {
-          create: [{ id: uuidv7(), machine_id: MACHINE_PONT_9L04J }],
+    // SOUS L'EXEMPTION « fixture_isolation » (9L14-FIGE-A-LA-CLOTURE) : une
+    // intervention `cloturee` figée refuse désormais `intervention_machine`
+    // et `intervention_prestation` en base ; cette ligne JETABLE n'a jamais
+    // été « vivante » avant d'être close.
+    await client.$transaction([
+      client.$executeRawUnsafe(
+        `SET LOCAL "fige_a_la_cloture.exemption" = 'fixture_isolation'`,
+      ),
+      client.intervention.create({
+        data: {
+          id: INTERVENTION_HISTORIQUE_9L04J,
+          societe_id: reperes.societeId,
+          client_id: CLIENT_9L04J,
+          site_id: SITE_9L04J,
+          agence_id: agence.id,
+          technicien_id: reperes.technicienDucos,
+          type: "curatif",
+          statut: "cloturee",
+          date_planifiee: new Date("2026-09-20T00:00:00Z"),
+          duree_estimee_min: 60,
+          machines: {
+            create: [{ id: uuidv7(), machine_id: MACHINE_PONT_9L04J }],
+          },
+          prestations_realisees: {
+            create: [{ id: uuidv7(), prestation_id: PRESTATION_PONT_9L04J }],
+          },
         },
-        prestations_realisees: {
-          create: [{ id: uuidv7(), prestation_id: PRESTATION_PONT_9L04J }],
-        },
-      },
-    });
+      }),
+    ]);
   } finally {
     await client.$disconnect();
   }
