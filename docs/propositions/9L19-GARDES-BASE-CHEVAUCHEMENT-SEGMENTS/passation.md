@@ -150,3 +150,110 @@ source plutôt que contournés :
 
 `HEAD` était détachée au démarrage, en avance sur `main` (travail des lots `9L26`/`9L26A`). Travail
 posé en détaché, commit par commit, sur ce même point de départ. Aucun push.
+
+## Reprise 9L19SA (20/11/2026)
+
+9L19 était recalé deux fois sur la même cause : `pnpm db:seed` échouait contre la base jetable
+migrée, à l'amorçage des e2e. Les gardes étaient justes ; les données de démonstration et deux
+fixtures e2e, elles, ne les respectaient pas.
+
+### Report et renumérotation
+
+Les six commits de la branche `9L19S-GARDES-BASE-CHEVAUCHEMENT-SEGMENTS-garde` ont été reportés
+(cherry-pick) sur `origin/main` actuel, sans en retirer ni en modifier le contenu. Deux conflits,
+les deux venant de `9L27-PLANCHER-JAMAIS-ZERO` (publié entre-temps) :
+
+- `lib/db/migrations-attendues.ts` — les deux entrées cohabitent, dans l'ordre chronologique.
+- `docs/arbitrages.md` — **D275 était pris par 9L27** ; l'arbitrage de ce lot devient **D276**,
+  renuméroté partout où il était nommé (le fichier lui-même, cette passation).
+- La migration a été **renommée** `20261120010000_…` → `20261120120000_…` (contenu inchangé),
+  horodatage strictement postérieur à celle de 9L27 (`20261120113000_…`) — toutes ses références
+  mises à jour (`lib/db/migrations-attendues.ts`, `scripts/lib/resserrements-migration.ts`, son
+  gardien, `README.md`, `docs/arbitrages.md`).
+
+### Point 1 (reprise) — le seed de démonstration
+
+`pnpm db:seed`, rejoué contre une base jetable migrée (procédure de `tests/e2e/setup/base.ts`),
+cassait en deux endroits distincts, les deux dans les données de démonstration, jamais dans les
+gardes :
+
+1. **L'intervention annulée de démonstration (rang 6) n'avait pas de motif.** `InterventionDemoSeed`
+   porte désormais `motifAnnulation`, câblé dans `seed.ts` (`motif_annulation`).
+2. **Après ce premier correctif, le seed cassait plus loin**, à l'affectation des techniciens :
+   `intervention_sans_chevauchement_technicien` refusait quatre doubles réservations (rangs 9/18,
+   10/19, 12/17 et 2/8). Cause commune, mesurée précisément (journal temporaire, puis la requête de
+   contrôle n°1 ci-dessus sur la base avec la contrainte provisoirement retirée) :
+   **`CONTRAT-SITE-1` a ajouté un CINQUIÈME site à CODIMA-NC après que les rangs 17/18/19 ont été
+   calés sur une arithmétique d'index à QUATRE sites** — le commentaire qui l'affirmait
+   (`prisma/seed-data.ts`, au-dessus du rang 17) a été **corrigé en place, daté**, plutôt que
+   supprimé : il affirmait que l'indice 16 retombe sur Ducos, et c'est faux depuis l'ajout du
+   cinquième site (`16 % 5 = 1`, pas Ducos — Koné). Les quatre lignes sans récit documenté (rangs 8,
+   9, 10, 12) sont décalées matin↔après-midi, même jour, même durée ; les rangs 17/18/19 et leur
+   récit horaire n'ont pas bougé. Rejoué deux fois sur une base recréée : vert.
+
+### Point 2 (reprise) — les scènes e2e, même défaut
+
+Les épreuves e2e ciblées (`glisser-deposer.spec.ts`, `planning-annuler-deplacement.spec.ts`,
+`planning-filtres-aujourdhui.spec.ts`, `captures-pg-a8-annulees-masquees.spec.ts`) ont révélé le
+même défaut dans des fixtures qui n'ont jamais traversé `prisma/seed.ts` :
+
+- **`tests/e2e/setup/scene.ts` pose `SCENE.obstacle` (Ducos, MARDI, 8 h-10 h) et
+  `SCENE.chevauchante` (Ducos, MARDI, 13 h-14 h) une fois pour toute la suite.** Six scénarios de
+  `glisser-deposer.spec.ts` et un de `planning-annuler-deplacement.spec.ts` posaient leur PROPRE
+  intervention exactement sur l'un de ces deux créneaux, pour le même technicien — une double
+  réservation réelle qu'aucune assertion ne visait à éprouver, et que rien n'empêchait avant 9L19.
+  Chaque créneau concerné est déplacé vers une fenêtre libre du même jour (10 h-11 h le matin, ou
+  15 h-17 h l'après-midi), sans toucher à l'intention d'aucun scénario ni à aucune assertion — voir
+  le commentaire laissé à chaque site d'appel.
+- **`planning-filtres-aujourdhui.spec.ts`** posait ses deux propres interventions (`planifiee` et
+  `terminee`) sur le MÊME créneau littéral, pour le même technicien — une collision avec
+  elle-même. `creerIntervention` prend désormais l'heure en paramètre.
+- **`captures-pg-a8-annulees-masquees.spec.ts`** forgeait deux lignes `annulee` par `INSERT` brut,
+  sans motif — même défaut que le seed, point 1. Les deux `INSERT` portent désormais
+  `motif_annulation`.
+- **Vérifié, pas modifié** : `tests/e2e/interventions-fiche-action-collee-bon.spec.ts` pose une
+  ligne `cloturee` par `INSERT` brut sans aucun temps — elle ne porte pas davantage
+  `temps_mesure_min`/`temps_valide_par`/`temps_valide_le`, donc tombe dans l'exemption nommée de
+  D276 et reste verte sans y toucher.
+
+**Incident sans suite, à savoir** : le tout premier passage de `planning-filtres-aujourdhui.spec.ts`
+(avant son correctif) a planté entre ses deux créations, hors de tout `try/finally`, laissant une
+ligne orpheline dans la base jetable. Sans conséquence : `playwright test` recrée cette base à
+chaque exécution (`tests/e2e/setup/base.ts`, `recreerLaBase`).
+
+**Recherche des localisateurs de la même famille (point 3 du mandat)** : sans objet ici — aucun
+écran ni composant n'a changé dans ce lot ni dans 9L19S lui-même (« aucun écran dont le rendu
+change » était déjà vrai avant la reprise), donc aucune capture et aucun localisateur à resserrer
+pour un écran modifié.
+
+### Épreuves rejouées
+
+Au premier plan, `CI=1 --workers=1` : la quasi-totalité des fichiers `tests/e2e/planning-*.spec.ts`
+et `*captures-*planning*`/`*cloture*`/`*annul*`, `tests/e2e/glisser-deposer.spec.ts`,
+`tests/e2e/fiche-*.spec.ts`, `tests/e2e/9k09-fiche-cloture-suite-origine.spec.ts`, et
+`tests/e2e/tous-les-ecrans-rendent.spec.ts` deux fois (avant et après le dernier correctif) —
+tout vert, aucune exception restée non expliquée. `pnpm test:isolation` : 262 fichiers, 2534 tests,
+vert. `CI=1 pnpm verify` (format + typecheck + lint + test + test:isolation + build) : vert de bout
+en bout (code de sortie 0). `pnpm verify:full` non joué ici — laissé à la file.
+
+**Captures d'écran** : non refaites — aucun écran touché par cette reprise (seed de démonstration,
+fixtures e2e, nom de migration, numérotation d'arbitrage). Plusieurs épreuves `captures-*.spec.ts`
+régénèrent leurs PNG de documentation à CHAQUE exécution locale, qu'il y ait eu un changement d'écran
+ou non (`page.screenshot({path})` sans condition) : les rejouer pour chercher des régressions
+d'overlap a mécaniquement touché des fichiers `docs/propositions/*/captures/*.png` sans rapport avec
+ce lot — ils ont été restaurés (`git checkout --`) avant chaque commit, jamais committés.
+
+### Migration à jouer, et requêtes de contrôle
+
+Le nom change : **`20261120120000_gardes_chevauchement_segments_9l19`** (au lieu de
+`20261120010000_…`). Les quatre requêtes de contrôle en lecture seule, §« Requêtes de contrôle »
+plus haut dans cette passation, restent la référence pour la base de production — **Alexis doit les
+faire jouer avant la migration** (le pilote les fera jouer sur staging puis production). Elles
+n'ont pas changé : seule la démonstration locale avait des lignes en infraction, jamais tenues pour
+des faits de production.
+
+### État du dépôt (reprise)
+
+`git fetch origin` : `origin/main` toujours à `845055bed` (aucun commit nouveau depuis le départ de
+cette reprise). Travail posé en détaché, sur ce même point de départ — pas de rebase nécessaire.
+Arbre propre, aucun push.
