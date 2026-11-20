@@ -29,6 +29,11 @@ async function admin(): Promise<PrismaClient> {
 async function creerIntervention(
   reperes: ReperesDeScene,
   statut: string,
+  // Décalage d'heure de création, EN HEURES (9L19SA) : les deux appels de ce
+  // fichier visaient tous les deux 08:00-09:00Z pour le même technicien —
+  // `intervention_sans_chevauchement_technicien` refuse désormais cette
+  // double réservation, que rien n'empêchait avant.
+  heureDebutUtc: number = 8,
 ): Promise<string> {
   const id = uuidv7();
   const client = await admin();
@@ -60,8 +65,12 @@ async function creerIntervention(
         priorite: "p2",
         statut: statut as never,
         date_planifiee: new Date(`${cleDeJour(reperes.lundi)}T00:00:00.000Z`),
-        creneau_debut: new Date(`${cleDeJour(reperes.lundi)}T08:00:00.000Z`),
-        creneau_fin: new Date(`${cleDeJour(reperes.lundi)}T09:00:00.000Z`),
+        creneau_debut: new Date(
+          `${cleDeJour(reperes.lundi)}T${String(heureDebutUtc).padStart(2, "0")}:00:00.000Z`,
+        ),
+        creneau_fin: new Date(
+          `${cleDeJour(reperes.lundi)}T${String(heureDebutUtc + 1).padStart(2, "0")}:00:00.000Z`,
+        ),
         duree_estimee_min: 60,
         mode_valorisation: "temps_passe",
         devise_code: "XPF",
@@ -87,8 +96,8 @@ test("le filtre « Statut » ne montre que les cartes du statut choisi, et garde
   page,
 }) => {
   const reperes = await reperesDeLaScene();
-  const planifiee = await creerIntervention(reperes, "planifiee");
-  const terminee = await creerIntervention(reperes, "terminee");
+  const planifiee = await creerIntervention(reperes, "planifiee", 8);
+  const terminee = await creerIntervention(reperes, "terminee", 9);
 
   try {
     await ouvrirUneSession(page);
