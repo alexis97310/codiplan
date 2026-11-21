@@ -309,31 +309,42 @@ test("un dépôt hors du calendrier de l'agence visée, CONFIRMÉ, est accepté 
 test("un dépôt qui chevauche une autre intervention du même technicien est refusé", async ({
   page,
 }) => {
-  // SON PROPRE obstacle, 15:00–17:00 : « si un scénario a besoin d'un
-  // obstacle, il le crée lui-même » (99XA-STAB-GLISSER). PAS 08:00–10:00
-  // (9L19SA) : `intervention_sans_chevauchement_technicien` refuse désormais
-  // ce que rien n'empêchait avant — c'est EXACTEMENT `SCENE.obstacle`, posé
-  // une fois pour toute la suite par `scene.ts`, même technicien même MARDI.
-  // 15:00–17:00 évite aussi `SCENE.chevauchante` (13 h-14 h) et
-  // `SCENE.redimensionnable` (14 h-15 h).
-  const obstacleId = await poserInterventionGlisser(reperes, {
-    codeAgence: "DUCOS",
-    technicienId: reperes.technicienDucos,
-    rang: MARDI,
-    debut: 15 * 60,
-    duree: 120,
-  });
-  // 10:00–11:00 : libre le matin (7 h 30-11 h 30, et `SCENE.obstacle` n'en
-  // occupe que 8 h-10 h) — sa propre heure n'a pas besoin d'éviter autre
-  // chose, elle est DÉPLACÉE vers l'obstacle ci-dessous.
-  const chevauchanteId = await poserInterventionGlisser(reperes, {
-    codeAgence: "DUCOS",
-    technicienId: reperes.technicienDucos,
-    rang: MARDI,
-    debut: 10 * 60,
-    duree: 60,
-  });
+  // LES DEUX CRÉATIONS DANS LE `try` (9L19SB) : sous la nouvelle garde
+  // `intervention_sans_chevauchement_technicien`, `poserInterventionGlisser`
+  // peut désormais REFUSER — ce qu'il ne faisait jamais avant. Créées hors du
+  // `try`, la première aurait fui si la seconde avait échoué (ni l'une ni
+  // l'autre n'aurait été retirée) ; chaque fuite empoisonnait ensuite le
+  // scénario suivant qui viserait le même créneau.
+  let obstacleId: string | undefined;
+  let chevauchanteId: string | undefined;
   try {
+    // SON PROPRE obstacle, 15:00–17:00 : « si un scénario a besoin d'un
+    // obstacle, il le crée lui-même » (99XA-STAB-GLISSER). PAS 08:00–10:00
+    // (9L19SA) : `intervention_sans_chevauchement_technicien` refuse désormais
+    // ce que rien n'empêchait avant — c'est EXACTEMENT `SCENE.obstacle`, posé
+    // une fois pour toute la suite par `scene.ts`, même technicien même MARDI.
+    // 15:00–17:00 évite aussi `SCENE.chevauchante` (13 h-14 h) et
+    // `SCENE.redimensionnable` (14 h-15 h).
+    obstacleId = await poserInterventionGlisser(reperes, {
+      codeAgence: "DUCOS",
+      technicienId: reperes.technicienDucos,
+      rang: MARDI,
+      debut: 15 * 60,
+      duree: 120,
+    });
+    // 11:30–12:30 : libre dans la matinée (7 h 30-11 h 30, et `SCENE.obstacle`
+    // n'en occupe que 8 h-10 h) — ET après `AVEC_MACHINE` (10:30-11:00,
+    // `affichage-materiel.spec.ts`, PERMANENTE pour toute la suite). Sa propre
+    // heure n'a sinon pas besoin d'éviter autre chose, elle est DÉPLACÉE vers
+    // l'obstacle ci-dessous.
+    chevauchanteId = await poserInterventionGlisser(reperes, {
+      codeAgence: "DUCOS",
+      technicienId: reperes.technicienDucos,
+      rang: MARDI,
+      debut: 11 * 60 + 30,
+      duree: 60,
+    });
+
     await allerAuPlanning(page, MARDI);
 
     // 15:00 est occupé par l'obstacle jusqu'à 17:00. La chevauchante dure une
@@ -346,8 +357,12 @@ test("un dépôt qui chevauche une autre intervention du même technicien est re
       fr["intervention.refus.chevauchement"],
     );
   } finally {
-    await retirerInterventionGlisser(chevauchanteId);
-    await retirerInterventionGlisser(obstacleId);
+    if (chevauchanteId !== undefined) {
+      await retirerInterventionGlisser(chevauchanteId);
+    }
+    if (obstacleId !== undefined) {
+      await retirerInterventionGlisser(obstacleId);
+    }
   }
 });
 
@@ -376,14 +391,14 @@ test("un dépôt qui chevauche une autre intervention du même technicien est re
 test("une erreur serveur affiche un message qui invite à réessayer, jamais une réussite", async ({
   page,
 }) => {
-  // 10:00–11:00, PAS 13:00–14:00 (9L19SA) : `SCENE.chevauchante` occupe
+  // 11:30–12:30, PAS 13:00–14:00 (9L19SA) ni 10:30–11:00 (9L19SB) : `SCENE.chevauchante` occupe
   // désormais 13 h-14 h pour le même technicien le même MARDI, et
   // `intervention_sans_chevauchement_technicien` le refuserait à la pose.
   const id = await poserInterventionGlisser(reperes, {
     codeAgence: "DUCOS",
     technicienId: reperes.technicienDucos,
     rang: MARDI,
-    debut: 10 * 60,
+    debut: 11 * 60 + 30,
     duree: 60,
   });
   try {
@@ -395,7 +410,7 @@ test("une erreur serveur affiche un message qui invite à réessayer, jamais une
 
     await allerAuPlanning(page, MARDI);
 
-    const debut = caseDHeure(page, reperes.technicienDucos, 10 * 60);
+    const debut = caseDHeure(page, reperes.technicienDucos, 11 * 60 + 30);
     await expect(debut.locator(`[data-bloc="${id}"]`)).toBeVisible();
     await glisser(
       page,
@@ -420,14 +435,14 @@ test("une erreur serveur affiche un message qui invite à réessayer, jamais une
 test("une connexion interrompue affiche un message qui invite à regarder ailleurs, jamais une réussite", async ({
   page,
 }) => {
-  // 10:00–11:00, PAS 13:00–14:00 (9L19SA) : `SCENE.chevauchante` occupe
+  // 11:30–12:30, PAS 13:00–14:00 (9L19SA) ni 10:30–11:00 (9L19SB) : `SCENE.chevauchante` occupe
   // désormais 13 h-14 h pour le même technicien le même MARDI, et
   // `intervention_sans_chevauchement_technicien` le refuserait à la pose.
   const id = await poserInterventionGlisser(reperes, {
     codeAgence: "DUCOS",
     technicienId: reperes.technicienDucos,
     rang: MARDI,
-    debut: 10 * 60,
+    debut: 11 * 60 + 30,
     duree: 60,
   });
   try {
@@ -442,7 +457,7 @@ test("une connexion interrompue affiche un message qui invite à regarder ailleu
 
     await allerAuPlanning(page, MARDI);
 
-    const debut = caseDHeure(page, reperes.technicienDucos, 10 * 60);
+    const debut = caseDHeure(page, reperes.technicienDucos, 11 * 60 + 30);
     await glisser(
       page,
       bloc(page, id),
@@ -467,28 +482,37 @@ test("une connexion interrompue affiche un message qui invite à regarder ailleu
 test("après un refus, le bloc est à sa place d'origine — y compris après rechargement", async ({
   page,
 }) => {
-  // 15:00–17:00 / 10:00–11:00, PAS 8:00–10:00 / 13:00–14:00 (9L19SA) : ce
-  // sont EXACTEMENT `SCENE.obstacle` et `SCENE.chevauchante`, même
-  // technicien même MARDI, posées une fois pour toute la suite —
-  // `intervention_sans_chevauchement_technicien` les refuserait à la pose.
-  const obstacleId = await poserInterventionGlisser(reperes, {
-    codeAgence: "DUCOS",
-    technicienId: reperes.technicienDucos,
-    rang: MARDI,
-    debut: 15 * 60,
-    duree: 120,
-  });
-  const chevauchanteId = await poserInterventionGlisser(reperes, {
-    codeAgence: "DUCOS",
-    technicienId: reperes.technicienDucos,
-    rang: MARDI,
-    debut: 10 * 60,
-    duree: 60,
-  });
+  // LES DEUX CRÉATIONS DANS LE `try` (9L19SB, même raison que le scénario 3
+  // ci-dessus) : une fuite de l'une empoisonnerait le scénario suivant qui
+  // viserait le même créneau.
+  let obstacleId: string | undefined;
+  let chevauchanteId: string | undefined;
   try {
+    // 15:00–17:00 / 11:30–12:30, PAS 8:00–10:00 / 13:00–14:00 (9L19SA) : ce
+    // sont EXACTEMENT `SCENE.obstacle` et `SCENE.chevauchante`, même
+    // technicien même MARDI, posées une fois pour toute la suite —
+    // `intervention_sans_chevauchement_technicien` les refuserait à la pose.
+    // 11:30, PAS 10:00 (9L19SB) : `AVEC_MACHINE` (10:30-11:00,
+    // `affichage-materiel.spec.ts`) occupe désormais ce créneau pour toute la
+    // suite.
+    obstacleId = await poserInterventionGlisser(reperes, {
+      codeAgence: "DUCOS",
+      technicienId: reperes.technicienDucos,
+      rang: MARDI,
+      debut: 15 * 60,
+      duree: 120,
+    });
+    chevauchanteId = await poserInterventionGlisser(reperes, {
+      codeAgence: "DUCOS",
+      technicienId: reperes.technicienDucos,
+      rang: MARDI,
+      debut: 11 * 60 + 30,
+      duree: 60,
+    });
+
     await allerAuPlanning(page, MARDI);
 
-    const origine = caseDHeure(page, reperes.technicienDucos, 10 * 60);
+    const origine = caseDHeure(page, reperes.technicienDucos, 11 * 60 + 30);
     await expect(
       origine.locator(`[data-bloc="${chevauchanteId}"]`),
     ).toBeVisible();
@@ -511,8 +535,12 @@ test("après un refus, le bloc est à sa place d'origine — y compris après re
       origine.locator(`[data-bloc="${chevauchanteId}"]`),
     ).toBeVisible();
   } finally {
-    await retirerInterventionGlisser(chevauchanteId);
-    await retirerInterventionGlisser(obstacleId);
+    if (chevauchanteId !== undefined) {
+      await retirerInterventionGlisser(chevauchanteId);
+    }
+    if (obstacleId !== undefined) {
+      await retirerInterventionGlisser(obstacleId);
+    }
   }
 });
 
