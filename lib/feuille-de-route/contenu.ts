@@ -29,62 +29,12 @@ export type SectionFeuilleDeRoute = {
 };
 
 /** La date affichée en sous-titre de la page. */
-export const DATE_ETAT_FEUILLE_DE_ROUTE = "03/11/2026";
+export const DATE_ETAT_FEUILLE_DE_ROUTE = "22/11/2026";
 
 export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
   {
-    titre: "Déjà écrits, en attente",
-    elements: [
-      {
-        statut: "pret",
-        titre:
-          "9ID — Performances : mesurer les échanges avec la base sur chaque page principale, corriger les pires.",
-      },
-      {
-        statut: "pret",
-        titre:
-          "9J01 — Documentation : écrire la règle « PARCOURS-1 » dans le registre des décisions.",
-      },
-      {
-        statut: "en_cours",
-        titre:
-          "Portail client (9J02 à 9J08, 9J20) — Inviter un client par lien (livré, 9J02A), ses contacts, déposer une demande, fiche machine, état de ses interventions, bon téléchargeable après clôture, barème sans montant d'intervention.",
-      },
-      {
-        statut: "pret",
-        titre:
-          "Historique des états (9J08A, 9J08B) — Date de chaque changement d'état ; le client voit le temps de traitement.",
-      },
-      {
-        statut: "pret",
-        titre:
-          "Notifications internes (9J09 à 9J11) — Page de notifications ; premier déclencheur : signature absente ou refusée.",
-      },
-      {
-        statut: "pret",
-        titre:
-          "Checklist par type (9J12 à 9J16) — Le bon adapté au type d'intervention et à la machine (à revoir après l'atelier « bon par type »).",
-      },
-      {
-        statut: "pret",
-        titre:
-          "Suites à donner (9J17 à 9J19) — Devis, accord, pièce à commander, avec relances.",
-      },
-    ],
-  },
-  {
     titre: "À écrire après la démo",
     elements: [
-      {
-        statut: "a_ecrire",
-        titre:
-          "Figer l'application technicien dès « terminée » (aujourd'hui seulement à la clôture) ; audit m3 : afficher l'état et l'heure de fin — à trancher avec la réouverture confirmée (D220).",
-      },
-      {
-        statut: "a_ecrire",
-        titre:
-          "État des lieux complet de l'application technicien, puis atelier : ce que contient un bon pour chaque type d'intervention (prestations proposées selon le type).",
-      },
       {
         statut: "a_ecrire",
         titre: "Bug des pièces sur l'application technicien (à préciser).",
@@ -92,7 +42,7 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
       {
         statut: "a_ecrire",
         titre:
-          "Page Matériel, deuxième passe : état actif ou inactif écrit en clair, saisie gardée après un refus, famille présélectionnée.",
+          "Page Matériel, deuxième passe : état actif ou inactif écrit en clair, saisie gardée après un refus (la famille présélectionnée, elle, est livrée — 9K17A).",
       },
       {
         statut: "a_ecrire",
@@ -109,16 +59,6 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
   {
     titre: "Application technicien — audit du 10/11/2026",
     elements: [
-      {
-        statut: "pret",
-        titre:
-          "B1 et M1 — Fin d'intervention : l'alerte « signature non recueillie » part au responsable SAV, sinon à tout le bureau ; l'administrateur est prévenu quand il n'y a aucun responsable SAV ; le technicien voit deux messages distincts (maquette 06-terminer).",
-      },
-      {
-        statut: "pret",
-        titre:
-          "B2 et M3 — « Terminer » exige le commentaire ; la confirmation dit ce qui manque et y conduit, en plein écran, avec le temps à jour (maquette 06-terminer).",
-      },
       {
         statut: "decision",
         titre:
@@ -143,11 +83,6 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
         statut: "a_ecrire",
         titre:
           "m8, m10b et m13 — En-tête sur une ligne ; « Se déconnecter » et « Installer l'application » dans Profil ; pastille « En ligne / Hors ligne · saisies en attente » (maquettes 01-journee et 07-profil).",
-      },
-      {
-        statut: "a_ecrire",
-        titre:
-          "m10a — Signature : zone agrandie, nom du signataire prérempli avec le contact sur place (maquette 05-signature).",
       },
       {
         statut: "decision",
@@ -186,29 +121,78 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
       {
         statut: "decision",
         titre:
-          "« Copier un nouveau lien » refusé pour tous en production : A, un rôle dédié en base (geste dans Neon) ; ou B, ouvrir deux colonnes au rôle de consolidation (modifier D21).",
+          "Pourcentage de majoration hors ouverture : écran de réglage par société, ou rester à 50 % (D269).",
       },
       {
         statut: "decision",
         titre:
-          "Réinitialisation du second facteur : protéger aussi la direction et les administrateurs ? Fermer les sessions de la personne visée ?",
+          "Clôture par le technicien : aucun écran ne mène aujourd'hui le technicien au dialogue « Clôturer » (D271).",
       },
       {
         statut: "decision",
         titre:
-          "Régime VGP des familles modifiable dans l'application (ticket prêt, mis de côté le 23/10).",
+          "Historique des emplacements d'une machine : visible seulement de l'administration et de la direction (9L20).",
+      },
+      {
+        statut: "decision",
+        titre:
+          "Valorisation au coût de la garantie, pour le suivi de rentabilité (9L18).",
+      },
+      {
+        statut: "decision",
+        titre:
+          "Invalider les anciens liens d'accès non utilisés à l'envoi d'un nouveau (9L09, demande une migration).",
+      },
+      {
+        statut: "decision",
+        titre:
+          "Protection « validation obligatoire » de l'environnement de production sur GitHub (9L22, facultatif).",
+      },
+      {
+        statut: "decision",
+        titre:
+          "Gardes en base de 9L19 (chevauchement d'un technicien, segment fermé, annulation, clôture) : lot arrêté après trois essais, deux scènes de test à corriger — reprise à décider.",
       },
     ],
   },
   {
-    titre: "Bloquants extérieurs",
+    titre: "Bloqué / en enquête",
     elements: [
       {
         statut: "bloque",
         titre:
           "Envoi de courriels : domaine à vérifier chez Resend (aujourd'hui l'envoi ne part que vers l'adresse de l'administrateur).",
       },
-      { statut: "bloque", titre: "Hors-ligne : non fait." },
+      {
+        statut: "bloque",
+        titre:
+          "Bouton « Reprendre » après une suspension, sur le terrain : erreur non expliquée en base (enquêtes 9L08C, 9L08CA, 9L29) ; cause soupçonnée dans la bibliothèque d'accès à la base ; bouton retiré en attendant. Le « Reprendre » du bureau utilise la même fonction : à vérifier en production.",
+      },
+    ],
+  },
+  {
+    titre: "Petits défauts relevés",
+    elements: [
+      {
+        statut: "a_ecrire",
+        titre:
+          "Fiche terrain à 375 px : la barre fixe coupe « Terminer l'intervention ».",
+      },
+      {
+        statut: "a_ecrire",
+        titre:
+          "Feuille « Terminer l'intervention ? » : grand espace vide au-dessus de « Confirmer la fin ».",
+      },
+      {
+        statut: "a_ecrire",
+        titre:
+          "Checklist : un point chiffré avec « dernier relevé » et un point sans ne sont pas alignés pareil.",
+      },
+      {
+        statut: "a_ecrire",
+        titre:
+          "Numéro d'arbitrage D135 employé pour deux décisions différentes.",
+      },
     ],
   },
   {
@@ -267,6 +251,115 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
       {
         statut: "livre",
         titre: "Page « Feuille de route » réservée aux administrateurs.",
+      },
+      {
+        statut: "livre",
+        titre:
+          "Mesure des échanges avec la base sur les pages principales, correctifs sur les plus lentes (9ID).",
+      },
+      {
+        statut: "livre",
+        titre:
+          "Règle « PARCOURS-1 » écrite au registre des décisions : une intervention ne porte qu'une machine au plus (9J01, D228).",
+      },
+      {
+        statut: "livre",
+        titre:
+          "Portail client : le client invite ses contacts, dépose une demande, voit la fiche de sa machine et l'état de ses interventions, et télécharge le bon après clôture (9J03 à 9J07).",
+      },
+      {
+        statut: "livre",
+        titre:
+          "Portail client : historique daté de chaque changement d'état, notifications internes (dont l'alerte de signature manquante), suites à donner avec relances, barème publié sans montant d'intervention (9J08A, 9J08B, 9J09 à 9J11, 9J17 à 9J20).",
+      },
+      {
+        statut: "livre",
+        titre:
+          "Portail client : invitation sécurisée d'une identité déjà connue d'une autre société, révocation immédiate, verrou applicatif qui ferme la base au compte client (9K01, 9K14 à 9K16).",
+      },
+      {
+        statut: "livre",
+        titre:
+          "Checklists adaptées au type d'intervention et au sous-type de matériel, modèles rattachés par table de liaison, dernier relevé rappelé en rubrique, réponse par photo, retrait d'une réponse déjà donnée (9K08, 9K17 à 9K30).",
+      },
+      {
+        statut: "livre",
+        titre:
+          "Prestations proposées selon le type d'intervention, et filtrées par famille de matériel (9K29, 9L04J).",
+      },
+      {
+        statut: "livre",
+        titre:
+          "Fiche terrain « épurée » : style, checklist, photos, rapport à phrases types, récapitulatif de signature, zone de signature agrandie avec le nom du signataire prérempli (9L04C à 9L04M).",
+      },
+      {
+        statut: "livre",
+        titre:
+          "Alerte de fin d'intervention sans signature toujours adressée à quelqu'un ; « Terminer » exige un commentaire et dit ce qui manque avant de s'activer (9K26, 9K27).",
+      },
+      {
+        statut: "livre",
+        titre:
+          "Toute minute commencée compte sur le temps total de l'intervention ; suspendre arrête le compteur ; seuls le responsable et l'ADV corrigent le temps à la clôture (9L06, 9L13, 9L15).",
+      },
+      {
+        statut: "livre",
+        titre:
+          "Tout est figé à la clôture, en base : une saisie terrain arrivée après est gardée à part et signalée à l'ADV, jamais appliquée (9L14).",
+      },
+      {
+        statut: "livre",
+        titre:
+          "La checklist, le rapport, les prestations et la signature ne se saisissent qu'après le démarrage de l'intervention (9L08B).",
+      },
+      {
+        statut: "livre",
+        titre:
+          "Majoration hors ouverture réglable par société et figée à la clôture ; le temps facturé ne descend jamais à zéro (9L12, 9L27).",
+      },
+      {
+        statut: "livre",
+        titre:
+          "Le bon d'une intervention close relit sa valorisation figée, jamais le barème du jour (9L17).",
+      },
+      {
+        statut: "livre",
+        titre:
+          "Cinq échecs de mot de passe déclenchent un refus temporisé de quinze minutes ; en-têtes de sécurité HTTP durcis (9L07, 9L08A).",
+      },
+      {
+        statut: "livre",
+        titre:
+          "Réinitialiser un second facteur ou choisir un mot de passe par lien ferme les sessions déjà ouvertes du compte (9L09).",
+      },
+      {
+        statut: "livre",
+        titre:
+          "Retirer l'accès d'un compte interne désactive la ligne sans la supprimer ; réaccorder l'accès la réactive (9L03A, 9L04K).",
+      },
+      {
+        statut: "livre",
+        titre:
+          "Création d'une intervention directe : exige qualifier puis affecter, jamais une demande portail (9L10).",
+      },
+      {
+        statut: "livre",
+        titre:
+          "L'état de la machine se change aussi depuis la fiche machine, et dès la saisie de la demande ou de l'intervention (9I8F).",
+      },
+      {
+        statut: "livre",
+        titre:
+          "« Changer de technicien » refuse le chevauchement et exige un technicien actif de la société (9L02).",
+      },
+      {
+        statut: "livre",
+        titre: "Déplacer une machine entre sites ou agences (9L20).",
+      },
+      {
+        statut: "livre",
+        titre:
+          "CI durcie : les flux qui écrivent sur une base réelle épinglent leurs actions et portent un environnement de production (9L22).",
       },
     ],
   },
