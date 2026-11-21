@@ -11,6 +11,7 @@ import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
+import { creneauUtc } from "./setup/creneaux";
 import { reperesDeLaScene } from "./setup/reperes";
 import { cleDeJour } from "./setup/scene";
 import { ouvrirUneSession } from "./setup/session";
@@ -114,7 +115,15 @@ test.beforeAll(async () => {
         libelle: "9DBCAP — site",
       },
     });
+    // UNE HEURE PAR LARGEUR (9L19, garde `intervention_sans_chevauchement_
+    // technicien`) : les deux « prêtes » partagent le même technicien, le
+    // même jour — jamais le même créneau.
+    const creneauParLargeur: Record<number, number> = { 1280: 8, 375: 9 };
     for (const largeur of [1280, 375] as const) {
+      const { creneau_debut, creneau_fin } = creneauUtc(
+        demainCle,
+        creneauParLargeur[largeur],
+      );
       await client.intervention.create({
         data: {
           id: PRETES[largeur],
@@ -127,8 +136,8 @@ test.beforeAll(async () => {
           priorite: "p3",
           statut: "planifiee",
           date_planifiee: new Date(`${demainCle}T00:00:00.000Z`),
-          creneau_debut: new Date(`${demainCle}T08:00:00.000Z`),
-          creneau_fin: new Date(`${demainCle}T09:00:00.000Z`),
+          creneau_debut,
+          creneau_fin,
           duree_estimee_min: 60,
           mode_valorisation: "temps_passe",
           devise_code: "XPF",

@@ -9,6 +9,7 @@ import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
+import { creneauUtc } from "./setup/creneaux";
 import { reperesDeLaScene } from "./setup/reperes";
 import { COMPTE_TECHNICIEN_EPREUVE, MOT_DE_PASSE_EPREUVE } from "./setup/scene";
 
@@ -72,6 +73,10 @@ test.beforeAll(async () => {
         actif: true,
       },
     });
+    // UNE HEURE PAR LARGEUR (9L19, garde `intervention_sans_chevauchement_
+    // technicien`) : les deux lignes partagent le même technicien, le même
+    // jour.
+    const heureParLargeur: Record<number, number> = { 1280: 20, 375: 21 };
     for (const largeur of LARGEURS) {
       await client.site.create({
         data: {
@@ -82,6 +87,10 @@ test.beforeAll(async () => {
           libelle: `9F4H5BCAP — site ${largeur}`,
         },
       });
+      const { creneau_debut, creneau_fin } = creneauUtc(
+        cle,
+        heureParLargeur[largeur],
+      );
       await client.intervention.create({
         data: {
           id: INTERVENTIONS[largeur],
@@ -94,8 +103,8 @@ test.beforeAll(async () => {
           type: "curatif",
           priorite: "p2",
           date_planifiee: new Date(`${cle}T00:00:00.000Z`),
-          creneau_debut: new Date(`${cle}T20:00:00.000Z`),
-          creneau_fin: new Date(`${cle}T21:00:00.000Z`),
+          creneau_debut,
+          creneau_fin,
           duree_estimee_min: 60,
           mode_valorisation: "temps_passe",
           devise_code: "XPF",

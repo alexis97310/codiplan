@@ -106,6 +106,21 @@ test.beforeAll(async () => {
     );
     const creneauFin = instantAMinutes(reperes.lundi, 13 * 60, reperes.fuseau);
 
+    // MÊME JOUR, MÊME TECHNICIEN que ci-dessus : une heure distincte (9L19,
+    // garde `intervention_sans_chevauchement_technicien`) — le chemin FIGÉ
+    // n'a besoin d'aucune proportion ouverte/fermée précise, sa majoration
+    // est posée directement, ci-dessous.
+    const creneauDebutCloturee = instantAMinutes(
+      reperes.lundi,
+      15 * 60,
+      reperes.fuseau,
+    );
+    const creneauFinCloturee = instantAMinutes(
+      reperes.lundi,
+      16 * 60 + 30,
+      reperes.fuseau,
+    );
+
     await client.intervention.create({
       data: {
         id: INTERVENTION_SIGNATURE,
@@ -165,10 +180,10 @@ test.beforeAll(async () => {
       CLIENT_ID,
       SITE_ID,
       agence.id,
-      creneauDebut,
+      creneauDebutCloturee,
       reperes.technicienDucos,
-      creneauDebut,
-      creneauFin,
+      creneauDebutCloturee,
+      creneauFinCloturee,
       12750 + SUPPLEMENT_MAJORATION_MINEUR,
       JSON.stringify(valorisationFigee),
     );

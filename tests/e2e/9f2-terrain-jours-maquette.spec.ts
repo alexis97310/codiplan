@@ -19,6 +19,7 @@ import { avecSociete, avecSocieteEtRole } from "@/lib/db/rls";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
+import { creneauUtc } from "./setup/creneaux";
 import { reperesDeLaScene } from "./setup/reperes";
 import {
   COMPTE_TECHNICIEN_EPREUVE,
@@ -165,14 +166,14 @@ test.describe("« Ma journée » remplie — en retard, aujourd'hui, demain, les
     const jPlus4 = jourSuivant(aujourdHui, 4);
     const jPlus9 = jourSuivant(aujourdHui, 9);
 
+    // 16h UTC : distincte des autres scènes « aujourd'hui » de la famille
+    // 9DD/9F4H5 (9L19, garde `intervention_sans_chevauchement_technicien` —
+    // tests/e2e/setup/creneaux.ts).
     const creneauDe = (
       jour: ReturnType<typeof jourDe>,
     ): { readonly creneau_debut: Date; readonly creneau_fin: Date } => {
       const cle = cleJour(jour);
-      return {
-        creneau_debut: new Date(`${cle}T20:00:00.000Z`),
-        creneau_fin: new Date(`${cle}T21:00:00.000Z`),
-      };
+      return creneauUtc(cle, 16);
     };
 
     const client = admin();
@@ -313,7 +314,10 @@ test.describe("« Ma journée » remplie — en retard, aujourd'hui, demain, les
           site_id: SITE_PLANIFIEE_DEMAIN_ID,
           statut: "planifiee",
           date_planifiee: instantDuJour(demain),
-          ...creneauDe(demain),
+          // MÊME JOUR que `INTERVENTION_DEMAIN_ID`, MÊME technicien : une
+          // heure distincte, sinon la garde du chevauchement (9L19) refuse
+          // la seconde ligne.
+          ...creneauUtc(cleJour(demain), 18),
           ...commun,
         },
       });

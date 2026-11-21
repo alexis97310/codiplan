@@ -9,6 +9,7 @@ import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
+import { creneauUtc } from "./setup/creneaux";
 import { reperesDeLaScene } from "./setup/reperes";
 import { cleDeJour } from "./setup/scene";
 import { ouvrirUneSession } from "./setup/session";
@@ -98,7 +99,16 @@ test.beforeAll(async () => {
         libelle: "9CTCAP — site",
       },
     });
+    // UNE HEURE PAR LARGEUR (9L19, garde `intervention_sans_chevauchement_
+    // technicien`) : les deux largeurs partagent le même technicien, le même
+    // jour (`cleAVenir` d'une part, `cleePassee` de l'autre).
+    const heureParLargeur: Record<number, number> = { 1280: 8, 375: 9 };
     for (const largeur of [1280, 375] as const) {
+      const heure = heureParLargeur[largeur];
+      const { creneau_debut: debutAVenir, creneau_fin: finAVenir } =
+        creneauUtc(cleAVenir, heure);
+      const { creneau_debut: debutPassee, creneau_fin: finPassee } =
+        creneauUtc(cleePassee, heure);
       await client.intervention.create({
         data: {
           id: PRETE_A_VENIR[largeur],
@@ -111,8 +121,8 @@ test.beforeAll(async () => {
           priorite: "p3",
           statut: "planifiee",
           date_planifiee: new Date(`${cleAVenir}T00:00:00.000Z`),
-          creneau_debut: new Date(`${cleAVenir}T08:00:00.000Z`),
-          creneau_fin: new Date(`${cleAVenir}T09:00:00.000Z`),
+          creneau_debut: debutAVenir,
+          creneau_fin: finAVenir,
           duree_estimee_min: 60,
           mode_valorisation: "temps_passe",
           devise_code: "XPF",
@@ -131,8 +141,8 @@ test.beforeAll(async () => {
           priorite: "p3",
           statut: "planifiee",
           date_planifiee: new Date(`${cleePassee}T00:00:00.000Z`),
-          creneau_debut: new Date(`${cleePassee}T08:00:00.000Z`),
-          creneau_fin: new Date(`${cleePassee}T09:00:00.000Z`),
+          creneau_debut: debutPassee,
+          creneau_fin: finPassee,
           duree_estimee_min: 60,
           mode_valorisation: "temps_passe",
           devise_code: "XPF",

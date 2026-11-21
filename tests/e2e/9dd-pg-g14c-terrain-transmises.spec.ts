@@ -6,6 +6,7 @@ import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
+import { creneauUtc } from "./setup/creneaux";
 import { reperesDeLaScene } from "./setup/reperes";
 import { COMPTE_TECHNICIEN_EPREUVE, MOT_DE_PASSE_EPREUVE } from "./setup/scene";
 import { ouvrirUneSession } from "./setup/session";
@@ -79,8 +80,17 @@ test.beforeAll(async () => {
   const aujourdHui = jourDe(maintenant(reperes.fuseau).local);
   const cle = cleJour(aujourdHui);
   const datePlanifiee = new Date(`${cle}T00:00:00.000Z`);
-  const creneauDebut = new Date(`${cle}T20:00:00.000Z`);
-  const creneauFin = new Date(`${cle}T21:00:00.000Z`);
+  // DEUX HEURES DISTINCTES (9L19, garde `intervention_sans_chevauchement_
+  // technicien`) : Planifiée et Affectée portent le même technicien et ne
+  // peuvent plus partager un créneau, même hors ouverture. 14h et 20h UTC
+  // n'appartiennent à aucune autre scène de la famille 9DD/9F4H5
+  // (`tests/e2e/setup/creneaux.ts`).
+  const { creneau_debut: creneauDebut, creneau_fin: creneauFin } = creneauUtc(
+    cle,
+    20,
+  );
+  const { creneau_debut: creneauDebutPlanifiee, creneau_fin: creneauFinPlanifiee } =
+    creneauUtc(cle, 14);
 
   const client = admin();
   try {
@@ -144,6 +154,8 @@ test.beforeAll(async () => {
         site_id: SITE_PLANIFIEE_ID,
         statut: "planifiee",
         ...commun,
+        creneau_debut: creneauDebutPlanifiee,
+        creneau_fin: creneauFinPlanifiee,
       },
     });
     await client.intervention.create({

@@ -112,6 +112,15 @@ async function ecrireLaScene(): Promise<void> {
     const creneauFinAujourdhui = new Date(
       aujourdhui.getTime() + 9 * 60 * 60 * 1000,
     );
+    // UNE HEURE DISTINCTE pour `INTERVENTION_AUJOURDHUI_AFFECTEE` (9L19,
+    // garde `intervention_sans_chevauchement_technicien`) : même technicien,
+    // même jour que `INTERVENTION_AUJOURDHUI_PLANIFIEE` ci-dessus.
+    const creneauDebutAujourdhuiAffectee = new Date(
+      aujourdhui.getTime() + 9 * 60 * 60 * 1000,
+    );
+    const creneauFinAujourdhuiAffectee = new Date(
+      aujourdhui.getTime() + 10 * 60 * 60 * 1000,
+    );
 
     const base = {
       societe_id: societe.id,
@@ -155,8 +164,8 @@ async function ecrireLaScene(): Promise<void> {
         priorite: "p3",
         statut: "affectee",
         date_planifiee: aujourdhui,
-        creneau_debut: creneauDebutAujourdhui,
-        creneau_fin: creneauFinAujourdhui,
+        creneau_debut: creneauDebutAujourdhuiAffectee,
+        creneau_fin: creneauFinAujourdhuiAffectee,
         duree_estimee_min: 60,
         technicien_id: technicienId,
       },

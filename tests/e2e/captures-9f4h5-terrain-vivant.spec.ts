@@ -9,6 +9,7 @@ import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
+import { creneauUtc } from "./setup/creneaux";
 import { reperesDeLaScene } from "./setup/reperes";
 import { COMPTE_TECHNICIEN_EPREUVE, MOT_DE_PASSE_EPREUVE } from "./setup/scene";
 import { ouvrirUneSession } from "./setup/session";
@@ -99,12 +100,17 @@ test.beforeAll(async () => {
       type: "curatif" as const,
       priorite: "p3" as const,
       date_planifiee: new Date(`${cle}T00:00:00.000Z`),
-      creneau_debut: new Date(`${cle}T20:00:00.000Z`),
-      creneau_fin: new Date(`${cle}T21:00:00.000Z`),
       duree_estimee_min: 60,
       mode_valorisation: "temps_passe" as const,
       devise_code: "XPF",
       description: "9F4H5CAP — capture",
+    };
+    // UNE HEURE PAR LIGNE (9L19, garde `intervention_sans_chevauchement_
+    // technicien`) : quatre lignes (compteur + nouvelle, par largeur)
+    // partagent le même technicien, le même jour.
+    const creneauxParLargeur: Record<number, readonly [number, number]> = {
+      1280: [20, 21],
+      375: [22, 23],
     };
 
     await client.client.create({
@@ -134,12 +140,14 @@ test.beforeAll(async () => {
           },
         ],
       });
+      const [heureCompteur, heureNouvelle] = creneauxParLargeur[largeur];
       await client.intervention.create({
         data: {
           id: INTERVENTIONS_COMPTEUR[largeur],
           site_id: SITES_COMPTEUR[largeur],
           statut: "affectee",
           ...commun,
+          ...creneauUtc(cle, heureCompteur),
         },
       });
       // PLANIFIEE — invisible du terrain tant qu'elle n'est pas transmise
@@ -150,6 +158,7 @@ test.beforeAll(async () => {
           site_id: SITES_NOUVELLE[largeur],
           statut: "planifiee",
           ...commun,
+          ...creneauUtc(cle, heureNouvelle),
         },
       });
     }

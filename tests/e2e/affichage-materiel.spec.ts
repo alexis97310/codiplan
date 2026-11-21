@@ -93,8 +93,22 @@ test.beforeAll(async () => {
 
     const jour = jourDeLaScene(reperes, MARDI);
     const jourDate = new Date(Date.UTC(jour.annee, jour.mois - 1, jour.jour));
-    const debut = instantAMinutes(jour, 10 * 60 + 30, reperes.fuseau);
-    const fin = instantAMinutes(jour, 11 * 60, reperes.fuseau);
+
+    // DEUX CRÉNEAUX DISTINCTS, L'UN APRÈS L'AUTRE (9L19, garde
+    // `intervention_sans_chevauchement_technicien`) : `AVEC_MACHINE` et
+    // `PLANIFIEE_SEULE` portent le même technicien et ne peuvent plus
+    // partager un créneau — toujours dans le même creux, entre l'obstacle
+    // (08:00–10:00) et la chevauchante (13:00–14:00).
+    const creneaux = {
+      [AVEC_MACHINE]: {
+        debut: instantAMinutes(jour, 10 * 60 + 30, reperes.fuseau),
+        fin: instantAMinutes(jour, 11 * 60, reperes.fuseau),
+      },
+      [PLANIFIEE_SEULE]: {
+        debut: instantAMinutes(jour, 11 * 60, reperes.fuseau),
+        fin: instantAMinutes(jour, 11 * 60 + 30, reperes.fuseau),
+      },
+    };
 
     for (const [id, statut] of [
       [AVEC_MACHINE, "terminee"],
@@ -122,8 +136,8 @@ test.beforeAll(async () => {
         reperes.technicienDucos,
         statut,
         jourDate,
-        debut,
-        fin,
+        creneaux[id].debut,
+        creneaux[id].fin,
       );
       await client.$executeRawUnsafe(
         `INSERT INTO "intervention_machine" ("id", "societe_id", "intervention_id", "machine_id", "modifie_le")
