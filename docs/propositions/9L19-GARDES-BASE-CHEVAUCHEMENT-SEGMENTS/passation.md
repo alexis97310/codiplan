@@ -257,3 +257,117 @@ des faits de production.
 `git fetch origin` : `origin/main` toujours à `845055bed` (aucun commit nouveau depuis le départ de
 cette reprise). Travail posé en détaché, sur ce même point de départ — pas de rebase nécessaire.
 Arbre propre, aucun push.
+
+## Reprise 9L19SB (21/11/2026)
+
+9L19SA était recalé deux fois sur la même cause (`traces/9L19SA-REPRISE-GARDES-SEGMENTS-verify-*.txt`,
+`tickets/recales/9L19SA-REPRISE-GARDES-SEGMENTS.md` — aucun des deux lisible depuis ce worktree,
+dossier Windows) : une fois le seed réparé, la vérification indépendante tombait sur des scènes e2e
+EXISTANTES qui posaient, pour le même technicien, deux lignes actives (jamais `annulee`) sur un
+créneau identique — exactement ce que la garde du chevauchement refuse désormais, à bon droit.
+
+### Report
+
+Les douze commits de la branche `9L19SA-REPRISE-GARDES-SEGMENTS-garde` ont été reportés
+(cherry-pick) sur `origin/main` actuel (toujours `845055bed`, aucun commit nouveau depuis le
+départ de 9L19SA), sans en retirer ni en modifier le contenu. Quatre fichiers de fixtures
+`tests/isolation/*.test.ts` (déjà modifiés depuis par du travail publié entre-temps sur
+`origin/main` — 9L14-FIGE-A-LA-CLOTURE) et un conflit sur `docs/arbitrages.md` : **D276 était pris
+par 9L14 depuis la reprise 9L19SA** ; l'arbitrage de ce lot devient **D277**, renuméroté partout où
+il était nommé. Les quatre fixtures d'isolation ont été fusionnées à la main — l'exemption
+`fige_a_la_cloture.exemption` de 9L14 (`SET LOCAL`, transaction) et les colonnes `motif_annulation`/
+`temps_valide_min` de 9L19 cohabitent désormais dans chacune, sans qu'aucune des deux décisions
+n'ait reculé.
+
+### Point 2 — les scènes e2e, trouvées en rejouant toute la suite
+
+`traces/` n'existe pas dans ce worktree : la suite complète (`pnpm exec playwright test`, 24
+cœurs, sans `CI`) a été rejouée pour relever chaque `23P01` moi-même. Dix-sept échecs portaient ce
+code, sur 68 au total — le reste, non lié au chevauchement (aucun `23514`/`check_violation`
+derrière), a été laissé à cette proportion sans être creusé : du bruit de parallélisme élevé, hors
+mandat de ce lot.
+
+Nouvel utilitaire partagé, **`tests/e2e/setup/creneaux.ts`** (`creneauUtc`), pour donner à chaque
+ligne sa propre heure sans dupliquer le calcul de date à la main. Neuf scènes corrigées, chacune
+posait en réalité DEUX interventions non annulées du même technicien sur le même créneau, dans son
+PROPRE amorçage (jamais une course entre fichiers) :
+
+- `9dd-pg-g14c-terrain-transmises.spec.ts` et sa variante `captures-9dd-…` — Planifiée et Affectée
+  partageaient `commun.creneau_debut/fin`.
+- `9f2-terrain-jours-maquette.spec.ts` — la Planifiée de demain et l'Affectée de demain partageaient
+  `creneauDe(demain)`.
+- `9i8b2-majoration-affichee.spec.ts` — la clôturée figée (chemin FIGÉ, sans besoin d'un créneau
+  précis) partageait le créneau EN PARTIE hors ouverture de la signature (chemin NON figé, lui, en
+  a besoin).
+- `affichage-materiel.spec.ts` — `AVEC_MACHINE` et `PLANIFIEE_SEULE` partageaient 10 h 30-11 h.
+- `registre-ux3-2.spec.ts` — la Planifiée et l'Affectée d'aujourd'hui partageaient
+  `creneauDebutAujourdhui`.
+- `captures-9cp-pg-g14b-transmettre-groupe.spec.ts`, `captures-9db-retouches-10.spec.ts`,
+  `captures-9ct-retouches-5.spec.ts` — une boucle `for (const largeur of [1280, 375])` posait CHAQUE
+  itération sur le même créneau que la précédente (une heure par largeur, désormais).
+- `captures-9f4h5-terrain-vivant.spec.ts` et `captures-9f4h5b-journee-sans-montant.spec.ts` — même
+  patron de boucle, quatre et deux lignes respectivement.
+
+**Deux causes supplémentaires, trouvées en rejouant `CI=1 --workers=1`** (le mode qui compte pour
+la porte) sur le même fichier plus `tous-les-ecrans-rendent.spec.ts`, `*planning*`, `*terrain*`,
+`offline/*` et les scénarios de 9L19SA :
+
+1. **`affichage-materiel.spec.ts` pose `AVEC_MACHINE` (10 h 30-11 h, Ducos, MARDI) SANS `afterAll` —
+   PERMANENTE pour toute la suite**, comme une fixture `SCENE.*`, mais invisible de `scene.ts` :
+   9L19SA avait évité `SCENE.obstacle`/`chevauchante`/`redimensionnable`, jamais celle-ci.
+   `glisser-deposer.spec.ts` (`chevauchanteId`, cinq scénarios) et
+   `planning-annuler-deplacement.spec.ts` (son premier scénario) empruntaient le même créneau —
+   déplacés hors du creux contesté (11 h 30-12 h 30 pour les premiers, 16 h-17 h pour le second,
+   libre aussi bien MARDI que MERCREDI, sa destination). `PLANIFIEE_SEULE`
+   (`affichage-materiel.spec.ts`), qui n'apparaît jamais sur la grille, est sortie du creux
+   entièrement (7 h-7 h 30, avant toute ouverture).
+2. **Deux scénarios de `glisser-deposer.spec.ts` créaient leurs deux interventions (obstacle +
+   chevauchante) AVANT le `try`** : si la seconde création échouait — ce que la nouvelle garde
+   permet désormais, et qui n'arrivait jamais avant elle —, la première n'était jamais retirée,
+   polluant le scénario suivant qui viserait le même créneau. Les deux créations sont maintenant
+   DANS le `try`, avec un nettoyage conditionnel (`if (id !== undefined)`) dans le `finally`.
+
+**Trois motifs d'annulation manquants, trouvés par les mêmes rejeux** — le point 3 du mandat de
+9L19 (motif/temps à l'`INSERT`, une trentaine de fichiers) n'avait pas touché
+`9dd-pg-g14c-terrain-transmises.spec.ts`, sa variante `captures-9dd-…`, `captures-tpa6.spec.ts`, ni
+les deux `UPDATE` de `offline/9f4h3-mode-avion.spec.ts` et `offline/9f4h3a-file-sans-perte.spec.ts`
+— hors territoire du chevauchement, mais bloquant la vérification sans être corrigés. Un motif non
+vide, sans rapport avec ce qu'aucune de ces épreuves asserte, leur a été ajouté.
+
+**Un dernier motif, trouvé par `pnpm test:isolation`** : `tests/isolation/fige-a-la-cloture.test.ts`
+(créé par 9L14, postérieur au cherry-pick qui avait corrigé le point 3 de 9L19) posait sa fixture
+`jetable("annulee")` sans `motif_annulation` — même cause, même correctif.
+
+**Aucune assertion retirée ni élargie.** Aucune règle de gestion changée. Aucune exemption de la
+garde utilisée.
+
+**Recherche des localisateurs de la même famille (point 3 du mandat)** : sans objet — aucun écran
+ni libellé n'a changé dans ce lot, seuls des amorçages de fixtures et deux commentaires de
+documentation.
+
+### Épreuves rejouées
+
+`CI=1 --workers=1` sur les 84 fichiers relevés (les neuf scènes corrigées, `glisser-deposer.spec.ts`,
+tous les `*planning*.spec.ts`, tous les `*terrain*.spec.ts`, `offline/*.spec.ts`,
+`tous-les-ecrans-rendent.spec.ts`) : quatre passages successifs, chacun réduisant le nombre
+d'échecs (17 → 7 → 3 → 0) à mesure que chaque cause réelle était nommée plutôt que supposée. Dernier
+passage : **337 passed, 0 failed** (17.0 min). `pnpm test:isolation` : 263 fichiers, 2543 tests,
+vert. `CI=1 pnpm verify` (format + typecheck + lint + test + test:isolation + build) : vert de bout
+en bout (code de sortie 0). `pnpm verify:full` non joué ici — laissé à la file.
+
+**Captures d'écran** : non refaites — aucun écran touché par cette reprise (fixtures e2e, numéro
+d'arbitrage, commentaires). Chaque exécution complète de la suite a régénéré (sans rapport avec ce
+lot) des centaines de PNG/PDF de documentation sous `docs/propositions/*/captures/` — restaurés
+(`git checkout --`) et les nouveaux non commités supprimés avant chaque commit, jamais committés.
+
+### Migration à jouer, et requêtes de contrôle
+
+Inchangée : **`20261120120000_gardes_chevauchement_segments_9l19`**. Les quatre requêtes de
+contrôle en lecture seule, §« Requêtes de contrôle » en tête de cette passation, restent la
+référence pour la base de production.
+
+### État du dépôt (reprise)
+
+`git fetch origin` : `origin/main` toujours à `845055bed`. Travail posé sur une branche dédiée,
+`9L19SB-REPRISE-GARDES-FIXTURES-E2E`, partant d'`origin/main` — pas de rebase nécessaire. Arbre
+propre, aucun push.
