@@ -94,19 +94,22 @@ test.beforeAll(async () => {
     const jour = jourDeLaScene(reperes, MARDI);
     const jourDate = new Date(Date.UTC(jour.annee, jour.mois - 1, jour.jour));
 
-    // DEUX CRÉNEAUX DISTINCTS, L'UN APRÈS L'AUTRE (9L19, garde
-    // `intervention_sans_chevauchement_technicien`) : `AVEC_MACHINE` et
-    // `PLANIFIEE_SEULE` portent le même technicien et ne peuvent plus
-    // partager un créneau — toujours dans le même creux, entre l'obstacle
-    // (08:00–10:00) et la chevauchante (13:00–14:00).
+    // DEUX CRÉNEAUX DISTINCTS (9L19, garde `intervention_sans_chevauchement_
+    // technicien`) : `AVEC_MACHINE` et `PLANIFIEE_SEULE` portent le même
+    // technicien et ne peuvent plus partager un créneau. `PLANIFIEE_SEULE`
+    // n'apparaît jamais sur la grille du planning (seulement sur sa fiche et
+    // son bon) : 07:00–07:30, AVANT l'ouverture, évite aussi bien
+    // `SCENE.obstacle` (08:00–10:00) que les scènes voisines qui empruntent
+    // le creux 10:00–13:00 entre l'obstacle et `SCENE.chevauchante`
+    // (`glisser-deposer.spec.ts`, `planning-annuler-deplacement.spec.ts`).
     const creneaux = {
       [AVEC_MACHINE]: {
         debut: instantAMinutes(jour, 10 * 60 + 30, reperes.fuseau),
         fin: instantAMinutes(jour, 11 * 60, reperes.fuseau),
       },
       [PLANIFIEE_SEULE]: {
-        debut: instantAMinutes(jour, 11 * 60, reperes.fuseau),
-        fin: instantAMinutes(jour, 11 * 60 + 30, reperes.fuseau),
+        debut: instantAMinutes(jour, 7 * 60, reperes.fuseau),
+        fin: instantAMinutes(jour, 7 * 60 + 30, reperes.fuseau),
       },
     };
 

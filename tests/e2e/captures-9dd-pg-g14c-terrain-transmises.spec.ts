@@ -162,6 +162,8 @@ test.beforeAll(async () => {
         id: INTERVENTION_ANNULEE_ID,
         site_id: SITE_ANNULEE_ID,
         statut: "annulee",
+        // UN MOTIF NON VIDE (9L19, garde `intervention_annulee_a_son_motif`).
+        motif_annulation: "9DDCAP — annulée pour la capture",
         // DÉJÀ « VUE » — voir la note équivalente de
         // `9dd-pg-g14c-terrain-transmises.spec.ts` : évite un défaut
         // préexistant (23514) hors territoire de ce ticket plutôt que de

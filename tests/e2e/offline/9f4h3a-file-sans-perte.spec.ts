@@ -365,7 +365,8 @@ test("(d) : une intervention annulée pendant la coupure — la saisie reste en 
   try {
     await bureau.intervention.update({
       where: { id: INTERVENTION_ANNULEE_9F4H3A },
-      data: { statut: "annulee" },
+      // UN MOTIF NON VIDE (9L19, garde `intervention_annulee_a_son_motif`).
+      data: { statut: "annulee", motif_annulation: "9F4H3A — annulée pendant la coupure" },
     });
   } finally {
     await bureau.$disconnect();

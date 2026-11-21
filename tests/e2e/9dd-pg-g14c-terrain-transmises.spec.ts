@@ -171,6 +171,8 @@ test.beforeAll(async () => {
         id: INTERVENTION_ANNULEE_ID,
         site_id: SITE_ANNULEE_ID,
         statut: "annulee",
+        // UN MOTIF NON VIDE (9L19, garde `intervention_annulee_a_son_motif`).
+        motif_annulation: "9DD — annulée pour l'épreuve",
         // JAMAIS VUE (9DE-TP-CY1, partie G) — une annulée jamais ouverte
         // avant son annulation. `marquerVuParTechnicien` refusait d'écrire
         // sur une FIGÉE en NE SE PROTÉGEANT PAS lui-même (23514, mesuré par

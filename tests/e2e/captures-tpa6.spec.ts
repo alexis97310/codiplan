@@ -99,6 +99,8 @@ test.beforeAll(async () => {
         agence_id: site.agence_id,
         type: "curatif",
         statut: "annulee",
+        // UN MOTIF NON VIDE (9L19, garde `intervention_annulee_a_son_motif`).
+        motif_annulation: "TPA6- annulée pour la capture",
         priorite: "p1",
         date_planifiee: instantDuJour(jour),
         description: "TPA6- capture, supprimée en fin de scénario",
