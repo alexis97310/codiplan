@@ -78,17 +78,22 @@ async function jetable(
   // sans ce rapport (RG-INT-03), et une figée JETABLE sans lui mesurerait
   // un état qui n'existe jamais en pratique.
   const validee = statut !== "en_cours";
+  // UN MOTIF NON VIDE (9L19, garde `intervention_annulee_a_son_motif`).
   await clientOwner().$executeRawUnsafe(
     `INSERT INTO "intervention" ("id","societe_id","client_id","site_id","agence_id",
        "type","statut","technicien_id","duree_estimee_min","modifie_le"${
          validee
            ? `,"temps_valide_min","rapport_valide_par","rapport_valide_le"`
            : ""
-       }${statut === "cloturee" ? `,"cloturee_le"` : ""})
+       }${statut === "cloturee" ? `,"cloturee_le"` : ""}${
+         statut === "annulee" ? `,"motif_annulation"` : ""
+       })
      SELECT '${id}', "societe_id", "client_id", "site_id", "agence_id",
             'curatif', '${statut}', '${TECHNICIEN}', 60, now()${
               validee ? `, 60, '${TECHNICIEN}', now()` : ""
-            }${statut === "cloturee" ? `, now()` : ""}
+            }${statut === "cloturee" ? `, now()` : ""}${
+              statut === "annulee" ? `, 'fige-a-la-cloture — jetable'` : ""
+            }
        FROM "intervention" WHERE "id" = '${INTERVENTION_A1}'`,
   );
   return id;
