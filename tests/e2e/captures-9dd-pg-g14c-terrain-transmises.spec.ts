@@ -80,8 +80,10 @@ test.beforeAll(async () => {
     cle,
     21,
   );
-  const { creneau_debut: creneauDebutPlanifiee, creneau_fin: creneauFinPlanifiee } =
-    creneauUtc(cle, 15);
+  const {
+    creneau_debut: creneauDebutPlanifiee,
+    creneau_fin: creneauFinPlanifiee,
+  } = creneauUtc(cle, 15);
 
   const client = admin();
   try {

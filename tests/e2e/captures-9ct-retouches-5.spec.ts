@@ -105,10 +105,14 @@ test.beforeAll(async () => {
     const heureParLargeur: Record<number, number> = { 1280: 8, 375: 9 };
     for (const largeur of [1280, 375] as const) {
       const heure = heureParLargeur[largeur];
-      const { creneau_debut: debutAVenir, creneau_fin: finAVenir } =
-        creneauUtc(cleAVenir, heure);
-      const { creneau_debut: debutPassee, creneau_fin: finPassee } =
-        creneauUtc(cleePassee, heure);
+      const { creneau_debut: debutAVenir, creneau_fin: finAVenir } = creneauUtc(
+        cleAVenir,
+        heure,
+      );
+      const { creneau_debut: debutPassee, creneau_fin: finPassee } = creneauUtc(
+        cleePassee,
+        heure,
+      );
       await client.intervention.create({
         data: {
           id: PRETE_A_VENIR[largeur],
