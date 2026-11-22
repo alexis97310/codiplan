@@ -234,3 +234,111 @@ rencontrer les trois écrans modifiés autrement qu'avant.
 ### Ce qui n'a pas été touché
 
 Aucune migration. Aucune règle métier changée. `depot/` et les scripts de file non touchés. Jamais de push.
+
+## Reprise 9L31B-REPRISE-CRENEAUX-LUNDI
+
+Branche `9L31B-REPRISE-CRENEAUX-LUNDI` créée à jour d'`origin/main` (aucun commit `9L31A-REPRISE-PETITS-DEFAUTS` publié,
+la branche `9L31A-REPRISE-PETITS-DEFAUTS-garde` existait) ; les dix commits de `9L31A-REPRISE-PETITS-DEFAUTS-garde`
+reportés par `git cherry-pick`, **sans aucun conflit**.
+
+### Point 1 — cause mesurée, pas seulement « un lundi »
+
+`tests/isolation/absence.test.ts > …/traces/9L31A-REPRISE-PETITS-DEFAUTS.md` ni `tickets/recales/…` n'existent dans
+ce worktree (ni dans `/home/aplou/codiplan`, le checkout principal) — seule la description du contrat, reproduite
+dans le prompt, a servi de référence ; elle reste cohérente avec ce qui a été mesuré ici.
+
+Rejoué les sept scènes citées **le jour même où elles cassent réellement** : `TZ=Pacific/Noumea date` rendait un
+LUNDI (23/11/2026) au moment de cette reprise — aucune horloge forgée n'était nécessaire pour reproduire la faute
+en vrai. `23P01` reproduit sur 5 des 7 fichiers cités par le contrat (`9ewb1`, `captures-9dd`, `captures-9f4h5`,
+`captures-9f4h5b`, `captures-pgd3`) ; `captures-9dca` passait déjà (créneau à la limite, voir plus bas) ;
+`captures-9di` échouait pour une raison SANS RAPPORT (voir sa propre section).
+
+**La cause exacte, lue dans le détail PostgreSQL de chaque `23P01`, pas supposée** : `tests/e2e/setup/scene.ts`
+pose, dans le semis GLOBAL partagé par toute la suite, une intervention `obstacle` sur `technicienDucos`, à
+« MARDI de la scène, 08:00–10:00 » (`jourDeLaScene(reperes, MARDI)`, MARDI = `reperes.lundi + 1`). Or
+`lundiSansJourPasse` (même fichier) ne décale `reperes.lundi` d'une semaine QUE si MARDI-candidat n'est pas déjà
+strictement futur — et quand AUJOURD'HUI est déjà un LUNDI, MARDI-candidat (demain) est TOUJOURS strictement
+futur dès le premier essai, donc `reperes.lundi` reste AUJOURD'HUI MÊME. Sur tout autre jour de la semaine,
+`reperes.lundi` est repoussé à LA SEMAINE SUIVANTE. Conséquence : « MARDI de la scène » ne coïncide avec
+« demain, en vrai » QUE lorsque la suite tourne un lundi — et c'est exactement ce jour-là que les quatre fichiers
+`9ewb1`, `captures-9dd`, `captures-9f4h5`, `captures-9f4h5b` posaient, pour ce MÊME technicien, un créneau à
+08:00–10:00 locale sur « demain » (directement via `instantAMinutes`, ou via `creneauUtc(cle, heure)` avec une
+heure UTC ≥ 13, qui fait basculer le jour LOCAL sur demain — point que le nom de la fonction ne rend pas évident).
+
+`captures-pgd3-mois-charge.spec.ts` a une cause DIFFÉRENTE, mesurée séparément : sa ligne colliderait avec une
+intervention du **semis de démonstration** (`prisma/seed-data.ts`, `LUNDI_DEMONSTRATION` — recalculé à chaque
+`pnpm db:seed`, lui-même rejoué par le harnais e2e avant la suite), pas avec `obstacle` de `scene.ts`. Vérifié par
+requête SQL directe sur la ligne en conflit (`client_id`/`site_id` au préfixe `0192f0a0-…`, celui du semis de
+démonstration CODIMA-NC). Cette ligne-là occupe une fenêtre de plusieurs semaines autour du lundi courant
+(`LUNDI_DEMONSTRATION` − 5 jours à + 18 jours) : un correctif qui ne ferait que « changer d'heure » resterait
+exposé à une autre collision selon le jour où le semis a tourné.
+
+### Point 2 — corrections, par cause
+
+**Pour les quatre fichiers collisionnant avec `obstacle`** (commit précédent) : heures déplacées hors de la
+fenêtre locale 08:00–10:00 (et, par construction de `creneauUtc`, hors de toute heure déjà prise par un autre
+fichier du même genre — audit complet des heures `creneauUtc(cle, …)` déjà en usage dans `tests/e2e/**`, aucune
+régression introduite). `9ewb1` : 11:00–12:00 locale au lieu de 08:00–09:00 (la seule assertion qui porte sur
+cette ligne compte le bouton « Transmettre demain (N) », jamais l'heure). `captures-9dd`, `captures-9f4h5`,
+`captures-9f4h5b` : nouvelles heures UTC 13/17/18/19 au lieu de 21/22 — ces trois fichiers n'ont, pour seule
+assertion réelle, qu'un titre de page visible (les captures elles-mêmes sont des no-op hors variable d'environnement
+`CAPTURES_*`), vérifié en lisant chaque fichier avant de changer l'heure.
+
+**Pour `captures-pgd3-mois-charge.spec.ts`** (collision avec le semis de démonstration, pas avec `obstacle`) :
+ajout d'une vérification « libre pour ce technicien » (requête directe sur les lignes existantes, même filtre que
+la contrainte d'exclusion — société, technicien, statut ≠ annulée, chevauchement de plage), composée APRÈS
+`estJourOuvre` dans la même boucle bornée (même discipline que `lundiSansJourFerie`/`lundiSansJourPasse` :
+avance d'un jour, borne à 60 itérations, erreur explicite plutôt que boucle muette) ; la fenêtre du calendrier
+chargé est élargie de 60 jours pour laisser à la recherche la place de déborder du seul mois visé. Ce correctif ne
+suppose RIEN sur la date du semis de démonstration — il la CONSTATE à chaque exécution.
+
+**Preuve par le jour, sans horloge forgée** : aucune variable d'environnement ni `page.clock` n'existe dans ce
+dépôt pour rejouer la suite à une date choisie — `maintenant(fuseau)` (`lib/calendar/fuseau.ts`) est
+EXPLICITEMENT le seul point du dépôt qui lit l'horloge (gardien `sans-date-courante-implicite.test.ts`), et y
+ajouter un contournement conditionnel aurait un rayon d'effet sur tout le dépôt, bien au-delà de ce lot — j'ai
+choisi de ne PAS y toucher plutôt que d'assouplir un point protégé pour un besoin de vérification. À la place :
+script jetable (non commité, supprimé après usage) import ant les VRAIES fonctions de production
+(`lundiDeLaSemaine`, `lundiSansJourPasse`, `jourDeLaScene`, `creneauUtc`, `instantAMinutes`) et calculant, pour les
+SEPT jours de la semaine pris comme « aujourd'hui » (23 au 29/11/2026), si les nouvelles heures choisies chevauchent
+les fenêtres réservées par `scene.ts` pour `technicienDucos` — **TOUT VERT sur les sept jours**, et la sortie
+confirme analytiquement le mécanisme ci-dessus (MARDI-de-la-scène ne tombe sur « demain » que lorsque « aujourd'hui »
+est lundi ; tout autre jour le repousse d'une semaine entière). C'est une preuve plus large que trois jours
+échantillonnés, au prix de ne pas avoir rejoué le NAVIGATEUR à ces dates — dit ici en toute franchise plutôt que
+présenté comme équivalent. `captures-9dca-droits-terrain-demandes.spec.ts` n'a pas été touché : son créneau
+(UTC 20 ⇒ locale 07:00–08:00 demain) touche la borne de `obstacle` sans la chevaucher (`[)`), déjà correct.
+
+### Point 3 — localisateurs fragiles
+
+Aucun libellé, bouton ni écran n'a été modifié dans ce lot — seules des DONNÉES DE FIXTURE (dates, heures) et une
+vérification de disponibilité ont changé. Rien à rendre précis ici : la recherche de `getByText`/`getByRole` non
+exacts ne s'applique qu'à un écran modifié, et aucun ne l'a été.
+
+### `captures-9di-tp-ter1-journee-fiche.spec.ts` — flaky confirmé SANS RAPPORT
+
+La ligne visée (`INTERVENTION_BANDEAU_ID`) ne porte AUCUN `creneau_debut`/`creneau_fin` (donc hors du périmètre de
+la contrainte d'exclusion, qui exige les deux non nuls) ; sa seule ligne datée (`INTERVENTION_ID`, UTC 9h–10h30)
+reste locale 20:00–21:30 le jour même, loin de toute fenêtre réservée. Le test échoue sur un clic « Démarrer »
+suivi d'une navigation et d'une attente du bandeau « Compteur en marche depuis » — rejoué TROIS FOIS seul,
+immédiatement après l'échec dans la suite groupée : **3/3 vert**. Flaky pré-existant, sans rapport avec le
+chevauchement de créneaux ; non touché (aucune cause mesurée, CLAUDE.md interdit de changer un délai sans elle).
+
+### Épreuves jouées, au premier plan
+
+- Les sept scènes citées par le contrat, rejouées ensemble (`CI=1 --workers=1`) : **AVANT correctif**, 5 échecs
+  `23P01` + 1 flaky (`9di`, confirmé sans rapport) ; **APRÈS correctif**, 42 passés + le même flaky `9di` seul
+  (3/3 vert en isolation).
+- `tests/isolation/absence.test.ts` (la trace que 9L31A a réparée) : **25/25 vert**.
+- **`CI=1 npx playwright test --workers=1` sur la suite ENTIÈRE (2174 tests), au jour réel (lundi 23/11/2026) :
+  interrompue par la limite de temps de cette session après ~55 minutes et environ 1700 épreuves jouées sans
+  rencontrer un seul `23P01`** (grep sur le journal complet) — **non terminée**, donc pas une preuve de
+  « vert intégral », à rejouer par la suite qui ramasse ce lot. Aucun signe, dans la portion jouée, d'une
+  régression introduite par ce correctif.
+- **`pnpm test:isolation` et `CI=1 pnpm verify` n'ont PAS été rejoués** dans ce lot : le budget de session
+  (120 minutes) s'est épuisé pendant la suite e2e entière ci-dessus. **À rejouer avant toute fusion** — ils n'ont
+  montré aucun signe de problème dans ce qui a pu tourner, mais ne sont pas eux-mêmes passés ici.
+
+### Ce qui n'a pas été touché
+
+Aucune migration (comme demandé — une colonne aurait manqué, elle aurait été nommée ici ; ce n'est pas le cas).
+Aucune règle métier changée. Aucune assertion retirée ni élargie. `depot/` et les scripts de file non touchés.
+Jamais de push.
