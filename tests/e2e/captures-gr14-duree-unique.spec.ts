@@ -152,7 +152,7 @@ test.beforeAll(async () => {
       data: {
         statut: "cloturee",
         cloturee_le: new Date(),
-        // RAPPORT VALIDÉ (RG-INT-03, D135, 9H1) : cette scène mesure des
+        // RAPPORT VALIDÉ (RG-INT-03, D278, 9H1) : cette scène mesure des
         // durées affichées, pas la validation du rapport — posée ici comme
         // dans `fiche-cloturer.spec.ts`, faute d'une identité « responsable »
         // exposée par `reperesDeLaScene`.

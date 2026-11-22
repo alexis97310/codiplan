@@ -5,7 +5,7 @@ import { uuidv7 } from "@/lib/db/uuid";
 
 /**
  * LA NUMÉROTATION SERVEUR — INT-AAAA-NNNN / DEM-AAAA-NNNN
- * (9H2-NUMEROTATION-INTERVENTIONS, D135).
+ * (9H2-NUMEROTATION-INTERVENTIONS, D279).
  *
  * **Repart à 1 chaque année CIVILE, au fuseau de la SOCIÉTÉ** — jamais UTC,
  * et jamais un territoire écrit en dur (L0-08, I7) : *le fuseau appartient à

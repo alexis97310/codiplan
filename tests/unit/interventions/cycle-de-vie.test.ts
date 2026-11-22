@@ -127,7 +127,7 @@ describe("déplacer et affecter", () => {
 });
 
 // UN RAPPORT VALIDÉ, pour isoler les gardes qui ne portent PAS sur lui
-// (RG-INT-03, D135, 9H1) — `peutCloturer` prend désormais QUI a validé,
+// (RG-INT-03, D278, 9H1) — `peutCloturer` prend désormais QUI a validé,
 // jamais un booléen, voir son propre bloc plus bas.
 const RAPPORT_VALIDE = "11111111-1111-1111-1111-111111111111";
 
@@ -175,7 +175,7 @@ describe("clôturer — c'est-à-dire VALIDER le temps mesuré (D120)", () => {
     }
   });
 
-  // RG-INT-03 (D135, 9H1) : pas de clôture sans rapport validé.
+  // RG-INT-03 (D278, 9H1) : pas de clôture sans rapport validé.
   it("refuse une terminee SANS rapport validé, même temps mesuré", () => {
     const verdict = peutCloturer("terminee", 60, null);
     expect(verdict.refuse && verdict.cle).toBe(
@@ -191,7 +191,7 @@ describe("clôturer — c'est-à-dire VALIDER le temps mesuré (D120)", () => {
   });
 });
 
-describe("peutValiderRapport — RG-INT-03 (D135, 9H1)", () => {
+describe("peutValiderRapport — RG-INT-03 (D278, 9H1)", () => {
   it("passe : terminee, un rapport écrit", () => {
     expect(
       peutValiderRapport("terminee", "Le compresseur a été changé.").refuse,
@@ -636,7 +636,7 @@ describe("la matrice D8 — tableau complet, verdict par verdict", () => {
   });
 
   // `→ CLOTUREE` : UNE SEULE origine permise, TERMINEE. Rapport validé posé
-  // pour que ce tableau teste la TRANSITION seule, jamais RG-INT-03 (D135) —
+  // pour que ce tableau teste la TRANSITION seule, jamais RG-INT-03 (D278) —
   // qui a son propre bloc, plus bas.
   it.each(STATUTS_INTERVENTION)("→ CLOTUREE depuis « %s »", (statut) => {
     const permis = statut === "terminee";

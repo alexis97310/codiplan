@@ -344,7 +344,7 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
     // `app/api/terrain/instantane/route.ts`, sous `consulter_planning`.
     // 86 depuis 9H1-RAPPORT-VALIDE-AVANT-CLOTURE — la route neuve
     // `app/api/interventions/[id]/valider-rapport/route.ts`, sous
-    // `valider_rapport` (RG-INT-03, D135).
+    // `valider_rapport` (RG-INT-03, D278).
     // 90 depuis 9I6B-LIEN-ACCES-A-COPIER (D170) — les quatre routes neuves
     // « copier le lien » : `app/api/equipe/[id]/copier-lien/route.ts`,
     // `app/api/equipe/[id]/copier-nouveau-lien/route.ts`,

@@ -938,7 +938,7 @@ dans la table `parite` ci-dessous.*
 
 **demande** — `societe_id`, numéro, année, source, client, site, machine, description, urgence, machine arrêtée, contact, date souhaitée, statut, horodatage de l'accusé de réception (mesure du standard 30 minutes).
 
-**compteur_numerotation** *(9H2-NUMEROTATION-INTERVENTIONS, D135)* — société, nature (`intervention` ou `demande`), année, dernier numéro attribué. Une ligne par (société, nature, année) ; incrémentée dans la même transaction que la création qui consomme le numéro qu'elle rend. Porte `INT-AAAA-NNNN` et `DEM-AAAA-NNNN` : le numéro repart à 1 chaque année civile, par société et par nature.
+**compteur_numerotation** *(9H2-NUMEROTATION-INTERVENTIONS, D279)* — société, nature (`intervention` ou `demande`), année, dernier numéro attribué. Une ligne par (société, nature, année) ; incrémentée dans la même transaction que la création qui consomme le numéro qu'elle rend. Porte `INT-AAAA-NNNN` et `DEM-AAAA-NNNN` : le numéro repart à 1 chaque année civile, par société et par nature.
 
 **intervention**
 
@@ -946,7 +946,7 @@ dans la table `parite` ci-dessous.*
 |---|---|---|
 | id | uuid PK | |
 | societe_id | uuid FK | |
-| numero | integer | Repart à 1 chaque année civile (9H2-NUMEROTATION-INTERVENTIONS, D135) |
+| numero | integer | Repart à 1 chaque année civile (9H2-NUMEROTATION-INTERVENTIONS, D279) |
 | annee | integer | Avec `numero`, forme la clé `INT-AAAA-NNNN` — unique par (société, année, numéro) |
 | demande_id, contrat_id | uuid FK | |
 | client_id, site_id | uuid FK | |

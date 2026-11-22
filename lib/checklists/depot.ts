@@ -1439,7 +1439,7 @@ export async function enregistrerReponses(
       }
 
       // UNE RÉPONSE MODIFIÉE OU RETIRÉE ANNULE SA VALIDATION (RG-INT-03,
-      // D135) — même motif que `enregistrerRapportTexte` : la réponse fait
+      // D278) — même motif que `enregistrerRapportTexte` : la réponse fait
       // partie de ce qu'un responsable juge en validant le rapport.
       if (validees.length > 0 || pointIdsARetirer.length > 0) {
         await tx.intervention.updateMany({
@@ -1619,7 +1619,7 @@ export async function enregistrerReponsePhoto(
     update: {},
   });
 
-  // UNE RÉPONSE MODIFIÉE ANNULE SA VALIDATION (RG-INT-03, D135) — même motif
+  // UNE RÉPONSE MODIFIÉE ANNULE SA VALIDATION (RG-INT-03, D278) — même motif
   // que `enregistrerReponses` : une photo ajoutée fait partie de ce qu'un
   // responsable juge en validant le rapport.
   await tx.intervention.updateMany({

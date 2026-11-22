@@ -289,7 +289,7 @@ export const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   // appelé ensuite juge le PÉRIMÈTRE (SES interventions affectées) — la
   // porte ne le juge jamais (voir `lib/auth/porte.ts`).
   "app/api/interventions/[id]/cloturer/route.ts": "cloturer_intervention",
-  // RG-INT-03 (D135, 9H1) — `valider_rapport` n'a AUCUNE ligne `restreint` :
+  // RG-INT-03 (D278, 9H1) — `valider_rapport` n'a AUCUNE ligne `restreint` :
   // ni l'ADV ni le technicien n'atteignent cette route, contrairement à
   // « clôturer » juste au-dessus.
   "app/api/interventions/[id]/valider-rapport/route.ts": "valider_rapport",

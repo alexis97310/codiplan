@@ -171,33 +171,23 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
     ],
   },
   {
-    titre: "Petits défauts relevés",
-    elements: [
-      {
-        statut: "a_ecrire",
-        titre:
-          "Fiche terrain à 375 px : la barre fixe coupe « Terminer l'intervention ».",
-      },
-      {
-        statut: "a_ecrire",
-        titre:
-          "Feuille « Terminer l'intervention ? » : grand espace vide au-dessus de « Confirmer la fin ».",
-      },
-      {
-        statut: "a_ecrire",
-        titre:
-          "Checklist : un point chiffré avec « dernier relevé » et un point sans ne sont pas alignés pareil.",
-      },
-      {
-        statut: "a_ecrire",
-        titre:
-          "Numéro d'arbitrage D135 employé pour deux décisions différentes.",
-      },
-    ],
-  },
-  {
     titre: "Livré depuis le 31/10",
     elements: [
+      {
+        statut: "livre",
+        titre:
+          "Fiche terrain à 375 px : le libellé « Terminer l'intervention » se lit en entier dans la barre fixe (9L31).",
+      },
+      {
+        statut: "livre",
+        titre:
+          "Feuille « Terminer l'intervention ? » : épouse son contenu, plus de grand vide au-dessus de « Confirmer la fin » (9L31).",
+      },
+      {
+        statut: "livre",
+        titre:
+          "Checklist : un point chiffré garde la même mise en page, avec ou sans « Dernier relevé » (9L31).",
+      },
       {
         statut: "livre",
         titre:

@@ -443,7 +443,7 @@ export default async function PageIntervention({
       "annuler_intervention",
       ligne.technicien_id,
     );
-  // « VALIDER LE RAPPORT » (RG-INT-03, D135, 9H1) — capacité `valider_rapport`
+  // « VALIDER LE RAPPORT » (RG-INT-03, D278, 9H1) — capacité `valider_rapport`
   // mesurée dans `lib/auth/habilitations.ts` : ni l'ADV ni le technicien n'y
   // figurent (maquette `CAN.valider`, « jamais l'ADV »), contrairement à
   // `cloturer_intervention` juste au-dessus — ce n'est donc PAS le même droit.
@@ -2115,7 +2115,7 @@ export default async function PageIntervention({
 const TIRET = "—";
 
 /**
- * « AVANT DE CLÔTURER » (RG-INT-03, RG-INT-04, D135, maquette du 28/09,
+ * « AVANT DE CLÔTURER » (RG-INT-03, RG-INT-04, D278, maquette du 28/09,
  * `docs/propositions/ergonomie-2026-09-28/maquette-toutes-pages.html`
  * ~:3372-3435) — sur une `terminee` SEULEMENT.
  *
@@ -2183,7 +2183,7 @@ function AvantDeCloturer({
             </span>
             {point.ok ||
             point.cle !== "intervention.avant_cloture.rapport_valide" ||
-            // LE LIEN « VALIDER LE RAPPORT » (RG-INT-03, D135, 9H1B)
+            // LE LIEN « VALIDER LE RAPPORT » (RG-INT-03, D278, 9H1B)
             // n'apparaît qu'au rôle qui PEUT valider — ni l'ADV ni le
             // technicien ne détiennent `valider_rapport` (maquette
             // `CAN.valider`, « jamais l'ADV »), et le leur montrer ici

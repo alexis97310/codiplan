@@ -138,7 +138,7 @@ async function interventionAClore(
   // `cloturerIntervention` n'accepte plus que ce statut (QT-4, D8 à la
   // lettre) — l'INSERT, hors de toute garde `UPDATE`, pose le FAIT sans
   // emprunter de transition.
-  // RAPPORT VALIDÉ POSÉ AU MÊME GESTE (RG-INT-03, D135, 9H1) : ce fichier
+  // RAPPORT VALIDÉ POSÉ AU MÊME GESTE (RG-INT-03, D278, 9H1) : ce fichier
   // éprouve la VALORISATION, pas la validation du rapport — posée à part
   // dans `rapport-valide-avant-cloture.test.ts`.
   await clientOwner().$executeRawUnsafe(

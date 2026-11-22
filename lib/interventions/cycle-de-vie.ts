@@ -173,7 +173,7 @@ export function peutAffecter(statut: StatutIntervention): Verdict {
  * `lib/interventions/depot.ts`) : il exige une lecture de `segment_travail`
  * que ce module, pur, ne fait pas.
  *
- * **RG-INT-03 (D135, 9H1) : pas de clôture sans RAPPORT VALIDÉ.** Le
+ * **RG-INT-03 (D278, 9H1) : pas de clôture sans RAPPORT VALIDÉ.** Le
  * paramètre est `rapportValidePar` — QUI a validé, jamais un booléen — pour
  * la même raison que `tempsMesureMin` est le temps et non un drapeau : c'est
  * la base qui juge le MÊME fait (`intervention_rapport_validation_tracee`,
@@ -207,7 +207,7 @@ export function peutCloturer(
 }
 
 /**
- * Peut-on VALIDER LE RAPPORT ? (RG-INT-03, D135, 9H1)
+ * Peut-on VALIDER LE RAPPORT ? (RG-INT-03, D278, 9H1)
  *
  * **Seulement depuis `terminee`** — avant, le technicien travaille encore et
  * rien n'est figé à valider ; après (`cloturee`, `annulee`), la ligne est

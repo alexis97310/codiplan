@@ -334,7 +334,7 @@ let societeId: string;
  * `tests/e2e/setup/scene.ts` n'appellent jamais `creerIntervention` /
  * `prochainNumero` (9H2)** — toute ligne du semis naît `numero`/`annee`
  * NULS. Le résolveur de `/interventions/[id]` ci-dessous vise désormais une
- * ligne NUMÉROTÉE (format `INT-AAAA-NNNN`, D135) ; sans cette fonction, il
+ * ligne NUMÉROTÉE (format `INT-AAAA-NNNN`, D279) ; sans cette fonction, il
  * n'en trouverait aucune dans ce fichier joué seul — la fiche resterait
  * toujours `Local-…`, et l'épreuve ne prouverait plus rien sur le défaut que
  * ce lot corrige.

@@ -21,7 +21,7 @@ import {
 } from "./setup/fixtures";
 
 /**
- * RG-INT-03 (D135, 9H1) — PAS DE CLÔTURE SANS RAPPORT VALIDÉ, ÉPROUVÉ SUR LA
+ * RG-INT-03 (D278, 9H1) — PAS DE CLÔTURE SANS RAPPORT VALIDÉ, ÉPROUVÉ SUR LA
  * VRAIE BASE.
  *
  * Même discipline que `droits-cycle-de-vie.test.ts` : une ligne JETABLE,
@@ -168,7 +168,7 @@ afterEach(async () => {
   }
 });
 
-describe("validerRapport — RG-INT-03 (D135)", () => {
+describe("validerRapport — RG-INT-03 (D278)", () => {
   it("un responsable valide le rapport d'une terminee qui en porte un", async () => {
     const id = await jetable("Le compresseur a été changé.");
 

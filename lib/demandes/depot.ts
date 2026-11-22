@@ -206,7 +206,7 @@ export async function deposerDemande(
         return { accepte: false, cle: "demande.refus.agence_sans_calendrier" };
       }
 
-      // LE NUMÉRO (9H2-NUMEROTATION-INTERVENTIONS, D135) — même mécanique
+      // LE NUMÉRO (9H2-NUMEROTATION-INTERVENTIONS, D279) — même mécanique
       // qu'`Intervention` (`lib/interventions/depot.ts`) : attribué par le
       // SERVEUR, ici, dans la MÊME transaction, y compris quand cette
       // création vient du PORTAIL (P5) — la forme GÉNÉRALE de

@@ -83,7 +83,7 @@ test.beforeAll(async () => {
         statut: "terminee",
         date_planifiee: new Date("2026-09-24T00:00:00Z"),
         duree_estimee_min: 60,
-        // RAPPORT VALIDÉ (RG-INT-03, D135, 9H1) : ce fichier éprouve la
+        // RAPPORT VALIDÉ (RG-INT-03, D278, 9H1) : ce fichier éprouve la
         // CLÔTURE elle-même, pas la validation du rapport — posée à part
         // dans `fiche-rapport-valide-avant-cloture.spec.ts`.
         rapport_valide_par: reperes.technicienDucos,

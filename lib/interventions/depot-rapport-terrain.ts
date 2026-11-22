@@ -240,7 +240,7 @@ export async function enregistrerRapportTexte(
       ) {
         return { refuse: true, cle: "terrain.rapport.pieces_type_refuse" };
       }
-      // UN RAPPORT MODIFIÉ ANNULE SA VALIDATION (RG-INT-03, D135, 9H1) : une
+      // UN RAPPORT MODIFIÉ ANNULE SA VALIDATION (RG-INT-03, D278, 9H1) : une
       // validation qui survivrait à ce qu'elle a jugé ne jugerait plus rien.
       // Écrit à CHAQUE enregistrement, même si la validation était déjà
       // absente (`null` sur `null` ne change rien) — plus simple et plus sûr
@@ -466,7 +466,7 @@ export async function definirPrestationsRealiseesDepuisFile(
           modifiee = true;
         }
       }
-      // UN RAPPORT MODIFIÉ ANNULE SA VALIDATION (RG-INT-03, D135, 9H1B) —
+      // UN RAPPORT MODIFIÉ ANNULE SA VALIDATION (RG-INT-03, D278, 9H1B) —
       // même motif que `enregistrerRapportTexte` : les prestations réalisées
       // faisaient partie de ce qu'un responsable a jugé en validant (BON-2),
       // au même titre que le texte. `modifiee` ne peut être vrai sur une
@@ -746,7 +746,7 @@ export async function enregistrerSignature(
                 },
           select: { id: true },
         });
-        // UN RAPPORT MODIFIÉ ANNULE SA VALIDATION (RG-INT-03, D135, 9H1B) —
+        // UN RAPPORT MODIFIÉ ANNULE SA VALIDATION (RG-INT-03, D278, 9H1B) —
         // même motif que `enregistrerRapportTexte` et les prestations
         // réalisées : la signature fait partie de ce qu'un responsable a
         // jugé en validant (BON-2). Le cas FIGÉ ne retombe jamais ici

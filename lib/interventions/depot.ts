@@ -593,7 +593,7 @@ export async function creerIntervention(
         }
       }
 
-      // LE NUMÉRO (9H2-NUMEROTATION-INTERVENTIONS, D135) — attribué par le
+      // LE NUMÉRO (9H2-NUMEROTATION-INTERVENTIONS, D279) — attribué par le
       // SERVEUR, ICI, DANS LA MÊME TRANSACTION que la création : `annee` est
       // l'année CIVILE au fuseau de l'AGENCE (jamais UTC, jamais un
       // territoire en dur — L0-08, I7), et `prochainNumero` incrémente le
@@ -2359,7 +2359,7 @@ export async function cloturerIntervention(
           // rendrait la garde circulaire : l'écran le pré-remplit depuis
           // celui-ci.*
           temps_mesure_min: true,
-          // LE RAPPORT VALIDÉ (RG-INT-03, D135) — ce que `peutCloturer` juge
+          // LE RAPPORT VALIDÉ (RG-INT-03, D278) — ce que `peutCloturer` juge
           // en plus depuis ce ticket. `validerRapport`, plus bas, est le seul
           // chemin qui écrit cette colonne.
           rapport_valide_par: true,
@@ -2526,7 +2526,7 @@ export async function cloturerIntervention(
 }
 
 /**
- * VALIDER LE RAPPORT (RG-INT-03, D135, 9H1) — ce que `peutCloturer` exige
+ * VALIDER LE RAPPORT (RG-INT-03, D278, 9H1) — ce que `peutCloturer` exige
  * désormais avant de clore. Un geste de BUREAU, jamais du terrain (le droit
  * `valider_rapport` exclut le technicien ET l'ADV, mesuré dans
  * `lib/auth/habilitations.ts` — « jamais l'ADV », maquette `CAN.valider`) :
@@ -3448,7 +3448,7 @@ export async function lireFicheIntervention(
   /** QUI a validé le temps, et QUAND (D120) — voir la colonne. */
   readonly tempsValidePar: string | null;
   readonly tempsValideLe: Date | null;
-  /** QUI a validé le RAPPORT, et QUAND (RG-INT-03, D135) — voir la colonne. */
+  /** QUI a validé le RAPPORT, et QUAND (RG-INT-03, D278) — voir la colonne. */
   readonly rapportValidePar: string | null;
   readonly rapportValideLe: Date | null;
   readonly commentaireTechnicien: string | null;

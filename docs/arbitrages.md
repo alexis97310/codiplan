@@ -9418,3 +9418,35 @@ Elle ne touche à aucune règle de gestion du chapitre 10 : les quatre gardes ti
 > Le jour où `creerInterventionsRepriseEnLot` (`depot-reprise.ts`) se met à poser une valeur dans `temps_mesure_min`, `temps_valide_par` ou `temps_valide_le` pour une ligne reprise, l'exemption du point 4 devient trop large pour ce qu'elle visait et doit se resserrer sur un signal plus étroit — `tests/isolation/9l19-cloture-temps-valide-positif.test.ts` la tient sur la forme actuelle.
 
 Portée : `prisma/migrations/20261122200000_gardes_chevauchement_segments_9l19/migration.sql` (nouveau), `tests/isolation/9l19-chevauchement-technicien.test.ts` (nouveau), `tests/isolation/9l19-segment-ferme-non-modifiable.test.ts` (nouveau), `tests/isolation/9l19-annulation-motif-garde.test.ts` (nouveau), `tests/isolation/9l19-cloture-temps-valide-positif.test.ts` (nouveau), `tests/isolation/compteur-du-technicien.test.ts`, `lib/db/migrations-attendues.ts`, `scripts/lib/resserrements-migration.ts`, `tests/unit/db/resserrements-migration.test.ts`, `README.md`, et les fixtures de test corrigées pour porter `motif_annulation`/`temps_valide_min` (une trentaine de fichiers sous `tests/isolation/`).
+
+## D278 — UN RAPPORT MODIFIÉ APRÈS VALIDATION ANNULE SA VALIDATION ; PAS DE CLÔTURE SANS RAPPORT VALIDÉ (RG-INT-03, 9H1-RAPPORT-VALIDE-AVANT-CLOTURE)
+
+**Note de numérotation :** le ticket 9H1-RAPPORT-VALIDE-AVANT-CLOTURE (22/10/2026) citait cette décision « D135 ». Ce numéro est déjà pris — voir D135 ci-dessus (une intervention planifiée garde une heure, QG-4, rendue le 27/09/2026, donc antérieure) —, une décision sans rapport. Mesuré le 22/11/2026 (ticket 9L31-PETITS-DEFAUTS-TERRAIN, point 4, « petit défaut relevé » du pilote) : « D135 » était alors employé pour DEUX décisions à la fois égarées du registre — celle-ci ET D279 ci-dessous, le ticket 9H2-NUMEROTATION-INTERVENTIONS du lendemain (23/10/2026) ayant repris la même citation fausse sans la vérifier. Entre les deux, celle-ci est la plus ancienne (22/10 contre 23/10) ; elle est donc enregistrée ici sous D278, le prochain numéro libre au 22/11/2026, et D279 suit immédiatement pour l'autre. Aucune réouverture de D135 n'a eu lieu, et aucune des deux décisions ci-dessous n'amende quoi que ce soit : seule leur étiquette change.
+
+### CE QUI A ÉTÉ MESURÉ
+
+Avant ce ticket, rien ne refusait la clôture d'une intervention dont le rapport (texte, prestations, checklist) avait été modifié après sa validation : `peutCloturer` (`lib/interventions/cycle-de-vie.ts`) ne jugeait que le statut et le temps mesuré, jamais `rapport_valide_par`/`rapport_valide_le`.
+
+### LA DÉCISION
+
+**Une intervention ne peut être CLÔTURÉE sans rapport validé** (RG-INT-03, déjà écrite au chapitre 10, sans numéro d'arbitrage jusqu'ici) — `peutCloturer` refuse désormais toute clôture tant que `rapportValidePar` est nul. **Toute écriture sur le rapport après validation ANNULE cette validation** — `enregistrerRapportTexte`, `definirPrestationsRealiseesDepuisFile`, `validerReponsePoint` et le retrait d'une réponse de checklist (`lib/interventions/depot-rapport-terrain.ts`, `lib/checklists/depot.ts`, `lib/interventions/depot.ts`) posent `rapport_valide_par`/`rapport_valide_le` à `NULL` dans la même transaction que l'écriture qui invalide. `validerRapport` (`peutValiderRapport`) ne juge que le statut `terminee` : valider revient à affirmer « ce rapport, tel qu'il est maintenant, est bon à clôturer ».
+
+### CE QUE ÇA NE TOUCHE PAS
+
+Aucune migration, aucune règle du chapitre 10 au-delà de RG-INT-03 elle-même (qui ne portait aucune mécanique avant ce ticket). D276 (10/11/2026) précise séparément ce qui se passe quand `demarrerLeCompteur` rouvre une intervention déjà `terminee` : il annule aussi la validation, dans la même transaction, par la même règle.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où une clôture doit pouvoir se faire sans rapport validé — un motif d'exception, par exemple — cette décision se rouvre plutôt que de contourner `peutCloturer`.
+
+**Règles amendées :** aucune.
+
+Portée : `lib/interventions/cycle-de-vie.ts`, `lib/interventions/action-principale.ts`, `lib/interventions/depot.ts`, `lib/interventions/depot-rapport-terrain.ts`, `lib/checklists/depot.ts`, `lib/i18n/fr.ts`.
+
+## D279 — LA NUMÉROTATION DES INTERVENTIONS ET DES DEMANDES REPART À 1 CHAQUE ANNÉE CIVILE, PAR SOCIÉTÉ (9H2-NUMEROTATION-INTERVENTIONS)
+
+**Note de numérotation :** le ticket 9H2-NUMEROTATION-INTERVENTIONS (23/10/2026) citait cette décision « D135 », reprenant sans la vérifier la même citation fausse que le ticket 9H1 de la veille (voir la note de D278 ci-dessus). Mesuré le 22/11/2026 (ticket 9L31-PETITS-DEFAUTS-TERRAIN, point 4). Elle est donc enregistrée ici sous D279, le prochain numéro libre au 22/11/2026, immédiatement après D278. Aucune réouverture de D135 n'a eu lieu.
+
+Le texte intégral de cette décision — contexte, options écartées, choix retenu (une colonne `annee` à côté de `numero`, jamais un numéro qui l'encode) — vit dans `docs/decisions/2026-10-23-numerotation-annuelle.md`, non recopié ici : seule l'étiquette était fausse, le contenu ne bouge pas. Aucune règle du chapitre 10 n'est amendée.
+
+Portée : `prisma/schema.prisma`, `prisma/migrations/20261023073000_numerotation_interventions_demandes_9h2/`, `lib/interventions/numerotation.ts`, `lib/interventions/depot.ts`, `lib/interventions/depot-reprise.ts`, `lib/interventions/saisie.ts`, `lib/demandes/depot.ts`, `docs/cahier-des-charges.md` (chapitre 11), `docs/decisions/2026-10-23-numerotation-annuelle.md`.

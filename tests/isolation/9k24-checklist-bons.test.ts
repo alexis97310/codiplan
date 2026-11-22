@@ -156,7 +156,7 @@ async function surUneInterventionTerminee(
 }
 
 /**
- * `enregistrerReponses` ANNULE LA VALIDATION DU RAPPORT (RG-INT-03, D135) à
+ * `enregistrerReponses` ANNULE LA VALIDATION DU RAPPORT (RG-INT-03, D278) à
  * chaque réponse écrite — cette transition la REPOSE au même geste, pour que
  * la garde de clôture (RG-INT-03, tenue en base) la retrouve déjà vraie.
  */

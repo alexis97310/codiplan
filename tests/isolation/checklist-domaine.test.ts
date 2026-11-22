@@ -357,7 +357,7 @@ describe("`checklist.refus.point_hors_version` — un point d'une AUTRE version 
   });
 });
 
-describe("une réponse modifiée remet à zéro la validation du rapport (RG-INT-03, D135)", () => {
+describe("une réponse modifiée remet à zéro la validation du rapport (RG-INT-03, D278)", () => {
   it("rapport_valide_par/le reviennent à NULL après enregistrerReponses", async () => {
     const { modeleId, versionId } = await poserModeleEtVersion(
       SOCIETE_A,
@@ -549,7 +549,7 @@ describe("un RETRAIT (`valeur: null`) — RÉEL, LA LIGNE DISPARAÎT (9L04M-CHEC
     }
   });
 
-  it("une réponse RETIRÉE annule aussi la validation du rapport (RG-INT-03, D135)", async () => {
+  it("une réponse RETIRÉE annule aussi la validation du rapport (RG-INT-03, D278)", async () => {
     const { modeleId, versionId } = await poserModeleEtVersion(
       SOCIETE_A,
       "ISO-RETRAIT-VALIDATION",

@@ -120,7 +120,7 @@ async function interventionClose(
   await poserLeTechnicien();
   // INSÉRÉE DIRECTEMENT « TERMINEE » (D160, 9DF-TP-CY2-MATRICE-D8) : voir
   // `valorisation-intervention.test.ts`, même raison.
-  // RAPPORT VALIDÉ POSÉ AU MÊME GESTE (RG-INT-03, D135, 9H1) : ce fichier lit
+  // RAPPORT VALIDÉ POSÉ AU MÊME GESTE (RG-INT-03, D278, 9H1) : ce fichier lit
   // ce que la clôture a produit, il n'éprouve pas la validation du rapport —
   // posée à part dans `rapport-valide-avant-cloture.test.ts`.
   await clientOwner().$executeRawUnsafe(

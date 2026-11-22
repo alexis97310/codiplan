@@ -2180,7 +2180,7 @@ export const fr = {
   "intervention.numero": "Numéro",
   "intervention.commentaires_photos.titre": "Commentaires et photos",
   "intervention.signataire.titre": "Signataire",
-  // « AVANT DE CLÔTURER » (RG-INT-03, RG-INT-04, D135, 9H1) — onglet Résumé,
+  // « AVANT DE CLÔTURER » (RG-INT-03, RG-INT-04, D278, 9H1) — onglet Résumé,
   // sur une `terminee` seulement.
   "intervention.avant_cloture.titre": "Avant de clôturer",
   "intervention.avant_cloture.rapport_valide": "Rapport validé",
@@ -2220,7 +2220,7 @@ export const fr = {
   "intervention.action.deplacer": "Déplacer",
   "intervention.action.planifier": "Planifier",
   "intervention.action.cloturer": "Clôturer",
-  // RG-INT-03 (D135, 9H1).
+  // RG-INT-03 (D278, 9H1).
   "intervention.action.valider_rapport": "Valider le rapport",
   "intervention.action.annuler": "Annuler l'intervention",
   "intervention.action.creer": "Créer",
@@ -2712,7 +2712,7 @@ export const fr = {
     "Cette intervention est terminée : elle ne s'annule plus. Elle se clôture, ou repart en cours si le travail doit continuer.",
   "intervention.refus.temps_manquant":
     "Aucun temps n'a été mesuré sur cette intervention : le compteur du technicien est la seule source du temps. Une intervention sans compteur se traite dans votre logiciel de facturation au moment de facturer.",
-  // RG-INT-03 (D135, 9H1) — pas de clôture sans rapport validé.
+  // RG-INT-03 (D278, 9H1) — pas de clôture sans rapport validé.
   "intervention.refus.rapport_non_valide":
     "Le rapport n'est pas validé : un responsable, la direction ou l'administrateur doit le valider avant que l'intervention ne se clôture.",
   "intervention.refus.rapport_absent":

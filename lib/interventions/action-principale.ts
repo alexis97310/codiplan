@@ -13,7 +13,7 @@ import type { StatutIntervention } from "./saisie";
  * ensuite ; ce module répond à cette seule question, à l'écran, jamais en
  * base.
  *
- * **« terminée » n'a plus UNE réponse fixe** (RG-INT-03, D135) : tant que le
+ * **« terminée » n'a plus UNE réponse fixe** (RG-INT-03, D278) : tant que le
  * rapport n'est pas validé, c'est LUI l'action qui compte — clôturer avant
  * ouvrirait un dialogue qui n'affiche qu'un refus (constat 5 de l'étude du
  * 08/11/2026). `rapportValide` est donc un second paramètre, jamais un

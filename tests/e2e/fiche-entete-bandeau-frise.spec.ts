@@ -203,7 +203,7 @@ test.beforeAll(async () => {
     );
 
     // TERMINÉE, SANS TEMPS MESURÉ — clôture refusée. Rapport DÉJÀ validé
-    // (RG-INT-03, D135, 9H1) : ce fichier isole le refus « temps manquant »,
+    // (RG-INT-03, D278, 9H1) : ce fichier isole le refus « temps manquant »,
     // pas celui de RG-INT-03, qui le jugerait en premier et masquerait la
     // raison que ce scénario éprouve.
     await client.$executeRawUnsafe(
@@ -227,7 +227,7 @@ test.beforeAll(async () => {
     );
 
     // TERMINÉE, AVEC TEMPS MESURÉ (un segment fermé) ET RAPPORT VALIDÉ
-    // (RG-INT-03, D135, 9H1) — prête à clôturer.
+    // (RG-INT-03, D278, 9H1) — prête à clôturer.
     await client.$executeRawUnsafe(
       `INSERT INTO "intervention"
          ("id", "societe_id", "client_id", "site_id", "agence_id", "type",

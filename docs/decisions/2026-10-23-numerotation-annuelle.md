@@ -1,14 +1,19 @@
 # La numérotation annuelle — une colonne `annee`, pas un numéro qui l'encode
 
 _Ticket 9H2-NUMEROTATION-INTERVENTIONS, 23 octobre 2026. Décision d'Alexis du
-21/10/2026 (D135) : un vrai numéro, attribué par le serveur à la création,
+21/10/2026 (D279) : un vrai numéro, attribué par le serveur à la création,
 avant l'usage réel. Audit du 21/10 (`docs/audits/9F6/`)._
+
+**Note de numérotation (22/11/2026, ticket 9L31-PETITS-DEFAUTS-TERRAIN,
+point 4) :** ce fichier citait « D135 », déjà pris par une autre décision
+(une intervention planifiée garde une heure, QG-4, 27/09/2026) — voir
+`docs/arbitrages.md`, D279. Seule l'étiquette a changé.
 
 ## 1. Contexte
 
 `intervention.numero` et `demande.numero` existaient déjà (`Int?`,
 `@@unique([societe_id, numero])`), NULS, en attendant une attribution que
-personne n'écrivait. D135 tranche : la numérotation **repart à 1 chaque année
+personne n'écrivait. D279 tranche : la numérotation **repart à 1 chaque année
 civile**, ce que l'unicité existante ne permet pas — une société qui pose le
 numéro 1 en 2026 ne peut plus poser le numéro 1 en 2027 tant que l'une des
 deux lignes garde le même `numero`. Le ticket pose le choix et demande qu'il

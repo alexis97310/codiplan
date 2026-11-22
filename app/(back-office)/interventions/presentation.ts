@@ -143,7 +143,7 @@ export function etatVideDuRegistre(parametres: {
  * (I10).
  *
  * Le numéro est attribué par le serveur À LA CRÉATION, dans la même
- * transaction (9H2-NUMEROTATION-INTERVENTIONS, D135). `numero` et `annee`
+ * transaction (9H2-NUMEROTATION-INTERVENTIONS, D279). `numero` et `annee`
  * sont posés ensemble ou pas du tout — une ligne qui n'en porterait qu'un
  * des deux retomberait sur `Local-…`, exactement comme une ligne sans aucun
  * des deux : le repli ne subsiste en pratique que pour une ligne que le
@@ -1962,7 +1962,7 @@ export function bandeauDeLaFiche(
     readonly pieceAttendue: PieceAttendueAffichee | null;
     readonly suspendueLe: Date | null;
     readonly tempsMesureMin: number | null;
-    /** QUI a validé le rapport (RG-INT-03, D135) — voir `peutCloturer`. */
+    /** QUI a validé le rapport (RG-INT-03, D278) — voir `peutCloturer`. */
     readonly rapportValidePar: string | null;
   },
   fuseau: Fuseau,

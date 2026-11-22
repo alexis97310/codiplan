@@ -14,7 +14,7 @@ import { reperesDeLaScene } from "./setup/reperes";
 
 /**
  * 9H1-RAPPORT-VALIDE-AVANT-CLOTURE, point ouvert n° 4 de la passation — UN
- * RAPPORT MODIFIÉ ANNULE SA VALIDATION (RG-INT-03, D135), de bout en bout.
+ * RAPPORT MODIFIÉ ANNULE SA VALIDATION (RG-INT-03, D278), de bout en bout.
  *
  * `enregistrerRapportTexte` (`lib/interventions/depot-rapport-terrain.ts:
  * 165-178`) efface `rapport_valide_par`/`rapport_valide_le` à chaque

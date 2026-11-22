@@ -95,7 +95,7 @@ export function titreFiche(
  * Numéro provisoire » tant que le serveur ne l'a pas attribué (I10 ; la
  * clé `demande.sans_numero` existait déjà, posée avant D176 comme sous-titre).
  * `numero` et `annee` sont posés ensemble ou pas du tout
- * (9H2-NUMEROTATION-INTERVENTIONS, D135).
+ * (9H2-NUMEROTATION-INTERVENTIONS, D279).
  */
 export function surtitreFiche(
   numero: number | null,

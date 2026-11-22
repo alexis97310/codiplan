@@ -47,7 +47,7 @@ import {
  * une transaction annulée, et l'écriture fautive passe alors. Sans lui, un
  * refus venu d'ailleurs passerait pour le bon.
  */
-// UN RAPPORT VALIDÉ, QUI N'EST PAS UNE CLÉ ÉTRANGÈRE (RG-INT-03, D135, 9H1) —
+// UN RAPPORT VALIDÉ, QUI N'EST PAS UNE CLÉ ÉTRANGÈRE (RG-INT-03, D278, 9H1) —
 // toute valeur UUID convient ; aucune ligne `utilisateur` n'a besoin d'exister
 // pour elle, même régime que `temps_valide_par` (D120).
 const RAPPORT_VALIDE_PAR = "00000000-0000-7000-8000-00000000f901";
@@ -279,7 +279,7 @@ describe("l'intervention, sous le rôle applicatif", () => {
     });
   });
 
-  // RG-INT-03 (D135, 9H1) — pas de clôture sans RAPPORT validé. Même famille
+  // RG-INT-03 (D278, 9H1) — pas de clôture sans RAPPORT validé. Même famille
   // que « la CLÔTURE sans temps validé » ci-dessus : le temps est posé pour
   // que ce scénario garde SA PROPRE raison, jamais « aucun temps validé ».
   describe("la CLÔTURE sans rapport validé", () => {

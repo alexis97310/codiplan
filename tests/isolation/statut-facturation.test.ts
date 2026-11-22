@@ -80,7 +80,7 @@ async function interventionTerminee(type: string): Promise<string> {
       VAR_SOCIETE,
       SOCIETE_A,
     );
-    // RAPPORT VALIDÉ POSÉ À LA NAISSANCE (RG-INT-03, D135, 9H1) : ce fichier
+    // RAPPORT VALIDÉ POSÉ À LA NAISSANCE (RG-INT-03, D278, 9H1) : ce fichier
     // éprouve le STATUT DE FACTURATION que la clôture pose, pas la
     // validation du rapport — sans lui, `cloturerEtLire` refuserait pour
     // cette toute autre raison (même avertissement que `temps_valide_min`

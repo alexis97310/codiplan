@@ -52,7 +52,7 @@ import { prochainNumero } from "@/lib/interventions/numerotation";
  * `(societe_id, intervention_id)` refuse qu'on nomme la société dans une
  * relation.
  *
- * ## LE NUMÉRO (9H1C, suite de 9H2-NUMEROTATION-INTERVENTIONS, D135)
+ * ## LE NUMÉRO (9H1C, suite de 9H2-NUMEROTATION-INTERVENTIONS, D279)
  *
  * **Attribué ICI, pas par un rattrapage ultérieur** — une ligne qui naîtrait
  * sans `numero` retomberait dans le défaut que 9H2 vient de réparer. `annee`

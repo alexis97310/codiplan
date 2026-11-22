@@ -5,7 +5,7 @@ import { validerRapport } from "@/lib/interventions/depot";
 import { avecFilet, versLaFiche } from "../../actions";
 
 /**
- * VALIDER LE RAPPORT (RG-INT-03, D135, 9H1) — ce que `peutCloturer` exige
+ * VALIDER LE RAPPORT (RG-INT-03, D278, 9H1) — ce que `peutCloturer` exige
  * désormais avant de clore.
  *
  * **Aucune saisie** : même régime que `reprendre` — le geste CONFIRME, il ne

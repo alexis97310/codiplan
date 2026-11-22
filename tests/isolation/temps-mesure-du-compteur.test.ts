@@ -375,7 +375,7 @@ describe("le chemin de production — démarrer, c'est démarrer l'intervention"
   });
 });
 
-// RG-INT-03 (D135, 9H1) : les trois scénarios qui amènent une ligne à
+// RG-INT-03 (D278, 9H1) : les trois scénarios qui amènent une ligne à
 // « terminee » ci-dessous posent aussi `rapport_valide_par`/`rapport_valide_le`
 // au même geste — ce fichier mesure le TEMPS, pas le rapport (posé à part
 // dans `rapport-valide-avant-cloture.test.ts`), et sans ce rapport déjà

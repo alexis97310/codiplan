@@ -495,7 +495,7 @@ export type NoteInterne = z.infer<typeof schemaNoteInterne>;
  * demanderait du SQL brut, que le stack imposé interdit hors migrations et
  * politiques RLS, ou un filtrage côté application qui romprait le total des
  * filtres (pagination et total liraient deux populations différentes).
- * Depuis D135, `numero` est attribué par le serveur À LA CRÉATION — il ne
+ * Depuis D279, `numero` est attribué par le serveur À LA CRÉATION — il ne
  * reste `null` que sur une ligne que le rattrapage de la migration n'aurait
  * pas pu reprendre. Jamais sur le technicien, dont le nom vit dans
  * l'annuaire (`lib/auth/annuaire.ts`) et non sur `intervention`.

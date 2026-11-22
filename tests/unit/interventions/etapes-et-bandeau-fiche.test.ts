@@ -309,7 +309,7 @@ describe("bandeauDeLaFiche — un cas par état", () => {
     expect(bandeau?.texte).not.toContain(`${t("ponctuation.virgule")}.`);
   });
 
-  // RG-INT-03 (D135, 9H1) : le rapport validé se juge AVANT le temps mesuré
+  // RG-INT-03 (D278, 9H1) : le rapport validé se juge AVANT le temps mesuré
   // (`peutCloturer`, `lib/interventions/cycle-de-vie.ts`) — ce cas pose donc
   // un rapport validé pour isoler le refus « temps manquant » qu'il testait
   // déjà, sans quoi « rapport non validé » le masquerait.
@@ -329,7 +329,7 @@ describe("bandeauDeLaFiche — un cas par état", () => {
     expect(bandeau?.texte).toBe(t("intervention.refus.temps_manquant"));
   });
 
-  // RG-INT-03 (D135, 9H1) : un rapport NON validé refuse la clôture, même
+  // RG-INT-03 (D278, 9H1) : un rapport NON validé refuse la clôture, même
   // temps mesuré.
   it("« terminee », rapport non validé : avertissement, le motif RG-INT-03", () => {
     const bandeau = bandeauDeLaFiche(
