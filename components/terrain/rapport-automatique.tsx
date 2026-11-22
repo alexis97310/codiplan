@@ -3169,12 +3169,19 @@ export function RapportTerrainAutomatique({
               {/* BLEU PLEIN, LE RESTE DE LA LARGEUR DE LA BARRE FIXE (point
                   1, 9L04G) — aux côtés de « Suspendre », posé AVANT lui
                   dans la fiche (`<BoutonSuspendreTerrain>` plus haut dans
-                  `page.tsx`) : le portail conserve cet ordre de montage. */}
+                  `page.tsx`) : le portail conserve cet ordre de montage.
+                  `min-w-0` lève le minimum de largeur implicite qu'un texte
+                  `nowrap` impose à un enfant flexible (sans lui, le libellé
+                  entier reste le plancher de largeur et déborde à 375 px,
+                  petit défaut relevé 9L31) ; `whitespace-normal` autorise
+                  alors le retour à la ligne plutôt que la troncature — le
+                  libellé reste entier, jamais raccourci (aucune décision
+                  écrite ne l'autorise). */}
               <DeclencheurBarreAction>
                 <Button
                   type="button"
                   size="lg"
-                  className="h-14 flex-1 text-16"
+                  className="min-h-14 min-w-0 flex-1 text-16 whitespace-normal"
                   disabled={enEnvoiTerminer}
                   onClick={() => setConfirmationTerminerOuverte(true)}
                 >
@@ -3254,154 +3261,183 @@ export function RapportTerrainAutomatique({
       )}
 
       {!confirmationTerminerOuverte ? null : (
-        // LA FEUILLE DE CONFIRMATION, PLEIN ÉCRAN (M3, décision d'Alexis du
-        // 10/11/2026, 9K27-TERRAIN-TERMINER-CE-QUI-MANQUE) — AU-DESSUS de la
-        // barre basse (`barre-basse.tsx`, `z-50`), jamais dessous : un
-        // `z-[60]` fixe sur tout le viewport, jamais un `<div>` inline qui
-        // laissait la confirmation défiler SOUS cette barre (M3, audit UX du
-        // 10/11). D212 AMENDÉE : le bouton « Terminer l'intervention »
-        // au-dessus ouvre TOUJOURS cette feuille ; c'est « Confirmer la fin »,
-        // ICI, qui reste inactif tant qu'il manque quelque chose.
+        // LA FEUILLE DE CONFIRMATION (M3, décision d'Alexis du 10/11/2026,
+        // 9K27-TERRAIN-TERMINER-CE-QUI-MANQUE) — un fond `fixed inset-0`
+        // AU-DESSUS de la barre basse (`barre-basse.tsx`, `z-50`), jamais
+        // dessous : un `z-[60]` fixe sur tout le viewport, jamais un
+        // `<div>` inline qui laissait la confirmation défiler SOUS cette
+        // barre (M3, audit UX du 10/11). D212 AMENDÉE : le bouton
+        // « Terminer l'intervention » au-dessus ouvre TOUJOURS cette
+        // feuille ; c'est « Confirmer la fin », ICI, qui reste inactif tant
+        // qu'il manque quelque chose.
+        //
+        // LA FEUILLE ÉPOUSE SON CONTENU (petit défaut relevé 9L31) — avant
+        // ce lot, le fond ET la feuille étaient la MÊME boîte `fixed
+        // inset-0` (hauteur du viewport, toujours) et le bloc des boutons
+        // portait `mt-auto` : avec une liste de manques courte, `mt-auto`
+        // poussait les boutons tout en bas du viewport, laissant un grand
+        // vide au-dessus. La feuille est maintenant une boîte À PART,
+        // plaquée en bas (`justify-end` sur le fond), haute de son contenu
+        // et plafonnée (`max-h-[85dvh]`) ; seule la zone qui peut grandir
+        // (titre, liste, manques) défile en interne (`overflow-y-auto`,
+        // `min-h-0`) — les boutons, hors de cette zone, restent visibles
+        // sans jamais défiler la page.
         <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="terrain-terminer-confirmation-titre"
-          className="bg-app-surface fixed inset-0 z-[60] flex flex-col gap-3 overflow-y-auto p-4"
+          className="fixed inset-0 z-[60] flex flex-col justify-end bg-app-encre/40"
         >
-          <h2
-            id="terrain-terminer-confirmation-titre"
-            className="text-18 font-bold"
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="terrain-terminer-confirmation-titre"
+            className="bg-app-surface flex max-h-[85dvh] flex-col gap-3 rounded-t-2xl p-4"
           >
-            {t("terrain.terminer.confirmation.titre")}
-          </h2>
-          <ul className="list-disc pl-5 text-16 font-bold">
-            <li>
-              {debutSegmentOuvertAffiche === null ? (
-                texteConfirmationTemps(minutesFermeesAffichees)
-              ) : (
-                <>
-                  {t("terrain.terminer.confirmation.temps")}{" "}
-                  <CompteurVivant
-                    depart={new Date(debutSegmentOuvertAffiche)}
-                    minutesFermees={minutesFermeesAffichees}
-                  />
-                </>
-              )}
-            </li>
-            <li>{texteConfirmationRapport(commentaire.trim().length > 0)}</li>
-            <li>{texteConfirmationPrestations(prestationsChoisies.size)}</li>
-            <li>
-              {texteConfirmationSignature(issueSignatureLocaleComplete())}
-            </li>
-          </ul>
-
-          {!confirmerFinDesactive ? null : (
-            // CE QUI MANQUE, NOMMÉ ET CLIQUABLE (point 2, 9K27) — jamais
-            // seulement « il manque quelque chose » : chaque manque mène à
-            // l'endroit qui le résout.
-            <div className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre flex flex-col gap-2 rounded-md border px-3 py-2">
-              <p className="text-16 font-bold">
-                {t("terrain.terminer.confirmation.manques_titre")}
-              </p>
-              <ul className="flex flex-col gap-1">
-                {!manquesTerminer.commentaireManquant ? null : (
-                  <li>
-                    <button
-                      type="button"
-                      className="text-16 font-bold underline"
-                      onClick={allerAuCommentaire}
-                    >
-                      {t("terrain.terminer.confirmation.aller_commentaire")}
-                    </button>
-                    {t("ponctuation.separateur")}
-                    <span>
-                      {t("terrain.terminer.confirmation.manque_commentaire")}
-                    </span>
-                  </li>
-                )}
-                {!manquesTerminer.signatureManquante ? null : (
-                  <li>
-                    <button
-                      type="button"
-                      className="text-16 font-bold underline"
-                      onClick={allerALaSignature}
-                    >
-                      {t("terrain.terminer.confirmation.aller_signature")}
-                    </button>
-                    {t("ponctuation.separateur")}
-                    <span>
-                      {t("terrain.terminer.confirmation.manque_signature")}
-                    </span>
-                  </li>
-                )}
-                {manquesTerminer.pointsManquants.map((point) => (
-                  <li key={point.id}>
-                    <button
-                      type="button"
-                      className="text-16 font-bold underline"
-                      onClick={() => allerAuPointChecklist(point)}
-                    >
-                      {libelleDuPoint(point.section, point.libelle)}
-                    </button>
-                  </li>
-                ))}
-                {manquesTerminer.suitesNonConformesManquantes.map((point) => (
-                  <li key={point.id}>
-                    <button
-                      type="button"
-                      className="text-16 font-bold underline"
-                      onClick={() => allerAuPointChecklist(point)}
-                    >
-                      {libelleDuPoint(point.section, point.libelle)}
-                    </button>
-                    {t("ponctuation.separateur")}
-                    <span>
-                      {t(
-                        "terrain.terminer.confirmation.manque_suite_non_conforme",
-                      )}
-                    </span>
-                  </li>
-                ))}
+            <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
+              <h2
+                id="terrain-terminer-confirmation-titre"
+                className="text-18 font-bold"
+              >
+                {t("terrain.terminer.confirmation.titre")}
+              </h2>
+              <ul className="list-disc pl-5 text-16 font-bold">
+                <li>
+                  {debutSegmentOuvertAffiche === null ? (
+                    texteConfirmationTemps(minutesFermeesAffichees)
+                  ) : (
+                    <>
+                      {t("terrain.terminer.confirmation.temps")}{" "}
+                      <CompteurVivant
+                        depart={new Date(debutSegmentOuvertAffiche)}
+                        minutesFermees={minutesFermeesAffichees}
+                      />
+                    </>
+                  )}
+                </li>
+                <li>
+                  {texteConfirmationRapport(commentaire.trim().length > 0)}
+                </li>
+                <li>
+                  {texteConfirmationPrestations(prestationsChoisies.size)}
+                </li>
+                <li>
+                  {texteConfirmationSignature(issueSignatureLocaleComplete())}
+                </li>
               </ul>
-            </div>
-          )}
 
-          <div className="mt-auto flex flex-col gap-2">
-            {!confirmerFinDesactive ? null : (
-              <p
-                id="terrain-terminer-confirmation-indisponible"
-                className="text-app-encre-faible text-16 font-bold"
-              >
-                {t("terrain.terminer.confirmation.indisponible")}
-              </p>
-            )}
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="lg"
-                className="flex-1 text-16"
-                onClick={() => setConfirmationTerminerOuverte(false)}
-              >
-                {t("terrain.terminer.confirmation.non")}
-              </Button>
-              <Button
-                type="button"
-                size="lg"
-                className="flex-1 text-16"
-                disabled={enEnvoiTerminer || confirmerFinDesactive}
-                aria-describedby={
-                  confirmerFinDesactive
-                    ? "terrain-terminer-confirmation-indisponible"
-                    : undefined
-                }
-                onClick={() => {
-                  setConfirmationTerminerOuverte(false);
-                  void onClickTerminer();
-                }}
-              >
-                {t("terrain.terminer.confirmation.oui")}
-              </Button>
+              {!confirmerFinDesactive ? null : (
+                // CE QUI MANQUE, NOMMÉ ET CLIQUABLE (point 2, 9K27) — jamais
+                // seulement « il manque quelque chose » : chaque manque mène
+                // à l'endroit qui le résout.
+                <div className="border-app-orange-bord bg-app-orange-fond text-app-orange-encre flex flex-col gap-2 rounded-md border px-3 py-2">
+                  <p className="text-16 font-bold">
+                    {t("terrain.terminer.confirmation.manques_titre")}
+                  </p>
+                  <ul className="flex flex-col gap-1">
+                    {!manquesTerminer.commentaireManquant ? null : (
+                      <li>
+                        <button
+                          type="button"
+                          className="text-16 font-bold underline"
+                          onClick={allerAuCommentaire}
+                        >
+                          {t(
+                            "terrain.terminer.confirmation.aller_commentaire",
+                          )}
+                        </button>
+                        {t("ponctuation.separateur")}
+                        <span>
+                          {t(
+                            "terrain.terminer.confirmation.manque_commentaire",
+                          )}
+                        </span>
+                      </li>
+                    )}
+                    {!manquesTerminer.signatureManquante ? null : (
+                      <li>
+                        <button
+                          type="button"
+                          className="text-16 font-bold underline"
+                          onClick={allerALaSignature}
+                        >
+                          {t("terrain.terminer.confirmation.aller_signature")}
+                        </button>
+                        {t("ponctuation.separateur")}
+                        <span>
+                          {t("terrain.terminer.confirmation.manque_signature")}
+                        </span>
+                      </li>
+                    )}
+                    {manquesTerminer.pointsManquants.map((point) => (
+                      <li key={point.id}>
+                        <button
+                          type="button"
+                          className="text-16 font-bold underline"
+                          onClick={() => allerAuPointChecklist(point)}
+                        >
+                          {libelleDuPoint(point.section, point.libelle)}
+                        </button>
+                      </li>
+                    ))}
+                    {manquesTerminer.suitesNonConformesManquantes.map(
+                      (point) => (
+                        <li key={point.id}>
+                          <button
+                            type="button"
+                            className="text-16 font-bold underline"
+                            onClick={() => allerAuPointChecklist(point)}
+                          >
+                            {libelleDuPoint(point.section, point.libelle)}
+                          </button>
+                          {t("ponctuation.separateur")}
+                          <span>
+                            {t(
+                              "terrain.terminer.confirmation.manque_suite_non_conforme",
+                            )}
+                          </span>
+                        </li>
+                      ),
+                    )}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2">
+              {!confirmerFinDesactive ? null : (
+                <p
+                  id="terrain-terminer-confirmation-indisponible"
+                  className="text-app-encre-faible text-16 font-bold"
+                >
+                  {t("terrain.terminer.confirmation.indisponible")}
+                </p>
+              )}
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  className="flex-1 text-16"
+                  onClick={() => setConfirmationTerminerOuverte(false)}
+                >
+                  {t("terrain.terminer.confirmation.non")}
+                </Button>
+                <Button
+                  type="button"
+                  size="lg"
+                  className="flex-1 text-16"
+                  disabled={enEnvoiTerminer || confirmerFinDesactive}
+                  aria-describedby={
+                    confirmerFinDesactive
+                      ? "terrain-terminer-confirmation-indisponible"
+                      : undefined
+                  }
+                  onClick={() => {
+                    setConfirmationTerminerOuverte(false);
+                    void onClickTerminer();
+                  }}
+                >
+                  {t("terrain.terminer.confirmation.oui")}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
