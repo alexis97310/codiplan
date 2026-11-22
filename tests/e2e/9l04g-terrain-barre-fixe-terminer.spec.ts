@@ -234,6 +234,24 @@ test("375 px — la barre reste fixe au défilement, la feuille a 2 manques, un 
     });
     await expect(suspendre).toBeVisible();
     await expect(terminer).toBeVisible();
+
+    // LE LIBELLÉ SE LIT EN ENTIER, SANS TRONCATURE (petit défaut relevé
+    // 9L31) : `scrollWidth` (la largeur qu'il faudrait pour tout montrer)
+    // ne dépasse jamais `clientWidth` (la largeur réellement visible), à
+    // 375 PX COMME À 320 PX.
+    await expect
+      .poll(() =>
+        terminer.evaluate((el) => el.scrollWidth <= el.clientWidth + 1),
+      )
+      .toBe(true);
+    await page.setViewportSize({ width: 320, height: 900 });
+    await expect
+      .poll(() =>
+        terminer.evaluate((el) => el.scrollWidth <= el.clientWidth + 1),
+      )
+      .toBe(true);
+    await page.setViewportSize({ width: 375, height: 900 });
+
     await capturer(page, "fiche-en-cours-haut-apres");
 
     // LA BARRE RESTE FIXE AU DÉFILEMENT — même position à l'écran avant et

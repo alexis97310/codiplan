@@ -308,6 +308,63 @@ test("en ligne — le relevé de l'intervention antérieure s'affiche sous le po
   await capturer(page, "rubrique-avec-et-sans-releve-apres");
 });
 
+test("375 px — le champ d'un point chiffré garde la même position, avec ou sans dernier relevé (petit défaut relevé 9L31)", async ({
+  page,
+}) => {
+  await ouvrirLaSessionSensible(page, COMPTE_TECHNICIEN_EPREUVE);
+  await page.setViewportSize({ width: 375, height: 900 });
+  await page.goto(`/terrain/${INTERVENTION_COURANTE_ID}`);
+
+  // AVANT CE LOT, le champ du point AVEC dernier relevé passait sous le
+  // libellé par un simple effet de bord du retour à la ligne (le texte du
+  // relevé laissait trop peu de place sur la même ligne) ; le point SANS
+  // dernier relevé, lui, gardait son champ à droite — même type de point,
+  // deux mises en page différentes selon le hasard du texte affiché. Même
+  // ligne que `ligneDuPoint` ci-dessus (libellé en DONNÉE de scène, jamais
+  // du dictionnaire — `getByText`/`getByRole` sur ce texte ferait rougir le
+  // gardien L0-11, qui n'accepte que `.filter({ hasText })`).
+  const ligneAvecReleve = ligneDuPoint(page, LIBELLE_POINT_AVEC_RELEVE);
+  const ligneSansReleve = ligneDuPoint(page, LIBELLE_POINT_SANS_RELEVE);
+  const champAvecReleve = ligneAvecReleve.getByRole("spinbutton");
+  const champSansReleve = ligneSansReleve.getByRole("spinbutton");
+  await expect(champAvecReleve).toBeVisible();
+  await expect(champSansReleve).toBeVisible();
+
+  const libelleAvecReleve = ligneAvecReleve.locator("span").first();
+  const libelleSansReleve = ligneSansReleve.locator("span").first();
+
+  const [boiteLibelleAvec, boiteChampAvec, boiteLibelleSans, boiteChampSans] =
+    await Promise.all([
+      libelleAvecReleve.boundingBox(),
+      champAvecReleve.boundingBox(),
+      libelleSansReleve.boundingBox(),
+      champSansReleve.boundingBox(),
+    ]);
+  if (
+    boiteLibelleAvec === null ||
+    boiteChampAvec === null ||
+    boiteLibelleSans === null ||
+    boiteChampSans === null
+  ) {
+    throw new Error("boîte introuvable");
+  }
+
+  // MÊME MISE EN PAGE DANS LES DEUX CAS : le champ est SOUS le libellé (même
+  // bord gauche, posé plus bas), que le point porte un dernier relevé ou non.
+  expect(boiteChampAvec.x).toBeCloseTo(boiteLibelleAvec.x, 0);
+  expect(boiteChampAvec.y).toBeGreaterThan(
+    boiteLibelleAvec.y + boiteLibelleAvec.height,
+  );
+  expect(boiteChampSans.x).toBeCloseTo(boiteLibelleSans.x, 0);
+  expect(boiteChampSans.y).toBeGreaterThan(
+    boiteLibelleSans.y + boiteLibelleSans.height,
+  );
+
+  // LA CIBLE TACTILE RESTE ≥ 44 PX DANS LES DEUX CAS (D143/D263).
+  expect(boiteChampAvec.height).toBeGreaterThanOrEqual(44);
+  expect(boiteChampSans.height).toBeGreaterThanOrEqual(44);
+});
+
 test("hors réseau — le même relevé survit dans la copie locale", async ({
   page,
 }) => {

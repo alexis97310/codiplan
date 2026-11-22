@@ -268,6 +268,20 @@ test("375/1280 px, EN LIGNE — les trois manques nommés et cliquables, Confirm
       page.getByText(fr["terrain.terminer.confirmation.indisponible"]),
     ).toBeVisible();
 
+    // LA FEUILLE ÉPOUSE SON CONTENU — avec seulement trois manques, elle ne
+    // s'étire plus sur tout le viewport (petit défaut relevé 9L31) : un
+    // fond visible subsiste AU-DESSUS d'elle, et « Confirmer la fin » reste
+    // visible sans défiler la page.
+    const feuille = page.getByRole("dialog", {
+      name: fr["terrain.terminer.confirmation.titre"],
+    });
+    const boiteFeuille = await feuille.boundingBox();
+    if (boiteFeuille === null) {
+      throw new Error("boîte de la feuille introuvable");
+    }
+    expect(boiteFeuille.y).toBeGreaterThan(100);
+    await expect(confirmer).toBeInViewport();
+
     await capturer(page, "feuille-trois-manques", 375);
     await capturer(page, "feuille-trois-manques", 1280);
 
