@@ -1,4 +1,12 @@
-import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from "vitest";
 
 import { Role } from "@/lib/auth/roles";
 import {
@@ -10,19 +18,28 @@ import {
   schemaCreationAbsence,
   schemaEcourtementAbsence,
 } from "@/lib/absences/saisie";
+import { chargerCalendrierAgence } from "@/lib/calendar/agence";
 import {
   cleJour,
   instantDuJour,
   jourDe,
   jourSuivant,
   maintenant,
+  type JourLocal,
 } from "@/lib/calendar/fuseau";
+import { estJourOuvre } from "@/lib/calendar/ouverture";
 import { lundiDeLaSemaine } from "@/lib/calendar/semaine";
 import { uuidv7 } from "@/lib/db/uuid";
 import { deplacerIntervention } from "@/lib/interventions/depot";
 import { schemaDeplacement } from "@/lib/interventions/saisie";
 
-import { avecPortail, clientApp, clientOwner, fermerClients } from "./setup/db";
+import {
+  avecPortail,
+  clientApp,
+  clientOwner,
+  fermerClients,
+  sousSociete,
+} from "./setup/db";
 import {
   AGENCE_A,
   CLIENT_A1,
@@ -77,26 +94,62 @@ const TECHNICIEN = UTILISATEUR_PAR_ROLE[Role.technicien];
 /** Un lundi de la plage 08:00–12:00 du calendrier de l'agence A. */
 const LUNDI = new Date("2026-09-14T00:00:00.000Z");
 const LUNDI_SUIVANT = new Date("2026-09-21T00:00:00.000Z");
+
 /**
- * UN LUNDI DANS L'AVENIR (QT-15, D136, 9DK-PG-G15A-ABSENCE-ECOURTER,
- * 9D2-TESTS-DATES-NOUMEA) — `leverLeBlocage` (devenu « Supprimer ») refuse
- * désormais sur une absence déjà commencée ; une date EN DUR, comme
- * `LUNDI` ci-dessus, retombe dans le PASSÉ au fil des exécutions, ce qui
- * rend ce scénario-ci faux pour une raison que son nom ne dit pas (c'est
- * arrivé une première fois le 18/09/2026, puis une seconde le 05/10/2026
- * à la date en dur qui avait remplacé la première). Calculé depuis
- * AUJOURD'HUI À NOUMÉA — jamais en UTC, qui déborderait sur le jour civil
- * précédent entre 00:00 et 11:00 — le lundi de la semaine de « aujourd'hui
- * + 14 jours » est toujours au moins sept jours devant, quel que soit le
- * jour de la semaine où ce fichier s'exécute.
+ * UN LUNDI DANS L'AVENIR, OUVERT (QT-15, D136, 9DK-PG-G15A-ABSENCE-ECOURTER,
+ * 9D2-TESTS-DATES-NOUMEA, 9L31A-REPRISE-PETITS-DEFAUTS point 2) —
+ * `leverLeBlocage` (devenu « Supprimer ») refuse une absence déjà commencée ;
+ * une date EN DUR, comme `LUNDI` ci-dessus, retombe dans le PASSÉ au fil des
+ * exécutions (c'est arrivé une première fois le 18/09/2026, puis une seconde
+ * le 05/10/2026).
+ *
+ * **« Lundi de la semaine en cours + 14 jours » ne suffit pas** : mesuré le
+ * 23/11/2026, ce calcul tombait sur le « Férié fictif de décembre » de la
+ * fixture (`tests/isolation/setup/fixtures.ts`, premier lundi de décembre de
+ * l'année courante) — un jour FERMÉ pour l'agence A. `deplacerIntervention`
+ * refusait alors la pose avec `intervention.refus.jour_ferme`, et comme AUCUN
+ * scénario ne lisait `pose.accepte`, l'intervention restait sans date : le
+ * blocage suivant ne trouvait donc rien à déplanifier. L'ORACLE du calendrier
+ * réel (`chargerCalendrierAgence` + `estJourOuvre`, posé par `beforeAll`
+ * ci-dessous) écarte ce risque pour toute fermeture — fictive ou réelle,
+ * présente ou future — sans jamais relire la liste des fériés de la fixture.
  */
-const LUNDI_A_VENIR_JOUR = jourSuivant(
-  lundiDeLaSemaine(jourDe(maintenant(FUSEAU_SOCIETE_A).local)),
-  14,
-);
-const LUNDI_A_VENIR = instantDuJour(LUNDI_A_VENIR_JOUR);
+let LUNDI_A_VENIR_JOUR: JourLocal;
+let LUNDI_A_VENIR: Date;
 /** La fin de la même semaine de blocage que `LUNDI_A_VENIR` (lundi à vendredi). */
-const VENDREDI_A_VENIR_JOUR = jourSuivant(LUNDI_A_VENIR_JOUR, 4);
+let VENDREDI_A_VENIR_JOUR: JourLocal;
+
+beforeAll(async () => {
+  const aujourdHui = jourDe(maintenant(FUSEAU_SOCIETE_A).local);
+  const calendrier = await sousSociete(SOCIETE_A, (tx) =>
+    chargerCalendrierAgence(tx, {
+      societeId: SOCIETE_A,
+      agenceId: AGENCE_A,
+      fenetre: { du: aujourdHui, au: jourSuivant(aujourdHui, 180) },
+    }),
+  );
+  if (calendrier === null) {
+    throw new Error(
+      "Calendrier de l'agence A introuvable — fixture incomplète.",
+    );
+  }
+
+  let lundi = jourSuivant(lundiDeLaSemaine(aujourdHui), 14);
+  let semaines = 0;
+  while (!estJourOuvre(calendrier, lundi)) {
+    lundi = jourSuivant(lundi, 7);
+    semaines += 1;
+    if (semaines > 26) {
+      throw new Error(
+        "LUNDI_A_VENIR_JOUR : plus de 26 semaines consécutives fermées pour " +
+          "l'agence A — paramétrage suspect plutôt qu'une boucle infinie.",
+      );
+    }
+  }
+  LUNDI_A_VENIR_JOUR = lundi;
+  LUNDI_A_VENIR = instantDuJour(LUNDI_A_VENIR_JOUR);
+  VENDREDI_A_VENIR_JOUR = jourSuivant(LUNDI_A_VENIR_JOUR, 4);
+});
 
 let interventionId = "";
 const absencesPosees: string[] = [];
