@@ -371,3 +371,110 @@ référence pour la base de production.
 `git fetch origin` : `origin/main` toujours à `845055bed`. Travail posé sur une branche dédiée,
 `9L19SB-REPRISE-GARDES-FIXTURES-E2E`, partant d'`origin/main` — pas de rebase nécessaire. Arbre
 propre, aucun push.
+
+## Reprise 9L19C (22/11/2026)
+
+Décision d'Alexis du 22/11/2026 ~20:05 : la chaîne 9L19/9L19S/9L19SA/9L19SB est arrêtée après trois
+recalages ; ce lot neuf reprend `9L19SB-REPRISE-GARDES-FIXTURES-E2E-garde` par cherry-pick (18
+commits, sans en modifier aucun) sur une branche dédiée partant d'`origin/main` actuel — qui porte
+désormais 9L30, inconnu de 9L19SB.
+
+### Point 1 — report
+
+`git log 1cd61d5b0..c0582e3c8` donnait exactement les 18 commits attendus ; tous rejoués sans un
+seul conflit sur `origin/main` (`335d0acc2`). **Migration renommée** : `origin/main` porte
+`20261121010000_fige_a_la_cloture_9l14` (9L14, arrivée après la dernière reprise 9L19SB), plus
+récente que `20261120120000_…` — la migration des quatre gardes est renommée
+`20261122200000_gardes_chevauchement_segments_9l19` pour rester strictement postérieure, contenu
+inchangé ; toutes les références (README, `scripts/lib/resserrements-migration.ts`,
+`lib/db/migrations-attendues.ts`, `tests/unit/db/resserrements-migration.test.ts`,
+`docs/arbitrages.md`) balayées.
+
+**Numéro d'arbitrage** : D277 est déjà libre sur `origin/main` (D275 pris par 9L27, D276 par 9L14,
+la même collision que la reprise 9L19SB avait déjà anticipée et résolue) — aucune renumérotation
+supplémentaire.
+
+**Révélé seulement par `CI=1 pnpm verify`** : `lib/db/migrations-attendues.ts` listait encore la
+migration des quatre gardes AVANT `20261121010000_fige_a_la_cloture_9l14`, son ancienne position —
+le renommage la fait désormais trier APRÈS au répertoire. `tests/unit/db/migrations-attendues.test.ts`
+(« sont EXACTEMENT celles du répertoire, et dans le même ORDRE ») l'a révélé ; corrigé dans le même
+point.
+
+### Point 2 — les deux dernières scènes
+
+`captures-9eq-fiche-onglets.spec.ts` (capture APRÈS — a-planifier, onglet resume à 1280px) et
+`fiche-entete-bandeau-frise.spec.ts` (sous le rôle ADV par défaut › à planifier, P1, habilitation
+bloquante) posaient chacune, dans leur `beforeAll`, trois ou quatre interventions sur **le même
+technicien** avec `now()` / `now() + interval '1 hour'` répété littéralement à chaque `INSERT` :
+des appels distincts, à quelques millisecondes d'écart réel, mais des plages d'une heure qui se
+recouvrent presque entièrement — exactement la course que la garde `intervention_sans_
+chevauchement_technicien` est faite pour fermer (23P01). Ni l'une ni l'autre n'utilisait encore
+`tests/e2e/setup/creneaux.ts` (l'utilitaire posé par 9L19SB) : c'est ce qui les avait fait
+échapper aux neuf scènes déjà corrigées à l'époque.
+
+Chaque intervention reçoit maintenant sa propre heure via `creneauUtc` — `fiche-entete-bandeau-
+frise.spec.ts` : EN_COURS à 1 h UTC, SUSPENDUE à 3 h, TERMINÉE REFUSÉE à 5 h, TERMINÉE PRÊTE à 7 h ;
+`captures-9eq-fiche-onglets.spec.ts` : EN_COURS à 1 h, TERMINÉE à 3 h, CLÔTURÉE à 5 h — toutes sur
+le jour local courant (`cleDeJour(jourDe(maintenant(reperes.fuseau).local))`), sans toucher une
+seule assertion. `EN_RETARD` (datée d'hier) et les segments de travail (`segment_travail`, hors
+portée de cette garde) n'ont pas été touchés.
+
+**Recherche élargie (point 2 du mandat)** : balayage de tout `tests/e2e/**` et `scripts/captures.mts`
+pour tout autre amorçage du même genre — plusieurs fichiers insèrent `now()` / `now() + interval
+'1 hour'`, mais chacun des autres relevés (`captures-pg-a5-fiche-creneau.spec.ts`,
+`avertissements-1.spec.ts`, etc.) ne pose qu'**une seule** intervention avec créneau ET technicien
+par fichier, ou laisse `creneau_fin` à `NULL` pour les lignes supplémentaires (hors du périmètre de
+la garde, `WHERE creneau_debut IS NOT NULL AND creneau_fin IS NOT NULL`) — aucun autre amorçage ne
+pose deux lignes concurrentes sur le même technicien. `scripts/captures.mts` ne pose aucun créneau
+du tout.
+
+### Épreuves rejouées
+
+**La suite e2e entière** (`CI=1 --workers=1`) a buté deux fois sur un défaut d'environnement sans
+rapport avec le code de ce lot — mesuré, pas supposé, avant de continuer :
+- un premier lancement, mal détaché du terminal, a laissé un `pnpm test:e2e` orphelin tourner en
+  parallèle d'un second lancement : collision de port (`3210` déjà tenu), puis `DROP DATABASE
+  "codiplan_test"` refusé (`55006`, une session restait connectée) une fois le premier tué sans que
+  sa connexion Postgres se referme proprement. Nettoyé (`pg_terminate_backend`, processus Chromium
+  et `next-server` orphelins tués) avant de relancer.
+- le budget de 120 minutes du lot a été entièrement consommé par cet incident d'environnement (deux
+  lancements perdus, ~75 minutes) avant qu'un lancement propre ne soit seulement amorcé — **la
+  suite complète n'a donc PAS été rejouée de bout en bout dans ce lot**, et ce rapport ne prétend
+  pas le contraire.
+
+Ce qui A été observé, au premier plan, sans aucune des deux causes d'environnement ci-dessus :
+- **`captures-9eq-fiche-onglets.spec.ts` + `fiche-entete-bandeau-frise.spec.ts` seuls**
+  (`CI=1 --workers=1`, migration + seed rejoués au démarrage) : **47 passed** (4,2 min), zéro
+  `23P01` — les deux scènes nommées par le mandat sont bien corrigées.
+- `pnpm test:isolation` : **263 fichiers, 2543 tests**, vert.
+- `CI=1 pnpm verify` (format + typecheck + lint + test + test:isolation + build) : **vert de bout en
+  bout** (code de sortie 0) — `pnpm test` seul : 536 fichiers, 6026 tests (après correction du
+  point 1).
+- `pnpm verify:full` non joué ici — laissé à la file, conformément au mandat.
+
+**Ce qui reste dû à Alexis** : rejouer `CI=1 pnpm test:e2e --workers=1` sur la suite ENTIÈRE une
+fois ce lot posé, sur un poste sans lancement concurrent — c'est la seule vérification du mandat
+que ce rapport ne peut pas certifier lui-même. Les 45 scènes « did not run » signalées par le
+mandat (suite arrêtée en série après l'échec des deux scènes désormais corrigées) devraient
+disparaître une fois la suite complète rejouée jusqu'au bout, mais ce rapport ne l'affirme pas sans
+l'avoir vu.
+
+**Captures d'écran** : non refaites — aucun écran touché par ce lot (une migration renommée, un
+ordre de liste, deux amorçages de fixtures). Les PNG/PDF régénérés par les exécutions de la suite
+sous `docs/propositions/*/captures/` ont été restaurés (`git checkout --` puis `git clean -fd`
+ciblé) avant chaque commit, jamais committés.
+
+### Migration à jouer, et requêtes de contrôle
+
+Inchangée de nom final : **`20261122200000_gardes_chevauchement_segments_9l19`**. Les quatre
+requêtes de contrôle en lecture seule, §« Requêtes de contrôle » en tête de cette passation, restent
+la référence pour la base de production — aucune n'a changé, la migration n'a pas changé de
+contenu. **MIGRATION À JOUER par Alexis** : requêtes de contrôle en lecture seule dans la console
+Neon (branche production) ; si l'une rend une ligne, s'arrêter et signaler avant de continuer ; si
+toutes rendent zéro ligne, `pnpm db:deploy` (production, `réinitialiser_demo` décoché), puis Vercel.
+
+### État du dépôt (reprise 9L19C)
+
+Branche dédiée `9L19C-GARDES-SEGMENTS-DEUX-SCENES`, partant d'`origin/main` (`335d0acc2`) au moment
+du report — inchangé au moment de rendre la main (`git fetch origin` revérifié). Pas de rebase
+nécessaire. Arbre propre, aucun push.
