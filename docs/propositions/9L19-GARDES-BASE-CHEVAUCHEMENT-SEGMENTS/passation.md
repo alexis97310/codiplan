@@ -4,7 +4,7 @@ Quatre gardes en base, décision d'Alexis du 10/11/2026 (« OK »), arbitrage **
 (`docs/arbitrages.md`) — une règle change pour la quatrième garde (l'exemption nommée de l'archive,
 voir plus bas). Une seule migration, aucun écran dont le rendu change — aucune capture.
 
-**MIGRATION À JOUER par Alexis : `20261120120000_gardes_chevauchement_segments_9l19` — staging
+**MIGRATION À JOUER par Alexis : `20261122200000_gardes_chevauchement_segments_9l19` — staging
 puis `DB migrate & seed`, puis Vercel.**
 
 ## Ce que la migration pose
@@ -245,7 +245,7 @@ ce lot — ils ont été restaurés (`git checkout --`) avant chaque commit, jam
 
 ### Migration à jouer, et requêtes de contrôle
 
-Le nom change : **`20261120120000_gardes_chevauchement_segments_9l19`** (au lieu de
+Le nom change : **`20261122200000_gardes_chevauchement_segments_9l19`** (au lieu de
 `20261120010000_…`). Les quatre requêtes de contrôle en lecture seule, §« Requêtes de contrôle »
 plus haut dans cette passation, restent la référence pour la base de production — **Alexis doit les
 faire jouer avant la migration** (le pilote les fera jouer sur staging puis production). Elles
@@ -362,7 +362,7 @@ lot) des centaines de PNG/PDF de documentation sous `docs/propositions/*/capture
 
 ### Migration à jouer, et requêtes de contrôle
 
-Inchangée : **`20261120120000_gardes_chevauchement_segments_9l19`**. Les quatre requêtes de
+Inchangée : **`20261122200000_gardes_chevauchement_segments_9l19`**. Les quatre requêtes de
 contrôle en lecture seule, §« Requêtes de contrôle » en tête de cette passation, restent la
 référence pour la base de production.
 

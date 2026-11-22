@@ -198,7 +198,7 @@ describe("les formes absentes du dépôt — et celles qui ont cessé de l'être
    * ── `EXCLUDE` EST ÉCRIT DEPUIS LE 20/11/2026 (9L19) ───────────────────────
    *
    * Il a rougi une seconde fois : la migration
-   * `20261120120000_gardes_chevauchement_segments_9l19` pose
+   * `20261122200000_gardes_chevauchement_segments_9l19` pose
    * `intervention_sans_chevauchement_technicien`, une contrainte d'exclusion
    * — la mesure qui l'a imposée est dans l'en-tête de cette migration, et
    * dans `README.md`. **Elle n'est PAS traitée comme `VALIDATE CONSTRAINT` :**
@@ -245,7 +245,7 @@ describe("les formes absentes du dépôt — et celles qui ont cessé de l'être
     // suivante serait trivialement vraie sur une population qui n'écrit rien
     // (§9, 31/08).
     expect(ecrivent).toEqual([
-      "20261120120000_gardes_chevauchement_segments_9l19",
+      "20261122200000_gardes_chevauchement_segments_9l19",
     ]);
   });
 

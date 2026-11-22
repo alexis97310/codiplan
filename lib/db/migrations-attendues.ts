@@ -168,6 +168,6 @@ export const MIGRATIONS_ATTENDUES: readonly string[] = [
   "20261115030000_prestations_par_famille_materiel_9l04j",
   "20261115040000_limite_connexion_tentatives_9l07",
   "20261120113000_plancher_facturation_jamais_zero_9l27",
-  "20261120120000_gardes_chevauchement_segments_9l19",
+  "20261122200000_gardes_chevauchement_segments_9l19",
   "20261121010000_fige_a_la_cloture_9l14",
 ];
