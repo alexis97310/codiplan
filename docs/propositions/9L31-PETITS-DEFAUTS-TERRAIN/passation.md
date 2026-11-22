@@ -141,3 +141,96 @@ jour avec ces trois écrans.
 
 Aucune migration. Aucune règle métier changée (contenu de la checklist, blocages de « Terminer » inchangés).
 Bouton « Reprendre » (en enquête, 9L08C/9L08CA/9L29) non touché. `depot/` et les scripts de file non touchés.
+
+## Reprise 9L31A-REPRISE-PETITS-DEFAUTS
+
+Lot recalé deux fois sur la MÊME cause, hors du périmètre de 9L31 (voir le constat « Un échec DÉCOUVERT » ci-
+dessus, écrit par 9L31 lui-même). Branche créée à jour d'`origin/main` (`3090a5c30`, identique au départ de
+9L31 — aucun commit `9L31-PETITS-DEFAUTS-TERRAIN` n'était encore publié), les sept commits de
+`9L31-PETITS-DEFAUTS-TERRAIN-garde` reportés par `git cherry-pick` **sans aucun conflit** (rien à résoudre, rien
+retiré d'aucun des deux côtés).
+
+### Point 2 — `LUNDI_A_VENIR_JOUR` calculé par l'oracle du calendrier
+
+**Mesuré, au-delà de ce que 9L31 avait déjà écrit** : la cause n'est PAS « un calcul de lundi à venir est fragile
+le lundi » en général — `jourSuivant(lundiDeLaSemaine(aujourd'hui), 14)` rend TOUJOURS un lundi strictement futur
+(entre 8 et 14 jours, vérifié par calcul direct pour les quatre jours de la semaine, horloge figée). La vraie
+collision : ce lundi-là (le 07/12/2026, calculé le 23/11/2026) tombait exactement sur le **« Férié fictif de
+décembre »** que `tests/isolation/setup/fixtures.ts` pose au premier lundi de décembre de l'année courante
+(`feriesFixture`, `FERIE_TRAVAILLE_A` — qui est en réalité le férié de JUIN, `feriesFixture(...)[0]`, pas celui de
+décembre : rien ne rend ce jour-là travaillé pour l'agence A). `deplacerIntervention` refusait donc la pose avec
+`intervention.refus.jour_ferme` (un état confirmable, via `confirmer_hors_ouverture`, que `deplacement()` ne
+posait pas) — et **aucun scénario ne lisait jamais `pose.accepte`** sur cet appel précis : la pose échouait en
+silence, l'intervention restait sans date, et le blocage suivant ne trouvait donc rien à déplanifier
+(`interventionsADeplanifier` filtre les lignes `date_planifiee === null`).
+
+Un calcul de date « lundi dans N jours » restera donc TOUJOURS exposé à retomber sur un jour fermé — fictif
+(fixture) ou réel (jour férié, pont) —, quel que soit le jour de la semaine où l'épreuve s'exécute : ce n'est pas
+une question de jour, c'est une question d'OUVERTURE. `LUNDI_A_VENIR_JOUR`/`LUNDI_A_VENIR`/`VENDREDI_A_VENIR_JOUR`
+sont désormais posés par un `beforeAll` qui charge le VRAI calendrier de l'agence A (`chargerCalendrierAgence`) et
+choisit le premier lundi, à partir du même point de départ qu'avant (+14 jours), qui est réellement OUVERT
+(`estJourOuvre`) — avance d'une semaine entière tant qu'il ne l'est pas, borné à 26 semaines avec une erreur
+explicite plutôt qu'une boucle muette (même discipline que `lundiSansJourFerie`/`lundiSansJourPasse` dans
+`tests/e2e/setup/scene.ts`, déjà établie ailleurs dans le dépôt pour exactement ce risque). **Aucune assertion
+retirée ni élargie** : seule l'entrée change, et elle change pour être réellement future ET réellement ouverte au
+lieu d'être seulement calculée comme telle.
+
+**Prouvé horloge figée** (`vi.setSystemTime`, `toFake: ["Date"]`, épreuve jetable non committée) sur un dimanche
+(deux instants, dont un qui bascule le jour civil Nouméa), un lundi (le jour réellement cassé, 23/11/2026) et un
+vendredi : dans les quatre cas, le lundi choisi est ouvert, la pose réussit, le blocage déplanifie
+l'intervention, et la levée du blocage laisse la trace intacte — les quatre scénarios passent.
+
+**Cherché, comme demandé** : `lundiDeLaSemaine` n'est utilisé dans AUCUN autre fichier de `tests/isolation/**`
+que `absence.test.ts`. Dans `tests/e2e/**`, six fichiers l'emploient (`captures-9af-gr14-charge-planning`,
+`absences-ecourter-etat`, `planning-6`, `pg-g16-statut-ressource`, `captures-pg-a6-libelle-sans-duree`,
+`planning-charge-technicien`, plus l'infrastructure `setup/reperes.ts`/`setup/scene.ts`) : tous calculent « le
+lundi de la semaine CIVILE EN COURS » pour nommer la semaine affichée par une capture ou un filtre, aucun n'ajoute
+de décalage pour viser un jour FUTUR à planifier dessus — le risque de collision avec un jour fermé ne s'y pose
+pas. `tests/e2e/setup/scene.ts` porte déjà, depuis des lots antérieurs, l'idiome correct pour le risque symétrique
+(`lundiSansJourFerie`, `lundiSansJourPasse`, `lundiDeLaSemainePasseeOuvert`) : le correctif de ce point en reprend
+la même discipline (boucle bornée, avance d'une semaine), appliquée ici à l'oracle du calendrier réel plutôt qu'à
+un ensemble de fériés recopié, puisque `absence.test.ts` pose réellement l'intervention via `deplacerIntervention`
+contre la base.
+
+### Point 3 — captures AVANT
+
+9L31 n'en avait pris aucune (pause « mesure d'abord » sautée, écrit dans sa propre passation). Reprises depuis
+`origin/main` au commit `3090a5c30` (avant tout commit du lot), dans un **worktree jetable** à part
+(`/tmp/9l31a-avant`, `pnpm install` dédié, base PostgreSQL `codiplan_test_9l31a_avant` et port `3101` propres —
+jamais la base `codiplan_test`/le port `3100` partagés avec d'autres sessions) : les épreuves e2e **déjà
+existantes** à cette date-là couvraient déjà, en sous-produit de leurs propres assertions, exactement les trois
+écrans visés à 375 px —
+- `tests/e2e/9l04g-terrain-barre-fixe-terminer.spec.ts` → `fiche-en-cours-haut-apres-375.png` (barre fixe, point 1)
+  et `feuille-terminer-manques-apres-375.png` (feuille « Terminer », point 2) ;
+- `tests/e2e/9l08f-checklist-dernier-releve.spec.ts` → `rubrique-avec-et-sans-releve-apres-375.png` (checklist,
+  point 3).
+
+Rejouées TELLES QUELLES (aucune modification), puis copiées sous `docs/propositions/9L31-PETITS-DEFAUTS-TERRAIN/
+captures/point{1,2,3}-…-avant-375.png`. Les trois montrent bien le défaut : le bouton « Terminer l'intervention »
+coupé au bord de l'écran à 375 px (point 1), le grand vide entre le contenu et les boutons « Non »/« Confirmer la
+fin » (point 2), et le champ du point chiffré « Pression 9L08F » (avec dernier relevé) retombé SOUS le libellé
+tandis que « Niveau d'huile 9L08F » (sans dernier relevé) le garde À DROITE — la même incohérence que 9L31
+décrivait. Worktree et base temporaires supprimés après usage (`git worktree remove`, `DROP DATABASE`), aucun
+processus laissé sur le port 3101.
+
+### Localisateurs fragiles (demandé au point 3 du contrat)
+
+Aucun des points 1/2/3 de 9L31 n'a renommé ni ajouté de libellé ou de bouton — uniquement des classes CSS
+(`min-w-0`, `whitespace-normal`, position du champ). `grep` sur `tests/e2e/**` pour un `getByText`/`getByRole` non
+exact portant sur « Terminer » ne rend aucun littéral en dur (toutes les occurrences passent par `fr["…"]`,
+conforme à la coupure humain/machine du §5 de CLAUDE.md) : aucun localisateur de la même famille n'était exposé à
+rencontrer les trois écrans modifiés autrement qu'avant.
+
+### Épreuves jouées, au premier plan
+
+- `pnpm test` — 537 fichiers, 6027 tests, VERT.
+- `pnpm test:isolation` — **263/263 fichiers verts**, `absence.test.ts` compris (était 262/263 au départ de cette
+  reprise).
+- `npx playwright test` ciblé sur `9l04g-terrain-barre-fixe-terminer.spec.ts`, `9k27-terrain-terminer-ce-qui-
+  manque.spec.ts`, `9l08e-non-conforme-suite-obligatoire.spec.ts`, `9l08f-checklist-dernier-releve.spec.ts`,
+  `tous-les-ecrans-rendent.spec.ts` — 69 passés, 5 skips pré-existants (déjà documentés par 9L31), VERT.
+- `CI=1 pnpm verify` — format:check, typecheck, lint, test, test:isolation, build : **tout VERT**, sortie 0.
+
+### Ce qui n'a pas été touché
+
+Aucune migration. Aucune règle métier changée. `depot/` et les scripts de file non touchés. Jamais de push.
