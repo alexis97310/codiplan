@@ -76,9 +76,15 @@ test.beforeAll(async () => {
   // DEUX HEURES DISTINCTES, ET DISTINCTES DE CELLES DE
   // `9dd-pg-g14c-terrain-transmises.spec.ts` (9L19, garde `intervention_
   // sans_chevauchement_technicien` — tests/e2e/setup/creneaux.ts).
+  // 13, pas 21 (9L31B, mesuré un LUNDI) : une heure UTC de 21 ou 22 avec `cle`
+  // = aujourd'hui retombe, en LOCAL, sur 08:00–09:00 de DEMAIN (`creneauUtc`
+  // bascule le jour local dès l'heure UTC 13) — exactement le créneau que la
+  // scène partagée (`tests/e2e/setup/scene.ts`) réserve à `obstacle`, sur ce
+  // MÊME technicien, quand `demain` tombe sur MARDI de la scène (le cas où
+  // aujourd'hui est déjà lundi).
   const { creneau_debut: creneauDebut, creneau_fin: creneauFin } = creneauUtc(
     cle,
-    21,
+    13,
   );
   const {
     creneau_debut: creneauDebutPlanifiee,

@@ -226,8 +226,13 @@ test.beforeAll(async () => {
         priorite: "p3",
         statut: "planifiee",
         date_planifiee: demainDate,
-        creneau_debut: instantAMinutes(demain, 8 * 60, reperes.fuseau),
-        creneau_fin: instantAMinutes(demain, 9 * 60, reperes.fuseau),
+        // 11h-12h, pas 8h-9h (9L31B, mesuré un LUNDI) : `demain` tombe alors
+        // sur MARDI de la scène partagée (`tests/e2e/setup/scene.ts`,
+        // `lundiSansJourPasse` ne décale plus quand aujourd'hui est déjà
+        // lundi), qui réserve déjà 08:00–10:00 pour `obstacle` sur ce MÊME
+        // technicien (`intervention_sans_chevauchement_technicien`, 9L19).
+        creneau_debut: instantAMinutes(demain, 11 * 60, reperes.fuseau),
+        creneau_fin: instantAMinutes(demain, 12 * 60, reperes.fuseau),
         duree_estimee_min: 60,
         mode_valorisation: "temps_passe",
         devise_code: "XPF",

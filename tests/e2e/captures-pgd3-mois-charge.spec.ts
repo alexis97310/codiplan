@@ -77,6 +77,12 @@ test.beforeAll(async () => {
       where: { societe_id: reperes.societeId, code: "DUCOS" },
       select: { id: true },
     });
+    // La fenêtre dépasse le mois visé (+60 jours) : le jour choisi doit aussi
+    // être LIBRE pour ce technicien (9L31B, mesuré un LUNDI — le semis de
+    // démonstration, `prisma/seed-data.ts`, pose ses propres interventions
+    // relatives à `LUNDI_DEMONSTRATION` sur ce même technicien, et peut
+    // occuper le premier jour ouvert du mois), pas seulement ouvert ; la
+    // recherche peut donc déborder du seul mois chargé.
     const calendrier: Calendrier | null = await chargerCalendrierAgence(
       client,
       {
@@ -84,13 +90,39 @@ test.beforeAll(async () => {
         agenceId: agence.id,
         fenetre: {
           du: premierDuMois,
-          au: jourSuivant(premierDuMois, nombreDeJours),
+          au: jourSuivant(premierDuMois, nombreDeJours + 60),
         },
       },
     );
+    const libre = async (jour: JourLocal): Promise<boolean> => {
+      const conflit = await client.intervention.findFirst({
+        where: {
+          societe_id: reperes.societeId,
+          technicien_id: reperes.technicienDucos,
+          statut: { not: "annulee" },
+          creneau_debut: { lt: instantAMinutes(jour, 570, reperes.fuseau) },
+          creneau_fin: { gt: instantAMinutes(jour, 480, reperes.fuseau) },
+        },
+        select: { id: true },
+      });
+      return conflit === null;
+    };
     let candidat = premierDuMois;
-    while (calendrier === null || !estJourOuvre(calendrier, candidat)) {
+    let avances = 0;
+    while (
+      calendrier === null ||
+      !estJourOuvre(calendrier, candidat) ||
+      !(await libre(candidat))
+    ) {
       candidat = jourSuivant(candidat, 1);
+      avances += 1;
+      if (avances > 60) {
+        throw new Error(
+          "captures-pgd3-mois-charge : plus de 60 jours consécutifs sans " +
+            "jour ouvert et libre pour ce technicien — données suspectes " +
+            "plutôt qu'une boucle infinie.",
+        );
+      }
     }
     jourIntervention = candidat;
 
