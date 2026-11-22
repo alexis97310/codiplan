@@ -844,7 +844,15 @@ function PointLigne({
   // UN POINT NON CONFORME (9L04I) rejoint ce régime SEULEMENT pendant qu'il
   // l'est — conforme ou sans objet, les pastilles restent compactes, à côté
   // du libellé, comme avant ce lot.
+  // UN POINT CHIFFRÉ (`valeur_mesuree`) REJOINT CE RÉGIME TOUJOURS, PAS
+  // SEULEMENT AVEC UN DERNIER RELEVÉ (petit défaut relevé 9L31) : avant ce
+  // lot, le champ ne passait « sous » le libellé que par un effet de bord du
+  // retour à la ligne (`flex-wrap`) quand le texte du dernier relevé prenait
+  // presque toute la largeur à 375 px — un point sans dernier relevé, lui,
+  // gardait son champ à droite. Même mise en page dans les deux cas,
+  // décidée ici plutôt que laissée au hasard du texte affiché.
   const surSaPropreLigne =
+    point.typeReponse === "valeur_mesuree" ||
     (point.typeReponse === "choix_dans_une_liste" &&
       point.choix.length <= MAX_OPTIONS_SEGMENTS) ||
     (point.typeReponse === "conforme_non_conforme_sans_objet" &&
