@@ -9,8 +9,13 @@ import { instantDuJour, jourDe, maintenant } from "@/lib/calendar/fuseau";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
+import { creneauUtc } from "./setup/creneaux";
 import { reperesDeLaScene } from "./setup/reperes";
-import { COMPTE_RS_EPREUVE, MOT_DE_PASSE_EPREUVE } from "./setup/scene";
+import {
+  cleDeJour,
+  COMPTE_RS_EPREUVE,
+  MOT_DE_PASSE_EPREUVE,
+} from "./setup/scene";
 import { ouvrirUneSession } from "./setup/session";
 
 /**
@@ -61,6 +66,14 @@ test.beforeAll(async () => {
     const aujourdhui = instantDuJour(jourLocal);
     const hier = instantDuJour(jourLocal, -1);
     const dansCinqJours = instantDuJour(jourLocal, 5);
+    // CRÉNEAUX DISTINCTS (9L19, garde `intervention_sans_chevauchement_
+    // technicien`) : les quatre interventions du jour partagent le même
+    // technicien, chacune sa propre heure.
+    const cleAujourdhui = cleDeJour(jourLocal);
+    const creneauEnCours = creneauUtc(cleAujourdhui, 1);
+    const creneauSuspendue = creneauUtc(cleAujourdhui, 3);
+    const creneauTermineeRefusee = creneauUtc(cleAujourdhui, 5);
+    const creneauTermineePrete = creneauUtc(cleAujourdhui, 7);
 
     await client.client.create({
       data: {
@@ -139,7 +152,7 @@ test.beforeAll(async () => {
           "priorite", "statut", "date_planifiee", "creneau_debut",
           "creneau_fin", "duree_estimee_min", "technicien_id", "modifie_le")
        VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif',
-               'p3', 'en_cours', $6::date, now(), now() + interval '1 hour',
+               'p3', 'en_cours', $6::date, $8::timestamptz, $9::timestamptz,
                60, $7::uuid, now())`,
       INTERVENTION_EN_COURS,
       reperes.societeId,
@@ -148,6 +161,8 @@ test.beforeAll(async () => {
       agence.id,
       aujourdhui,
       technicienId,
+      creneauEnCours.creneau_debut,
+      creneauEnCours.creneau_fin,
     );
     await client.$executeRawUnsafe(
       `INSERT INTO "segment_travail"
@@ -171,9 +186,9 @@ test.beforeAll(async () => {
           "motif_suspension", "piece_attendue_ref", "date_dispo_prevue",
           "suspendue_le", "modifie_le")
        VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif',
-               'p2', 'suspendue', $6::date, now(), now() + interval '1 hour',
-               60, $7::uuid, '9EE — pièce manquante', $8, $9::date,
-               now() - interval '2 days', now())`,
+               'p2', 'suspendue', $6::date, $10::timestamptz,
+               $11::timestamptz, 60, $7::uuid, '9EE — pièce manquante', $8,
+               $9::date, now() - interval '2 days', now())`,
       INTERVENTION_SUSPENDUE,
       reperes.societeId,
       CLIENT_9EE,
@@ -183,6 +198,8 @@ test.beforeAll(async () => {
       technicienId,
       PIECE_REF,
       dansCinqJours,
+      creneauSuspendue.creneau_debut,
+      creneauSuspendue.creneau_fin,
     );
 
     // TERMINÉE, SANS TEMPS MESURÉ — clôture refusée. Rapport DÉJÀ validé
@@ -196,7 +213,7 @@ test.beforeAll(async () => {
           "creneau_fin", "duree_estimee_min", "technicien_id",
           "rapport_valide_par", "rapport_valide_le", "modifie_le")
        VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif',
-               'p3', 'terminee', $6::date, now(), now() + interval '1 hour',
+               'p3', 'terminee', $6::date, $8::timestamptz, $9::timestamptz,
                60, $7::uuid, $7::uuid, now(), now())`,
       INTERVENTION_TERMINEE_REFUSEE,
       reperes.societeId,
@@ -205,6 +222,8 @@ test.beforeAll(async () => {
       agence.id,
       aujourdhui,
       technicienId,
+      creneauTermineeRefusee.creneau_debut,
+      creneauTermineeRefusee.creneau_fin,
     );
 
     // TERMINÉE, AVEC TEMPS MESURÉ (un segment fermé) ET RAPPORT VALIDÉ
@@ -216,7 +235,7 @@ test.beforeAll(async () => {
           "creneau_fin", "duree_estimee_min", "technicien_id",
           "rapport_valide_par", "rapport_valide_le", "modifie_le")
        VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif',
-               'p4', 'terminee', $6::date, now(), now() + interval '1 hour',
+               'p4', 'terminee', $6::date, $8::timestamptz, $9::timestamptz,
                60, $7::uuid, $7::uuid, now(), now())`,
       INTERVENTION_TERMINEE_PRETE,
       reperes.societeId,
@@ -225,6 +244,8 @@ test.beforeAll(async () => {
       agence.id,
       aujourdhui,
       technicienId,
+      creneauTermineePrete.creneau_debut,
+      creneauTermineePrete.creneau_fin,
     );
     await client.$executeRawUnsafe(
       `INSERT INTO "segment_travail"

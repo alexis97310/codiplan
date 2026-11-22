@@ -4,11 +4,14 @@ import { join } from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { test, type Page } from "@playwright/test";
 
+import { jourDe, maintenant } from "@/lib/calendar/fuseau";
 import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
+import { creneauUtc } from "./setup/creneaux";
 import { reperesDeLaScene } from "./setup/reperes";
+import { cleDeJour } from "./setup/scene";
 import { ouvrirUneSession } from "./setup/session";
 
 /**
@@ -87,6 +90,13 @@ test.beforeAll(async () => {
       select: { id: true },
     });
     const technicienId = reperes.technicienDucos;
+    // CRÉNEAUX DISTINCTS (9L19, garde `intervention_sans_chevauchement_
+    // technicien`) : les trois interventions avec créneau partagent le même
+    // technicien, chacune sa propre heure.
+    const cleAujourdhui = cleDeJour(jourDe(maintenant(reperes.fuseau).local));
+    const creneauEnCours = creneauUtc(cleAujourdhui, 1);
+    const creneauTerminee = creneauUtc(cleAujourdhui, 3);
+    const creneauCloturee = creneauUtc(cleAujourdhui, 5);
 
     await client.client.create({
       data: {
@@ -151,8 +161,8 @@ test.beforeAll(async () => {
           "type", "priorite", "statut", "date_planifiee", "creneau_debut",
           "creneau_fin", "duree_estimee_min", "technicien_id", "modifie_le")
        VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, $6::uuid,
-               'curatif', 'p3', 'en_cours', now()::date, now(),
-               now() + interval '1 hour', 60, $7::uuid, now())`,
+               'curatif', 'p3', 'en_cours', now()::date, $8::timestamptz,
+               $9::timestamptz, 60, $7::uuid, now())`,
       INTERVENTION_EN_COURS,
       reperes.societeId,
       CLIENT_9EQCAP,
@@ -160,6 +170,8 @@ test.beforeAll(async () => {
       agence.id,
       CONTACT_9EQCAP,
       technicienId,
+      creneauEnCours.creneau_debut,
+      creneauEnCours.creneau_fin,
     );
     await client.$executeRawUnsafe(
       `INSERT INTO "segment_travail"
@@ -181,8 +193,8 @@ test.beforeAll(async () => {
           "type", "priorite", "statut", "date_planifiee", "creneau_debut",
           "creneau_fin", "duree_estimee_min", "technicien_id", "modifie_le")
        VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, $6::uuid,
-               'curatif', 'p4', 'terminee', now()::date, now(),
-               now() + interval '1 hour', 60, $7::uuid, now())`,
+               'curatif', 'p4', 'terminee', now()::date, $8::timestamptz,
+               $9::timestamptz, 60, $7::uuid, now())`,
       INTERVENTION_TERMINEE,
       reperes.societeId,
       CLIENT_9EQCAP,
@@ -190,6 +202,8 @@ test.beforeAll(async () => {
       agence.id,
       CONTACT_9EQCAP,
       technicienId,
+      creneauTerminee.creneau_debut,
+      creneauTerminee.creneau_fin,
     );
     await client.$executeRawUnsafe(
       `INSERT INTO "segment_travail"
@@ -218,8 +232,8 @@ test.beforeAll(async () => {
           "creneau_fin", "duree_estimee_min", "technicien_id",
           "temps_valide_min", "cloturee_le", "modifie_le")
        VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, $6::uuid,
-               'curatif', 'p3', 'cloturee', now()::date, now(),
-               now() + interval '1 hour', 60, $7::uuid, 60, now(), now())`,
+               'curatif', 'p3', 'cloturee', now()::date, $8::timestamptz,
+               $9::timestamptz, 60, $7::uuid, 60, now(), now())`,
       INTERVENTION_CLOTUREE,
       reperes.societeId,
       CLIENT_9EQCAP,
@@ -227,6 +241,8 @@ test.beforeAll(async () => {
       agence.id,
       CONTACT_9EQCAP,
       technicienId,
+      creneauCloturee.creneau_debut,
+      creneauCloturee.creneau_fin,
     );
   } finally {
     await client.$disconnect();
