@@ -3282,9 +3282,7 @@ export function RapportTerrainAutomatique({
         // (titre, liste, manques) défile en interne (`overflow-y-auto`,
         // `min-h-0`) — les boutons, hors de cette zone, restent visibles
         // sans jamais défiler la page.
-        <div
-          className="fixed inset-0 z-[60] flex flex-col justify-end bg-app-encre/40"
-        >
+        <div className="fixed inset-0 z-[60] flex flex-col justify-end bg-app-encre/40">
           <div
             role="dialog"
             aria-modal="true"
@@ -3339,9 +3337,7 @@ export function RapportTerrainAutomatique({
                           className="text-16 font-bold underline"
                           onClick={allerAuCommentaire}
                         >
-                          {t(
-                            "terrain.terminer.confirmation.aller_commentaire",
-                          )}
+                          {t("terrain.terminer.confirmation.aller_commentaire")}
                         </button>
                         {t("ponctuation.separateur")}
                         <span>
