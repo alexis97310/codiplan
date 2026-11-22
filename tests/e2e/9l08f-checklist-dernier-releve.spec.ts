@@ -319,12 +319,18 @@ test("375 px — le champ d'un point chiffré garde la même position, avec ou s
   // libellé par un simple effet de bord du retour à la ligne (le texte du
   // relevé laissait trop peu de place sur la même ligne) ; le point SANS
   // dernier relevé, lui, gardait son champ à droite — même type de point,
-  // deux mises en page différentes selon le hasard du texte affiché. Même
-  // ligne que `ligneDuPoint` ci-dessus (libellé en DONNÉE de scène, jamais
-  // du dictionnaire — `getByText`/`getByRole` sur ce texte ferait rougir le
-  // gardien L0-11, qui n'accepte que `.filter({ hasText })`).
-  const ligneAvecReleve = ligneDuPoint(page, LIBELLE_POINT_AVEC_RELEVE);
-  const ligneSansReleve = ligneDuPoint(page, LIBELLE_POINT_SANS_RELEVE);
+  // deux mises en page différentes selon le hasard du texte affiché.
+  // `ligneDuPoint` (`.last()`) prend ici le `<div>` du LIBELLÉ seul, pas la
+  // ligne entière (le champ est un FRÈRE, hors de ce `<div>`) : la ligne
+  // complète est le `<div id="checklist-point-…">`, visé directement par ce
+  // préfixe — jamais `getByText`/`getByRole` sur ce texte, DONNÉE de scène,
+  // qui ferait rougir le gardien L0-11 (seul `.filter({ hasText })` passe).
+  const ligneAvecReleve = page
+    .locator('[id^="checklist-point-"]')
+    .filter({ hasText: LIBELLE_POINT_AVEC_RELEVE });
+  const ligneSansReleve = page
+    .locator('[id^="checklist-point-"]')
+    .filter({ hasText: LIBELLE_POINT_SANS_RELEVE });
   const champAvecReleve = ligneAvecReleve.getByRole("spinbutton");
   const champSansReleve = ligneSansReleve.getByRole("spinbutton");
   await expect(champAvecReleve).toBeVisible();
