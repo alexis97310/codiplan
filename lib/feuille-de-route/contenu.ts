@@ -122,11 +122,6 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
       {
         statut: "decision",
         titre:
-          "Invalider les anciens liens d'accès non utilisés à l'envoi d'un nouveau (9L09, demande une migration).",
-      },
-      {
-        statut: "decision",
-        titre:
           "Gardes en base de 9L19 (chevauchement d'un technicien, segment fermé, annulation, clôture) : lot arrêté après trois essais, deux scènes de test à corriger — reprise à décider.",
       },
     ],
@@ -367,6 +362,11 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
         statut: "livre",
         titre:
           "Écran de réglage du pourcentage de majoration hors ouverture, par société, borné 0 à 200 en base (9L33, complète D269).",
+      },
+      {
+        statut: "livre",
+        titre:
+          "Un nouveau lien d'accès (premier accès ou mot de passe oublié) annule les liens antérieurs non utilisés du même compte (9L35, D281, complète D266).",
       },
     ],
   },
