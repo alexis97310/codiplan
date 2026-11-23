@@ -16,6 +16,10 @@ import { champ } from "../../../interventions/actions";
  * confirmation des sorties du parc (`changer-statut/route.ts`) : sa seule
  * présence ne prouve rien, c'est `deplacerMachine` qui décide si elle était
  * réellement exigée.
+ *
+ * **Réservée au bureau depuis D280 (23/11/2026, 9L34)** : la capacité
+ * `deplacer_machine`, pas `gerer_machine` — le technicien gère la machine
+ * mais ne la déplace jamais.
  */
 export async function POST(
   requete: Request,
@@ -46,7 +50,7 @@ async function traiter(
   const { id } = await params;
   const formulaire = await requete.formData();
 
-  const contexte = await exigerCapacite("gerer_machine");
+  const contexte = await exigerCapacite("deplacer_machine");
   if (contexte === null) {
     return versLaFiche(id, await motifDuRefus());
   }

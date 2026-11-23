@@ -83,6 +83,12 @@ export const CAPACITES = [
   "enregistrer_vgp",
   "gerer_contrat",
   "gerer_machine",
+  // D280 (23/11/2026, décision n°3 de la séance, ticket 9L34) — absente du
+  // §5.2 : « déplacer la machine » est un sous-geste de `gerer_machine`
+  // (complet pour TEC) qu'Alexis réserve au bureau. Une capacité à part,
+  // plutôt qu'une garde de rôle écrite dans la route : le patron que D131,
+  // D153 et D199 suivent déjà pour tout geste nommé séparément du §5.2.
+  "deplacer_machine",
   "gerer_client_site",
   "consulter_parc_complet",
   "consulter_parc_propre",
@@ -174,6 +180,11 @@ const MATRICE: Readonly<Record<Capacite, Ligne>> = {
   enregistrer_vgp: { complet: [ADMS, DIR, RM, RS, ADV], restreint: [TEC] },
   gerer_contrat: { complet: [ADMS, DIR, RM], restreint: [ADV] },
   gerer_machine: { complet: [ADMS, DIR, RM, RS, ADV, TEC] },
+  // D280 (23/11/2026, 9L34) — « déplacer une machine entre sites ou agences »
+  // (9L20) reste un geste du bureau : le technicien voit la fiche et gère la
+  // machine (ligne au-dessus), mais ne la déplace jamais. Aucun ○ : un
+  // déplacement est accepté entièrement ou refusé, jamais partiel.
+  deplacer_machine: { complet: [ADMS, DIR, RM, RS, ADV] },
   // D130 : la fiche client et la fiche site sont du référentiel commercial,
   // pas de l'exploitation — responsable_materiel et responsable_sav en sont
   // délibérément absents, malgré leur accès complet à la machine.

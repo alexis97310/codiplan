@@ -9460,3 +9460,29 @@ Portée : `lib/interventions/cycle-de-vie.ts`, `lib/interventions/action-princip
 Le texte intégral de cette décision — contexte, options écartées, choix retenu (une colonne `annee` à côté de `numero`, jamais un numéro qui l'encode) — vit dans `docs/decisions/2026-10-23-numerotation-annuelle.md`, non recopié ici : seule l'étiquette était fausse, le contenu ne bouge pas. Aucune règle du chapitre 10 n'est amendée.
 
 Portée : `prisma/schema.prisma`, `prisma/migrations/20261023073000_numerotation_interventions_demandes_9h2/`, `lib/interventions/numerotation.ts`, `lib/interventions/depot.ts`, `lib/interventions/depot-reprise.ts`, `lib/interventions/saisie.ts`, `lib/demandes/depot.ts`, `docs/cahier-des-charges.md` (chapitre 11), `docs/decisions/2026-10-23-numerotation-annuelle.md`.
+
+## D280 — « DÉPLACER LA MACHINE » RÉSERVÉ AU BUREAU ; « HISTORIQUE DES EMPLACEMENTS » OUVERT À TOUT RÔLE QUI VOIT LA FICHE — SECONDE MOITIÉ BLOQUÉE, SANS MIGRATION CE LOT (décision d'Alexis du 23/11/2026, point 3 de la séance ; 9L34-EMPLACEMENTS-DEPLACER-BUREAU)
+
+### CE QUI A ÉTÉ MESURÉ
+
+La séance de décisions du 23/11/2026 tranche en un seul point deux gestes de la fiche machine, jusqu'ici réglés par la même capacité `gerer_machine` (ADMS, DIR, RM, RS, ADV, TEC) :
+1. « Déplacer la machine » (9L20) ne devait jamais avoir été ouvert au technicien — un déplacement entre sites, parfois entre clients, est une décision commerciale, de la même famille que l'annulation (D131) ou la clôture (D271).
+2. Le bloc « Historique des emplacements », lui, est actuellement ABSENT pour tout rôle qui n'a pas `consulter_journal_audit` (ADMS, DIR seuls) — RM, RS, ADV et TEC ne le voient pas, alors qu'ils voient la fiche entière. Cette restriction venait d'une lecture au journal d'audit (I8) sous la politique RLS `journal_audit_lecture` (migration `20260829120000_journal_audit`), qui n'ouvre la table qu'à `admin_societe`/`direction`, et d'AUCUNE règle propre à l'historique des emplacements.
+
+**Mesuré en essayant d'ouvrir le point 2 sans migration** (consigne du ticket 9L34 : aucune migration ce lot) : `historiqueDesEmplacements` (`lib/machines/emplacements.ts`) lit `journal_audit` par Prisma, sous le contexte applicatif (`avecContexteApplicatif`) — la politique `journal_audit_lecture` filtre SOUS RLS, au niveau de la base, indépendamment de ce que l'application demande. Aucun chemin de code ne peut donner à lire à RM/RS/ADV/TEC des lignes que cette politique leur refuse déjà : la retirer OU y substituer une politique plus étroite (scopée à `entite = 'machine'` et aux seules lignes où `site_id` change) EXIGE une migration. En l'ABSENCE de cette migration, retirer simplement la garde côté écran (`peutConsulterEmplacements`) ferait LIRE ZÉRO LIGNE à ces quatre rôles et AFFICHERAIT LE BLOC VIDE — un faux « jamais déplacée » pour une machine qui l'a pourtant été, exactement le mensonge que le commentaire de tête de `historiqueDesEmplacements` écarte déjà (D50 ne couvre que les refus qui ne mentent pas). Le point 2 ne peut donc pas être livré sans migration, et ce lot n'en pose aucune.
+
+### LA DÉCISION
+
+**1. « Déplacer la machine » passe à une capacité propre, `deplacer_machine`** (ADMS, DIR, RM, RS, ADV — ni TEC, ni aucun rôle hors société), appliquée à la route `app/api/machines/[id]/deplacer/route.ts` ET au bouton de la fiche (`app/(back-office)/parc/[id]/page.tsx`) : le technicien gère toujours la machine (`gerer_machine` reste inchangé, complet pour les six rôles), mais ne la déplace plus. Livré par ce ticket.
+
+**2. « Historique des emplacements » visible à tout rôle qui voit la fiche machine reste DÉCIDÉ mais NON LIVRÉ** — bloqué par l'absence de migration autorisée dans ce lot. La migration qu'il faudrait poser, pour une prochaine reprise : une politique RLS NOUVELLE et plus étroite sur `journal_audit` (ou une fonction `SECURITY DEFINER` dédiée), qui n'ouvre la lecture qu'aux lignes `entite = 'machine'` dont `valeurs_avant->>'site_id' IS DISTINCT FROM valeurs_apres->>'site_id'`, à TOUT rôle de la société plutôt qu'aux seuls `admin_societe`/`direction` — jamais en élargissant `journal_audit_lecture` elle-même, qui resterait le verrou du journal entier. `consulter_journal_audit` (matrice §5.2) n'est PAS touchée : elle continue de ne garder que la lecture GÉNÉRALE du journal.
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+Elle n'assouplit aucun invariant : I8 (traçabilité) n'est pas en cause, seule sa LECTURE l'est, et le point 2 reste fermé tant que sa politique propre n'existe pas. Elle n'étend pas `consulter_journal_audit` — la confondre avec la nouvelle lecture scopée de l'historique des emplacements romprait le principe de moindre privilège que D199 observe déjà pour les autres capacités.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où une migration pose la politique scopée décrite au point 2 ci-dessus, `peutConsulterEmplacements` (`app/(back-office)/parc/[id]/page.tsx`) s'ouvre à tout rôle qui voit la fiche (ADMS, DIR, RM, RS, ADV, TEC), et cette moitié de D280 passe de « décidé, non livré » à livré — `tests/isolation/9l20-deplacer-machine.test.ts` et un nouveau scénario e2e en portent la preuve plutôt que de la deviner.
+
+Portée : `lib/auth/habilitations.ts`, `app/api/machines/[id]/deplacer/route.ts`, `app/(back-office)/parc/[id]/page.tsx`, `lib/i18n/fr.ts`, `tests/unit/auth/habilitations.test.ts`, `tests/unit/auth/route-capacite.ts`, `tests/e2e/9l34-emplacements-deplacer-bureau.spec.ts` (nouveau), `lib/feuille-de-route/contenu.ts`.

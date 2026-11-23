@@ -71,8 +71,9 @@ export const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   "app/api/machines/creer/route.ts": "gerer_machine",
   "app/api/machines/[id]/modifier/route.ts": "gerer_machine",
   "app/api/machines/[id]/changer-statut/route.ts": "gerer_machine",
-  // « Déplacer la machine » (9L20-DEPLACER-MACHINE).
-  "app/api/machines/[id]/deplacer/route.ts": "gerer_machine",
+  // « Déplacer la machine » (9L20-DEPLACER-MACHINE), réservée au bureau
+  // depuis D280 (23/11/2026, 9L34) : `deplacer_machine`, pas `gerer_machine`.
+  "app/api/machines/[id]/deplacer/route.ts": "deplacer_machine",
   // « Créer / modifier un client ou un site » (D130).
   "app/api/clients/creer/route.ts": "gerer_client_site",
   "app/api/clients/[id]/modifier/route.ts": "gerer_client_site",

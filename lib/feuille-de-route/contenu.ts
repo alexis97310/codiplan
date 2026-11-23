@@ -122,11 +122,6 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
       {
         statut: "decision",
         titre:
-          "Historique des emplacements d'une machine : visible seulement de l'administration et de la direction (9L20).",
-      },
-      {
-        statut: "decision",
-        titre:
           "Invalider les anciens liens d'accès non utilisés à l'envoi d'un nouveau (9L09, demande une migration).",
       },
       {
@@ -159,6 +154,11 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
         titre:
           "M2 — Fiche en quatre étapes avec une barre d'action fixe : on garde un seul écran qui défile (D161/D212 inchangés). Tranché le 23/11/2026.",
       },
+      {
+        statut: "tranche",
+        titre:
+          "Historique des emplacements d'une machine : visible à tout rôle qui voit la fiche (pas seulement l'administration et la direction) ; déplacer la machine réservé au bureau, sans le technicien. Tranché le 23/11/2026 (D280) — la seconde moitié (historique) reste BLOQUÉE, voir « Bloqué / en enquête ».",
+      },
     ],
   },
   {
@@ -168,6 +168,11 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
         statut: "bloque",
         titre:
           "Envoi de courriels : domaine à vérifier chez Resend (aujourd'hui l'envoi ne part que vers l'adresse de l'administrateur).",
+      },
+      {
+        statut: "bloque",
+        titre:
+          "Historique des emplacements visible à tout rôle (D280, 9L34) : la lecture passe par le journal d'audit, dont la politique RLS `journal_audit_lecture` n'ouvre qu'à admin_societe/direction — l'ouvrir aux autres rôles exige une migration (nouvelle politique scopée aux seules lignes de déplacement d'UNE machine), qu'aucun lot n'a encore posée.",
       },
       {
         statut: "bloque",
@@ -350,7 +355,8 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
       },
       {
         statut: "livre",
-        titre: "Déplacer une machine entre sites ou agences (9L20).",
+        titre:
+          "Déplacer une machine entre sites ou agences (9L20), réservé au bureau depuis 9L34 (D280) : le technicien ne déplace plus jamais une machine.",
       },
       {
         statut: "livre",

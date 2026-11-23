@@ -142,6 +142,8 @@ const SCENARIOS: readonly Scenario[] = [
       // D153 (03/10/2026, TP-S3) — lecture des clients/sites, et trajets.
       "consulter_clients_sites",
       "regler_trajets",
+      // D280 (23/11/2026, 9L34) — déplacer une machine, réservé au bureau.
+      "deplacer_machine",
     ],
     nePeutPas: [
       // Les données financières restent à la direction (D37).
@@ -173,6 +175,8 @@ const SCENARIOS: readonly Scenario[] = [
       "saisir_rapport",
       "administrer_utilisateurs",
       "administrer_agences",
+      // D280 (23/11/2026, 9L34) — déplacer une machine, réservé au bureau.
+      "deplacer_machine",
     ],
     nePeutPas: ["modifier_referentiel_plateforme"],
   },
@@ -186,6 +190,8 @@ const SCENARIOS: readonly Scenario[] = [
       // D153 (03/10/2026, TP-S3, constat CS6) — lecture seule des clients et
       // des sites, sans l'écriture ci-dessous.
       "consulter_clients_sites",
+      // D280 (23/11/2026, 9L34) — déplacer une machine, réservé au bureau.
+      "deplacer_machine",
     ],
     nePeutPas: [
       "administrer_utilisateurs",
@@ -208,6 +214,8 @@ const SCENARIOS: readonly Scenario[] = [
       // D153 (03/10/2026, TP-S3, constat CS6) — même raison que le
       // responsable matériel.
       "consulter_clients_sites",
+      // D280 (23/11/2026, 9L34) — déplacer une machine, réservé au bureau.
+      "deplacer_machine",
     ],
     nePeutPas: [
       "gerer_contrat",
@@ -231,6 +239,8 @@ const SCENARIOS: readonly Scenario[] = [
       "consulter_clients_sites",
       // D153 (03/10/2026, TP-S3, PA-25/D107) — l'ADV règle les trajets.
       "regler_trajets",
+      // D280 (23/11/2026, 9L34) — déplacer une machine, réservé au bureau.
+      "deplacer_machine",
     ],
     // « L'ADV voit les montants de vente mais pas les marges » (§5.2).
     nePeutPas: [
@@ -273,6 +283,9 @@ const SCENARIOS: readonly Scenario[] = [
       // D153 (03/10/2026, TP-S3) — ni la lecture dédiée, ni les trajets.
       "consulter_clients_sites",
       "regler_trajets",
+      // D280 (23/11/2026, 9L34) — le technicien gère la machine (ligne
+      // au-dessus) mais ne la déplace jamais : réservé au bureau.
+      "deplacer_machine",
     ],
   },
   {

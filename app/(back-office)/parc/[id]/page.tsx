@@ -424,11 +424,18 @@ export default async function PageMachine({
             boutonRevenir={t("machine.changer_etat.revenir")}
           />
           {/* DÉPLACER LA MACHINE (9L20-DEPLACER-MACHINE) — vers un site du
-              même client, ou d'un autre client avec confirmation. */}
-          <DialogueDeplacerMachine
-            machineId={machine.id}
-            clientActuelId={machine.client_id}
-          />
+              même client, ou d'un autre client avec confirmation. Réservé au
+              bureau depuis D280 (23/11/2026, 9L34) : le bouton est ABSENT
+              pour qui n'a pas `deplacer_machine`, jamais désactivé — la
+              route le refuserait de toute façon, et un bouton désactivé sans
+              explication mentirait sur le pourquoi (D50). */}
+          {contexte.role !== null &&
+          peutPleinement(contexte.role, "deplacer_machine") ? (
+            <DialogueDeplacerMachine
+              machineId={machine.id}
+              clientActuelId={machine.client_id}
+            />
+          ) : null}
           {/* LE SITE ET LA MACHINE ARRIVENT PRÉREMPLIS (LIENS-1) —
               `/interventions/nouvelle` les lit et les présélectionne ; un
               paramètre hors périmètre y est ignoré en silence. Déplacée de
