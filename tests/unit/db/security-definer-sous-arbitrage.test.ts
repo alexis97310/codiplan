@@ -41,7 +41,11 @@ import {
  * 9K04-PORTAIL-INVITATION-EMPLOYE)** — vérifie, à l'invitation portail, si une
  * identité porte un rattachement INTERNE (`utilisateur_societe`) pour une
  * société autre que l'active ; une question plus étroite que celle de D226,
- * posée nommément dans la condition de réouverture de D233. Le repli de
+ * posée nommément dans la condition de réouverture de D233. **Sa troisième
+ * entrée est `app_invalider_liens_anterieurs` (D281, 24/11/2026,
+ * 9L35-LIENS-ACCES-ANCIENS-ANNULES)** — supprime les liens de premier accès /
+ * mot de passe oublié antérieurs, non consommés, du MÊME compte, à l'émission
+ * d'un nouveau ; ferme le point 3 laissé ouvert par D266 (9L09). Le repli de
  * consolidation portable de D36 (lot 5) reste un candidat connu, pas encore
  * écrit : il y entrera, lui aussi, **par arbitrage**, avec son nom écrit ici —
  * pas par une décision de session qui trouverait le gardien encombrant.
@@ -67,10 +71,19 @@ import {
  * booléen ; `search_path` figé ; `REVOKE ALL FROM PUBLIC` + `GRANT EXECUTE`
  * au seul rôle applicatif (migration
  * `20261109050000_identite_interne_ailleurs_9k04`).
+ *
+ * `app_invalider_liens_anterieurs` — D281 (24/11/2026,
+ * 9L35-LIENS-ACCES-ANCIENS-ANNULES) : supprime, pour UN compte reçu en
+ * paramètre, les lignes `verification` de préfixe `reset-password:` non
+ * consommées, hors celle qu'on lui demande explicitement de conserver. Ne
+ * rend rien ; `search_path` figé ; `REVOKE ALL FROM PUBLIC` + `GRANT EXECUTE`
+ * au seul rôle applicatif (migration
+ * `20261124080000_invalider_liens_anterieurs_9l35`).
  */
 const AUTORISEES_PAR_ARBITRAGE: readonly string[] = [
   "app_identite_exclusive_a_la_societe",
   "app_identite_interne_ailleurs",
+  "app_invalider_liens_anterieurs",
 ];
 
 /**
@@ -182,11 +195,13 @@ describe("aucune fonction SECURITY DEFINER hors arbitrage (D50)", () => {
     expect(
       AUTORISEES_PAR_ARBITRAGE,
       "une exception a été ajoutée sans arbitrage : seules " +
-        "app_identite_exclusive_a_la_societe (D226) et " +
-        "app_identite_interne_ailleurs (D233) y figurent à ce jour",
+        "app_identite_exclusive_a_la_societe (D226), " +
+        "app_identite_interne_ailleurs (D233) et " +
+        "app_invalider_liens_anterieurs (D281) y figurent à ce jour",
     ).toEqual([
       "app_identite_exclusive_a_la_societe",
       "app_identite_interne_ailleurs",
+      "app_invalider_liens_anterieurs",
     ]);
   });
 

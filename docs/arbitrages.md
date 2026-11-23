@@ -9486,3 +9486,37 @@ Elle n'assouplit aucun invariant : I8 (traçabilité) n'est pas en cause, seule 
 > Le jour où une migration pose la politique scopée décrite au point 2 ci-dessus, `peutConsulterEmplacements` (`app/(back-office)/parc/[id]/page.tsx`) s'ouvre à tout rôle qui voit la fiche (ADMS, DIR, RM, RS, ADV, TEC), et cette moitié de D280 passe de « décidé, non livré » à livré — `tests/isolation/9l20-deplacer-machine.test.ts` et un nouveau scénario e2e en portent la preuve plutôt que de la deviner.
 
 Portée : `lib/auth/habilitations.ts`, `app/api/machines/[id]/deplacer/route.ts`, `app/(back-office)/parc/[id]/page.tsx`, `lib/i18n/fr.ts`, `tests/unit/auth/habilitations.test.ts`, `tests/unit/auth/route-capacite.ts`, `tests/e2e/9l34-emplacements-deplacer-bureau.spec.ts` (nouveau), `lib/feuille-de-route/contenu.ts`.
+
+## D281 — UN NOUVEAU LIEN D'ACCÈS ANNULE LES LIENS ANTÉRIEURS NON UTILISÉS DU MÊME COMPTE ; TROISIÈME FONCTION SECURITY DEFINER, ARBITRÉE (décision d'Alexis du 23/11/2026, point 5 de la séance ; 9L35-LIENS-ACCES-ANCIENS-ANNULES)
+
+### CE QUI A ÉTÉ MESURÉ
+
+9L09 (D266, 10/11/2026) a laissé un point 3 explicitement non livré : invalider, à l'émission d'un nouveau lien de premier accès / mot de passe oublié, les liens ANTÉRIEURS encore valides du MÊME compte. Mesuré alors, et revérifié avant ce lot : la table `verification` n'est cloisonnée QUE par désignation sur `identifiant` (L1-02d, quatre politiques — lecture, ouverture, modification, consommation — qui n'admettent que cette colonne). Aucune politique n'admet `valeur`, qui porte pourtant l'identité du compte (`utilisateur.id`, posé par Better Auth : mesuré dans `node_modules/better-auth/dist/api/routes/password.mjs`, `createVerificationValue({ value: user.id, identifier: \`reset-password:${token}\` })`). Un appelant qui vient d'émettre un nouveau lien ne connaît donc, par construction, AUCUN moyen de désigner les lignes antérieures du même compte : elles sont écrites par un geste précédent, sous un jeton que l'appelant actuel n'a jamais détenu.
+
+**Les quatre chemins qui créent un lien, mesurés un par un** (`git grep requestPasswordReset`) : `lib/auth/lien-d-acces.ts` (`preparerLienDAcces`, chokepoint commun aux quatre gestes administratifs — envoyer/copier un lien ou un nouveau lien, pour un compte de bureau, un technicien ou un rattachement portail déjà en attente), `lib/auth/lien-d-acces.ts` (`inviterClientAuPortail`, invitation portail d'une identité JAMAIS ACTIVÉE qui en avait déjà un, 9L03B), et `lib/auth/amorcage.ts` (`ouvrir` et `reemettre`, les deux gestes d'amorçage Q1/D65). Le quatrième — `/mot-de-passe-oublie` — est une page TEXTE SEUL sans aucune route de réinitialisation (décision du pilote du 28/09/2026) : aucun cinquième chemin n'existe.
+
+### LA DÉCISION
+
+Alexis a tranché, verbatim : « anciens liens d'accès : annulés à l'envoi d'un nouveau ».
+
+**1. Une fonction `SECURITY DEFINER` dédiée et étroite, `app_invalider_liens_anterieurs(uuid, text)`** (migration `20261124080000_invalider_liens_anterieurs_9l35`) — troisième entrée de `AUTORISEES_PAR_ARBITRAGE` (D50), sur le modèle de D226/D233 : propriétaire du schéma, `SET search_path = pg_catalog, public` figé, `SET row_security = off` en attribut (fail-closed, même garantie que D226/D233 — pour tout rôle qui n'est ni le propriétaire ni `BYPASSRLS`, la même valeur fait LEVER sous `FORCE ROW LEVEL SECURITY` plutôt que de filtrer en silence), `REVOKE ALL FROM PUBLIC` + `GRANT EXECUTE` au seul rôle applicatif. SECURITY DEFINER est nécessaire ET suffisant ici : c'est la SEULE façon de lire `verification` par `valeur`, colonne qu'aucune politique n'admet.
+
+**2. Plus étroite que D226/D233 : elle ne reçoit AUCUN contexte de société.** L'habilitation du GESTE qui l'appelle (D226 pour l'exclusivité à la société avant la copie d'un nouveau lien, D247 inchangé pour les chemins Équipe) est déjà tranchée par l'appelant avant que cette fonction ne soit atteinte — elle ne la revérifie pas. Elle ne reçoit que l'identifiant du compte VISÉ et celui du lien à CONSERVER (celui qu'on vient d'émettre), et ne peut agir que sur les lignes de CE compte : la portée d'un appel mal autorisé reste bornée à l'identité déjà visée par le geste précédent, jamais élargie par cette fonction.
+
+**3. Filtre `identifiant LIKE 'reset-password:%'` — le « MÊME usage » du ticket, écrit en SQL, pas déduit d'une convention.** Les défis de second facteur et la confiance d'appareil (plugin `twoFactor`) transitent par la MÊME table sous d'AUTRES préfixes (mesuré) : cette fonction ne les touche jamais, quel que soit le compte.
+
+**4. Les quatre chemins mesurés appellent tous `invaliderLiensAnterieurs`** (`lib/auth/invalidation-liens-acces.ts`, nouveau) une fois leur propre jeton émis, en lui désignant ce jeton pour qu'il soit épargné. Pour `ouvrir` (amorçage), l'appel est un no-op mesuré — l'identité vient de naître, aucun lien antérieur n'existe — posé pour éviter un cas spécial plutôt que pour un effet.
+
+**5. Séquence choisie plutôt que même transaction stricte avec l'écriture de Better Auth, et c'est mesuré.** `requestPasswordReset` ouvre sa PROPRE transaction interne à travers l'adaptateur Prisma (aucun appel existant du dépôt ne lui passe un `Prisma.TransactionClient` — mesuré par relecture de tous les appelants de `creerAuth`) : l'envelopper dans NOTRE transaction n'est pas un patron déjà éprouvé ici. `invaliderLiensAnterieurs` est donc appelée APRÈS que `requestPasswordReset` a abouti, comme `fermerSessionsDuCompte` l'est déjà après `resetPassword` dans D266 (9L09, point 2) — la fonction elle-même reste atomique (une seule instruction SQL). Un échec de l'invalidation après un nouveau jeton réussi laisse ce jeton ÉMIS et un lien antérieur qui ne l'a pas encore été : pas pire que l'état que D266 (9L09) laissait déjà sur TOUS les chemins avant ce lot.
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+Elle n'étend `pnpm veille` (`lib/db/exemption-fonctions-identite.ts`, qui surveille l'exemption et les réglages de D226/D233 sur la base hébergée) à cette troisième fonction — mesuré et laissé HORS de ce lot : la surveiller demanderait de généraliser un module nommé pour deux fonctions D'IDENTITÉ, ce que celle-ci n'est pas (elle supprime, elle ne répond pas un booléen). Un gardien statique (`security-definer-sous-arbitrage.test.ts`) couvre déjà la migration elle-même ; l'absence de surveillance NOCTURNE de ses réglages sur la base hébergée est un écart connu, à tenir pour une prochaine décision plutôt qu'à combler ici sans mandat.
+
+Elle ne retire aucune garde de D226/D247 : copier ou envoyer un lien reste soumis aux mêmes refus (`introuvable`, `deja_un_mot_de_passe`, l'exclusivité à la société) qu'avant ce lot — D281 n'intervient qu'APRÈS qu'un geste déjà autorisé a réussi à émettre un jeton.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Le jour où un cinquième chemin émettrait un jeton `reset-password:` sans passer par `preparerLienDAcces`, `inviterClientAuPortail`, `ouvrir` ou `reemettre`, cette décision ne le couvrirait pas : un lien antérieur de ce chemin resterait valable après l'émission d'un nouveau. `git grep requestPasswordReset` hors de ces quatre fonctions doit rester vide.
+
+Portée : `prisma/migrations/20261124080000_invalider_liens_anterieurs_9l35/`, `lib/db/migrations-attendues.ts`, `lib/auth/invalidation-liens-acces.ts` (nouveau), `lib/auth/lien-d-acces.ts`, `lib/auth/amorcage.ts`, `tests/unit/db/security-definer-sous-arbitrage.test.ts` (`AUTORISEES_PAR_ARBITRAGE`), `tests/isolation/invalidation-liens-acces.test.ts` (nouveau).
