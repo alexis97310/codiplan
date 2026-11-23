@@ -460,11 +460,20 @@ describe("l'absence, sous le rôle applicatif", () => {
       //
       // `LUNDI_A_VENIR`, PAS `LUNDI` (QT-15, D136) : supprimer une absence déjà
       // commencée est désormais refusé — voir la note de `LUNDI_A_VENIR`.
-      await deplacerIntervention(
+      //
+      // CETTE pose est la SEULE du fichier sur une date calculée plutôt que
+      // fixe (9L33A-REPRISE-ABSENCE-ISOLATION) : un refus silencieux ici — jour
+      // fermé que l'oracle aurait manqué, chevauchement avec une ligne restée
+      // en base — ferait échouer l'assertion du blocage sur `[]` au lieu de
+      // `[interventionId]`, pointant vers RG-PLA-06 plutôt que vers sa vraie
+      // cause. Lire le retour le dit tout de suite.
+      const posePrealable = await deplacerIntervention(
         SESSION,
         deplacement(LUNDI_A_VENIR),
         clientApp(),
       );
+      expect(posePrealable.accepte).toBe(true);
+
       const blocage = await bloquer(
         cleJour(LUNDI_A_VENIR_JOUR),
         cleJour(VENDREDI_A_VENIR_JOUR),
