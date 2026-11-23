@@ -7,6 +7,10 @@ import { uuidv7 } from "@/lib/db/uuid";
 
 import { creerAuth } from "./config";
 import { dansUnEchangeAuth } from "./echange";
+import {
+  identifiantLienAcces,
+  invaliderLiensAnterieurs,
+} from "./invalidation-liens-acces";
 import { avecDesignationAuth } from "./lecture-identite";
 import { Role } from "./roles";
 
@@ -292,11 +296,13 @@ async function ouvrir(
   // disponible. La production ne l'a pas, donc personne ne peut faire émettre
   // un jeton depuis un navigateur (mesuré : `RESET_PASSWORD_DISABLED`).
   let url = "";
+  let jeton = "";
   const emetteur = creerAuth(
     client,
     { societeId: demande.societeId, role: null },
     async (remise) => {
       url = remise.url;
+      jeton = remise.jeton;
     },
   );
   await emetteur.api.requestPasswordReset({
@@ -312,6 +318,18 @@ async function ouvrir(
         "une ouverture muette.",
     );
   }
+
+  // ── 5 bis. LES LIENS ANTÉRIEURS DE CETTE IDENTITÉ SONT INVALIDÉS (D281,
+  // 24/11/2026, 9L35-LIENS-ACCES-ANCIENS-ANNULES) — l'identité vient de
+  // naître à l'étape 2 : aucun lien antérieur n'existe encore, l'appel est un
+  // no-op, posé ici pour la MÊME raison que `preparerLienDAcces` — un seul
+  // patron, jamais de cas spécial au premier envoi. Voir
+  // `invalidation-liens-acces.ts`.
+  await invaliderLiensAnterieurs(
+    client,
+    utilisateurId,
+    identifiantLienAcces(jeton),
+  );
 
   // ── 6. LA TRACE, ET ELLE EST UN ÉVÉNEMENT D'ACCÈS ────────────────────────
   //
@@ -374,11 +392,13 @@ async function ouvrir(
  *
  * Il n'ouvre aucune identité, ne touche à aucune habilitation, ne pose aucun
  * rôle, et **ne rouvre jamais le chemin d'ouverture** : `utilisateur_ouverture`
- * n'est pas lue ici. Il ne peut pas non plus INVALIDER un jeton précédent
- * encore vivant — `verification` ne se lit que par l'identifiant opaque qu'on
- * présente, et le geste ne l'a pas gardé. Un jeton réémis pendant l'heure du
- * premier laisse donc deux jetons valides jusqu'à l'expiration du premier ;
- * c'est écrit ici plutôt que tu, et la fenêtre est celle qui existait déjà.
+ * n'est pas lue ici.
+ *
+ * **Depuis D281 (24/11/2026, 9L35-LIENS-ACCES-ANCIENS-ANNULES), il INVALIDE
+ * le jeton précédent** — ce qui suit ne vaut donc plus : « il ne peut pas
+ * INVALIDER un jeton précédent encore vivant […], un jeton réémis pendant
+ * l'heure du premier laisse donc deux jetons valides jusqu'à l'expiration du
+ * premier ». Voir `invalidation-liens-acces.ts`.
  *
  * Comme l'ouverture, il ne laisse aucune session et trace dans `journal_acces`
  * — `reemission_premier_acces`, auteur l'identité elle-même, société cible.
@@ -480,11 +500,13 @@ async function reemettre(
 
   // ── 4. LE JETON, PAR UNE INSTANCE QUI N'EST PAS CELLE DE PRODUCTION ─────
   let url = "";
+  let jeton = "";
   const emetteur = creerAuth(
     client,
     { societeId: demande.societeId, role: null },
     async (remise) => {
       url = remise.url;
+      jeton = remise.jeton;
     },
   );
   await emetteur.api.requestPasswordReset({
@@ -499,6 +521,15 @@ async function reemettre(
         "que de rendre une réémission muette.",
     );
   }
+
+  // ── 4 bis. LE JETON PRÉCÉDENT, ENCORE VIVANT, EST INVALIDÉ (D281,
+  // 24/11/2026, 9L35-LIENS-ACCES-ANCIENS-ANNULES) — voir l'en-tête de la
+  // fonction et `invalidation-liens-acces.ts`.
+  await invaliderLiensAnterieurs(
+    client,
+    identite.id,
+    identifiantLienAcces(jeton),
+  );
 
   // ── 5. LA TRACE — UN ÉVÉNEMENT D'ACCÈS, COMME L'OUVERTURE ───────────────
   await avecDesignationAuth(client).journalAcces.create({

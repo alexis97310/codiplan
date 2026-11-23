@@ -16,6 +16,10 @@ import { type ContexteSession, exigerSocieteActive } from "./contexte";
 import { peut } from "./habilitations";
 import { instantAcceptation } from "./instant-acceptation";
 import {
+  identifiantLienAcces,
+  invaliderLiensAnterieurs,
+} from "./invalidation-liens-acces";
+import {
   avecDesignationAuth,
   type ContexteAdministratif,
 } from "./lecture-identite";
@@ -194,11 +198,13 @@ async function preparerLienDAcces(
   // L'instance de PRODUCTION ne porte jamais ce canal (lib/auth/config.ts) :
   // seule celle-ci, construite ici, peut faire émettre un jeton.
   let url = "";
+  let jeton = "";
   const emetteur = creerAuth(
     client,
     { societeId, role: null },
     async (remise) => {
       url = remise.url;
+      jeton = remise.jeton;
     },
   );
   await emetteur.api.requestPasswordReset({
@@ -210,6 +216,16 @@ async function preparerLienDAcces(
         "envoyé. Le geste échoue plutôt que de rendre un envoi muet.",
     );
   }
+
+  // ── LES LIENS ANTÉRIEURS DE CE COMPTE SONT INVALIDÉS (D281, 24/11/2026,
+  // 9L35-LIENS-ACCES-ANCIENS-ANNULES) — voir `invalidation-liens-acces.ts`.
+  // Partagé par les DEUX gestes (envoyer, copier) et par les DEUX identités
+  // (bureau, technicien) : c'est tout l'objet de ce point de passage commun.
+  await invaliderLiensAnterieurs(
+    client,
+    utilisateurId,
+    identifiantLienAcces(jeton),
+  );
 
   return {
     accepte: true,
@@ -864,11 +880,13 @@ export async function inviterClientAuPortail(
   // donne de quoi se connecter.
   let url: string | null = null;
   if (traiterCommeNeuve) {
+    let jeton = "";
     const emetteur = creerAuth(
       client,
       { societeId, role: null },
       async (remise) => {
         url = remise.url;
+        jeton = remise.jeton;
       },
     );
     // `?email=` SUR LE LIEN LUI-MÊME (9J21, point 6) — Better Auth reporte
@@ -891,6 +909,16 @@ export async function inviterClientAuPortail(
           "plutôt que de rendre un lien muet.",
       );
     }
+
+    // ── LES LIENS ANTÉRIEURS DE CETTE IDENTITÉ SONT INVALIDÉS (D281,
+    // 24/11/2026, 9L35-LIENS-ACCES-ANCIENS-ANNULES) — ne s'applique qu'à une
+    // identité JAMAIS ACTIVÉE (9L03B) qui en avait déjà un : voir
+    // `invalidation-liens-acces.ts`.
+    await invaliderLiensAnterieurs(
+      client,
+      utilisateurId,
+      identifiantLienAcces(jeton),
+    );
   }
 
   // ── LA TRACE — SEULEMENT SI UN JETON A ÉTÉ ÉMIS (D162) — « premier envoi »
