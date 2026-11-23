@@ -170,4 +170,5 @@ export const MIGRATIONS_ATTENDUES: readonly string[] = [
   "20261120113000_plancher_facturation_jamais_zero_9l27",
   "20261121010000_fige_a_la_cloture_9l14",
   "20261122200000_gardes_chevauchement_segments_9l19",
+  "20261123220000_majoration_hors_ouverture_bornes_9l33",
 ];

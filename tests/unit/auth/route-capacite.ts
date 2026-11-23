@@ -242,6 +242,10 @@ export const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   // complète que le logo et les montants : ADMS/DIR seuls.
   "app/api/parametres/societe/delai-relance-suite/route.ts":
     "parametrer_societe",
+  // 9L33-MAJORATION-REGLAGE-SOCIETE — même capacité et même porte complète
+  // que le logo, les montants et le délai de relance : ADMS/DIR seuls.
+  "app/api/parametres/societe/majoration-hors-ouverture/route.ts":
+    "parametrer_societe",
   // D153 (03/10/2026, TP-S3, choix du pilote) — plages, pas et agences
   // relèvent d'« Administrer les agences », jamais de « Paramétrer une
   // société » : ADMS, et depuis D199 la direction au même ● qu'ADMS.
@@ -346,6 +350,8 @@ export const PORTE_COMPLETE: readonly string[] = [
   "app/api/parametres/tarifs/regle-facturation/route.ts",
   // 9J19-SUITE-A-DONNER-NOTIFICATIONS — même doctrine : ADMS/DIR seuls.
   "app/api/parametres/societe/delai-relance-suite/route.ts",
+  // 9L33-MAJORATION-REGLAGE-SOCIETE — même doctrine : ADMS/DIR seuls.
+  "app/api/parametres/societe/majoration-hors-ouverture/route.ts",
   // 9DKA-REPRISE-9DK, TR-5/D136 — le ○ du technicien sur `modifier_planning`
   // n'ouvre que la déclaration de SA PROPRE absence ; ces sept routes ferment
   // désormais le ○ pour que « Déplacer », « Transmettre », la note interne et

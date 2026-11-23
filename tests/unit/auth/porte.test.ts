@@ -389,7 +389,9 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
     // 117 depuis 9L04E-TERRAIN-PHOTOS-EPUREES — `.../photos/supprimer/
     // route.ts` et `.../photos/legende/route.ts`.
     // 118 depuis 9L20-DEPLACER-MACHINE — `.../machines/[id]/deplacer/route.ts`.
-    expect(Object.keys(ROUTE_CAPACITE).length).toBe(118);
+    // 119 depuis 9L33-MAJORATION-REGLAGE-SOCIETE — `.../societe/
+    // majoration-hors-ouverture/route.ts`.
+    expect(Object.keys(ROUTE_CAPACITE).length).toBe(119);
   });
 
   it("aucune exemption ne survit à son objet — adossement dans les deux sens", () => {

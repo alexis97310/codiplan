@@ -7,6 +7,7 @@ import {
   ErreurCalendrierHorsAgence,
   TAUX_MAJORATION_HISTORIQUE,
   majorationHorsOuverture,
+  schemaMajorationHorsOuverturePct,
   tauxMajorationDepuisPourcentage,
   type TauxMajoration,
 } from "@/lib/tarification/majoration";
@@ -545,5 +546,31 @@ describe("le total hors taxes porte le supplément", () => {
     expect(resultat.motifTotalInconnu).toBe(
       "intervention.total.forfait_de_prestation_absent",
     );
+  });
+});
+
+describe("la saisie du réglage (9L33-MAJORATION-REGLAGE-SOCIETE) — 0 à 200, deux décimales au plus", () => {
+  it.each(["0", "0.00", "50", "50.00", "200", "200.00", "33.33", "7.5"])(
+    "%s est accepté",
+    (texte) => {
+      expect(schemaMajorationHorsOuverturePct.safeParse(texte).success).toBe(
+        true,
+      );
+    },
+  );
+
+  it.each(["-1", "200.01", "1000", "abc", "", "1.234", "50%"])(
+    "%s est refusé",
+    (texte) => {
+      expect(schemaMajorationHorsOuverturePct.safeParse(texte).success).toBe(
+        false,
+      );
+    },
+  );
+
+  it("les espaces de bord sont tolérés — même discipline que les autres champs numériques", () => {
+    const analyse = schemaMajorationHorsOuverturePct.safeParse(" 50.00 ");
+    expect(analyse.success).toBe(true);
+    expect(analyse.success && analyse.data).toBe("50.00");
   });
 });
