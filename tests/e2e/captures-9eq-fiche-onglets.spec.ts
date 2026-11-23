@@ -92,10 +92,14 @@ test.beforeAll(async () => {
     const technicienId = reperes.technicienDucos;
     // CRÉNEAUX DISTINCTS (9L19, garde `intervention_sans_chevauchement_
     // technicien`) : les trois interventions avec créneau partagent le même
-    // technicien, chacune sa propre heure.
+    // technicien, chacune sa propre heure. 9, pas 3 (9L32A, même mesure que
+    // `fiche-entete-bandeau-frise.spec.ts` : l'heure UTC 3 retombe, en
+    // LOCAL, sur 14:00–15:00 de MARDI de la scène — le créneau que
+    // `redimensionnable` réserve pour ce MÊME technicien — dès que la suite
+    // franchit minuit en cours d'exécution).
     const cleAujourdhui = cleDeJour(jourDe(maintenant(reperes.fuseau).local));
     const creneauEnCours = creneauUtc(cleAujourdhui, 1);
-    const creneauTerminee = creneauUtc(cleAujourdhui, 3);
+    const creneauTerminee = creneauUtc(cleAujourdhui, 9);
     const creneauCloturee = creneauUtc(cleAujourdhui, 5);
 
     await client.client.create({

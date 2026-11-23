@@ -68,10 +68,15 @@ test.beforeAll(async () => {
     const dansCinqJours = instantDuJour(jourLocal, 5);
     // CRÉNEAUX DISTINCTS (9L19, garde `intervention_sans_chevauchement_
     // technicien`) : les quatre interventions du jour partagent le même
-    // technicien, chacune sa propre heure.
+    // technicien, chacune sa propre heure. 9, pas 3 (9L32A, mesuré dans la
+    // nuit du 23 au 24/11/2026 : la suite a franchi minuit EN COURS
+    // D'EXÉCUTION — « aujourd'hui », lu en direct par ce fichier, est alors
+    // devenu MARDI de la scène partagée, et l'heure UTC 3 retombe, en LOCAL,
+    // sur 14:00–15:00 — le créneau que `redimensionnable` (`tests/e2e/setup/
+    // scene.ts`) réserve pour ce MÊME technicien sur MARDI).
     const cleAujourdhui = cleDeJour(jourLocal);
     const creneauEnCours = creneauUtc(cleAujourdhui, 1);
-    const creneauSuspendue = creneauUtc(cleAujourdhui, 3);
+    const creneauSuspendue = creneauUtc(cleAujourdhui, 9);
     const creneauTermineeRefusee = creneauUtc(cleAujourdhui, 5);
     const creneauTermineePrete = creneauUtc(cleAujourdhui, 7);
 
