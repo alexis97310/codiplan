@@ -1,3 +1,6 @@
+import { mkdirSync } from "node:fs";
+import { join } from "node:path";
+
 import { PrismaClient } from "@prisma/client";
 import { expect, test, type Page } from "@playwright/test";
 
@@ -7,6 +10,19 @@ import { fr } from "@/lib/i18n";
 import { urlAdministration } from "./setup/base";
 import { reperesDeLaScene } from "./setup/reperes";
 import { COMPTE_TECHNICIEN_EPREUVE, MOT_DE_PASSE_EPREUVE } from "./setup/scene";
+
+const DOSSIER_CAPTURES = join(
+  process.cwd(),
+  "docs/propositions/9L36-ANNULER-DEMARRAGE-10S/captures",
+);
+
+async function capturer(page: Page, nom: string): Promise<void> {
+  mkdirSync(DOSSIER_CAPTURES, { recursive: true });
+  await page.screenshot({
+    path: join(DOSSIER_CAPTURES, `${nom}-375.png`),
+    fullPage: true,
+  });
+}
 
 /**
  * 9L36-ANNULER-DEMARRAGE-10S — « Annuler le démarrage » (M9, décision
@@ -126,6 +142,8 @@ test("EN LIGNE — démarrer puis annuler DANS LA FENÊTRE : retour à affectée
     await page.setViewportSize({ width: 375, height: 900 });
     await connecterLeTechnicien(page);
     await page.goto(`/terrain/${scene.interventionId}`);
+    // AVANT (affectée, écran déjà existant, aucun bouton d'annulation).
+    await capturer(page, "avant-affectee");
 
     await page
       .getByRole("button", { name: fr["terrain.compteur.demarrer"] })
@@ -135,6 +153,8 @@ test("EN LIGNE — démarrer puis annuler DANS LA FENÊTRE : retour à affectée
     ).toBeVisible();
     const boutonAnnuler = page.getByRole("button", { name: BOUTON_ANNULER });
     await expect(boutonAnnuler).toBeVisible();
+    // APRÈS (le bouton neuf, dans la fenêtre de dix secondes).
+    await capturer(page, "apres-bouton-annuler-visible");
 
     await boutonAnnuler.click();
 
@@ -143,6 +163,7 @@ test("EN LIGNE — démarrer puis annuler DANS LA FENÊTRE : retour à affectée
       page.getByRole("button", { name: fr["terrain.compteur.demarrer"] }),
     ).toBeVisible();
     await expect(boutonAnnuler).toHaveCount(0);
+    await capturer(page, "apres-annule-retour-affectee");
 
     const verif = admin();
     try {
@@ -248,6 +269,7 @@ test("HORS RÉSEAU — annuler un démarrage ENCORE EN FILE le retire sans appel
     ).toBeVisible();
     const boutonAnnuler = page.getByRole("button", { name: BOUTON_ANNULER });
     await expect(boutonAnnuler).toBeVisible();
+    await capturer(page, "apres-hors-reseau-bouton-annuler-visible");
 
     await boutonAnnuler.click();
 
