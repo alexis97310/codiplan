@@ -20,13 +20,24 @@ import { ouvrirLaSessionSensible } from "./setup/session";
  *
  * ## Ce que ce fichier prouve
  *
- * Le bouton « Déplacer la machine » (`DialogueDeplacerMachine`) est ABSENT
- * pour le technicien — jamais désactivé —, et la route qui ferait le geste
- * refuse NOMMÉMENT un POST direct du même rôle. L'ADV, qui n'a jamais eu ce
- * geste nommé à l'écran avant ce ticket, le possède désormais : la preuve
- * que la capacité `deplacer_machine` (ADMS, DIR, RM, RS, ADV) fonctionne de
- * bout en bout, pas seulement dans la matrice (`tests/unit/auth/
- * habilitations.test.ts`).
+ * La route qui déplace une machine refuse NOMMÉMENT un POST direct du
+ * technicien — preuve de fond, puisque D221 (21/10/2026) ferme déjà TOUT le
+ * back-office au technicien, `/parc/[id]` compris : `page.goto` y redirige
+ * systématiquement vers `/terrain`, AVANT ce ticket comme après. Les deux
+ * captures « bouton absent » (375/1280) montrent donc cette redirection, pas
+ * la fiche elle-même — exactement ce que les captures du dossier `captures/`
+ * nomment (`technicien-redirige-vers-terrain-*.png`) : le bouton est
+ * doublement absent pour le technicien (D221 ferme l'écran, la nouvelle
+ * garde fermerait le bouton si l'écran s'ouvrait un jour). L'ADV, qui n'a
+ * jamais eu ce geste nommé À L'ÉCRAN avant ce ticket (il l'avait déjà par
+ * `gerer_machine`, sans texte dédié dans la matrice), le garde désormais
+ * sous son propre nom, `deplacer_machine` — la preuve que la route fonctionne
+ * de bout en bout, pas seulement dans la matrice (`tests/unit/auth/
+ * habilitations.test.ts`). AUCUN rôle qui atteint réellement `/parc/[id]`
+ * (ADMS, DIR, RM, RS, ADV) ne voit son écran changer : les captures
+ * `adv-fiche-*-deplacement-1280.png` sont quasi identiques avant/après,
+ * display du site déplacé mis à part — ce ticket ne change rien à l'écran
+ * d'aucun rôle qui l'atteint, seulement à l'autorisation SERVEUR.
  *
  * ## CE QUE CE FICHIER NE PROUVE PAS (blocage documenté, D280)
  *
