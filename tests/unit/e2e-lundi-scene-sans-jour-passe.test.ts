@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { comparerJours, jourSuivant, type JourLocal } from "@/lib/calendar/fuseau";
+import {
+  comparerJours,
+  jourSuivant,
+  type JourLocal,
+} from "@/lib/calendar/fuseau";
 import { lundiDeLaSemaine } from "@/lib/calendar/semaine";
 
 import {
@@ -61,9 +65,7 @@ describe("lundiSansJourPasse — MARDI/MERCREDI/SAMEDI de la scène restent stri
 
 describe("« MARDI de la scène » ne coïncide avec « demain » que lorsqu'aujourd'hui est un lundi", () => {
   it.each(
-    SEMAINE_DE_REFERENCE.map(
-      (jour, rangIso) => [jour, rangIso === 0] as const,
-    ),
+    SEMAINE_DE_REFERENCE.map((jour, rangIso) => [jour, rangIso === 0] as const),
   )("pour aujourd'hui = %o (lundi : %s)", (aujourdhui, estLundi) => {
     const lundi = lundiSansJourPasse(lundiDeLaSemaine(aujourdhui), aujourdhui);
     const mardiDeLaScene = jourSuivant(lundi, MARDI);
