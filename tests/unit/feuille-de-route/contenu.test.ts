@@ -10,8 +10,12 @@ import { SECTIONS_FEUILLE_DE_ROUTE } from "@/lib/feuille-de-route/contenu";
  *
  * 9L30-FEUILLE-DE-ROUTE-22-11 (22/11/2026) : trois des neuf éléments d'origine
  * — B1/M1, B2/M3 (D241, D242, 9K26/9K27) et m10a (9L04H) — sont livrés et ont
- * migré vers « Livré depuis le 31/10 » ; les six qui restent à trancher ou à
- * écrire gardent leur texte mot pour mot.
+ * migré vers « Livré depuis le 31/10 » ; les six qui restaient à trancher ou
+ * à écrire gardaient leur texte mot pour mot.
+ *
+ * 9L33-MAJORATION-REGLAGE-SOCIETE (23/11/2026, séance de décisions
+ * d'Alexis) : M2 a été tranché (« on garde un seul écran ») et a migré vers
+ * la section « Décisions prises » — cinq éléments restent ici.
  */
 describe("la section « Application technicien — audit du 10/11/2026 »", () => {
   const section = SECTIONS_FEUILLE_DE_ROUTE.find(
@@ -22,9 +26,8 @@ describe("la section « Application technicien — audit du 10/11/2026 »", () =
     expect(section).toBeDefined();
   });
 
-  it("porte ses six éléments restants, mot pour mot", () => {
+  it("porte ses cinq éléments restants, mot pour mot", () => {
     expect(section?.elements.map((e) => e.titre)).toEqual([
-      "M2 — Fiche en quatre étapes (Infos, Rapport, Photos, Signature) avec une barre d'action fixe : à trancher, la règle actuelle est un seul écran (maquettes 02 à 05).",
       "M8 — Ma journée : tri par priorité puis par date, carte « À faire maintenant » (maquette 01-journee).",
       "M9 — « Annuler le démarrage » pendant 10 secondes : à trancher, le retour d'« en cours » vers « affectée » n'existe pas et le compteur fait foi (maquette 02-infos).",
       "P6 — Compléter le catalogue des prestations par l'import avant la mise en service (geste d'exploitation ; maquette 03-rapport).",
@@ -35,7 +38,6 @@ describe("la section « Application technicien — audit du 10/11/2026 »", () =
 
   it("porte les statuts attendus", () => {
     expect(section?.elements.map((e) => e.statut)).toEqual([
-      "decision",
       "a_ecrire",
       "decision",
       "a_ecrire",

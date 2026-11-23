@@ -41,6 +41,7 @@ const TON_PAR_STATUT: Record<StatutFeuilleDeRoute, TonBadge> = {
   pret: "orange",
   a_ecrire: "gris",
   decision: "orange",
+  tranche: "vert",
   bloque: "rouge",
   livre: "vert",
 };

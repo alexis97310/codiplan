@@ -16,7 +16,13 @@
  */
 
 export type StatutFeuilleDeRoute =
-  "en_cours" | "pret" | "a_ecrire" | "decision" | "bloque" | "livre";
+  | "en_cours"
+  | "pret"
+  | "a_ecrire"
+  | "decision"
+  | "tranche"
+  | "bloque"
+  | "livre";
 
 export type ElementFeuilleDeRoute = {
   readonly statut: StatutFeuilleDeRoute;
@@ -29,7 +35,7 @@ export type SectionFeuilleDeRoute = {
 };
 
 /** La date affichée en sous-titre de la page. */
-export const DATE_ETAT_FEUILLE_DE_ROUTE = "22/11/2026";
+export const DATE_ETAT_FEUILLE_DE_ROUTE = "23/11/2026";
 
 export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
   {
@@ -59,11 +65,6 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
   {
     titre: "Application technicien — audit du 10/11/2026",
     elements: [
-      {
-        statut: "decision",
-        titre:
-          "M2 — Fiche en quatre étapes (Infos, Rapport, Photos, Signature) avec une barre d'action fixe : à trancher, la règle actuelle est un seul écran (maquettes 02 à 05).",
-      },
       {
         statut: "a_ecrire",
         titre:
@@ -121,22 +122,7 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
       {
         statut: "decision",
         titre:
-          "Pourcentage de majoration hors ouverture : écran de réglage par société, ou rester à 50 % (D269).",
-      },
-      {
-        statut: "decision",
-        titre:
-          "Clôture par le technicien : aucun écran ne mène aujourd'hui le technicien au dialogue « Clôturer » (D271).",
-      },
-      {
-        statut: "decision",
-        titre:
           "Historique des emplacements d'une machine : visible seulement de l'administration et de la direction (9L20).",
-      },
-      {
-        statut: "decision",
-        titre:
-          "Valorisation au coût de la garantie, pour le suivi de rentabilité (9L18).",
       },
       {
         statut: "decision",
@@ -146,12 +132,32 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
       {
         statut: "decision",
         titre:
-          "Protection « validation obligatoire » de l'environnement de production sur GitHub (9L22, facultatif).",
+          "Gardes en base de 9L19 (chevauchement d'un technicien, segment fermé, annulation, clôture) : lot arrêté après trois essais, deux scènes de test à corriger — reprise à décider.",
+      },
+    ],
+  },
+  {
+    titre: "Décisions prises",
+    elements: [
+      {
+        statut: "tranche",
+        titre:
+          "Clôture par le technicien : on garde — le technicien termine, le bureau clôture (D271 inchangé). Tranché le 23/11/2026.",
       },
       {
-        statut: "decision",
+        statut: "tranche",
         titre:
-          "Gardes en base de 9L19 (chevauchement d'un technicien, segment fermé, annulation, clôture) : lot arrêté après trois essais, deux scènes de test à corriger — reprise à décider.",
+          "Valorisation au coût de la garantie, pour le suivi de rentabilité (9L18) : pas pour l'instant. Tranché le 23/11/2026.",
+      },
+      {
+        statut: "tranche",
+        titre:
+          "Protection « validation obligatoire » de l'environnement de production sur GitHub (9L22) : on garde ainsi. Tranché le 23/11/2026.",
+      },
+      {
+        statut: "tranche",
+        titre:
+          "M2 — Fiche en quatre étapes avec une barre d'action fixe : on garde un seul écran qui défile (D161/D212 inchangés). Tranché le 23/11/2026.",
       },
     ],
   },
@@ -350,6 +356,11 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
         statut: "livre",
         titre:
           "CI durcie : les flux qui écrivent sur une base réelle épinglent leurs actions et portent un environnement de production (9L22).",
+      },
+      {
+        statut: "livre",
+        titre:
+          "Écran de réglage du pourcentage de majoration hors ouverture, par société, borné 0 à 200 en base (9L33, complète D269).",
       },
     ],
   },

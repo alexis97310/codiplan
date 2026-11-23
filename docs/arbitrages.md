@@ -9196,7 +9196,7 @@ Elle NE DÉTECTE PAS une valeur déjà posée vide (`''`) sur une ligne existant
 
 Portée : `scripts/lib/filiation-portail-technicien.ts` (nouveau), `scripts/veille-hebergee.mts`, `tests/unit/db/filiation-portail-technicien.test.ts` (nouveau), `tests/isolation/9l11-filiation-portail-technicien.test.ts` (nouveau).
 
-## D269 — LA MAJORATION HORS OUVERTURE LIT LE POURCENTAGE RÉGLÉ PAR LA SOCIÉTÉ, PLUS DE +50 % EN DUR ; LE POURCENTAGE EST FIGÉ À LA CLÔTURE (décision d'Alexis du 10/11/2026 ; 9L12-MAJORATION-POURCENTAGE-SOCIETE)
+## D269 — LA MAJORATION HORS OUVERTURE LIT LE POURCENTAGE RÉGLÉ PAR LA SOCIÉTÉ, PLUS DE +50 % EN DUR ; LE POURCENTAGE EST FIGÉ À LA CLÔTURE (décision d'Alexis du 10/11/2026 ; 9L12-MAJORATION-POURCENTAGE-SOCIETE ; COMPLÉTÉE le 23/11/2026 par 9L33-MAJORATION-REGLAGE-SOCIETE)
 
 ### CE QUI A ÉTÉ MESURÉ
 
@@ -9215,6 +9215,16 @@ Elle ne change ni l'assiette (main-d'œuvre seule) ni le calendrier de référen
 > Le jour où une route de paramétrage écrit `societe.majoration_hors_ouverture_pct`, cette décision se relit pour y ajouter la validation d'écriture (bornes, contrainte `CHECK`) qu'elle ne pose pas aujourd'hui — elle suppose qu'aucune route de ce genre n'existe, et que la question ne se pose donc pas encore à l'exploitation.
 
 Portée : `lib/tarification/majoration.ts` (`TAUX_MAJORATION` renommé `TAUX_MAJORATION_HISTORIQUE`, `tauxMajorationDepuisPourcentage` et `lireTauxMajorationSociete` nouveaux), `lib/interventions/depot.ts`, `lib/i18n/fr.ts`, `tests/unit/tarification/majoration.test.ts`, `tests/isolation/9j20-portail-tarifs.test.ts`, `tests/isolation/valorisation-intervention.test.ts`, `tests/e2e/captures-9l12-majoration-pourcentage-societe.spec.ts` (nouveau).
+
+### COMPLÉTÉE LE 23/11/2026 (9L33-MAJORATION-REGLAGE-SOCIETE) — LA CONDITION DE RÉOUVERTURE S'EST VÉRIFIÉE
+
+C'est le jour : une carte « Majoration hors ouverture » dans `/parametres/societe` (réservée à `admin_societe`/`direction`, capacité `parametrer_societe`, même porte que le logo, les montants et le délai de relance) écrit désormais `societe.majoration_hors_ouverture_pct`, via `enregistrerMajorationHorsOuverturePct` (`lib/societes/identite.ts`) et `POST /api/parametres/societe/majoration-hors-ouverture`.
+
+La validation d'écriture promise ci-dessus est posée aux DEUX bouts : la saisie (`schemaMajorationHorsOuverturePct`, `lib/tarification/majoration.ts` — chaîne, 0 à 200, deux décimales au plus, jamais un nombre JS flottant) et la base (contrainte `CHECK societe_majoration_hors_ouverture_bornee`, migration `20261123220000_majoration_hors_ouverture_bornes_9l33`, mêmes bornes). Les deux paragraphes de « CE QUE CETTE DÉCISION N'EST PAS » ci-dessus qui disaient « aucun écran », « aucune migration », « aucune contrainte `CHECK` » sont donc caducs — laissés tels qu'écrits le 10/11/2026, parce qu'ils décrivaient fidèlement l'état d'alors, et c'est ce paragraphe-ci qui fait foi désormais.
+
+Effet, inchangé : le nouveau réglage ne s'applique qu'aux clôtures SUIVANTES — une intervention déjà CLÔTURÉE garde sa `valorisation_figee` (D272), jamais recalculée par ce changement.
+
+Portée ajoutée : `lib/societes/identite.ts` (`lireMajorationHorsOuverturePct`/`enregistrerMajorationHorsOuverturePct`), `app/api/parametres/societe/majoration-hors-ouverture/route.ts` (nouveau), `app/(back-office)/parametres/societe/page.tsx`, `lib/i18n/fr.ts`, `prisma/migrations/20261123220000_majoration_hors_ouverture_bornes_9l33/` (nouveau), `tests/unit/tarification/majoration.test.ts`, `tests/isolation/majoration-hors-ouverture-societe.test.ts` (nouveau), `tests/unit/auth/route-capacite.ts`, `tests/unit/auth/porte.test.ts`, `lib/db/migrations-attendues.ts`, `tests/e2e/captures-9l33-majoration-reglage-societe.spec.ts` (nouveau).
 
 ## D270 — SUSPENDRE UNE INTERVENTION FERME LE SEGMENT DE COMPTEUR OUVERT ; LE TEMPS MESURÉ SE FIGE À LA SUSPENSION (décision d'Alexis du 10/11/2026 ; 9L13-SUSPENDRE-ARRETE-COMPTEUR)
 
