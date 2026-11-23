@@ -107,15 +107,16 @@ test.beforeAll(async () => {
     };
     // UNE HEURE PAR LIGNE (9L19, garde `intervention_sans_chevauchement_
     // technicien`) : quatre lignes (compteur + nouvelle, par largeur)
-    // partagent le même technicien, le même jour. 18 et 19, pas 21 et 22
-    // (9L31B, mesuré un LUNDI) : une heure UTC de 21 ou 22 retombe, en LOCAL,
-    // sur 08:00–10:00 de DEMAIN (`creneauUtc` bascule le jour local dès
-    // l'heure UTC 13) — le créneau que `obstacle` (scène partagée, `tests/
-    // e2e/setup/scene.ts`) réserve pour ce MÊME technicien quand `demain`
-    // tombe sur MARDI de la scène (aujourd'hui déjà lundi).
+    // partagent le même technicien, le même jour. Ni 20 (9L32A, mesuré un
+    // LUNDI : `PLANIFIEE_SEULE`, `affichage-materiel.spec.ts`, réserve
+    // 07:00–08:00 de DEMAIN), ni 21, 22 ou 23 (9L31B puis 9L32A : `obstacle`
+    // réserve 08:00–10:00 et `AVEC_MACHINE` 10:00–11:00 de DEMAIN —
+    // `creneauUtc` bascule le jour local dès l'heure UTC 13) — ces fenêtres
+    // ne se réservent que quand `demain` tombe sur MARDI de la scène
+    // (aujourd'hui déjà lundi).
     const creneauxParLargeur: Record<number, readonly [number, number]> = {
-      1280: [20, 18],
-      375: [19, 23],
+      1280: [15, 18],
+      375: [19, 16],
     };
 
     await client.client.create({

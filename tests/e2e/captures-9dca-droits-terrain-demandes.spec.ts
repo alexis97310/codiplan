@@ -98,6 +98,12 @@ test.beforeAll(async () => {
 
     const aujourdHui = jourDe(maintenant(reperes.fuseau).local);
     const cle = cleJour(aujourdHui);
+    // UTC 15, PAS 20 (9L32A, mesuré un LUNDI) : l'heure UTC 20 retombe, en
+    // LOCAL, sur 07:00–08:00 de DEMAIN — le créneau que `PLANIFIEE_SEULE`
+    // (`affichage-materiel.spec.ts`, scène partagée) réserve pour ce MÊME
+    // technicien quand `demain` tombe sur MARDI de la scène (aujourd'hui
+    // déjà lundi). 15 reste avant l'ouverture, hors de toute fenêtre que
+    // `tests/e2e/setup/scene.ts` ou `affichage-materiel.spec.ts` réserve.
     await client.intervention.create({
       data: {
         id: INTERVENTION_ID,
@@ -110,8 +116,8 @@ test.beforeAll(async () => {
         priorite: "p3",
         statut: "affectee",
         date_planifiee: new Date(`${cle}T00:00:00.000Z`),
-        creneau_debut: new Date(`${cle}T20:00:00.000Z`),
-        creneau_fin: new Date(`${cle}T21:00:00.000Z`),
+        creneau_debut: new Date(`${cle}T15:00:00.000Z`),
+        creneau_fin: new Date(`${cle}T16:00:00.000Z`),
         duree_estimee_min: 60,
         mode_valorisation: "temps_passe",
         devise_code: "XPF",
