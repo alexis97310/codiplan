@@ -317,3 +317,61 @@ export async function enregistrerDelaiRelanceSuite(
   );
   return { ok: true };
 }
+
+export type RefusMajorationHorsOuverture =
+  "majoration_hors_ouverture.refus.droit";
+
+export type ResultatMajorationHorsOuverture =
+  | { readonly ok: true }
+  | { readonly ok: false; readonly motif: RefusMajorationHorsOuverture };
+
+/**
+ * Lit `societe.majoration_hors_ouverture_pct` (9L33-MAJORATION-REGLAGE-
+ * SOCIETE) — `null` si aucune société active n'est posée sur la session.
+ * En texte brut (`Decimal.toString()`), jamais arrondi ni reformaté : cet
+ * écran affiche le réglage pour le MODIFIER, la même colonne que lit
+ * `lireTauxMajorationSociete` (`lib/tarification/majoration.ts`) pour
+ * CALCULER — deux lectures, une seule colonne, jamais deux vérités (D269).
+ */
+export async function lireMajorationHorsOuverturePct(
+  contexte: ContexteSession,
+): Promise<string | null> {
+  if (contexte.societeId === null) {
+    return null;
+  }
+  const societeId = contexte.societeId;
+  const ligne = await avecContexteApplicatif(contexte, (tx) =>
+    tx.societe.findFirst({
+      where: { id: societeId },
+      select: { majoration_hors_ouverture_pct: true },
+    }),
+  );
+  return ligne === null ? null : ligne.majoration_hors_ouverture_pct.toString();
+}
+
+/**
+ * Enregistre `societe.majoration_hors_ouverture_pct` — `valeur` est DÉJÀ
+ * validée par l'appelant (`schemaMajorationHorsOuverturePct`,
+ * `lib/tarification/majoration.ts` : 0 à 200, deux décimales au plus — même
+ * borne que la contrainte `CHECK` en base). Même doctrine que
+ * `enregistrerAfficherMontants` : la capacité se vérifie ICI, pas seulement
+ * à la porte de la route.
+ *
+ * Effet : les clôtures SUIVANTES seulement — une intervention déjà
+ * CLÔTURÉE garde sa `valorisation_figee` (D269/D272), jamais recalculée.
+ */
+export async function enregistrerMajorationHorsOuverturePct(
+  contexte: ContexteActif,
+  valeur: string,
+): Promise<ResultatMajorationHorsOuverture> {
+  if (!peutPleinement(contexte.role, "parametrer_societe")) {
+    return { ok: false, motif: "majoration_hors_ouverture.refus.droit" };
+  }
+  await avecContexteApplicatif(contexte, (tx) =>
+    tx.societe.update({
+      where: { id: contexte.societeId },
+      data: { majoration_hors_ouverture_pct: valeur },
+    }),
+  );
+  return { ok: true };
+}

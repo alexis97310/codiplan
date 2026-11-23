@@ -5081,6 +5081,18 @@ export const fr = {
   "societe.delai_relance_refus_saisie":
     "Le délai doit être un nombre entier de jours, supérieur à zéro, ou vide.",
   "delai_relance_suite.refus.droit": "Votre rôle ne permet pas cette action.",
+  // LE POURCENTAGE DE MAJORATION HORS OUVERTURE (9L33-MAJORATION-REGLAGE-
+  // SOCIETE, décisions d'Alexis du 10/11/2026 et du 23/11/2026) — même carte
+  // que le logo, les montants et le délai de relance, `/parametres/societe`.
+  "societe.majoration_titre": "Majoration hors ouverture",
+  "societe.majoration_champ": "Majoration hors ouverture (%)",
+  "societe.majoration_aide":
+    "Pourcentage appliqué à la main-d'œuvre d'un créneau posé hors ouverture de l'établissement. Le nouveau réglage ne s'applique qu'aux clôtures suivantes : une intervention déjà clôturée garde sa valorisation figée.",
+  "societe.majoration_enregistrer": "Enregistrer",
+  "societe.majoration_refus_saisie":
+    "La majoration doit être un pourcentage entre 0 et 200, avec au plus deux décimales.",
+  "majoration_hors_ouverture.refus.droit":
+    "Votre rôle ne permet pas cette action.",
   // LES MENTIONS LÉGALES DEVIENNENT MODIFIABLES (9I7A-MENTIONS-LEGALES-
   // MODIFIABLES) — à côté de la ligne « Mentions légales » de la carte
   // « Identité », même modèle que le logo (9EZ-LOGO-SOCIETE-1).
@@ -7475,6 +7487,7 @@ export const fr = {
   "feuille_de_route.statut.pret": "Prêt",
   "feuille_de_route.statut.a_ecrire": "À écrire",
   "feuille_de_route.statut.decision": "Décision",
+  "feuille_de_route.statut.tranche": "Tranché",
   "feuille_de_route.statut.bloque": "Bloqué",
   "feuille_de_route.statut.livre": "Livré",
 

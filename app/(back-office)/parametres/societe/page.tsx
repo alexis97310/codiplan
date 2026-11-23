@@ -15,6 +15,7 @@ import { estCleTraduction, t } from "@/lib/i18n/fr";
 import {
   lireAfficherMontants,
   lireDelaiRelanceSuite,
+  lireMajorationHorsOuverturePct,
 } from "@/lib/societes/identite";
 import { lireLogo } from "@/lib/societes/logo";
 
@@ -66,6 +67,8 @@ export default async function PageParametresSociete({
   const logo = await lireLogo(contexte);
   const afficherMontants = await lireAfficherMontants(contexte);
   const delaiRelanceSuite = await lireDelaiRelanceSuite(contexte);
+  const majorationHorsOuverture =
+    await lireMajorationHorsOuverturePct(contexte);
   const motif = (await searchParams).motif;
 
   return (
@@ -206,6 +209,39 @@ export default async function PageParametresSociete({
             className="self-start"
           >
             {t("societe.delai_relance_enregistrer")}
+          </Button>
+        </form>
+      </Carte>
+
+      <Carte className="flex flex-col gap-3 p-4">
+        <h2 className="text-14 font-bold">{t("societe.majoration_titre")}</h2>
+        <form
+          method="post"
+          action="/api/parametres/societe/majoration-hors-ouverture"
+          className="flex flex-col gap-2"
+        >
+          <label className="flex flex-col gap-1 text-13 font-bold">
+            {t("societe.majoration_champ")}
+            <input
+              type="number"
+              name="majoration_hors_ouverture_pct"
+              min={0}
+              max={200}
+              step={0.01}
+              defaultValue={majorationHorsOuverture ?? ""}
+              className="border-app-bord w-32 rounded-md border px-3 py-1.5 text-[13px] font-bold"
+            />
+          </label>
+          <p className="text-app-encre-faible text-12 font-bold">
+            {t("societe.majoration_aide")}
+          </p>
+          <Button
+            type="submit"
+            variant="default"
+            size="sm"
+            className="self-start"
+          >
+            {t("societe.majoration_enregistrer")}
           </Button>
         </form>
       </Carte>

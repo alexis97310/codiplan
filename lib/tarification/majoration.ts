@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client";
+import { z } from "zod";
 
 import { minutesHorsOuverture, type Calendrier } from "@/lib/calendar";
 import { arrondirAuPlusProche, montant, zero, type Montant } from "@/lib/money";
@@ -93,10 +94,12 @@ export const TAUX_MAJORATION_HISTORIQUE: TauxMajoration = {
  * du 10/11/2026, RG-INT-08) — remplace le taux fixe de D12.
  *
  * `societe.majoration_hors_ouverture_pct` est un `Decimal(5,2)` NOT NULL,
- * mais aucune contrainte `CHECK` ne borne sa valeur en base : une valeur
- * négative n'est pas empêchée au niveau du schéma. Ce module la refuse
- * plutôt que de majorer à l'envers — `null` en retour, jamais un défaut
- * silencieux.
+ * borné 0 à 200 en base depuis 9L33-MAJORATION-REGLAGE-SOCIETE
+ * (`societe_majoration_hors_ouverture_bornee`, condition de réouverture de
+ * D269). Ce module refuse malgré tout une valeur négative lui-même — en
+ * DÉFENSE, jamais en seule ligne de défense : toute ligne écrite avant cette
+ * contrainte, ou par un chemin qui la contournerait, reste couverte — `null`
+ * en retour, jamais un défaut silencieux.
  *
  * `Decimal(5,2)` garantit au plus deux décimales : `.times(100)` (decimal.js,
  * jamais un flottant binaire) rend donc un ENTIER exact — jamais `toFixed`,
@@ -112,6 +115,24 @@ export function tauxMajorationDepuisPourcentage(
   const centiemes = pourcentage.times(100).toString();
   return { numerateur: BigInt(centiemes), denominateur: BigInt(10_000) };
 }
+
+/**
+ * LA SAISIE DU RÉGLAGE, CÔTÉ ÉCRAN (9L33-MAJORATION-REGLAGE-SOCIETE) — 0 à
+ * 200, deux décimales au plus, EXACTEMENT la borne de la contrainte `CHECK`
+ * posée par la migration `20261123220000_majoration_hors_ouverture_bornes_9l33`
+ * (`societe_majoration_hors_ouverture_bornee`) : une saisie que ce schéma
+ * accepte ne PEUT PAS être rejetée en base, et réciproquement.
+ *
+ * Une chaîne, jamais un nombre : un `Decimal(5,2)` écrit par un nombre JS
+ * passerait par une représentation flottante avant même d'atteindre Prisma
+ * (même risque que I3 pour un montant) ; la chaîne validée par ce schéma est
+ * donnée telle quelle à Prisma, qui la convertit en `Decimal` exact.
+ */
+export const schemaMajorationHorsOuverturePct = z
+  .string()
+  .trim()
+  .regex(/^\d{1,3}(\.\d{1,2})?$/)
+  .refine((texte) => Number(texte) <= 200);
 
 /**
  * LA MÊME LECTURE QUE LE BARÈME DU PORTAIL (`lireBaremePortail`,
