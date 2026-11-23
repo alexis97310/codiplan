@@ -205,7 +205,14 @@ function signalerModification(): void {
 
 export type GesteCompteur = {
   readonly type: "compteur";
-  readonly action: "demarrer" | "arreter";
+  /**
+   * `annuler_demarrage` (9L36-ANNULER-DEMARRAGE-10S, D282) — UNIQUEMENT pour
+   * un démarrage DÉJÀ confirmé par le serveur : annuler un « demarrer »
+   * ENCORE en file se fait par `retirerSaisie` directement, sans jamais
+   * poser ce geste (même régime que `GesteSuppressionPhoto`, voir son
+   * docblock) — aucun appel réseau n'a alors de sens.
+   */
+  readonly action: "demarrer" | "arreter" | "annuler_demarrage";
 };
 /** Une pièce remplacée, telle que portée par un geste « rapport » (9I7B). */
 export type PieceRemplaceeGeste = {
@@ -439,7 +446,9 @@ function gesteReconnu(brut: unknown): Geste | null {
   const g = brut as Record<string, unknown>;
   switch (g.type) {
     case "compteur":
-      return g.action === "demarrer" || g.action === "arreter"
+      return g.action === "demarrer" ||
+        g.action === "arreter" ||
+        g.action === "annuler_demarrage"
         ? { type: "compteur", action: g.action }
         : null;
     case "rapport":

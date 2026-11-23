@@ -24,6 +24,7 @@ import {
   SITE_A1_S1,
   SOCIETE_A,
   SOCIETE_B,
+  UTILISATEUR_PAR_ROLE,
 } from "./setup/fixtures";
 
 /**
@@ -425,6 +426,10 @@ describe("l'intervention, sous le rôle applicatif", () => {
    * raison, ce qui ferait croire la matrice fautive à tort.
    */
   describe("la matrice D8, JOUÉE SUR TOUS LES COUPLES (décision d'Alexis du 10/11/2026)", () => {
+    // `affectee` DANS `en_cours` DEPUIS D282 (9L36, « Annuler le démarrage »)
+    // — le seul couple de la matrice qui exige, EN PLUS, un segment ouvert
+    // depuis moins de dix secondes sur la ligne : `COUPLES` ci-dessous pose
+    // ce segment pour CE SEUL couple avant d'écrire (voir `jetableDansEtat`).
     const MATRICE_D8: Record<
       StatutIntervention,
       readonly StatutIntervention[]
@@ -432,7 +437,7 @@ describe("l'intervention, sous le rôle applicatif", () => {
       a_planifier: ["planifiee", "annulee"],
       planifiee: ["a_planifier", "affectee", "en_cours", "annulee"],
       affectee: ["a_planifier", "planifiee", "en_cours", "annulee"],
-      en_cours: ["suspendue", "terminee", "annulee"],
+      en_cours: ["suspendue", "terminee", "annulee", "affectee"],
       suspendue: ["a_planifier", "planifiee", "en_cours", "annulee"],
       terminee: ["en_cours", "cloturee"],
       cloturee: [],
@@ -465,8 +470,16 @@ describe("l'intervention, sous le rôle applicatif", () => {
     }
 
     const jetables: string[] = [];
+    // D282 (9L36) — le segment posé pour « en_cours → affectee » SEULEMENT ;
+    // supprimé AVANT l'intervention (FK `onDelete: Restrict`).
+    const segmentsJetables: string[] = [];
 
     afterEach(async () => {
+      for (const id of segmentsJetables.splice(0)) {
+        await clientOwner().$executeRawUnsafe(
+          `DELETE FROM "segment_travail" WHERE "id" = '${id}'`,
+        );
+      }
       for (const id of jetables.splice(0)) {
         await clientOwner().$executeRawUnsafe(
           `DELETE FROM "intervention" WHERE "id" = '${id}'`,
@@ -511,6 +524,25 @@ describe("l'intervention, sous le rôle applicatif", () => {
     it.each(COUPLES)("%s → %s", async (depart, arrivee) => {
       const permis = MATRICE_D8[depart].includes(arrivee);
       const id = await jetableDansEtat(depart);
+
+      // D282 (9L36) — « en_cours → affectee » EXIGE un segment ouvert depuis
+      // moins de dix secondes sur CETTE ligne ; sans lui, la base refuse avec
+      // un AUTRE message (`compteur.refus.annulation_expiree`, pas celui-ci),
+      // ce que `annuler-demarrage-9l36.test.ts` éprouve déjà en détail — ce
+      // fichier-ci ne pose le segment que pour confronter la matrice
+      // ELLE-MÊME, jamais la fenêtre.
+      if (depart === "en_cours" && arrivee === "affectee") {
+        const segmentId = uuidv7();
+        segmentsJetables.push(segmentId);
+        await clientOwner().$executeRawUnsafe(
+          `INSERT INTO "segment_travail"
+             ("id", "societe_id", "intervention_id", "utilisateur_id", "nom_technicien_affiche", "debut", "fin", "modifie_le")
+           VALUES ('${segmentId}', '${SOCIETE_A}', '${id}',
+                   '${UTILISATEUR_PAR_ROLE[Role.technicien]}',
+                   (SELECT "nom" FROM "utilisateur" WHERE "id" = '${UTILISATEUR_PAR_ROLE[Role.technicien]}'),
+                   now(), NULL, now())`,
+        );
+      }
 
       const geste = sousSociete(SOCIETE_A, (tx) =>
         tx.$executeRawUnsafe(

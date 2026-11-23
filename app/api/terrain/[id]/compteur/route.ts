@@ -5,6 +5,7 @@ import { maintenant } from "@/lib/calendar/fuseau";
 import { fuseauDuTechnicien } from "@/lib/calendar/technicien";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import {
+  annulerLeDemarrage,
   arreterLeCompteur,
   demarrerLeCompteur,
 } from "@/lib/interventions/depot-compteur";
@@ -205,6 +206,18 @@ async function traiter(requete: Request, id: string): Promise<Response> {
       undefined,
       differe,
     );
+    return reponse(
+      requete,
+      id,
+      resultat.accepte,
+      resultat.accepte ? undefined : resultat.cle,
+    );
+  }
+  // « ANNULER LE DÉMARRAGE » (9L36, D282) — l'intervention n'est pas un
+  // paramètre, même raison qu'« arrêter » : c'est le segment ouvert de LA
+  // PERSONNE CONNECTÉE qui est visé, jamais celui que l'URL nommerait.
+  if (geste === "annuler_demarrage") {
+    const resultat = await annulerLeDemarrage(contexte, instant);
     return reponse(
       requete,
       id,

@@ -156,7 +156,8 @@ export type RefusCompteur =
   | "compteur.refus.instant_futur"
   | "compteur.refus.instant_trop_ancien"
   | "compteur.refus.operation_invalide"
-  | "compteur.refus.saisie_differee_invalide";
+  | "compteur.refus.saisie_differee_invalide"
+  | "compteur.refus.annulation_expiree";
 
 export type Verdict =
   | { readonly accepte: true }
@@ -233,4 +234,33 @@ export function verifierInstantAppareil(
     return "compteur.refus.instant_trop_ancien";
   }
   return null;
+}
+
+/**
+ * DIX SECONDES, MOINS UNE MARGE RÉSEAU (9L36-ANNULER-DEMARRAGE-10S, décision
+ * d'Alexis du 23/11/2026, point 8 ; D282). Le compte à rebours affiché sur
+ * l'appareil est purement informatif — ce que ce module juge est l'écart,
+ * côté SERVEUR, entre `instantServeur` (l'heure lue par la route au moment
+ * de traiter l'annulation, jamais celle de l'appareil) et `debut` du segment
+ * ouvert. La marge couvre l'aller-retour réseau de la requête partie au
+ * dixième de seconde près : sans elle, un geste parti à 9,9 s et arrivé à
+ * 10,3 s serait refusé pour un délai qui n'est pas celui du technicien.
+ */
+const DIX_SECONDES_MS = 10_000;
+const MARGE_RESEAU_ANNULATION_MS = 3_000;
+
+/**
+ * PEUT-ON ENCORE ANNULER CE DÉMARRAGE ? Seule la fenêtre de temps — la même
+ * personne et l'absence de saisie depuis se jugent ailleurs, contre la base
+ * (`lib/interventions/depot-compteur.ts`), puisque ce module ne lit jamais
+ * la base (voir le docblock de tête).
+ */
+export function peutAnnulerLeDemarrage(
+  segment: Segment,
+  instantServeur: Date,
+): RefusCompteur | null {
+  return instantServeur.getTime() - segment.debut.getTime() >
+    DIX_SECONDES_MS + MARGE_RESEAU_ANNULATION_MS
+    ? "compteur.refus.annulation_expiree"
+    : null;
 }

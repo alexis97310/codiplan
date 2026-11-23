@@ -8,6 +8,7 @@ import { BandeauCompteurEnCours } from "@/components/terrain/bandeau-compteur";
 import { BandeauReseau } from "@/components/terrain/bandeau-reseau";
 import { BarreActionTerrain } from "@/components/terrain/barre-action-terrain";
 import { CompteurVivant } from "@/components/terrain/compteur-vivant";
+import { BoutonAnnulerDemarrage } from "@/components/terrain/annuler-demarrage";
 import { BoutonCompteurTerrain } from "@/components/terrain/compteur-terrain";
 import { RafraichissementAutomatique } from "@/components/terrain/rafraichissement-auto";
 import { BoutonEnvoyer } from "@/components/terrain/bouton-envoyer";
@@ -689,6 +690,20 @@ export default async function PageInterventionTerrain({
               instantServeur={new Date(genereLe)}
             />
           )}
+
+          {/* « ANNULER LE DÉMARRAGE », DIX SECONDES (9L36, D282) — couvre à
+            la fois le démarrage CONFIRMÉ (segment ouvert ICI, vu du serveur)
+            et celui ENCORE EN FILE (le composant relit la file lui-même) ;
+            se tait de lui-même dans tous les autres cas (voir son docblock). */}
+          <BoutonAnnulerDemarrage
+            interventionId={id}
+            utilisateurId={contexte.utilisateurId}
+            societeId={contexte.societeId}
+            segmentDebutServeur={
+              ici && enCours !== null ? enCours.segment.debut : null
+            }
+            instantServeur={new Date(genereLe)}
+          />
         </section>
 
         {/* « J'ATTENDS UNE PIÈCE » (9K13-TERRAIN-ATTENTE-PIECE) — juste après

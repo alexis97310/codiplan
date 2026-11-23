@@ -9,6 +9,7 @@ import type { SaisieDifferee } from "@/lib/interventions/saisie-differee";
 
 import {
   mesurer,
+  peutAnnulerLeDemarrage as peutAnnulerLeDemarrageDansLaFenetre,
   peutArreter,
   peutDemarrer,
   verifierInstantAppareil,
@@ -499,6 +500,165 @@ export async function compteurEnCours(
         interventionId: intervention_id,
         client: intervention.client.raison_sociale,
         fuseau: fuseauDeLAgence(intervention.agence),
+      };
+    },
+    client,
+  );
+}
+
+/**
+ * ANNULER LE DÉMARRAGE — dans les dix secondes (9L36-ANNULER-DEMARRAGE-10S,
+ * décision d'Alexis du 23/11/2026, point 8 ; D282).
+ *
+ * **LE SEGMENT EST SUPPRIMÉ, PAS FERMÉ** : c'est la seule exception au
+ * régime de `segment_travail` (aucun temps compté, D119 — un segment fermé,
+ * lui, ne se modifie plus, `segment_travail_ferme_non_modifiable`). La
+ * migration qui l'accorde (`20261124090000_annuler_demarrage_9l36`) le
+ * borne en base, SOUS LE MÊME DÉLAI que ce module : un essai direct, hors
+ * application, après la fenêtre ne passe pas davantage.
+ *
+ * **QUATRE GARDES, DANS L'ORDRE OÙ ELLES SE LISENT LE PLUS VITE** :
+ *
+ *   1. un segment ouvert de LA PERSONNE CONNECTÉE — jamais un paramètre
+ *      d'intervention (même raison qu'`arreterLeCompteur`) : c'est le sien
+ *      qu'on annule, et demander laquelle ouvrirait la porte à un appelant
+ *      qui se tromperait de ligne ;
+ *   2. la FENÊTRE DE DIX SECONDES, côté SERVEUR (`peutAnnulerLeDemarrage`) ;
+ *   3. le PREMIER DÉMARRAGE SEULEMENT — aucun autre segment, fermé ou
+ *      ouvert, sur cette intervention. Revenir à `affectee` par ce geste
+ *      suppose que c'est de LÀ qu'on vient : une réouverture (`terminee` ou
+ *      `suspendue` → `en_cours`) a forcément un segment antérieur, et y
+ *      revenir effacerait une clôture ou une suspension que ce ticket ne
+ *      couvre pas — refusé, nommé, plutôt que deviné ;
+ *   4. AUCUNE SAISIE DEPUIS L'OUVERTURE DU SEGMENT — checklist, prestation,
+ *      signature, pièce remplacée (leur propre horodatage), et le rapport
+ *      (`commentaire_technicien`/`suite_a_donner`, qui n'en porte aucun en
+ *      propre : `intervention.modifie_le` le signale, le démarrage lui-même
+ *      l'ayant déjà posé à peu de millisecondes de `debut` — `MARGE_
+ *      ECRITURE_MS` couvre cet écart, jamais une saisie réelle, forcément
+ *      plus tardive qu'un aller-retour réseau entier).
+ */
+
+/** La marge entre l'écriture du segment et celle du statut, MÊME transaction. */
+const MARGE_ECRITURE_MS = 2_000;
+
+export async function annulerLeDemarrage(
+  contexte: ContexteSession,
+  instant: Date,
+  client?: PrismaClient,
+): Promise<ResultatCompteur> {
+  return avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const ouvert = await tx.segmentTravail.findFirst({
+        where: { utilisateur_id: contexte.utilisateurId, fin: null },
+        select: { ...CHAMPS, intervention_id: true },
+      });
+      if (ouvert === null) {
+        return {
+          accepte: false as const,
+          cle: "compteur.refus.aucun_en_cours",
+        };
+      }
+      const expire = peutAnnulerLeDemarrageDansLaFenetre(ouvert, instant);
+      if (expire !== null) {
+        return { accepte: false as const, cle: expire };
+      }
+      const autreSegment = await tx.segmentTravail.findFirst({
+        where: {
+          intervention_id: ouvert.intervention_id,
+          id: { not: ouvert.id },
+        },
+        select: { id: true },
+      });
+      if (autreSegment !== null) {
+        return {
+          accepte: false as const,
+          cle: "compteur.refus.annulation_reprise_non_couverte",
+        };
+      }
+      const intervention = await tx.intervention.findFirst({
+        where: { id: ouvert.intervention_id },
+        select: { statut: true, modifie_le: true },
+      });
+      if (intervention === null || intervention.statut !== "en_cours") {
+        return {
+          accepte: false as const,
+          cle: "compteur.refus.annulation_hors_en_cours",
+        };
+      }
+      if (
+        intervention.modifie_le.getTime() >
+        ouvert.debut.getTime() + MARGE_ECRITURE_MS
+      ) {
+        return {
+          accepte: false as const,
+          cle: "compteur.refus.annulation_saisie_faite",
+        };
+      }
+      const [checklist, prestation, signature, piece, document] =
+        await Promise.all([
+          tx.checklistReponse.findFirst({
+            where: {
+              intervention_id: ouvert.intervention_id,
+              repondu_le: { gt: ouvert.debut },
+            },
+            select: { id: true },
+          }),
+          tx.interventionPrestation.findFirst({
+            where: {
+              intervention_id: ouvert.intervention_id,
+              cree_le: { gt: ouvert.debut },
+            },
+            select: { id: true },
+          }),
+          tx.interventionSignature.findFirst({
+            where: {
+              intervention_id: ouvert.intervention_id,
+              cree_le: { gt: ouvert.debut },
+            },
+            select: { id: true },
+          }),
+          tx.interventionPieceRemplacee.findFirst({
+            where: {
+              intervention_id: ouvert.intervention_id,
+              cree_le: { gt: ouvert.debut },
+            },
+            select: { id: true },
+          }),
+          tx.document.findFirst({
+            where: {
+              intervention_id: ouvert.intervention_id,
+              cree_le: { gt: ouvert.debut },
+            },
+            select: { id: true },
+          }),
+        ]);
+      if (
+        checklist !== null ||
+        prestation !== null ||
+        signature !== null ||
+        piece !== null ||
+        document !== null
+      ) {
+        return {
+          accepte: false as const,
+          cle: "compteur.refus.annulation_saisie_faite",
+        };
+      }
+      // L'INTERVENTION D'ABORD, LE SEGMENT ENSUITE (ordre inversé par rapport
+      // à `demarrerLeCompteur`) : le déclencheur `intervention_cycle_de_vie`
+      // (D282) vérifie, SUR CETTE MÊME TRANSITION, qu'un segment ouvert dans
+      // la fenêtre existe ENCORE sur cette intervention — le supprimer
+      // avant ferait échouer sa propre garde.
+      await tx.intervention.update({
+        where: { id: ouvert.intervention_id },
+        data: { statut: "affectee" },
+      });
+      await tx.segmentTravail.delete({ where: { id: ouvert.id } });
+      return {
+        accepte: true as const,
+        segment: { id: ouvert.id, debut: ouvert.debut, fin: ouvert.fin },
       };
     },
     client,

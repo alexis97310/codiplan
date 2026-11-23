@@ -414,9 +414,19 @@ describe("R5-02 — les verrous du compteur", () => {
     });
   });
 
-  // ── 4. AUCUNE SUPPRESSION, ET ELLE EST REFUSÉE DEUX FOIS ─────────────────
+  // ── 4. UN SEGMENT FERMÉ NE SE SUPPRIME JAMAIS ; UN SEGMENT OUVERT, SEULEMENT
+  //      DIX SECONDES (D282, 9L36) ─────────────────────────────────────────
+  //
+  // **CE QUI A CHANGÉ (D282, 9L36)** : avant ce ticket, le privilège DELETE
+  // était refusé sans exception sur `segment_travail` — « Annuler le
+  // démarrage » exige qu'un segment OUVERT, ENCORE DANS LA FENÊTRE, se
+  // supprime (lib/interventions/depot-compteur.ts, annulerLeDemarrage). Le
+  // privilège existe désormais ; c'est un DÉCLENCHEUR, et lui seul, qui
+  // referme tout le reste — un segment FERMÉ, ou un segment ouvert depuis
+  // plus de treize secondes (dix, marge réseau comprise), prouve la MÊME
+  // règle qu'avant : le travail terrain ne se perd ni ne se réécrit (I5, I8).
 
-  it("un segment ne se SUPPRIME pas — ni privilège, ni politique", async () => {
+  it("un segment FERMÉ ne se supprime pas", async () => {
     const id = neuf();
     await sousInterne((tx) =>
       tx.$executeRawUnsafe(sql(id, TECHNICIEN, H8, H9)),
@@ -427,7 +437,7 @@ describe("R5-02 — les verrous du compteur", () => {
           `DELETE FROM "segment_travail" WHERE "id" = '${id}'`,
         ),
       ),
-    ).rejects.toThrow();
+    ).rejects.toThrow(/ne se supprime pas/);
 
     const privileges = await clientOwner().$queryRawUnsafe<
       Array<{ privilege_type: string }>
@@ -437,8 +447,40 @@ describe("R5-02 — les verrous du compteur", () => {
     );
     const verbes = privileges.map((p) => p.privilege_type);
     // TÉMOIN : la lecture a bien vu des privilèges, et non aucune ligne.
+    // DELETE EST ACCORDÉ depuis D282 (9L36) — le gardien est désormais le
+    // déclencheur ci-dessus, jamais plus le privilège.
     expect(verbes).toContain("INSERT");
-    expect(verbes).not.toContain("DELETE");
+    expect(verbes).toContain("DELETE");
+  });
+
+  it("un segment OUVERT depuis plus de treize secondes ne se supprime pas non plus", async () => {
+    const id = neuf();
+    const loin = new Date(Date.now() - 20_000);
+    await sousInterne((tx) =>
+      tx.$executeRawUnsafe(sql(id, TECHNICIEN, loin, null)),
+    );
+    await expect(
+      sousInterne((tx) =>
+        tx.$executeRawUnsafe(
+          `DELETE FROM "segment_travail" WHERE "id" = '${id}'`,
+        ),
+      ),
+    ).rejects.toThrow(/ne se supprime que dans les dix secondes/);
+  });
+
+  it("LE JUMEAU : un segment OUVERT, TOUT JUSTE ouvert, se supprime", async () => {
+    const id = neuf();
+    await sousInterne((tx) =>
+      tx.$executeRawUnsafe(sql(id, TECHNICIEN, new Date(), null)),
+    );
+    await expect(
+      sousInterne((tx) =>
+        tx.$executeRawUnsafe(
+          `DELETE FROM "segment_travail" WHERE "id" = '${id}'`,
+        ),
+      ),
+    ).resolves.toBe(1);
+    poses.length = 0; // déjà supprimé : rien à nettoyer dans `afterEach`.
   });
 
   // ── 5. LA CHAÎNE APPLICATIVE, DE BOUT EN BOUT ────────────────────────────

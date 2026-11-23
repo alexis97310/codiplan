@@ -153,9 +153,17 @@ export function BoutonCompteurTerrain({
         utilisateurId,
         societeId,
       }).then((entrees) => {
+        // `annuler_demarrage` (9L36, D282) EXCLU ICI : ce bouton ne connaît
+        // que « demarrer »/« arreter » — une annulation en file est l'affaire
+        // de `BoutonAnnulerDemarrage` seul (voir son docblock).
         const compteurs = entrees.filter(
-          (e): e is typeof e & { geste: { type: "compteur" } } =>
-            e.geste.type === "compteur",
+          (
+            e,
+          ): e is typeof e & {
+            geste: { type: "compteur"; action: "demarrer" | "arreter" };
+          } =>
+            e.geste.type === "compteur" &&
+            e.geste.action !== "annuler_demarrage",
         );
         const derniere = compteurs.at(-1);
         if (derniere === undefined) {

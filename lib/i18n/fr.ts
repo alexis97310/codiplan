@@ -3640,6 +3640,18 @@ export const fr = {
     "Cette saisie ne peut pas être acceptée. Revenez à l'intervention et réessayez.",
   "compteur.refus.saisie_differee_invalide":
     "L'heure ou l'identifiant transmis par l'appareil est incorrect. Revenez à l'intervention et réessayez.",
+  // 9L36-ANNULER-DEMARRAGE-10S (décision d'Alexis du 23/11/2026, point 8 ;
+  // D282) — « Annuler le démarrage ».
+  "compteur.refus.annulation_expiree":
+    "Plus de dix secondes se sont écoulées depuis le démarrage : il ne peut plus être annulé.",
+  "compteur.refus.annulation_reprise_non_couverte":
+    "Ce démarrage rouvre une intervention déjà travaillée : il ne peut pas être annulé par ce bouton.",
+  "compteur.refus.annulation_hors_en_cours":
+    "Il n'y a aucun démarrage à annuler.",
+  "compteur.refus.annulation_saisie_faite":
+    "Une saisie a déjà été faite depuis ce démarrage : il ne peut plus être annulé.",
+  "terrain.compteur.annuler_demarrage.bouton": "Annuler le démarrage",
+  "terrain.compteur.annuler_demarrage.secondes": "s",
   "statut.a_planifier": "À planifier",
   "statut.planifiee": "Planifiée",
   "statut.affectee": "Affectée",
