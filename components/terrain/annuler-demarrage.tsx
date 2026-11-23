@@ -192,10 +192,7 @@ export function BoutonAnnulerDemarrage({
         disabled={enEnvoi}
         onClick={() => void onClick()}
       >
-        {t("terrain.compteur.annuler_demarrage.bouton")}
-        {" "}
-        {secondesRestantes}
-        {" "}
+        {t("terrain.compteur.annuler_demarrage.bouton")} {secondesRestantes}{" "}
         {t("terrain.compteur.annuler_demarrage.secondes")}
       </Button>
       {refus === null ? null : (

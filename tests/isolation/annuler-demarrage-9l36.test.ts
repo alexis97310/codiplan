@@ -124,9 +124,10 @@ describe("9L36 — « Annuler le démarrage », dans les dix secondes (D282)", (
         segment: depart.segment,
       });
 
-      const intervention = await clientOwner().intervention.findUniqueOrThrow(
-        { where: { id: INTERVENTION_A2 }, select: { statut: true } },
-      );
+      const intervention = await clientOwner().intervention.findUniqueOrThrow({
+        where: { id: INTERVENTION_A2 },
+        select: { statut: true },
+      });
       expect(intervention.statut).toBe("affectee");
 
       const segment = await clientOwner().segmentTravail.findUnique({
@@ -139,19 +140,22 @@ describe("9L36 — « Annuler le démarrage », dans les dix secondes (D282)", (
       const id = uuidv7();
       poses.push(id);
       await sousInterne((tx) =>
-        tx.$executeRawUnsafe(sql(id, TECHNICIEN, new Date(Date.now() - 20_000), null)),
+        tx.$executeRawUnsafe(
+          sql(id, TECHNICIEN, new Date(Date.now() - 20_000), null),
+        ),
       );
       await clientOwner().$executeRawUnsafe(
         `UPDATE "intervention" SET "statut" = 'en_cours' WHERE "id" = '${INTERVENTION_A2}'`,
       );
 
-      expect(await annulerLeDemarrage(session, new Date(), clientApp())).toEqual(
-        { accepte: false, cle: "compteur.refus.annulation_expiree" },
-      );
+      expect(
+        await annulerLeDemarrage(session, new Date(), clientApp()),
+      ).toEqual({ accepte: false, cle: "compteur.refus.annulation_expiree" });
 
-      const intervention = await clientOwner().intervention.findUniqueOrThrow(
-        { where: { id: INTERVENTION_A2 }, select: { statut: true } },
-      );
+      const intervention = await clientOwner().intervention.findUniqueOrThrow({
+        where: { id: INTERVENTION_A2 },
+        select: { statut: true },
+      });
       expect(intervention.statut).toBe("en_cours");
       expect(
         await clientOwner().segmentTravail.findUnique({ where: { id } }),
@@ -168,9 +172,9 @@ describe("9L36 — « Annuler le démarrage », dans les dix secondes (D282)", (
         `UPDATE "intervention" SET "statut" = 'en_cours' WHERE "id" = '${INTERVENTION_A2}'`,
       );
 
-      expect(await annulerLeDemarrage(session, new Date(), clientApp())).toEqual(
-        { accepte: false, cle: "compteur.refus.aucun_en_cours" },
-      );
+      expect(
+        await annulerLeDemarrage(session, new Date(), clientApp()),
+      ).toEqual({ accepte: false, cle: "compteur.refus.aucun_en_cours" });
     });
 
     it("une saisie a déjà été faite depuis le démarrage : refusée AVEC SA CLÉ", async () => {
@@ -192,9 +196,12 @@ describe("9L36 — « Annuler le démarrage », dans les dix secondes (D282)", (
          VALUES ('${uuidv7()}', '${SOCIETE_A}', '${INTERVENTION_A2}', 'Courroie', 1, now(), now())`,
       );
 
-      expect(await annulerLeDemarrage(session, new Date(), clientApp())).toEqual(
-        { accepte: false, cle: "compteur.refus.annulation_saisie_faite" },
-      );
+      expect(
+        await annulerLeDemarrage(session, new Date(), clientApp()),
+      ).toEqual({
+        accepte: false,
+        cle: "compteur.refus.annulation_saisie_faite",
+      });
       expect(
         await clientOwner().segmentTravail.findUnique({
           where: { id: depart.segment.id },
@@ -227,12 +234,12 @@ describe("9L36 — « Annuler le démarrage », dans les dix secondes (D282)", (
       // le nettoyage, comme ci-dessus.
       poses.push(second.segment.id);
 
-      expect(await annulerLeDemarrage(session, new Date(), clientApp())).toEqual(
-        {
-          accepte: false,
-          cle: "compteur.refus.annulation_reprise_non_couverte",
-        },
-      );
+      expect(
+        await annulerLeDemarrage(session, new Date(), clientApp()),
+      ).toEqual({
+        accepte: false,
+        cle: "compteur.refus.annulation_reprise_non_couverte",
+      });
     });
   });
 
@@ -265,7 +272,9 @@ describe("9L36 — « Annuler le démarrage », dans les dix secondes (D282)", (
       const id = uuidv7();
       poses.push(id);
       await sousInterne((tx) =>
-        tx.$executeRawUnsafe(sql(id, TECHNICIEN, new Date(Date.now() - 20_000), null)),
+        tx.$executeRawUnsafe(
+          sql(id, TECHNICIEN, new Date(Date.now() - 20_000), null),
+        ),
       );
       await clientOwner().$executeRawUnsafe(
         `UPDATE "intervention" SET "statut" = 'en_cours' WHERE "id" = '${INTERVENTION_A2}'`,

@@ -71,11 +71,6 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
           "M8 — Ma journée : tri par priorité puis par date, carte « À faire maintenant » (maquette 01-journee).",
       },
       {
-        statut: "decision",
-        titre:
-          "M9 — « Annuler le démarrage » pendant 10 secondes : à trancher, le retour d'« en cours » vers « affectée » n'existe pas et le compteur fait foi (maquette 02-infos).",
-      },
-      {
         statut: "a_ecrire",
         titre:
           "P6 — Compléter le catalogue des prestations par l'import avant la mise en service (geste d'exploitation ; maquette 03-rapport).",
@@ -179,6 +174,11 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
   {
     titre: "Livré depuis le 31/10",
     elements: [
+      {
+        statut: "livre",
+        titre:
+          "M9 — « Annuler le démarrage » pendant 10 secondes : l'intervention revient à « affectée », le segment ouvert est supprimé, aucun temps compté (D282, 9L36).",
+      },
       {
         statut: "livre",
         titre:

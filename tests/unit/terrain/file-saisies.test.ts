@@ -462,6 +462,22 @@ describe("ajouterSaisie — jamais « gardée » sans preuve (point 2, C2)", () 
   });
 });
 
+describe("gesteReconnu à la lecture — « annuler_demarrage » (9L36, D282)", () => {
+  it("traverse sans changement, comme demarrer/arreter", async () => {
+    await ajouterSaisie({
+      ...IDENTITE,
+      interventionId: "i1",
+      geste: { type: "compteur", action: "annuler_demarrage" },
+    });
+    const file = await listerFilePourIntervention("i1", IDENTITE);
+    expect(file[0].geste).toEqual({
+      type: "compteur",
+      action: "annuler_demarrage",
+    });
+    expect(file[0].motifRefus).toBeNull();
+  });
+});
+
 describe("gesteReconnu à la lecture — l'ancien format n'est jamais gelé (9F4H6B-FILE-ANCIEN-FORMAT, point 1)", () => {
   it("une entrée `{prestationIds}` (avant 9F4H6A) devient `{ajouterIds, retirerIds:[]}` — AJOUTS seuls", async () => {
     await ajouterSaisie({

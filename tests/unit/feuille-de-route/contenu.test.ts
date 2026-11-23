@@ -15,7 +15,10 @@ import { SECTIONS_FEUILLE_DE_ROUTE } from "@/lib/feuille-de-route/contenu";
  *
  * 9L33-MAJORATION-REGLAGE-SOCIETE (23/11/2026, séance de décisions
  * d'Alexis) : M2 a été tranché (« on garde un seul écran ») et a migré vers
- * la section « Décisions prises » — cinq éléments restent ici.
+ * la section « Décisions prises » — cinq éléments restaient ici.
+ *
+ * 9L36-ANNULER-DEMARRAGE-10S (23/11/2026) : M9 est livré (D282) et a migré
+ * vers « Livré depuis le 31/10 » — quatre éléments restent ici.
  */
 describe("la section « Application technicien — audit du 10/11/2026 »", () => {
   const section = SECTIONS_FEUILLE_DE_ROUTE.find(
@@ -26,10 +29,9 @@ describe("la section « Application technicien — audit du 10/11/2026 »", () =
     expect(section).toBeDefined();
   });
 
-  it("porte ses cinq éléments restants, mot pour mot", () => {
+  it("porte ses quatre éléments restants, mot pour mot", () => {
     expect(section?.elements.map((e) => e.titre)).toEqual([
       "M8 — Ma journée : tri par priorité puis par date, carte « À faire maintenant » (maquette 01-journee).",
-      "M9 — « Annuler le démarrage » pendant 10 secondes : à trancher, le retour d'« en cours » vers « affectée » n'existe pas et le compteur fait foi (maquette 02-infos).",
       "P6 — Compléter le catalogue des prestations par l'import avant la mise en service (geste d'exploitation ; maquette 03-rapport).",
       "m8, m10b et m13 — En-tête sur une ligne ; « Se déconnecter » et « Installer l'application » dans Profil ; pastille « En ligne / Hors ligne · saisies en attente » (maquettes 01-journee et 07-profil).",
       "m11 et m12 — Bleu pour l'état actif, rouge réservé à l'erreur ; cases de 26 px : à trancher, les couleurs et la taille du texte du terrain sont déjà décidées (maquette 03-rapport).",
@@ -39,7 +41,6 @@ describe("la section « Application technicien — audit du 10/11/2026 »", () =
   it("porte les statuts attendus", () => {
     expect(section?.elements.map((e) => e.statut)).toEqual([
       "a_ecrire",
-      "decision",
       "a_ecrire",
       "a_ecrire",
       "decision",

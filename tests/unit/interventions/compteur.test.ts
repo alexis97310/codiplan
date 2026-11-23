@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   mesurer,
   minutesDepuisMillisecondes,
+  peutAnnulerLeDemarrage,
   peutArreter,
   peutDemarrer,
   segmentOuvert,
@@ -246,6 +247,29 @@ describe("l'heure de l'appareil, confrontée à celle du serveur", () => {
     expect(verifierInstantAppareil(T(10), septJoursMoinsUneMinute)).toBeNull();
     expect(verifierInstantAppareil(T(10), septJoursEtUneMinute)).toBe(
       "compteur.refus.instant_trop_ancien",
+    );
+  });
+});
+
+describe("peutAnnulerLeDemarrage — la fenêtre de dix secondes (9L36, D282)", () => {
+  it("permet l'annulation dans les dix secondes", () => {
+    const ouvert = segment(T(10), null);
+    expect(peutAnnulerLeDemarrage(ouvert, T(10, 0))).toBeNull();
+    const neufSecondesPlusTard = new Date(T(10).getTime() + 9_000);
+    expect(peutAnnulerLeDemarrage(ouvert, neufSecondesPlusTard)).toBeNull();
+  });
+
+  it("permet encore l'annulation dans la marge réseau, au-delà de dix secondes", () => {
+    const ouvert = segment(T(10), null);
+    const douzeSecondesPlusTard = new Date(T(10).getTime() + 12_000);
+    expect(peutAnnulerLeDemarrage(ouvert, douzeSecondesPlusTard)).toBeNull();
+  });
+
+  it("refuse au-delà de treize secondes (dix, plus la marge réseau), AVEC SA CLÉ", () => {
+    const ouvert = segment(T(10), null);
+    const quatorzeSecondesPlusTard = new Date(T(10).getTime() + 14_000);
+    expect(peutAnnulerLeDemarrage(ouvert, quatorzeSecondesPlusTard)).toBe(
+      "compteur.refus.annulation_expiree",
     );
   });
 });
