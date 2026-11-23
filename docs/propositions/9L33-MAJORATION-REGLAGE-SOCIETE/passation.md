@@ -113,3 +113,75 @@ seed` (Neon), puis Vercel.
   à chaque lot qui touche un écran capturé — ce lot ne tranche pas la question lui-même.
 - Aucune autre migration que celle-ci n'a été touchée ; `depot/` et les scripts de file n'ont pas
   été modifiés ; aucun push.
+
+## Reprise 9L33A-REPRISE-ABSENCE-ISOLATION
+
+9L33 était RECALÉ (`tickets/recales/9L33-MAJORATION-REGLAGE-SOCIETE.md`) sur `pnpm test:isolation`
+rouge, deux fois sur la MÊME cause, dans `tests/isolation/absence.test.ts` › RG-PLA-06 ›
+« LEVER LE BLOCAGE NE REND PAS LES CRÉNEAUX, et c'est écrit — LA TRACE SURVIT ».
+
+**1. Report.** Branche `9L33A-REPRISE-ABSENCE-ISOLATION` à jour d'`origin/main`
+(`c25a14f0d`, 9L32A). Les quatre commits de `9L33-MAJORATION-REGLAGE-SOCIETE-garde` reportés par
+cherry-pick, sans modification ; trois auto-fusions (`lib/i18n/fr.ts`,
+`tests/unit/auth/porte.test.ts`, `tests/unit/auth/route-capacite.ts`, `docs/arbitrages.md`,
+`lib/feuille-de-route/contenu.ts`), aucun conflit réel. Le travail de 9L33 lui-même n'est pas
+touché.
+
+**2. Mesure, avant de corriger.** Le test visé ne touche PAS `lib/interventions` ni l'oracle de
+calendrier ; 9L33 n'a ajouté qu'une contrainte `CHECK` sur `societe.majoration_hors_ouverture_pct`,
+sans rapport. `tests/isolation/absence.test.ts` seul : **vert, 25/25**, trois fois de suite.
+`pnpm test:isolation` en série (`--maxWorkers=1`, deux fois) et en parallélisme par défaut (deux
+fois) : **vert, 264/264 fichiers, 2551/2551 tests**, à chaque passage — aucune reproduction de la
+cause rapportée à 22:42 la veille. Le projet `isolation` de `vitest.config.mts` pose
+`fileParallelism: false` : aucune course entre fichiers n'est possible AU SEIN d'une même
+exécution de `pnpm test:isolation`, ce qui écarte l'hypothèse d'une collision avec le nouveau
+fichier d'isolation ajouté par 9L33 (`majoration-hors-ouverture-societe.test.ts`). Dans ce fichier,
+`LUNDI_A_VENIR` (la seule date CALCULÉE — « aujourd'hui + prochain lundi ouvert ») n'est utilisée
+qu'à CE seul endroit (ligne 465) ; les douze autres poses du fichier utilisent `LUNDI`, une date
+FIXE. Piste retenue, NON prouvée mais la seule qui survive à la mesure : deux processus
+`pnpm test:isolation` concurrents (deux worktrees/sessions sur ce poste, cf. mémoire
+« Bases de test sur le poste d'Alexis » — la base `codiplan_test` y est partagée) calculent la
+MÊME date (l'oracle n'est fonction que du calendrier réel et de « aujourd'hui ») et partagent le
+même UUID de fixture `TECHNICIEN` : une collision externe au test sur
+`intervention_sans_chevauchement_technicien`, pas une faute de logique du test ni du produit.
+
+**3. Correction appliquée.** La donnée du scénario (créneau, technicien, calendrier) est déjà celle
+voulue par 9L31A — rien à y changer sans réintroduire le risque que l'oracle a justement éliminé.
+Ce qui manquait réellement : le retour de la pose PRÉALABLE
+(`deplacerIntervention(..., deplacement(LUNDI_A_VENIR), ...)`, ligne 463) n'était pas vérifié —
+un refus silencieux (qu'il vienne d'une collision externe ou d'une cause future) aurait fait
+échouer l'assertion suivante sur `blocage.fiche.deplanifiees` égal à `[]` au lieu de
+`[interventionId]`, pointant vers RG-PLA-06 plutôt que vers sa vraie cause. Assertion ajoutée :
+`expect(posePrealable.accepte).toBe(true)`. Commit `14cc94b9d`.
+
+**4. Les autres scénarios du fichier qui déplacent sans vérifier le retour** (recherche demandée,
+non corrigés — hors de la cause mesurée, et leur date `LUNDI` est fixe donc hors du risque
+identifié) :
+  - ligne 516 — « REPLANIFIER (AVEC UNE DATE) EFFACE LA TRACE »
+  - ligne 548 — « UN DÉPLACEMENT SANS DATE NE TOUCHE PAS LA TRACE »
+  - ligne 883 — scénario de la section « l'alerte de rupture de service »
+
+**5. Localisateurs e2e de la même famille.** Recherche dans `tests/e2e/**` des locators non exacts,
+non scopés, ou qui comptent des boutons, susceptibles de rencontrer l'écran modifié par 9L33
+(`/parametres/societe`) : AUCUN risque trouvé. Trois boutons de cette page partagent le même nom
+accessible « Enregistrer » (`societe.montants_enregistrer`, `societe.delai_relance_enregistrer`,
+`societe.majoration_enregistrer`) mais aucun e2e existant ne les cible par ce nom — l'e2e de 9L33
+lui-même (`tests/e2e/9l33-majoration-reglage-societe.spec.ts`) clique via le sélecteur CSS du
+`<form action=".../majoration-hors-ouverture">`, jamais par le texte du bouton. Rien à corriger.
+
+**6. Épreuves rejouées, toutes au premier plan :**
+  - `tests/isolation/absence.test.ts` seul : vert (25/25), avec l'assertion ajoutée.
+  - `pnpm test:isolation` deux fois : vert (264 fichiers, 2551 tests) à chaque fois.
+  - `tests/e2e/9l33-majoration-reglage-societe.spec.ts` +
+    `tests/e2e/captures-9l33-majoration-reglage-societe.spec.ts` : vert (5/5).
+  - `tests/e2e/tous-les-ecrans-rendent.spec.ts` : vert (61 passés, 4 ignorés — les mêmes `skip`
+    nommés et préexistants, sans rapport avec ce lot).
+  - `pnpm test` (projet unit) : vert (538 fichiers, 6058 tests).
+  - `CI=1 pnpm verify` : vert de bout en bout (chaîné par `&&` — le `build` affiché en sortie
+    prouve que `format:check`, `typecheck`, `lint`, `test` et `test:isolation` l'ont précédé avec
+    succès).
+
+**Ce qui reste dû à Alexis, en plus de ce que 9L33 devait déjà :** si `test:isolation` redevient
+rouge sur ce même test un autre soir, regarder d'abord si une AUTRE session (`ps`, un autre
+worktree) faisait tourner `test:isolation` ou `verify` au même instant sur ce poste — la piste
+retenue ici n'a pas pu être confirmée positivement, seulement déduite par élimination.
