@@ -168,3 +168,89 @@ bruit de rendu (police, date affichée, etc.), pas une preuve de rien.
 Aucune migration. Aucune garde de 9L14 ou 9L19 assouplie. `depot/` et les scripts de file non touchés.
 `git fetch origin` + `git rebase origin/main` effectués en fin de lot : rien de neuf côté `origin/main`
 depuis le départ de la session, arbre propre. Jamais de push.
+
+## Reprise 9L32A-REPRISE-COLLISIONS-LUNDI
+
+### Reprise de branche
+
+`origin/main` au moment de la reprise était exactement `git merge-base origin/main
+9L32-PETITS-DEFAUTS-ET-LUNDI-garde` (comme pour 9L31B) : aucun commit publié entre-temps, donc la
+branche `9L32A-REPRISE-COLLISIONS-LUNDI` a été créée DIRECTEMENT sur la pointe de `-garde`, sans
+cherry-pick ni conflit.
+
+### Point 2 — la collision « un lundi » corrigée, PUIS une seconde du même genre trouvée en rejouant
+
+**Cause confirmée (et corrigée) en rejouant les quatre fichiers ensemble, un LUNDI RÉEL
+(23/11/2026)** : `affichage-materiel.spec.ts` réserve en permanence (aucun `afterAll`, par
+construction, voir son en-tête) deux fenêtres pour `technicienDucos` sur MARDI de la scène
+(`PLANIFIEE_SEULE` 07:00–07:30 LOCAL, `AVEC_MACHINE` 10:30–11:00 LOCAL) — qui ne coïncident avec
+« demain, en vrai » QUE le lundi. Trois scènes `captures-*` posaient le même technicien à l'heure UTC
+20 (→ LOCAL 07:00–08:00 de demain, chevauche `PLANIFIEE_SEULE`) et, masqué par l'avortement de boucle
+que 9L32 avait relevé sans le vérifier, à l'heure UTC 23 pour le cas `375px` de
+`captures-9f4h5-terrain-vivant.spec.ts` (→ LOCAL 10:00–11:00 de demain, chevauche `AVEC_MACHINE`,
+confirmé en tricycle par calcul, non par un `23P01` qui aurait fallu reproduire). Heures déplacées
+à 13–16 (toujours avant l'ouverture, hors de toute fenêtre réservée de MARDI : obstacle 21–23,
+`PLANIFIEE_SEULE` 20, `AVEC_MACHINE` 23). Rejoué ensemble (`affichage-materiel.spec.ts` +
+les trois `captures-*`) un LUNDI RÉEL : **16/16 verts, zéro `23P01`.**
+
+**Recherche d'une autre paire du même genre (demandée par le mandat)** : `parc-apercu-borne.spec.ts`
+et `bon-intervention.spec.ts` détruisent-recréent aussi leur fixture sans `afterAll` (même geste
+qu'`affichage-materiel.spec.ts`), mais aucun des deux ne pose `creneau_debut`/`creneau_fin` avec un
+`technicien_id` — hors du périmètre de la contrainte d'exclusion, donc rien à corriger là.
+
+**Une SECONDE paire du même genre, trouvée en rejouant le quart 3, pas par relecture de code** : la
+suite a franchi MINUIT EN COURS D'EXÉCUTION (la session a débuté un lundi 22h52, le quart 3 a tourné
+après minuit, devenu mardi). `fiche-entete-bandeau-frise.spec.ts` et `captures-9eq-fiche-onglets.spec.ts`
+lisent tous deux « aujourd'hui » EN DIRECT et posent `technicienDucos` à l'heure UTC 3 — qui retombe,
+en LOCAL, sur 14:00–15:00 quand « aujourd'hui » devient MARDI de la scène, exactement le créneau que
+`redimensionnable` (scène partagée) réserve pour ce même technicien sur MARDI. `23P01` mesuré sur
+`fiche-entete-bandeau-frise.spec.ts` (ligne 181, retry compris). Même famille que le point précédent
+(fixture éphémère « aujourd'hui » contre fixture persistante de la scène), déclencheur différent
+(minuit franchi, pas « lundi »). Heure déplacée à 9 dans les deux fichiers — vérifié hors de toute
+fenêtre de MARDI. Rejoué isolément (hors minuit) : **47/47 verts.**
+
+**Non recherché par relecture exhaustive** : d'autres paires qui ne se révéleraient QUE si la suite
+franchit encore minuit, ou QUE si elle tourne un autre jour de semaine particulier — le mandat suivant
+qui rejoue la suite entière au complet, à une heure différente, pourrait en révéler d'autres. Aucun
+gardien permanent n'a été écrit pour cette classe de défaut (contrairement au point 2 de 9L32 pour
+`lundiSansJourPasse`) — recommandation reprise de 9L32 : un script qui recense PROGRAMMATIQUEMENT
+toutes les fenêtres fixes du même technicien plutôt que de les trouver un `23P01` à la fois.
+
+### Point 3 — localisateurs de la même famille
+
+Aucun écran, libellé ou bouton n'a été touché dans ce lot (seules des heures de fixture e2e). Rien à
+rendre précis ici.
+
+### Épreuves jouées
+
+- Les quatre fichiers du point 2 (point initial) rejoués ensemble sur le LUNDI RÉEL : **16/16 verts**.
+- Suite e2e entière, `CI=1 npx playwright test --workers=1`, en QUATRE QUARTS :
+  - **Quart 1** (124 fichiers, 494 tests) : **494 passés, 0 échec, 28,1 min.**
+  - **Quart 2** (120 fichiers, 609 tests programmés) : **595 passés + 14 skips = 609, ZÉRO échec,
+    24,9 min** — c'est exactement le quart qui portait les 3 `23P01` avant correction : confirmé
+    résolu.
+  - **Quart 3** (123 fichiers) : interrompu par le `23P01` du point 2 (second cas, ci-dessus) après
+    428 tests passés, 2 skips, 6 non joués. **NON REJOUÉ EN ENTIER après la correction** — seul le
+    fichier en cause, revérifié isolément (47/47 verts, voir ci-dessus) ; budget de session épuisé
+    avant d'avoir pu relancer le quart complet.
+  - **Quart 4 (143 fichiers) : NON JOUÉ** — budget épuisé.
+- `CI=1 pnpm test` (projet `unit`) : **538 fichiers, 6041 tests, vert.**
+- `CI=1 pnpm test:isolation` : **263 fichiers, 2543 tests, vert** — joué seul, aucun `playwright`
+  en vol.
+- `CI=1 pnpm verify` (format:check + typecheck + lint + test + test:isolation + build) : **vert de
+  bout en bout** (build terminé sans erreur après les étapes précédentes, toutes vertes).
+- `CI=1 pnpm verify:full` : **non joué** — laissé à la file, comme le rappel du pilote le demande.
+
+**Pour la suite** : rejouer les quarts 3 (en entier) et 4 avant de considérer la suite e2e
+intégralement propre — rien n'indique un défaut dans ce qui n'a pas été rejoué, mais rien ne le
+garantit non plus tant que ce n'est pas mesuré.
+
+### Captures
+
+Aucun écran touché dans ce lot (fixtures e2e seulement) — rien à capturer. Les captures des lots
+précédents (9L31/9L31A/9L31B/9L32) restent valables.
+
+### Ce qui n'a pas été touché
+
+Aucune migration. Aucune garde assouplie, aucune assertion retirée ni élargie. `depot/` et les
+scripts de file non touchés. Jamais de push.
