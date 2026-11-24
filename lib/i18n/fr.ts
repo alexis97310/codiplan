@@ -8048,6 +8048,17 @@ export const fr = {
   // SON PROPRE TITRE.
   "terrain9f2.e2e.site_sans_date": "zz9F2B — Lieu Sans date",
 
+  // ── FIXTURES DE L'ÉPREUVE DE BOUT EN BOUT
+  // (tests/e2e/9l41-ma-journee-tri-a-faire.spec.ts) — préfixe `zz9l41-`,
+  // technicien dédié SANS la moindre ligne partagée (même recette que la
+  // scène « vide » de 9F2) : la priorité du tri et la carte « à faire
+  // maintenant » se mesurent sur un gagnant CERTAIN, jamais sur un décompte
+  // disputé avec le semis partagé.
+  "terrain9l41.e2e.client": "zz9L41 — Client de l'épreuve",
+  "terrain9l41.e2e.site_priorite_haute": "zz9L41 — Lieu priorité haute",
+  "terrain9l41.e2e.site_priorite_basse": "zz9L41 — Lieu priorité basse",
+  "terrain9l41.e2e.site_suspendue": "zz9L41 — Lieu suspendue",
+
   // ── FIXTURES DES ÉPREUVES DE BOUT EN BOUT (9F4H5-TERRAIN-VIVANT) ────────
   // (tests/e2e/9f4h5-compteur-vivant.spec.ts,
   // tests/e2e/9f4h5-nouvelle-intervention.spec.ts,

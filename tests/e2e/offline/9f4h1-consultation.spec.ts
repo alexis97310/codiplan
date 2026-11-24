@@ -136,7 +136,13 @@ test("journée et fiche se consultent sans réseau depuis la copie, le bandeau r
   await expect(
     page.getByRole("heading", { name: fr["terrain.hors_reseau.titre"] }),
   ).toBeVisible();
-  await expect(page.locator(`a[href*="${ficheId}"]`)).toBeVisible();
+  // `.first()` (9L41-MA-JOURNEE-TRI-A-FAIRE, M8) — depuis que la coquille
+  // peut montrer un APERÇU « à faire maintenant » en plus de la carte
+  // normale de cette même fiche, deux liens peuvent pointer vers le même
+  // `ficheId` ; les deux prouvent la même chose ici (la copie porte CETTE
+  // fiche), `.first()` lève la violation de mode strict sans affaiblir la
+  // preuve.
+  await expect(page.locator(`a[href*="${ficheId}"]`).first()).toBeVisible();
 
   // ── 4. LA FICHE, DEVENUE UNE FICHE DE TRAVAIL, PAR LIEN DIRECT (D120,
   //    précision D216 sous 9F4H4BA-REPRISE-9F4H4B : la garantie « lecture

@@ -265,7 +265,11 @@ test("ouverture à froid : compteur, rapport, photo, signature et Terminer, tous
   ).toBeVisible();
 
   // ── 3. OUVRE LA FICHE ───────────────────────────────────────────────────
-  await pageFroide.locator(`a[href*="${INTERVENTION_9F4H4B}"]`).click();
+  // `.first()` (9L41-MA-JOURNEE-TRI-A-FAIRE, M8) — si CETTE intervention est
+  // la gagnante de « à faire maintenant » sur le technicien PARTAGÉ, son lien
+  // apparaît une seconde fois, en haut de la coquille ; les deux mènent à la
+  // MÊME fiche.
+  await pageFroide.locator(`a[href*="${INTERVENTION_9F4H4B}"]`).first().click();
   await expect(
     pageFroide.getByRole("heading", { name: fr["terrain.compteur"] }),
   ).toBeVisible();
