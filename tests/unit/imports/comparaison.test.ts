@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { conserverLesChampsAbsents, porteEncore } from "@/lib/imports/comparaison";
+import {
+  conserverLesChampsAbsents,
+  porteEncore,
+} from "@/lib/imports/comparaison";
 
 /**
  * `porteEncore` — CINQ formes comparables (R6-03, et la cinquième ajoutée au
@@ -89,9 +92,7 @@ describe("conserverLesChampsAbsents — une cellule que le gabarit ne porte jama
     const avant = { annee_fabrication: 2018 };
     const prepare = { annee_fabrication: null };
 
-    expect(conserverLesChampsAbsents(prepare, avant, undefined)).toBe(
-      prepare,
-    );
+    expect(conserverLesChampsAbsents(prepare, avant, undefined)).toBe(prepare);
     expect(conserverLesChampsAbsents(prepare, avant, [])).toBe(prepare);
   });
 

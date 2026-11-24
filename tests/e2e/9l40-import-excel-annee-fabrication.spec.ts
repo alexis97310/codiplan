@@ -10,6 +10,7 @@ import { fr } from "@/lib/i18n";
 import { urlAdministration } from "./setup/base";
 import { fabriquerLeClasseurEquipements } from "./setup/classeur-equipements";
 import { reperesDeLaScene } from "./setup/reperes";
+import { SCENE_9L40 } from "./setup/scene-9l40";
 import { ouvrirUneSession } from "./setup/session";
 
 /**
@@ -149,7 +150,7 @@ test("l'année de fabrication saisie à la main SURVIT à un import qui modifie 
   });
   await page.getByRole("button", { name: fr["imports.controler"] }).click();
   await expect(page.locator('li[data-decompte="creations"]')).toContainText(
-    "1",
+    SCENE_9L40.unSeul,
   );
   await page.getByRole("button", { name: fr["imports.appliquer"] }).click();
   await expect(page.getByText(fr["imports.applique"])).toBeVisible();
@@ -169,12 +170,14 @@ test("l'année de fabrication saisie à la main SURVIT à un import qui modifie 
   // 2. SAISIE À LA MAIN — l'écran de modification, jamais l'import, qui
   //    n'expose pas ce champ.
   await page.goto(`/parc/${machineId}/modifier`);
-  await page.locator('input[name="annee_fabrication"]').fill("2016");
+  await page
+    .locator('input[name="annee_fabrication"]')
+    .fill(SCENE_9L40.anneeFabrication);
   await page
     .getByRole("button", { name: fr["machine.action.enregistrer"] })
     .click();
   await expect(page).toHaveURL(new RegExp(`/parc/${machineId}(\\?|$)`));
-  await expect(page.getByText("2016")).toBeVisible();
+  await expect(page.getByText(SCENE_9L40.anneeFabrication)).toBeVisible();
   await capturer(page, "9l40-fiche-annee-saisie", 1280);
 
   // 3. SECOND IMPORT : la MÊME machine, une colonne DIFFÉRENTE change
@@ -198,9 +201,9 @@ test("l'année de fabrication saisie à la main SURVIT à un import qui modifie 
     ]),
   });
   await page.getByRole("button", { name: fr["imports.controler"] }).click();
-  await expect(
-    page.locator('li[data-decompte="modifications"]'),
-  ).toContainText("1");
+  await expect(page.locator('li[data-decompte="modifications"]')).toContainText(
+    SCENE_9L40.unSeul,
+  );
   await capturer(page, "9l40-rapport-import", 1280);
   await page.getByRole("button", { name: fr["imports.appliquer"] }).click();
   await expect(page.getByText(fr["imports.applique"])).toBeVisible();
@@ -216,12 +219,12 @@ test("l'année de fabrication saisie à la main SURVIT à un import qui modifie 
       select: { localisation: true, annee_fabrication: true },
     });
     expect(apres.localisation).toBe("9L40-Localisation modifiée");
-    expect(apres.annee_fabrication).toBe(2016);
+    expect(apres.annee_fabrication).toBe(Number(SCENE_9L40.anneeFabrication));
   } finally {
     await verif.$disconnect();
   }
 
   await page.goto(`/parc/${machineId}`);
-  await expect(page.getByText("2016")).toBeVisible();
+  await expect(page.getByText(SCENE_9L40.anneeFabrication)).toBeVisible();
   await capturer(page, "9l40-fiche-apres-import", 1280);
 });

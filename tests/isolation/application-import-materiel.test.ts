@@ -699,10 +699,9 @@ describe("9L40 — une modification venue du gabarit ne touche jamais une colonn
     // test rejoue le témoin déjà écrit plus haut (« le site d'une autre
     // société est introuvable ») pour s'assurer que ce lot n'a RIEN changé à
     // ce cloisonnement.
-    const { creations, modifications, motifs } = await deposer(
-      "equipements",
-      [equipement("R6M-ISOLATION-9L40", "", "Site B1-1")],
-    );
+    const { creations, modifications, motifs } = await deposer("equipements", [
+      equipement("R6M-ISOLATION-9L40", "", "Site B1-1"),
+    ]);
     expect(motifs).toEqual(["site_introuvable"]);
     expect(creations).toBe(0);
     expect(modifications).toBe(0);
