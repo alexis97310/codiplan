@@ -107,16 +107,6 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
     ],
   },
   {
-    titre: "Décisions en attente",
-    elements: [
-      {
-        statut: "decision",
-        titre:
-          "Gardes en base de 9L19 (chevauchement d'un technicien, segment fermé, annulation, clôture) : lot arrêté après trois essais, deux scènes de test à corriger — reprise à décider.",
-      },
-    ],
-  },
-  {
     titre: "Décisions prises",
     elements: [
       {
@@ -142,7 +132,7 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
       {
         statut: "tranche",
         titre:
-          "Historique des emplacements d'une machine : visible à tout rôle qui voit la fiche (pas seulement l'administration et la direction) ; déplacer la machine réservé au bureau, sans le technicien. Tranché le 23/11/2026 (D280) — la seconde moitié (historique) reste BLOQUÉE, voir « Bloqué / en enquête ».",
+          "Historique des emplacements d'une machine : visible à tout rôle qui voit la fiche (pas seulement l'administration et la direction) ; déplacer la machine réservé au bureau, sans le technicien. Tranché le 23/11/2026 (D280), les deux moitiés livrées — voir « Livré depuis le 31/10 ».",
       },
       {
         statut: "tranche",
@@ -162,11 +152,6 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
       {
         statut: "bloque",
         titre:
-          "Historique des emplacements visible à tout rôle (D280, 9L34) : la lecture passe par le journal d'audit, dont la politique RLS `journal_audit_lecture` n'ouvre qu'à admin_societe/direction — l'ouvrir aux autres rôles exige une migration (nouvelle politique scopée aux seules lignes de déplacement d'UNE machine), qu'aucun lot n'a encore posée.",
-      },
-      {
-        statut: "bloque",
-        titre:
           "Bouton « Reprendre » après une suspension, sur le terrain : erreur non expliquée en base (enquêtes 9L08C, 9L08CA, 9L29) ; cause soupçonnée dans la bibliothèque d'accès à la base ; bouton retiré en attendant. Le « Reprendre » du bureau utilise la même fonction : à vérifier en production.",
       },
     ],
@@ -174,6 +159,16 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
   {
     titre: "Livré depuis le 31/10",
     elements: [
+      {
+        statut: "livre",
+        titre:
+          "Historique des emplacements d'une machine, lecture ouverte à tout rôle qui voit la fiche (ADMS, DIR, RM, RS, ADV) — déplacer la machine reste réservé au bureau (D283, 9L38).",
+      },
+      {
+        statut: "livre",
+        titre:
+          "Gardes en base de 9L19 (chevauchement d'un technicien, segment fermé, annulation, clôture) : les quatre gardes posées, dont l'exemption nommée de l'archive sans temps (D277, 9L19).",
+      },
       {
         statut: "livre",
         titre:
