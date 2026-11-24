@@ -234,6 +234,11 @@ export default async function PageMateriel({
           ? "sous-type"
           : null;
   const idEdite = typeof params.id === "string" ? params.id : undefined;
+  // LA SAISIE GARDÉE APRÈS UN REFUS (9L39-MATERIEL-DEUXIEME-PASSE, point 3)
+  // — ce que `versLeReferentiel` (`saisie-recue.ts`) reporte en `cr_*`.
+  // `undefined` quand aucun refus n'a eu lieu : le volet affiche alors les
+  // valeurs DE LA BASE, comme avant ce lot.
+  const champsSoumis = champsSoumisDepuis(params);
   const familleEditee =
     voletType === "famille" && idEdite !== undefined
       ? familles.find((f) => f.id === idEdite)
@@ -353,10 +358,43 @@ export default async function PageMateriel({
           ongletActif={ongletActif}
           filtres={filtres}
           familleFiltre={familleActive?.id}
+          champsSoumis={champsSoumis}
         />
       ) : null}
     </Page>
   );
+}
+
+const NOMS_CHAMPS_SOUMIS = [
+  "code",
+  "libelle",
+  "actif",
+  "famille_id",
+  "sous_type_id",
+  "marque",
+  "reference",
+  "periodicite_jours",
+  "periodicite_compteur",
+] as const;
+
+/**
+ * LA SAISIE REFUSÉE, LUE DE L'URL — préfixe `cr_` (voir `saisie-recue.ts`).
+ * `undefined` si AUCUN de ces paramètres n'est présent : un volet ouvert
+ * sans refus préalable (ex. « Modifier » depuis la liste) n'en porte aucun,
+ * et doit afficher les valeurs de la base, pas un objet vide qui les
+ * masquerait.
+ */
+function champsSoumisDepuis(
+  params: Record<string, string | string[] | undefined>,
+): Record<string, string> | undefined {
+  const champs: Record<string, string> = {};
+  for (const nom of NOMS_CHAMPS_SOUMIS) {
+    const valeur = params[`cr_${nom}`];
+    if (typeof valeur === "string") {
+      champs[nom] = valeur;
+    }
+  }
+  return Object.keys(champs).length === 0 ? undefined : champs;
 }
 
 /** Une recherche vide ne filtre rien ; sinon, accents et casse sont ignorés. */
@@ -1049,9 +1087,13 @@ function entretienAffiche(modele: LigneModele): string {
 }
 
 /**
- * LES ACTIONS D'UNE LIGNE — « Modifier » (ouvre le volet) et la bascule
- * d'activité, dans la MÊME cellule : une colonne de plus aurait recréé le
- * défaut d'alignement que ce lot répare (AT-04, point 4).
+ * LES ACTIONS D'UNE LIGNE — l'état ÉCRIT EN CLAIR (9L39-MATERIEL-DEUXIEME-
+ * PASSE, point 2 : « Actif » / « Inactif » en toutes lettres, jamais la
+ * seule couleur du bouton — accessibilité), « Modifier » (ouvre le volet) et
+ * la bascule d'activité, dans la MÊME cellule : une colonne de plus aurait
+ * recréé le défaut d'alignement que AT-04 (point 4) répare. Même mécanique
+ * que `app/(back-office)/parametres/prestations/page.tsx` : le mot est
+ * TOUJOURS affiché, le bouton de bascule seulement si `peutEcrire`.
  *
  * L'état VISÉ de la bascule voyage dans le corps plutôt que d'être déduit :
  * *une bascule aveugle inverserait un état qu'un autre onglet vient de
@@ -1070,11 +1112,15 @@ function ActionsLigne({
   readonly actif: boolean;
   readonly suite: Suite;
 }) {
+  const etatEnClair = (
+    <span>{actif ? t("materiel.active") : t("materiel.inactive")}</span>
+  );
   if (!peutEcrire) {
-    return <span>{actif ? t("materiel.active") : t("materiel.inactive")}</span>;
+    return etatEnClair;
   }
   return (
     <div className="flex flex-wrap items-center gap-2">
+      {etatEnClair}
       <Button variant="outline" size="sm" asChild>
         <Link href={hrefModifier}>{t("materiel.modifier")}</Link>
       </Button>
@@ -1251,6 +1297,7 @@ function VoletMateriel({
   ongletActif,
   filtres,
   familleFiltre,
+  champsSoumis,
 }: {
   readonly type: TypeVolet;
   readonly famille: LigneFamille | undefined;
@@ -1261,6 +1308,7 @@ function VoletMateriel({
   readonly ongletActif: OngletMateriel;
   readonly filtres: Filtres;
   readonly familleFiltre: string | undefined;
+  readonly champsSoumis: Record<string, string> | undefined;
 }) {
   const hrefFermer = hrefFermerVolet(ongletActif, filtres, familleFiltre);
   const suite: Suite = { onglet: ongletActif, filtres, familleFiltre };
@@ -1297,6 +1345,7 @@ function VoletMateriel({
           valeurs={famille}
           hrefAnnuler={hrefFermer}
           suite={suite}
+          soumis={champsSoumis}
         />
       ) : type === "modele" ? (
         <FormulaireModele
@@ -1315,6 +1364,7 @@ function VoletMateriel({
           valeurs={modele}
           hrefAnnuler={hrefFermer}
           suite={suite}
+          soumis={champsSoumis}
         />
       ) : (
         <FormulaireSousType
@@ -1332,6 +1382,7 @@ function VoletMateriel({
           valeurs={sousType}
           hrefAnnuler={hrefFermer}
           suite={suite}
+          soumis={champsSoumis}
         />
       )}
       {type === "famille" ? (
@@ -1373,12 +1424,14 @@ function FormulaireFamille({
   valeurs,
   hrefAnnuler,
   suite,
+  soumis,
 }: {
   readonly action: string;
   readonly soumettre: string;
   readonly valeurs?: LigneFamille;
   readonly hrefAnnuler: string;
   readonly suite: Suite;
+  readonly soumis?: Record<string, string>;
 }) {
   const prefixe = valeurs?.id ?? NOUVEAU;
   return (
@@ -1388,19 +1441,34 @@ function FormulaireFamille({
         id={`${prefixe}-code`}
         nom="code"
         libelle={t("materiel.code")}
-        valeur={valeurs?.code}
+        valeur={soumis?.code ?? valeurs?.code}
       />
       <Champ
         id={`${prefixe}-libelle`}
         nom="libelle"
         libelle={t("materiel.libelle")}
-        valeur={valeurs?.libelle}
+        valeur={soumis?.libelle ?? valeurs?.libelle}
         large
       />
-      <CaseActive defaut={valeurs?.actif ?? true} />
+      <CaseActive defaut={etatActifAffiche(soumis, valeurs)} />
       <PiedDuVolet hrefAnnuler={hrefAnnuler} soumettre={soumettre} />
     </form>
   );
+}
+
+/**
+ * L'ÉTAT ACTIF AFFICHÉ PAR LA CASE DU VOLET — la saisie refusée prime sur la
+ * base (9L39-MATERIEL-DEUXIEME-PASSE, point 3) ; sans refus, une création
+ * naît active (`true`), comme avant ce lot.
+ */
+function etatActifAffiche(
+  soumis: Record<string, string> | undefined,
+  valeurs: { readonly actif: boolean } | undefined,
+): boolean {
+  if (soumis?.actif !== undefined) {
+    return soumis.actif === "oui";
+  }
+  return valeurs?.actif ?? true;
 }
 
 function FormulaireModele({
@@ -1411,6 +1479,7 @@ function FormulaireModele({
   valeurs,
   hrefAnnuler,
   suite,
+  soumis,
 }: {
   readonly action: string;
   readonly familles: readonly LigneFamille[];
@@ -1419,14 +1488,16 @@ function FormulaireModele({
   readonly valeurs?: LigneModele;
   readonly hrefAnnuler: string;
   readonly suite: Suite;
+  readonly soumis?: Record<string, string>;
 }) {
   const prefixe = valeurs?.id ?? NOUVEAU;
   // LA FAMILLE « DÉFAUT » DE CE FORMULAIRE — celle qui pré-sélectionne le
   // `<select>` ci-dessous ET borne le choix du sous-type (voir l'en-tête du
   // fichier, LIMITE CONNUE : changer la famille sans recharger ne met pas à
   // jour la liste de sous-types, ce formulaire n'ayant aucune interactivité
-  // côté client).
-  const familleParDefaut = valeurs?.famille_id ?? familles[0]?.id;
+  // côté client). La saisie refusée (`soumis`) prime sur la base.
+  const familleParDefaut =
+    soumis?.famille_id ?? valeurs?.famille_id ?? familles[0]?.id;
   const sousTypesChoisissables = sousTypes.filter(
     (s) => s.actif && s.famille_id === familleParDefaut,
   );
@@ -1469,7 +1540,7 @@ function FormulaireModele({
         <select
           id={`${prefixe}-sous-type`}
           name="sous_type_id"
-          defaultValue={valeurs?.sous_type_id ?? ""}
+          defaultValue={soumis?.sous_type_id ?? valeurs?.sous_type_id ?? ""}
           className="border-app-bord bg-app-surface min-w-44 rounded-md border px-2 py-1 text-13 font-bold"
         >
           <option value="">{t("materiel.sous_type_aucun")}</option>
@@ -1484,30 +1555,35 @@ function FormulaireModele({
         id={`${prefixe}-marque`}
         nom="marque"
         libelle={t("materiel.marque")}
-        valeur={valeurs?.marque}
+        valeur={soumis?.marque ?? valeurs?.marque}
       />
       <Champ
         id={`${prefixe}-reference`}
         nom="reference"
         libelle={t("materiel.reference")}
-        valeur={valeurs?.reference}
+        valeur={soumis?.reference ?? valeurs?.reference}
         large
       />
       <Champ
         id={`${prefixe}-jours`}
         nom="periodicite_jours"
         libelle={t("materiel.periodicite_jours")}
-        valeur={texteOuVide(valeurs?.periodicite_jours)}
+        valeur={
+          soumis?.periodicite_jours ?? texteOuVide(valeurs?.periodicite_jours)
+        }
         nombre
       />
       <Champ
         id={`${prefixe}-compteur`}
         nom="periodicite_compteur"
         libelle={t("materiel.periodicite_compteur")}
-        valeur={texteOuVide(valeurs?.periodicite_compteur)}
+        valeur={
+          soumis?.periodicite_compteur ??
+          texteOuVide(valeurs?.periodicite_compteur)
+        }
         nombre
       />
-      <CaseActive defaut={valeurs?.actif ?? true} />
+      <CaseActive defaut={etatActifAffiche(soumis, valeurs)} />
       <PiedDuVolet hrefAnnuler={hrefAnnuler} soumettre={soumettre} />
     </form>
   );
@@ -1521,6 +1597,7 @@ function FormulaireSousType({
   valeurs,
   hrefAnnuler,
   suite,
+  soumis,
 }: {
   readonly action: string;
   readonly familles: readonly LigneFamille[];
@@ -1528,6 +1605,7 @@ function FormulaireSousType({
   readonly valeurs?: LigneSousType;
   readonly hrefAnnuler: string;
   readonly suite: Suite;
+  readonly soumis?: Record<string, string>;
 }) {
   const prefixe = valeurs?.id ?? NOUVEAU;
   return (
@@ -1544,7 +1622,9 @@ function FormulaireSousType({
         <select
           id={`${prefixe}-famille`}
           name="famille_id"
-          defaultValue={valeurs?.famille_id ?? familles[0]?.id}
+          defaultValue={
+            soumis?.famille_id ?? valeurs?.famille_id ?? familles[0]?.id
+          }
           className="border-app-bord bg-app-surface min-w-44 rounded-md border px-2 py-1 text-13 font-bold"
         >
           {familles.map((famille) => (
@@ -1558,16 +1638,16 @@ function FormulaireSousType({
         id={`${prefixe}-code`}
         nom="code"
         libelle={t("materiel.code")}
-        valeur={valeurs?.code}
+        valeur={soumis?.code ?? valeurs?.code}
       />
       <Champ
         id={`${prefixe}-libelle`}
         nom="libelle"
         libelle={t("materiel.libelle")}
-        valeur={valeurs?.libelle}
+        valeur={soumis?.libelle ?? valeurs?.libelle}
         large
       />
-      <CaseActive defaut={valeurs?.actif ?? true} />
+      <CaseActive defaut={etatActifAffiche(soumis, valeurs)} />
       <PiedDuVolet hrefAnnuler={hrefAnnuler} soumettre={soumettre} />
     </form>
   );

@@ -3,7 +3,11 @@ import { exigerCapaciteComplete, motifDuRefus } from "@/lib/auth/porte";
 import { modifierFamille } from "@/lib/materiel/depot";
 import { suiteRecue } from "@/lib/materiel/suite";
 
-import { saisieFamilleRecue, versLeReferentiel } from "../../../saisie-recue";
+import {
+  champsResoumisFamille,
+  saisieFamilleRecue,
+  versLeReferentiel,
+} from "../../../saisie-recue";
 
 /**
  * MODIFIER UNE FAMILLE DE MATÉRIEL (L1-05b).
@@ -31,12 +35,14 @@ async function traiter(
   if (contexte === null) {
     return versLeReferentiel({ suite, motif: await motifDuRefus() });
   }
+  const champs = champsResoumisFamille(formulaire);
   const saisie = saisieFamilleRecue(formulaire);
   if (saisie === null) {
     return versLeReferentiel({
       suite,
       motif: "materiel.refus.saisie",
       volet: { type: "famille", id },
+      champs,
     });
   }
   const resultat = await modifierFamille(contexte, id, saisie);
@@ -45,6 +51,7 @@ async function traiter(
       suite,
       motif: `materiel.refus.${resultat.motif}`,
       volet: { type: "famille", id },
+      champs,
     });
   }
   return versLeReferentiel({ suite, ligne: id });

@@ -3,7 +3,11 @@ import { exigerCapaciteComplete, motifDuRefus } from "@/lib/auth/porte";
 import { modifierSousType } from "@/lib/materiel/depot";
 import { suiteRecue } from "@/lib/materiel/suite";
 
-import { saisieSousTypeRecue, versLeReferentiel } from "../../../saisie-recue";
+import {
+  champsResoumisSousType,
+  saisieSousTypeRecue,
+  versLeReferentiel,
+} from "../../../saisie-recue";
 
 /**
  * MODIFIER UN SOUS-TYPE STRUCTURÉ DE MATÉRIEL (D238, ticket 9K17A).
@@ -29,12 +33,14 @@ async function traiter(
   if (contexte === null) {
     return versLeReferentiel({ suite, motif: await motifDuRefus() });
   }
+  const champs = champsResoumisSousType(formulaire);
   const saisie = saisieSousTypeRecue(formulaire);
   if (saisie === null) {
     return versLeReferentiel({
       suite,
       motif: "materiel.refus.saisie",
       volet: { type: "sous-type", id },
+      champs,
     });
   }
   const resultat = await modifierSousType(contexte, id, saisie);
@@ -43,6 +49,7 @@ async function traiter(
       suite,
       motif: `materiel.refus.${resultat.motif}`,
       volet: { type: "sous-type", id },
+      champs,
     });
   }
   return versLeReferentiel({ suite, ligne: id });

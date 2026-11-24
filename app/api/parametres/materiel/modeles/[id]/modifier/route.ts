@@ -3,7 +3,11 @@ import { exigerCapaciteComplete, motifDuRefus } from "@/lib/auth/porte";
 import { modifierModele } from "@/lib/materiel/depot";
 import { suiteRecue } from "@/lib/materiel/suite";
 
-import { saisieModeleRecue, versLeReferentiel } from "../../../saisie-recue";
+import {
+  champsResoumisModele,
+  saisieModeleRecue,
+  versLeReferentiel,
+} from "../../../saisie-recue";
 
 /**
  * MODIFIER UN MODÈLE DE MATÉRIEL (L1-05b).
@@ -30,12 +34,14 @@ async function traiter(
   if (contexte === null) {
     return versLeReferentiel({ suite, motif: await motifDuRefus() });
   }
+  const champs = champsResoumisModele(formulaire);
   const saisie = saisieModeleRecue(formulaire);
   if (saisie === null) {
     return versLeReferentiel({
       suite,
       motif: "materiel.refus.saisie",
       volet: { type: "modele", id },
+      champs,
     });
   }
   const resultat = await modifierModele(contexte, id, saisie);
@@ -44,6 +50,7 @@ async function traiter(
       suite,
       motif: `materiel.refus.${resultat.motif}`,
       volet: { type: "modele", id },
+      champs,
     });
   }
   return versLeReferentiel({ suite, ligne: id });

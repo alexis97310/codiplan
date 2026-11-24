@@ -3,7 +3,11 @@ import { exigerCapaciteComplete, motifDuRefus } from "@/lib/auth/porte";
 import { creerFamille } from "@/lib/materiel/depot";
 import { suiteRecue } from "@/lib/materiel/suite";
 
-import { saisieFamilleRecue, versLeReferentiel } from "../../saisie-recue";
+import {
+  champsResoumisFamille,
+  saisieFamilleRecue,
+  versLeReferentiel,
+} from "../../saisie-recue";
 
 /**
  * CRÉER UNE FAMILLE DE MATÉRIEL (L1-05b).
@@ -27,12 +31,14 @@ async function traiter(requete: Request): Promise<Response> {
   if (contexte === null) {
     return versLeReferentiel({ suite, motif: await motifDuRefus() });
   }
+  const champs = champsResoumisFamille(formulaire);
   const saisie = saisieFamilleRecue(formulaire);
   if (saisie === null) {
     return versLeReferentiel({
       suite,
       motif: "materiel.refus.saisie",
       volet: { type: "famille" },
+      champs,
     });
   }
   const resultat = await creerFamille(contexte, saisie);
@@ -41,6 +47,7 @@ async function traiter(requete: Request): Promise<Response> {
       suite,
       motif: `materiel.refus.${resultat.motif}`,
       volet: { type: "famille" },
+      champs,
     });
   }
   return versLeReferentiel({ suite, ligne: resultat.id });

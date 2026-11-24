@@ -75,6 +75,47 @@ function sousTypeOuAbsence(formulaire: FormData): string | null {
   return brut === null || brut === "" ? null : brut;
 }
 
+/**
+ * CE QUI AVAIT ÉTÉ SOUMIS POUR UNE FAMILLE, capturé AVANT toute validation
+ * (9L39-MATERIEL-DEUXIEME-PASSE, point 3) — voir `versLeReferentiel`.
+ */
+export function champsResoumisFamille(
+  formulaire: FormData,
+): Record<string, string> {
+  return {
+    code: champ(formulaire, "code") ?? "",
+    libelle: champ(formulaire, "libelle") ?? "",
+    actif: formulaire.get("actif") !== null ? "oui" : "non",
+  };
+}
+
+/** Même raison que `champsResoumisFamille`, pour un modèle. */
+export function champsResoumisModele(
+  formulaire: FormData,
+): Record<string, string> {
+  return {
+    famille_id: champ(formulaire, "famille_id") ?? "",
+    sous_type_id: champ(formulaire, "sous_type_id") ?? "",
+    marque: champ(formulaire, "marque") ?? "",
+    reference: champ(formulaire, "reference") ?? "",
+    periodicite_jours: champ(formulaire, "periodicite_jours") ?? "",
+    periodicite_compteur: champ(formulaire, "periodicite_compteur") ?? "",
+    actif: formulaire.get("actif") !== null ? "oui" : "non",
+  };
+}
+
+/** Même raison que `champsResoumisFamille`, pour un sous-type. */
+export function champsResoumisSousType(
+  formulaire: FormData,
+): Record<string, string> {
+  return {
+    famille_id: champ(formulaire, "famille_id") ?? "",
+    code: champ(formulaire, "code") ?? "",
+    libelle: champ(formulaire, "libelle") ?? "",
+    actif: formulaire.get("actif") !== null ? "oui" : "non",
+  };
+}
+
 export function saisieSousTypeRecue(
   formulaire: FormData,
 ): SaisieSousTypeMateriel | null {
@@ -107,12 +148,21 @@ function nombreOuAbsence(formulaire: FormData, nom: string): number | null {
  * rouvre le même volet plutôt que de le fermer — la saisie refusée reste sous
  * les yeux. `ligne`, donné au succès, repère la ligne créée ou modifiée pour
  * que `LigneReperee` (`components/materiel/ligne-reperee.tsx`) y défile.
+ *
+ * `champs`, donné au REFUS avec `volet` (9L39-MATERIEL-DEUXIEME-PASSE, point
+ * 3) — CE QUI AVAIT ÉTÉ SOUMIS, capturé AVANT toute validation, même
+ * mécanique que `app/api/clients/creer/formulaire.ts` et
+ * `app/api/parametres/agences/creer/formulaire.ts`. Préfixés `cr_` pour ne
+ * jamais heurter un paramètre existant (`onglet`, `famille`, `q`, `etat`,
+ * `volet`, `id`, `motif`, `ligne`) ; le volet rouvert les lit pour réafficher
+ * la saisie refusée plutôt que les valeurs de la base.
  */
 export function versLeReferentiel(options: {
   readonly suite: Suite;
   readonly motif?: string;
   readonly ligne?: string;
   readonly volet?: { readonly type: TypeVolet; readonly id?: string };
+  readonly champs?: Readonly<Record<string, string>>;
 }): Response {
   const params = paramsDeLaSuite(options.suite);
   if (options.motif !== undefined) {
@@ -125,6 +175,11 @@ export function versLeReferentiel(options: {
     params.set("volet", options.volet.type);
     if (options.volet.id !== undefined) {
       params.set("id", options.volet.id);
+    }
+  }
+  if (options.champs !== undefined) {
+    for (const [nom, valeur] of Object.entries(options.champs)) {
+      params.set(`cr_${nom}`, valeur);
     }
   }
   const requete = params.toString();

@@ -145,4 +145,26 @@ describe("versLeReferentiel — le cas d'Alexis (le cas d'Alexis exactement, poi
     expect(url.pathname).toBe("/parametres/materiel");
     expect(url.search).toBe("");
   });
+
+  it("9L39 point 3 — `champs` voyage préfixé `cr_`, et seulement au refus", () => {
+    const url = urlDeRetour(
+      versLeReferentiel({
+        suite: SUITE_MODELES,
+        motif: "materiel.refus.saisie",
+        volet: { type: "modele" },
+        champs: { marque: "Ravaglioli", reference: "" },
+      }),
+    );
+    expect(url.searchParams.get("cr_marque")).toBe("Ravaglioli");
+    expect(url.searchParams.get("cr_reference")).toBe("");
+  });
+
+  it("9L39 point 3 — sans `champs`, aucun paramètre `cr_*` n'apparaît", () => {
+    const url = urlDeRetour(
+      versLeReferentiel({ suite: SUITE_MODELES, ligne: LIGNE }),
+    );
+    expect(
+      [...url.searchParams.keys()].some((cle) => cle.startsWith("cr_")),
+    ).toBe(false);
+  });
 });
