@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 
 import { PhotosTerrain } from "@/components/interventions/photos-terrain";
+import { CLASSE_CASE_TERRAIN_26PX } from "@/components/ui/case-a-cocher";
 import {
   etatDeCompletude,
   type PointPourCompletude,
@@ -593,7 +594,12 @@ function ChampNonConformite({
   );
 }
 
-/** LA COCHE RONDE « FAIT » (point 3, 9L04D) — remplace la case native. */
+/**
+ * LA COCHE RONDE « FAIT » (point 3, 9L04D) — remplace la case native.
+ * LE CERCLE VISUEL À 26 PX (9L37) — le `<button>` garde `size-11` (44 px),
+ * SEULE la cible tactile ; `CLASSE_CASE_TERRAIN_26PX` dimensionne le cercle
+ * coloré intérieur, jamais la cible qui le porte.
+ */
 function CocheRonde({
   libelle,
   valeur,
@@ -614,13 +620,17 @@ function CocheRonde({
       aria-checked={faite}
       aria-label={libelle}
       onClick={() => onChange(faite ? null : true)}
-      className={
-        faite
-          ? "bg-app-terrain-vert-plein text-app-terrain-vert-plein-encre flex size-11 items-center justify-center rounded-full text-16 font-semibold"
-          : "border-app-terrain-filet text-app-terrain-encre flex size-11 items-center justify-center rounded-full border-2 text-16 font-semibold"
-      }
+      className="flex size-11 items-center justify-center"
     >
-      {faite ? t("checklist.terrain.symbole_conforme") : null}
+      <span
+        className={
+          faite
+            ? `bg-app-terrain-vert-plein text-app-terrain-vert-plein-encre flex items-center justify-center rounded-full text-16 font-semibold ${CLASSE_CASE_TERRAIN_26PX}`
+            : `border-app-terrain-filet text-app-terrain-encre flex items-center justify-center rounded-full border-2 text-16 font-semibold ${CLASSE_CASE_TERRAIN_26PX}`
+        }
+      >
+        {faite ? t("checklist.terrain.symbole_conforme") : null}
+      </span>
     </button>
   );
 }

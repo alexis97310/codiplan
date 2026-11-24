@@ -2716,7 +2716,10 @@ export function RapportTerrainAutomatique({
                   un `<input type="checkbox">` nu n'offre, sous le pouce, que la
                   taille du glyphe rendu par le navigateur. Même habillage que
                   partout ailleurs (`CaseACocher`, CG8), jamais une seconde
-                  écriture de la même cible. */}
+                  écriture de la même cible.
+                  LA CASE À 26 PX (9L37) — `caseTerrain26px`, réservé à cet
+                  écran : le glyphe lui-même grandit, la cible de 44 px et les
+                  couleurs natives ne changent pas. */}
               {prestations.map((prestation) => (
                 <CaseACocher
                   key={prestation.id}
@@ -2731,6 +2734,7 @@ export function RapportTerrainAutomatique({
                     )
                   }
                   className="flex items-center gap-2 text-16 font-bold"
+                  caseTerrain26px
                 />
               ))}
             </div>
