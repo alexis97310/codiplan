@@ -35,7 +35,7 @@ export type SectionFeuilleDeRoute = {
 };
 
 /** La date affichée en sous-titre de la page. */
-export const DATE_ETAT_FEUILLE_DE_ROUTE = "23/11/2026";
+export const DATE_ETAT_FEUILLE_DE_ROUTE = "24/11/2026";
 
 export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
   {
@@ -44,11 +44,6 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
       {
         statut: "a_ecrire",
         titre: "Bug des pièces sur l'application technicien (à préciser).",
-      },
-      {
-        statut: "a_ecrire",
-        titre:
-          "Page Matériel, deuxième passe : état actif ou inactif écrit en clair, saisie gardée après un refus (la famille présélectionnée, elle, est livrée — 9K17A).",
       },
       {
         statut: "a_ecrire",
@@ -159,6 +154,11 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
   {
     titre: "Livré depuis le 31/10",
     elements: [
+      {
+        statut: "livre",
+        titre:
+          "Page Matériel, deuxième passe : état actif/inactif écrit en clair dans la liste (bouton ou pas), saisie gardée après un refus de création ou de modification (famille, modèle, sous-type) — (9L39).",
+      },
       {
         statut: "livre",
         titre:
