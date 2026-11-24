@@ -19,6 +19,11 @@ import { SECTIONS_FEUILLE_DE_ROUTE } from "@/lib/feuille-de-route/contenu";
  *
  * 9L36-ANNULER-DEMARRAGE-10S (23/11/2026) : M9 est livré (D282) et a migré
  * vers « Livré depuis le 31/10 » — quatre éléments restent ici.
+ *
+ * 9L37-CASES-26PX-TERRAIN (23/11/2026, séance de décisions d'Alexis) : m11
+ * (couleurs) et m12 (cases à 26 px) ont été tranchés séparément — m12 est
+ * livré et a migré vers « Livré depuis le 31/10 », m11 est NON RETENU et a
+ * migré vers « Décisions prises » — trois éléments restent ici.
  */
 describe("la section « Application technicien — audit du 10/11/2026 »", () => {
   const section = SECTIONS_FEUILLE_DE_ROUTE.find(
@@ -29,12 +34,11 @@ describe("la section « Application technicien — audit du 10/11/2026 »", () =
     expect(section).toBeDefined();
   });
 
-  it("porte ses quatre éléments restants, mot pour mot", () => {
+  it("porte ses trois éléments restants, mot pour mot", () => {
     expect(section?.elements.map((e) => e.titre)).toEqual([
       "M8 — Ma journée : tri par priorité puis par date, carte « À faire maintenant » (maquette 01-journee).",
       "P6 — Compléter le catalogue des prestations par l'import avant la mise en service (geste d'exploitation ; maquette 03-rapport).",
       "m8, m10b et m13 — En-tête sur une ligne ; « Se déconnecter » et « Installer l'application » dans Profil ; pastille « En ligne / Hors ligne · saisies en attente » (maquettes 01-journee et 07-profil).",
-      "m11 et m12 — Bleu pour l'état actif, rouge réservé à l'erreur ; cases de 26 px : à trancher, les couleurs et la taille du texte du terrain sont déjà décidées (maquette 03-rapport).",
     ]);
   });
 
@@ -43,7 +47,6 @@ describe("la section « Application technicien — audit du 10/11/2026 »", () =
       "a_ecrire",
       "a_ecrire",
       "a_ecrire",
-      "decision",
     ]);
   });
 });

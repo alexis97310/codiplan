@@ -80,11 +80,6 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
         titre:
           "m8, m10b et m13 — En-tête sur une ligne ; « Se déconnecter » et « Installer l'application » dans Profil ; pastille « En ligne / Hors ligne · saisies en attente » (maquettes 01-journee et 07-profil).",
       },
-      {
-        statut: "decision",
-        titre:
-          "m11 et m12 — Bleu pour l'état actif, rouge réservé à l'erreur ; cases de 26 px : à trancher, les couleurs et la taille du texte du terrain sont déjà décidées (maquette 03-rapport).",
-      },
     ],
   },
   {
@@ -149,6 +144,11 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
         titre:
           "Historique des emplacements d'une machine : visible à tout rôle qui voit la fiche (pas seulement l'administration et la direction) ; déplacer la machine réservé au bureau, sans le technicien. Tranché le 23/11/2026 (D280) — la seconde moitié (historique) reste BLOQUÉE, voir « Bloqué / en enquête ».",
       },
+      {
+        statut: "tranche",
+        titre:
+          "m11 — Bleu pour l'état actif, rouge réservé à l'erreur, sur les cases de la fiche terrain : non retenu, couleurs natives inchangées. Tranché le 23/11/2026 (9L37).",
+      },
     ],
   },
   {
@@ -174,6 +174,11 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
   {
     titre: "Livré depuis le 31/10",
     elements: [
+      {
+        statut: "livre",
+        titre:
+          "m12 — Cases à cocher de la fiche terrain (prestation, checklist) à 26 px, cible tactile et couleurs natives inchangées (9L37).",
+      },
       {
         statut: "livre",
         titre:
