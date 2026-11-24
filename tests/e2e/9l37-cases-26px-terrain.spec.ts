@@ -1,6 +1,3 @@
-import { mkdirSync } from "node:fs";
-import { join } from "node:path";
-
 import { PrismaClient } from "@prisma/client";
 import { expect, test, type Page } from "@playwright/test";
 
@@ -28,30 +25,16 @@ import { ouvrirLaSessionSensible } from "./setup/session";
  * deux mêmes composants (`CaseACocher`, `CocheRonde`) ; voir leurs
  * docblocks respectifs, `components/ui/case-a-cocher.tsx` et
  * `components/terrain/checklist-terrain.tsx`.
+ *
+ * Les captures AVANT/APRÈS de l'écran touché vivent dans
+ * `docs/propositions/9L37-CASES-26PX-TERRAIN/captures/` (`avant-375.png`,
+ * `apres-375.png`), prises hors de ce fichier sur la même fiche jetable.
  */
 test.describe.configure({ mode: "serial" });
 
 function admin(): PrismaClient {
   return new PrismaClient({
     datasources: { db: { url: urlAdministration() } },
-  });
-}
-
-const DOSSIER_CAPTURES = join(
-  process.cwd(),
-  "docs/propositions/9L37-CASES-26PX-TERRAIN/captures",
-);
-
-async function capturer(
-  page: Page,
-  nom: string,
-  largeur: number,
-): Promise<void> {
-  mkdirSync(DOSSIER_CAPTURES, { recursive: true });
-  await page.setViewportSize({ width: largeur, height: 900 });
-  await page.screenshot({
-    path: join(DOSSIER_CAPTURES, `${nom}-${largeur}.png`),
-    fullPage: true,
   });
 }
 
@@ -224,8 +207,6 @@ test("À 375 PX, EN LIGNE — la case de prestation et la coche ronde de la chec
   await page.goto(`/terrain/${INTERVENTION_9L37}`);
   await expect(page.locator('input[type="checkbox"]')).toBeVisible();
   await expect(page.locator('button[role="checkbox"]')).toBeVisible();
-
-  await capturer(page, "terrain-fiche-apres", 375);
 
   await mesurerCaseEtCible(page);
 });
