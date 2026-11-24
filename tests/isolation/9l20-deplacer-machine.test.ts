@@ -39,6 +39,7 @@ const { deplacerMachine, lireMachine, modifierMachine } =
   await import("@/lib/machines/depot");
 const { historiqueDesEmplacements } =
   await import("@/lib/machines/emplacements");
+const { avecContexteApplicatif } = await import("@/lib/db/client");
 
 afterAll(async () => {
   process.env.DATABASE_URL = URL_DATABASE_AVANT;
@@ -75,6 +76,50 @@ const SESSION_ADMIN_A = {
   utilisateurId: UTILISATEUR_PAR_ROLE[Role.admin_societe] as string,
   societeId: SOCIETE_A,
   role: Role.admin_societe,
+  secondFacteurValide: true,
+  adresseIp: null,
+  clientId: null,
+};
+
+/**
+ * D283 (23/11/2026, 9L38) — RM, RS et ADV lisent désormais l'historique des
+ * emplacements (politique `journal_audit_lecture_emplacements_machine`,
+ * migration `20261124100000_historique_emplacements_tous_roles_9l38`), sans
+ * avoir `consulter_journal_audit`. `UTILISATEUR_INTERNE_A`/`B` ne portent pas
+ * de rôle propre en base : comme `SESSION_INTERNE_A/B` ci-dessus (déjà `adv`),
+ * le rôle de la session est celui que le scénario arme, pas une colonne lue.
+ */
+const SESSION_RM_A = {
+  utilisateurId: UTILISATEUR_INTERNE_A,
+  societeId: SOCIETE_A,
+  role: Role.responsable_materiel,
+  secondFacteurValide: true,
+  adresseIp: null,
+  clientId: null,
+};
+
+const SESSION_RS_A = {
+  utilisateurId: UTILISATEUR_INTERNE_A,
+  societeId: SOCIETE_A,
+  role: Role.responsable_sav,
+  secondFacteurValide: true,
+  adresseIp: null,
+  clientId: null,
+};
+
+const SESSION_RM_B = {
+  utilisateurId: UTILISATEUR_INTERNE_B,
+  societeId: SOCIETE_B,
+  role: Role.responsable_materiel,
+  secondFacteurValide: true,
+  adresseIp: null,
+  clientId: null,
+};
+
+const SESSION_DIRECTION_A = {
+  utilisateurId: UTILISATEUR_PAR_ROLE[Role.direction] as string,
+  societeId: SOCIETE_A,
+  role: Role.direction,
   secondFacteurValide: true,
   adresseIp: null,
   clientId: null,
@@ -258,5 +303,121 @@ describe("modifierMachine — l'ancien formulaire ne déplace plus jamais le sit
       clientApp(),
     );
     expect(resultat).toEqual({ accepte: true, id: MACHINE_A2 });
+  });
+});
+
+/**
+ * D283 (23/11/2026, 9L38 — seconde moitié de D280) : RM, RS et ADV lisent
+ * l'historique des emplacements SANS `consulter_journal_audit`, par la
+ * fonction SECURITY DEFINER `app_historique_emplacements_machine`. Le journal
+ * entier, lui, reste fermé — une ligne qui n'est PAS un déménagement (un
+ * champ modifié sans toucher le site) reste illisible pour ces trois rôles,
+ * lue directement sur `journal_audit` plutôt que par cette fonction.
+ */
+describe("historiqueDesEmplacements — ouvert à tout rôle qui voit la fiche (D283)", () => {
+  it("MACHINE_A2 déplacée : RM, RS et ADV de la société A lisent la trace, puis remise en place", async () => {
+    const deplacement = await deplacerMachine(
+      SESSION_INTERNE_A,
+      MACHINE_A2,
+      { nouveau_site_id: SITE_A1_S1 },
+      false,
+      clientApp(),
+    );
+    expect(deplacement).toEqual({ accepte: true });
+
+    for (const session of [SESSION_RM_A, SESSION_RS_A, SESSION_INTERNE_A]) {
+      const historique = await historiqueDesEmplacements(
+        session,
+        MACHINE_A2,
+        clientApp(),
+      );
+      const trace = historique.find(
+        (e) => e.ancienSiteId === SITE_A1_S2 && e.nouveauSiteId === SITE_A1_S1,
+      );
+      expect(trace, session.role).toBeDefined();
+    }
+
+    // La direction et l'administrateur, déjà ouverts avant ce lot, restent
+    // inchangés.
+    const historiqueDirection = await historiqueDesEmplacements(
+      SESSION_DIRECTION_A,
+      MACHINE_A2,
+      clientApp(),
+    );
+    expect(
+      historiqueDirection.some(
+        (e) => e.ancienSiteId === SITE_A1_S2 && e.nouveauSiteId === SITE_A1_S1,
+      ),
+    ).toBe(true);
+
+    // Remise dans son état initial.
+    const retour = await deplacerMachine(
+      SESSION_INTERNE_A,
+      MACHINE_A2,
+      { nouveau_site_id: SITE_A1_S2 },
+      false,
+      clientApp(),
+    );
+    expect(retour).toEqual({ accepte: true });
+  });
+
+  it("une société B ne lit jamais les déménagements d'une machine de la société A", async () => {
+    const historique = await historiqueDesEmplacements(
+      SESSION_RM_B,
+      MACHINE_A2,
+      clientApp(),
+    );
+    expect(historique).toEqual([]);
+  });
+
+  it("une ligne du journal qui n'est PAS un déménagement (site inchangé) reste illisible à RM, visible à l'administrateur", async () => {
+    const modification = await modifierMachine(
+      SESSION_INTERNE_A,
+      MACHINE_A2,
+      { ...SAISIE_MACHINE_A2_ACTUELLE, localisation: "Entrepôt nord" },
+      clientApp(),
+    );
+    expect(modification).toEqual({ accepte: true, id: MACHINE_A2 });
+
+    const ligneNonDeplacement = await avecContexteApplicatif(
+      SESSION_ADMIN_A,
+      (tx) =>
+        tx.journalAudit.findFirst({
+          where: {
+            societe_id: SOCIETE_A,
+            entite: "machine",
+            entite_id: MACHINE_A2,
+            action: "modification",
+            valeurs_apres: { path: ["localisation"], equals: "Entrepôt nord" },
+          },
+          select: { id: true },
+        }),
+      clientApp(),
+    );
+    expect(ligneNonDeplacement).not.toBeNull();
+    const idLigne = ligneNonDeplacement?.id as string;
+
+    const lueParAdmin = await avecContexteApplicatif(
+      SESSION_ADMIN_A,
+      (tx) => tx.journalAudit.findFirst({ where: { id: idLigne } }),
+      clientApp(),
+    );
+    expect(lueParAdmin).not.toBeNull();
+
+    const lueParRm = await avecContexteApplicatif(
+      SESSION_RM_A,
+      (tx) => tx.journalAudit.findFirst({ where: { id: idLigne } }),
+      clientApp(),
+    );
+    expect(lueParRm).toBeNull();
+
+    // Remise dans son état initial.
+    const retour = await modifierMachine(
+      SESSION_INTERNE_A,
+      MACHINE_A2,
+      SAISIE_MACHINE_A2_ACTUELLE,
+      clientApp(),
+    );
+    expect(retour).toEqual({ accepte: true, id: MACHINE_A2 });
   });
 });

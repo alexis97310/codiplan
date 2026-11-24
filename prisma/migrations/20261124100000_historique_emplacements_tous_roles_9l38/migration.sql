@@ -10,49 +10,74 @@
 -- la table qu'à `admin_societe`/`direction` (`app_peut_consulter_journal_
 -- audit`, matrice §5.2, `consulter_journal_audit`) — RM, RS et ADV, qui voient
 -- pourtant la fiche machine entière, en recevaient ZÉRO LIGNE sous RLS, quelle
--- que soit la requête applicative. 9L34 a mesuré ce verrou et a choisi de NE
--- PAS retirer la garde côté écran plutôt que de livrer un bloc qui dirait
--- « jamais déplacée » d'une machine qui l'a pourtant été (D50, D280).
+-- que soit la requête applicative.
 --
--- ── LA POLITIQUE AJOUTÉE, ET POURQUOI ELLE RESTE ÉTROITE ───────────────────
+-- ── POURQUOI PAS UNE SECONDE POLITIQUE RLS SUR `journal_audit` ────────────
 --
--- Une SECONDE politique PERMISSIVE de lecture, qui s'ajoute (OR) à
--- `journal_audit_lecture` plutôt que de la remplacer — PostgreSQL combine par
--- disjonction toutes les politiques permissives d'une même commande. Elle
--- n'ouvre que les lignes qui PORTENT un déménagement de machine :
--- `entite = 'machine'`, une action de modification, et un `site_id` qui
--- diffère entre `valeurs_avant` et `valeurs_apres`. Un rôle qui n'a pas
--- `consulter_journal_audit` continue de recevoir zéro ligne sur toute AUTRE
--- écriture du journal (un champ de machine qui change sans toucher le site, une
--- ligne sur `societe`, une ligne sur `utilisateur_societe`…) : le journal
--- entier reste réservé, exactement comme D280 l'exige — seule la vue étroite
--- de l'historique des emplacements s'ouvre.
+-- Mesuré AVANT d'écrire la fonction ci-dessous : une seconde politique
+-- PERMISSIVE de SELECT sur `journal_audit`, scopée aux seules lignes
+-- `entite = 'machine'` dont le `site_id` diffère, fait ROUGIR
+-- `scripts/lib/politiques-rls.ts` (`ecartsJournal`) — gardien fermé de la
+-- forme « journal » (I8, L0-10) : TOUTE politique de SELECT sur cette table
+-- doit exiger `app_peut_consulter_journal_audit()`, précisément pour qu'une
+-- politique plus étroite ne puisse pas, demain, ouvrir le journal entier par
+-- inadvertance. C'est le même raisonnement que D50 : élargir une liste close
+-- par un ticket plutôt que par un arbitrage serait l'assouplissement qu'elle
+-- existe pour refuser. Cette voie est donc écartée, pas seulement plus
+-- étroite — et D280, qui la décrivait, est amendée sur ce point par D283.
 --
--- AUCUN filtre de rôle dans cette politique : D280 la décrit ouverte « à TOUT
--- rôle de la société », parce que le filtrage par rôle reste la responsabilité
--- de l'application (`peutPleinement(contexte.role, "consulter_historique_
--- emplacements")`, `lib/auth/habilitations.ts`) — la même répartition que
--- partout ailleurs dans ce dépôt : la base cloisonne par société et par
--- PÉRIMÈTRE DE DONNÉES, l'application juge le rôle (§12.2, deuxième barrière).
+-- ── LA FONCTION `SECURITY DEFINER`, ARBITRÉE (D283) ────────────────────────
+--
+-- Même patron que D226/D233/D281 (`tests/unit/db/security-definer-sous-
+-- arbitrage.test.ts`, liste close) : `search_path` figé,
+-- `SET row_security = off` pour échouer plutôt que de filtrer en silence sous
+-- un propriétaire soumis à FORCE RLS (FAIL-CLOSED), `REVOKE ALL FROM PUBLIC`
+-- puis `GRANT EXECUTE` au seul rôle applicatif. Elle ne reçoit QUE la société
+-- et la machine visées — jamais un rôle — et ne peut rendre que les lignes de
+-- déménagement de CETTE machine, dans CETTE société : un appelant qui se
+-- serait trompé de société ne lirait que les lignes (absentes) de la société
+-- qu'il a nommée, jamais celles d'une autre. Le filtrage par RÔLE reste la
+-- responsabilité de l'application (`consulter_historique_emplacements`,
+-- `lib/auth/habilitations.ts`) — la même répartition que partout ailleurs :
+-- la base cloisonne par société et par PÉRIMÈTRE DE DONNÉES, l'application
+-- juge le rôle (§12.2, deuxième barrière).
+--
+-- Les colonnes rendues sont EXACTEMENT celles que lisait déjà la requête
+-- Prisma qu'elle remplace (`historiqueDesEmplacements`) : aucune colonne
+-- supplémentaire du journal n'est exposée.
 --
 -- `consulter_journal_audit` (matrice §5.2) n'est PAS touchée : elle continue
--- de ne garder que la lecture GÉNÉRALE du journal, et cette politique ne
--- l'élargit pas — elle ouvre une vue différente, sur des lignes différentes.
---
--- Comparateur `IS DISTINCT FROM`, pas `<>` : deux valeurs NULL ne doivent
--- jamais se compter comme « différentes » (une ligne de CRÉATION a
--- `valeurs_avant` NULL dans son ensemble, jamais seulement sa clé `site_id` —
--- mais l'opérateur sûr est le même que celui déjà choisi par
--- `historiqueDesEmplacements` et par D280 elle-même).
+-- de ne garder que la lecture GÉNÉRALE du journal, et `journal_audit_lecture`
+-- reste l'unique politique de SELECT sur la table.
 
-CREATE POLICY "journal_audit_lecture_emplacements_machine" ON "journal_audit"
-  FOR SELECT
-  USING (
-    "societe_id" = NULLIF(current_setting('app.societe_id', true), '')::uuid
-    AND "entite" = 'machine'
-    AND "action" = 'modification'
-    AND ("valeurs_avant" ->> 'site_id') IS DISTINCT FROM ("valeurs_apres" ->> 'site_id')
-  );
+CREATE FUNCTION "app_historique_emplacements_machine"(
+  "p_societe_id" uuid,
+  "p_machine_id" uuid
+) RETURNS TABLE (
+  "id" uuid,
+  "horodatage" timestamptz,
+  "utilisateur_id" uuid,
+  "valeurs_avant" jsonb,
+  "valeurs_apres" jsonb
+)
+  LANGUAGE sql
+  STABLE
+  SECURITY DEFINER
+  SET search_path = pg_catalog, public
+  SET row_security = off
+  AS $$
+    SELECT "id", "horodatage", "utilisateur_id", "valeurs_avant", "valeurs_apres"
+      FROM "journal_audit"
+     WHERE "societe_id" = "p_societe_id"
+       AND "entite" = 'machine'
+       AND "entite_id" = "p_machine_id"
+       AND "action" = 'modification'
+       AND ("valeurs_avant" ->> 'site_id') IS DISTINCT FROM ("valeurs_apres" ->> 'site_id')
+     ORDER BY "horodatage" DESC
+  $$;
 
-COMMENT ON POLICY "journal_audit_lecture_emplacements_machine" ON "journal_audit" IS
-  'D283/9L38 — ouvre la lecture des SEULES lignes de déménagement de machine (entite = machine, site_id différent avant/après) à tout rôle de la société, sans filtre de rôle : le filtrage par rôle est la responsabilité de l''application (capacité consulter_historique_emplacements). S''ajoute par disjonction à journal_audit_lecture, qui reste le seul verrou du journal entier.';
+COMMENT ON FUNCTION "app_historique_emplacements_machine"(uuid, uuid) IS
+  'D283/9L38 — rend les lignes de journal_audit qui portent un déménagement (entite = machine, site_id différent avant/après) de la machine et de la société reçues en paramètre. SECURITY DEFINER avec row_security = off : seule façon d''ouvrir cette lecture à tout rôle sans élargir journal_audit_lecture, qui reste le seul verrou du journal entier (gardien scripts/lib/politiques-rls.ts, forme « journal »). Fail-closed : pour tout rôle qui n''est ni le propriétaire ni BYPASSRLS, lève sous FORCE ROW LEVEL SECURITY plutôt que de filtrer en silence. Ne reçoit ni ne juge aucun rôle : le filtrage par rôle est la capacité consulter_historique_emplacements, côté application.';
+
+REVOKE ALL ON FUNCTION "app_historique_emplacements_machine"(uuid, uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION "app_historique_emplacements_machine"(uuid, uuid) TO "codiplan_app";

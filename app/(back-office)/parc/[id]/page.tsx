@@ -216,14 +216,15 @@ export default async function PageMachine({
 
   const historique = await historiqueDeLaMachine(contexte, machine.id);
   // L'HISTORIQUE DES EMPLACEMENTS (9L20-DEPLACER-MACHINE, ouvert à tout rôle
-  // qui voit la fiche depuis D283/9L38) — lu dans le journal d'audit (I8),
-  // sous une politique RLS DÉDIÉE (`journal_audit_lecture_emplacements_
-  // machine`, migration `20261124100000_historique_emplacements_tous_
-  // roles_9l38`) qui n'ouvre que les lignes de déménagement d'une machine, à
-  // TOUT rôle de la société — le journal entier reste réservé à
-  // `consulter_journal_audit` (ADMS, DIR). La capacité ci-dessous est donc le
-  // filtrage par RÔLE, posé côté application (§12.2) : ADMS, DIR, RM, RS, ADV
-  // (TEC ne l'atteint jamais, D221 fermant déjà tout le back-office).
+  // qui voit la fiche depuis D283/9L38) — lu par `historiqueDesEmplacements`
+  // via la fonction SECURITY DEFINER `app_historique_emplacements_machine`
+  // (migration `20261124100000_historique_emplacements_tous_
+  // roles_9l38`), qui ne rend que les lignes de déménagement d'une machine,
+  // sans poser de politique RLS supplémentaire sur `journal_audit` — le
+  // journal entier reste réservé à `consulter_journal_audit` (ADMS, DIR). La
+  // capacité ci-dessous est donc le filtrage par RÔLE, posé côté application
+  // (§12.2) : ADMS, DIR, RM, RS, ADV (TEC ne l'atteint jamais, D221 fermant
+  // déjà tout le back-office).
   const peutConsulterEmplacements =
     contexte.role !== null &&
     peutPleinement(contexte.role, "consulter_historique_emplacements");

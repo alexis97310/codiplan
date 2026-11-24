@@ -45,10 +45,18 @@ import {
  * entrée est `app_invalider_liens_anterieurs` (D281, 24/11/2026,
  * 9L35-LIENS-ACCES-ANCIENS-ANNULES)** — supprime les liens de premier accès /
  * mot de passe oublié antérieurs, non consommés, du MÊME compte, à l'émission
- * d'un nouveau ; ferme le point 3 laissé ouvert par D266 (9L09). Le repli de
- * consolidation portable de D36 (lot 5) reste un candidat connu, pas encore
- * écrit : il y entrera, lui aussi, **par arbitrage**, avec son nom écrit ici —
- * pas par une décision de session qui trouverait le gardien encombrant.
+ * d'un nouveau ; ferme le point 3 laissé ouvert par D266 (9L09). **Sa
+ * quatrième entrée est `app_historique_emplacements_machine` (D283,
+ * 23/11/2026, 9L38-HISTORIQUE-EMPLACEMENTS-TOUS-ROLES)** — rend les lignes de
+ * `journal_audit` qui portent un déménagement d'UNE machine d'UNE société, à
+ * tout rôle, sans élargir `journal_audit_lecture` : une SECONDE politique RLS
+ * plus étroite sur `journal_audit` a été mesurée et écartée, car elle fait
+ * rougir `scripts/lib/politiques-rls.ts` (forme « journal » — toute politique
+ * de SELECT sur cette table doit exiger `app_peut_consulter_journal_audit()`).
+ * Le repli de consolidation portable de D36 (lot 5) reste un candidat connu,
+ * pas encore écrit : il y entrera, lui aussi, **par arbitrage**, avec son nom
+ * écrit ici — pas par une décision de session qui trouverait le gardien
+ * encombrant.
  */
 
 /**
@@ -79,11 +87,20 @@ import {
  * rend rien ; `search_path` figé ; `REVOKE ALL FROM PUBLIC` + `GRANT EXECUTE`
  * au seul rôle applicatif (migration
  * `20261124080000_invalider_liens_anterieurs_9l35`).
+ *
+ * `app_historique_emplacements_machine` — D283 (23/11/2026,
+ * 9L38-HISTORIQUE-EMPLACEMENTS-TOUS-ROLES) : rend, pour UNE société et UNE
+ * machine reçues en paramètre, les lignes de `journal_audit` qui portent un
+ * déménagement de cette machine — jamais un rôle, jamais le reste du
+ * journal. `search_path` figé ; `REVOKE ALL FROM PUBLIC` + `GRANT EXECUTE`
+ * au seul rôle applicatif (migration
+ * `20261124100000_historique_emplacements_tous_roles_9l38`).
  */
 const AUTORISEES_PAR_ARBITRAGE: readonly string[] = [
   "app_identite_exclusive_a_la_societe",
   "app_identite_interne_ailleurs",
   "app_invalider_liens_anterieurs",
+  "app_historique_emplacements_machine",
 ];
 
 /**
@@ -188,7 +205,7 @@ describe("aucune fonction SECURITY DEFINER hors arbitrage (D50)", () => {
     ).toBe(true);
   });
 
-  it("la liste des exceptions est close, et ne contient que les entrées arbitrées (D226, D233)", () => {
+  it("la liste des exceptions est close, et ne contient que les entrées arbitrées (D226, D233, D281, D283)", () => {
     // Elle se vérifie explicitement : une entrée apparue sans arbitrage doit
     // faire tomber ce test-ci, pas seulement échapper au précédent. D36
     // (lot 5) reste le candidat suivant connu, pas encore écrit.
@@ -196,12 +213,14 @@ describe("aucune fonction SECURITY DEFINER hors arbitrage (D50)", () => {
       AUTORISEES_PAR_ARBITRAGE,
       "une exception a été ajoutée sans arbitrage : seules " +
         "app_identite_exclusive_a_la_societe (D226), " +
-        "app_identite_interne_ailleurs (D233) et " +
-        "app_invalider_liens_anterieurs (D281) y figurent à ce jour",
+        "app_identite_interne_ailleurs (D233), " +
+        "app_invalider_liens_anterieurs (D281) et " +
+        "app_historique_emplacements_machine (D283) y figurent à ce jour",
     ).toEqual([
       "app_identite_exclusive_a_la_societe",
       "app_identite_interne_ailleurs",
       "app_invalider_liens_anterieurs",
+      "app_historique_emplacements_machine",
     ]);
   });
 

@@ -29,38 +29,50 @@ export type EmplacementMachine = {
   readonly horodatage: Date;
 };
 
+/** Une ligne telle que la fonction SQL la rend — avant filtrage TypeScript. */
+type LigneBrute = {
+  readonly id: string;
+  readonly horodatage: Date;
+  readonly utilisateur_id: string | null;
+  readonly valeurs_avant: unknown;
+  readonly valeurs_apres: unknown;
+};
+
 /**
- * **Filtré en TypeScript, jamais en SQL** : `valeurs_avant`/`valeurs_apres`
- * sont des colonnes `jsonb` sans index sur leur contenu, et ce module ne lit
- * que les écritures d'UNE machine (bornées par `entite_id`) — un volume que
- * `deplacerMachine` ne fait grossir que d'une ligne par déplacement. Chaque
- * écriture du déclencheur porte la ligne ENTIÈRE avant/après
- * (`to_jsonb(OLD)`/`to_jsonb(NEW)`) ; seules les lignes où `site_id` diffère
- * entre les deux sont un déménagement — une correction qui ne touche pas le
- * site (numéro de série, localisation…) n'en est pas un.
+ * **Lue par `app_historique_emplacements_machine`, une fonction `SECURITY
+ * DEFINER` arbitrée (D283, 23/11/2026, 9L38 ; liste close de
+ * `tests/unit/db/security-definer-sous-arbitrage.test.ts`), jamais par une
+ * requête Prisma directe sur `journal_audit`.**
  *
- * `societe_id` est filtré EXPLICITEMENT, même discipline que `lib/audit/
- * journal.ts` : une politique qui protège déjà ne dispense pas la requête de
- * porter son propre critère.
+ * **Ce que D280 avait décrit n'est PAS ce qui est posé.** D280 envisageait
+ * une SECONDE politique RLS, scopée aux lignes de déménagement, à côté de
+ * `journal_audit_lecture`. Mesuré avant d'écrire la migration : une telle
+ * politique fait rougir `scripts/lib/politiques-rls.ts` (`ecartsJournal`),
+ * qui exige que TOUTE politique de SELECT sur `journal_audit` porte
+ * `app_peut_consulter_journal_audit()` — précisément pour qu'aucune politique
+ * plus étroite ne puisse, par un ticket, se substituer à un arbitrage. La
+ * fonction `SECURITY DEFINER`, elle, ne pose AUCUNE politique sur la table :
+ * `journal_audit_lecture` reste l'unique politique de SELECT, et le journal
+ * entier reste réservé à `consulter_journal_audit` (ADMS, DIR).
  *
- * **Deux politiques de lecture, par disjonction (D283, 23/11/2026, 9L38)** :
- * `journal_audit_lecture` (admin_societe/direction, le journal ENTIER) et,
- * depuis la migration `20261124100000_historique_emplacements_tous_roles_
- * 9l38`, `journal_audit_lecture_emplacements_machine` — qui n'ouvre, à TOUT
- * rôle de la société, que les lignes `entite = 'machine'` dont le `site_id`
- * diffère entre avant et après. Cette seconde politique rend la requête
- * ci-dessous lisible par RM, RS et ADV (D280/D283) sans jamais élargir le
- * journal entier : un champ de machine modifié sans toucher le site, ou une
- * ligne sur une autre table, reste invisible à qui n'a pas
- * `consulter_journal_audit`.
+ * La fonction ne reçoit QUE la société et la machine visées — jamais un
+ * rôle — et ne rend que les lignes `entite = 'machine'` dont le `site_id`
+ * diffère entre `valeurs_avant` et `valeurs_apres` ; une correction qui ne
+ * touche pas le site (numéro de série, localisation…) n'en est pas une, et le
+ * filtre est posé CÔTÉ SQL (migration
+ * `20261124100000_historique_emplacements_tous_roles_9l38`), pas en
+ * TypeScript : `societe_id`/`entite_id` bornent déjà le volume à UNE machine.
  *
- * L'appelant (`app/(back-office)/parc/[id]/page.tsx`) ne montre ce bloc qu'à
- * qui a la capacité `consulter_historique_emplacements` (ADMS, DIR, RM, RS,
- * ADV, TEC — D221 ferme déjà tout le back-office au technicien) : un décompte
- * vide pour la mauvaise raison dirait « jamais déplacée » quand c'est
- * seulement « vous ne pouvez pas le savoir » (D50 ne couvre que les refus qui
- * ne mentent pas) — même si, depuis D283, cette raison ne se présente plus
- * pour aucun rôle qui atteint réellement la fiche.
+ * Le filtrage par RÔLE (ADMS, DIR, RM, RS, ADV, TEC) reste la responsabilité
+ * de l'application (`consulter_historique_emplacements`,
+ * `lib/auth/habilitations.ts`), jamais de la base — même répartition que
+ * partout ailleurs (§12.2, deuxième barrière). L'appelant
+ * (`app/(back-office)/parc/[id]/page.tsx`) ne montre ce bloc qu'à qui a cette
+ * capacité : un décompte vide pour la mauvaise raison dirait « jamais
+ * déplacée » quand c'est seulement « vous ne pouvez pas le savoir » (D50 ne
+ * couvre que les refus qui ne mentent pas) — même si, depuis D283, cette
+ * raison ne se présente plus pour aucun rôle qui atteint réellement la
+ * fiche (D221 ferme déjà tout le back-office au technicien).
  */
 export async function historiqueDesEmplacements(
   contexte: ContexteSession,
@@ -71,22 +83,9 @@ export async function historiqueDesEmplacements(
   const lignes = await avecContexteApplicatif(
     contexte,
     (tx) =>
-      tx.journalAudit.findMany({
-        where: {
-          societe_id: societeId,
-          entite: "machine",
-          entite_id: machineId,
-          action: "modification",
-        },
-        select: {
-          id: true,
-          horodatage: true,
-          utilisateur_id: true,
-          valeurs_avant: true,
-          valeurs_apres: true,
-        },
-        orderBy: { horodatage: "desc" },
-      }),
+      tx.$queryRaw<LigneBrute[]>`
+        SELECT * FROM "app_historique_emplacements_machine"(${societeId}::uuid, ${machineId}::uuid)
+      `,
     client,
   );
   const emplacements: EmplacementMachine[] = [];
