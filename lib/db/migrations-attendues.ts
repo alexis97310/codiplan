@@ -173,4 +173,5 @@ export const MIGRATIONS_ATTENDUES: readonly string[] = [
   "20261123220000_majoration_hors_ouverture_bornes_9l33",
   "20261124080000_invalider_liens_anterieurs_9l35",
   "20261124090000_annuler_demarrage_9l36",
+  "20261124100000_historique_emplacements_tous_roles_9l38",
 ];
