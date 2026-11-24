@@ -47,13 +47,19 @@ import {
  * mot de passe oublié antérieurs, non consommés, du MÊME compte, à l'émission
  * d'un nouveau ; ferme le point 3 laissé ouvert par D266 (9L09). **Sa
  * quatrième entrée est `app_historique_emplacements_machine` (D283,
- * 23/11/2026, 9L38-HISTORIQUE-EMPLACEMENTS-TOUS-ROLES)** — rend les lignes de
- * `journal_audit` qui portent un déménagement d'UNE machine d'UNE société, à
- * tout rôle, sans élargir `journal_audit_lecture` : une SECONDE politique RLS
- * plus étroite sur `journal_audit` a été mesurée et écartée, car elle fait
- * rougir `scripts/lib/politiques-rls.ts` (forme « journal » — toute politique
- * de SELECT sur cette table doit exiger `app_peut_consulter_journal_audit()`).
- * Le repli de consolidation portable de D36 (lot 5) reste un candidat connu,
+ * 23/11/2026, 9L38-HISTORIQUE-EMPLACEMENTS-TOUS-ROLES ; durcie par D284,
+ * 25/11/2026, 9L38A-HISTORIQUE-EMPLACEMENTS-SOCIETE-DE-SESSION)** — rend les
+ * lignes de `journal_audit` qui portent un déménagement d'UNE machine, à tout
+ * rôle, sans élargir `journal_audit_lecture` : une SECONDE politique RLS plus
+ * étroite sur `journal_audit` a été mesurée et écartée, car elle fait rougir
+ * `scripts/lib/politiques-rls.ts` (forme « journal » — toute politique de
+ * SELECT sur cette table doit exiger `app_peut_consulter_journal_audit()`).
+ * Depuis D284, la société n'est plus un paramètre : la fonction la lit dans
+ * `current_setting('app.societe_id', true)`, posé par
+ * `avecContexteApplicatif` sur la transaction — jamais fournie par
+ * l'appelant ; elle lève si ce contexte est absent, ou si `app.client_id`
+ * (session portail) est posé. Le repli de consolidation portable de D36 (lot
+ * 5) reste un candidat connu,
  * pas encore écrit : il y entrera, lui aussi, **par arbitrage**, avec son nom
  * écrit ici — pas par une décision de session qui trouverait le gardien
  * encombrant.
@@ -89,12 +95,16 @@ import {
  * `20261124080000_invalider_liens_anterieurs_9l35`).
  *
  * `app_historique_emplacements_machine` — D283 (23/11/2026,
- * 9L38-HISTORIQUE-EMPLACEMENTS-TOUS-ROLES) : rend, pour UNE société et UNE
- * machine reçues en paramètre, les lignes de `journal_audit` qui portent un
- * déménagement de cette machine — jamais un rôle, jamais le reste du
- * journal. `search_path` figé ; `REVOKE ALL FROM PUBLIC` + `GRANT EXECUTE`
- * au seul rôle applicatif (migration
- * `20261124100000_historique_emplacements_tous_roles_9l38`).
+ * 9L38-HISTORIQUE-EMPLACEMENTS-TOUS-ROLES), durcie par D284 (25/11/2026,
+ * 9L38A-HISTORIQUE-EMPLACEMENTS-SOCIETE-DE-SESSION) : rend, pour UNE machine
+ * reçue en paramètre et la société du CONTEXTE DE SESSION
+ * (`current_setting('app.societe_id', true)` — plus un paramètre depuis
+ * D284), les lignes de `journal_audit` qui portent un déménagement de cette
+ * machine — jamais un rôle, jamais le reste du journal. Lève si ce contexte
+ * est absent, ou si `app.client_id` (portail) est posé. `search_path` figé ;
+ * `REVOKE ALL FROM PUBLIC` + `GRANT EXECUTE` au seul rôle applicatif
+ * (migration
+ * `20261125013000_historique_emplacements_societe_de_session_9l38a`).
  */
 const AUTORISEES_PAR_ARBITRAGE: readonly string[] = [
   "app_identite_exclusive_a_la_societe",

@@ -9585,3 +9585,27 @@ Elle n'élargit ni `journal_audit_lecture` ni `consulter_journal_audit` : le jou
 > La condition de réouverture de D280 est désormais remplie : `peutConsulterEmplacements` s'ouvre à tout rôle qui voit la fiche, et `tests/isolation/9l20-deplacer-machine.test.ts` (describe « historiqueDesEmplacements — ouvert à tout rôle qui voit la fiche (D283) ») en porte la preuve plutôt que de la deviner. Le jour où une sixième fonction `SECURITY DEFINER` est proposée pour un besoin voisin, elle doit, comme celle-ci, mesurer d'abord si une politique RLS plus étroite suffirait — et le dire, que la réponse soit oui ou non.
 
 Portée : `prisma/migrations/20261124100000_historique_emplacements_tous_roles_9l38/`, `lib/db/migrations-attendues.ts`, `lib/auth/habilitations.ts`, `lib/machines/emplacements.ts`, `app/(back-office)/parc/[id]/page.tsx`, `lib/i18n/fr.ts`, `tests/unit/auth/habilitations.test.ts`, `tests/unit/db/security-definer-sous-arbitrage.test.ts`, `tests/isolation/9l20-deplacer-machine.test.ts`, `lib/feuille-de-route/contenu.ts`.
+
+## D284 — `app_historique_emplacements_machine` LIT LA SOCIÉTÉ DANS LE CONTEXTE DE SESSION, PLUS UN PARAMÈTRE (9L38A-HISTORIQUE-EMPLACEMENTS-SOCIETE-DE-SESSION)
+
+### CE QUI A ÉTÉ MESURÉ
+
+D283 (9L38, ci-dessus) avait posé `app_historique_emplacements_machine(p_societe_id uuid, p_machine_id uuid)` — correcte dans ce qu'elle rendait (jamais plus que les lignes de la société passée), mais la société venait d'un PARAMÈTRE fourni par l'appelant (`lib/machines/emplacements.ts`, `exigerSocieteActive(contexte)`), sur une fonction `SECURITY DEFINER` qui contourne déjà `FORCE ROW LEVEL SECURITY`. Les deux autres fonctions de la liste close qui portent sur une société active, `app_identite_exclusive_a_la_societe` (D226) et `app_identite_interne_ailleurs` (D233), ne commettent pas cette faute : elles lisent `app.societe_id` dans `current_setting(...)`, jamais en paramètre — la base ne fait alors confiance à aucun appelant pour son propre cloisonnement. `app_historique_emplacements_machine` était la seule exception, et aucun ticket ne l'avait relevé avant 9L38A.
+
+Mesuré avant d'écrire la migration : garder le paramètre et exiger seulement qu'il égale le contexte (`p_societe_id = current_setting('app.societe_id', true)::uuid`, sinon erreur) aurait laissé la porte ouverte à un appelant futur qui fournirait sa propre société « à la main » dans le cas normal, l'égalité ne jouant alors que le rôle d'un filet. C'est exactement la forme que D226 refuse déjà. Le paramètre est donc RETIRÉ, pas doublé d'une vérification.
+
+### LA DÉCISION
+
+**La société n'est plus un paramètre.** `app_historique_emplacements_machine` ne reçoit plus que `p_machine_id` ; elle lit la société dans `current_setting('app.societe_id', true)`, posé par `avecContexteApplicatif` (`lib/db/rls.ts`) sur CHAQUE transaction applicative. Contexte absent : elle LÈVE, jamais zéro ligne silencieuse — même fail-closed que D226. **Le discriminant du portail est refusé en plus** : si `app.client_id` (D10) est posé, la fonction lève aussi, par construction, plutôt que de dépendre d'une vérification côté application qui pourrait manquer demain — le journal d'audit n'est lisible par aucun compte portail, et D283 ne l'avait ouvert qu'aux rôles internes qui voient la fiche machine. La signature change `(uuid, uuid)` → `(uuid)` : migration `20261125013000_historique_emplacements_societe_de_session_9l38a`, `DROP FUNCTION` puis `CREATE FUNCTION` (un `CREATE OR REPLACE` ne change pas la signature d'une fonction).
+
+Rien d'autre ne change : les colonnes rendues, le filtre `entite = 'machine'` / `action = 'modification'` / site différent avant-après, `search_path` figé, `SET row_security = off`, `REVOKE ALL FROM PUBLIC` + `GRANT EXECUTE` au seul `codiplan_app` sont identiques à D283. `app_historique_emplacements_machine` reste la quatrième et unique entrée nommée pour ce besoin dans `AUTORISEES_PAR_ARBITRAGE` — D284 la durcit, elle ne la remplace pas par une cinquième.
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+Elle ne touche ni `consulter_historique_emplacements`, ni `peutConsulterEmplacements`, ni le filtrage par rôle (D283, inchangé) : la base continue de ne filtrer que par société et par périmètre de données (le déménagement d'UNE machine), l'application continue de juger le rôle. Elle n'élargit ni ne rétrécit l'ensemble des lignes rendues pour un appel légitime — un appel qui passait déjà par `historiqueDesEmplacements` (donc par une session avec une société active et sans `app.client_id`) obtient exactement le même résultat qu'avant ce lot.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Si une cinquième fonction `SECURITY DEFINER` est un jour proposée et reçoit une société ou un client en PARAMÈTRE plutôt que de la lire dans le contexte de session, c'est que cette condition a été oubliée : `tests/isolation/9l20-deplacer-machine.test.ts` (describe « app_historique_emplacements_machine — garanties posées par la migration (D284) ») doit alors être repris comme modèle, pas réinventé.
+
+Portée : `prisma/migrations/20261125013000_historique_emplacements_societe_de_session_9l38a/`, `lib/db/migrations-attendues.ts`, `lib/machines/emplacements.ts`, `tests/unit/db/security-definer-sous-arbitrage.test.ts`, `tests/isolation/9l20-deplacer-machine.test.ts`.

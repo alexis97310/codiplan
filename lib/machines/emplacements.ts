@@ -1,6 +1,6 @@
 import { type PrismaClient } from "@prisma/client";
 
-import { exigerSocieteActive, type ContexteSession } from "@/lib/auth/contexte";
+import { type ContexteSession } from "@/lib/auth/contexte";
 import { avecContexteApplicatif } from "@/lib/db/client";
 
 /**
@@ -55,13 +55,17 @@ type LigneBrute = {
  * `journal_audit_lecture` reste l'unique politique de SELECT, et le journal
  * entier reste réservé à `consulter_journal_audit` (ADMS, DIR).
  *
- * La fonction ne reçoit QUE la société et la machine visées — jamais un
- * rôle — et ne rend que les lignes `entite = 'machine'` dont le `site_id`
- * diffère entre `valeurs_avant` et `valeurs_apres` ; une correction qui ne
- * touche pas le site (numéro de série, localisation…) n'en est pas une, et le
- * filtre est posé CÔTÉ SQL (migration
- * `20261124100000_historique_emplacements_tous_roles_9l38`), pas en
- * TypeScript : `societe_id`/`entite_id` bornent déjà le volume à UNE machine.
+ * **La société n'est plus un paramètre (D284, 25/11/2026, 9L38A) : la
+ * fonction la lit dans `current_setting('app.societe_id', true)`**, posée par
+ * `avecContexteApplicatif` sur CETTE transaction — jamais fournie par
+ * l'appelant. Elle ne reçoit QUE la machine visée — jamais un rôle, jamais
+ * une société — et ne rend que les lignes `entite = 'machine'` dont le
+ * `site_id` diffère entre `valeurs_avant` et `valeurs_apres` ; une correction
+ * qui ne touche pas le site (numéro de série, localisation…) n'en est pas
+ * une, et le filtre est posé CÔTÉ SQL (migration
+ * `20261125013000_historique_emplacements_societe_de_session_9l38a`), pas en
+ * TypeScript : `societe_id` (du contexte) / `entite_id` bornent déjà le
+ * volume à UNE machine d'UNE société.
  *
  * Le filtrage par RÔLE (ADMS, DIR, RM, RS, ADV, TEC) reste la responsabilité
  * de l'application (`consulter_historique_emplacements`,
@@ -79,12 +83,11 @@ export async function historiqueDesEmplacements(
   machineId: string,
   client?: PrismaClient,
 ): Promise<readonly EmplacementMachine[]> {
-  const societeId = exigerSocieteActive(contexte);
   const lignes = await avecContexteApplicatif(
     contexte,
     (tx) =>
       tx.$queryRaw<LigneBrute[]>`
-        SELECT * FROM "app_historique_emplacements_machine"(${societeId}::uuid, ${machineId}::uuid)
+        SELECT * FROM "app_historique_emplacements_machine"(${machineId}::uuid)
       `,
     client,
   );

@@ -2,7 +2,7 @@ import { afterAll, describe, expect, it } from "vitest";
 
 import { Role } from "@/lib/auth/roles";
 
-import { clientApp, fermerClients, urlApp } from "./setup/db";
+import { clientApp, clientReporting, fermerClients, urlApp } from "./setup/db";
 import {
   CLIENT_A1,
   CLIENT_A2,
@@ -419,5 +419,70 @@ describe("historiqueDesEmplacements — ouvert à tout rôle qui voit la fiche (
       clientApp(),
     );
     expect(retour).toEqual({ accepte: true, id: MACHINE_A2 });
+  });
+});
+
+/**
+ * D284 (25/11/2026, 9L38A-HISTORIQUE-EMPLACEMENTS-SOCIETE-DE-SESSION) : la
+ * société n'est plus un paramètre de `app_historique_emplacements_machine` —
+ * elle vient de `current_setting('app.societe_id', true)`, posé par
+ * `avecContexteApplicatif` sur la transaction. Ces épreuves appellent la
+ * fonction SQL directement (hors du wrapper `historiqueDesEmplacements`,
+ * donc hors de tout contexte applicatif), exactement comme
+ * `tests/isolation/identite-exclusive-a-la-societe.test.ts` le fait pour
+ * `app_identite_exclusive_a_la_societe` (D226) : c'est la seule façon
+ * d'éprouver ce qui se passe QUAND ce contexte est absent ou porte un
+ * discriminant portail.
+ */
+describe("app_historique_emplacements_machine — garanties posées par la migration (D284)", () => {
+  it("contexte sans app.societe_id → lève, jamais zéro ligne silencieuse (fail-closed)", async () => {
+    await expect(
+      clientApp().$queryRawUnsafe(
+        `SELECT * FROM "app_historique_emplacements_machine"($1::uuid)`,
+        MACHINE_A2,
+      ),
+    ).rejects.toThrow(/app_historique_emplacements_machine/);
+  });
+
+  it("contexte portail (app.client_id posé) → lève, même avec une société active valide", async () => {
+    await expect(
+      clientApp().$transaction(async (tx) => {
+        await tx.$executeRawUnsafe(
+          "SELECT set_config('app.societe_id', $1, true)",
+          SOCIETE_A,
+        );
+        await tx.$executeRawUnsafe(
+          "SELECT set_config('app.client_id', $1, true)",
+          CLIENT_A1,
+        );
+        return tx.$queryRawUnsafe(
+          `SELECT * FROM "app_historique_emplacements_machine"($1::uuid)`,
+          MACHINE_A2,
+        );
+      }),
+    ).rejects.toThrow(/app_historique_emplacements_machine/);
+  });
+
+  it("une société active valide, sans app.client_id, rend bien la trace — témoin", async () => {
+    const [ligne] = await clientApp().$transaction(async (tx) => {
+      await tx.$executeRawUnsafe(
+        "SELECT set_config('app.societe_id', $1, true)",
+        SOCIETE_A,
+      );
+      return tx.$queryRawUnsafe<readonly { id: string }[]>(
+        `SELECT "id" FROM "app_historique_emplacements_machine"($1::uuid)`,
+        MACHINE_A2,
+      );
+    });
+    expect(ligne).toBeDefined();
+  });
+
+  it("PUBLIC ne peut pas l'exécuter — codiplan_reporting (BYPASSRLS, SELECT seul) le prouve", async () => {
+    await expect(
+      clientReporting().$queryRawUnsafe(
+        `SELECT * FROM "app_historique_emplacements_machine"($1::uuid)`,
+        MACHINE_A2,
+      ),
+    ).rejects.toThrow(/permission denied/i);
   });
 });
