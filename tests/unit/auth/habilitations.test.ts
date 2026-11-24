@@ -144,6 +144,9 @@ const SCENARIOS: readonly Scenario[] = [
       "regler_trajets",
       // D280 (23/11/2026, 9L34) — déplacer une machine, réservé au bureau.
       "deplacer_machine",
+      // D283 (23/11/2026, 9L38) — l'historique des emplacements, lecture
+      // ouverte à tout rôle qui voit la fiche.
+      "consulter_historique_emplacements",
     ],
     nePeutPas: [
       // Les données financières restent à la direction (D37).
@@ -177,6 +180,8 @@ const SCENARIOS: readonly Scenario[] = [
       "administrer_agences",
       // D280 (23/11/2026, 9L34) — déplacer une machine, réservé au bureau.
       "deplacer_machine",
+      // D283 (23/11/2026, 9L38) — l'historique des emplacements.
+      "consulter_historique_emplacements",
     ],
     nePeutPas: ["modifier_referentiel_plateforme"],
   },
@@ -192,6 +197,8 @@ const SCENARIOS: readonly Scenario[] = [
       "consulter_clients_sites",
       // D280 (23/11/2026, 9L34) — déplacer une machine, réservé au bureau.
       "deplacer_machine",
+      // D283 (23/11/2026, 9L38) — l'historique des emplacements.
+      "consulter_historique_emplacements",
     ],
     nePeutPas: [
       "administrer_utilisateurs",
@@ -216,6 +223,8 @@ const SCENARIOS: readonly Scenario[] = [
       "consulter_clients_sites",
       // D280 (23/11/2026, 9L34) — déplacer une machine, réservé au bureau.
       "deplacer_machine",
+      // D283 (23/11/2026, 9L38) — l'historique des emplacements.
+      "consulter_historique_emplacements",
     ],
     nePeutPas: [
       "gerer_contrat",
@@ -241,6 +250,8 @@ const SCENARIOS: readonly Scenario[] = [
       "regler_trajets",
       // D280 (23/11/2026, 9L34) — déplacer une machine, réservé au bureau.
       "deplacer_machine",
+      // D283 (23/11/2026, 9L38) — l'historique des emplacements.
+      "consulter_historique_emplacements",
     ],
     // « L'ADV voit les montants de vente mais pas les marges » (§5.2).
     nePeutPas: [
@@ -269,6 +280,11 @@ const SCENARIOS: readonly Scenario[] = [
       // TR-5 (03/10/2026, 9DK-PG-G15A-ABSENCE-ECOURTER) — ○ scopé à SA PROPRE
       // absence, la base tenant le garde-fou (`absence_declaree_pour_soi`).
       "modifier_planning",
+      // D283 (23/11/2026, 9L38) — la matrice donne TEC au ●, même si D221
+      // ferme déjà tout le back-office au technicien et que la capacité ne
+      // s'exerce donc jamais en pratique (voir la condition de réouverture
+      // de D280).
+      "consulter_historique_emplacements",
     ],
     nePeutPas: [
       // « Il ne voit aucun montant de vente : il saisit des temps et des
@@ -300,6 +316,8 @@ const SCENARIOS: readonly Scenario[] = [
       // D153 (03/10/2026, TP-S3) — aucune des deux nouvelles capacités.
       "consulter_clients_sites",
       "regler_trajets",
+      // D283 (23/11/2026, 9L38) — portée société (D37), hors du portail.
+      "consulter_historique_emplacements",
     ],
   },
 ];

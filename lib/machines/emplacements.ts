@@ -43,13 +43,24 @@ export type EmplacementMachine = {
  * journal.ts` : une politique qui protège déjà ne dispense pas la requête de
  * porter son propre critère.
  *
- * **La politique `journal_audit_lecture` ne s'ouvre qu'à `admin_societe` et
- * `direction`** (matrice §5.2, `consulter_journal_audit`) — un rôle qui ne
- * l'a pas rend ZÉRO ligne sous RLS, aussi sûrement qu'une machine sans
- * déménagement. L'appelant (`app/(back-office)/parc/[id]/page.tsx`) ne
- * montre donc ce bloc qu'à qui a cette capacité : un décompte vide pour la
- * mauvaise raison dirait « jamais déplacée » quand c'est seulement « vous ne
- * pouvez pas le savoir » (D50 ne couvre que les refus qui ne mentent pas).
+ * **Deux politiques de lecture, par disjonction (D283, 23/11/2026, 9L38)** :
+ * `journal_audit_lecture` (admin_societe/direction, le journal ENTIER) et,
+ * depuis la migration `20261124100000_historique_emplacements_tous_roles_
+ * 9l38`, `journal_audit_lecture_emplacements_machine` — qui n'ouvre, à TOUT
+ * rôle de la société, que les lignes `entite = 'machine'` dont le `site_id`
+ * diffère entre avant et après. Cette seconde politique rend la requête
+ * ci-dessous lisible par RM, RS et ADV (D280/D283) sans jamais élargir le
+ * journal entier : un champ de machine modifié sans toucher le site, ou une
+ * ligne sur une autre table, reste invisible à qui n'a pas
+ * `consulter_journal_audit`.
+ *
+ * L'appelant (`app/(back-office)/parc/[id]/page.tsx`) ne montre ce bloc qu'à
+ * qui a la capacité `consulter_historique_emplacements` (ADMS, DIR, RM, RS,
+ * ADV, TEC — D221 ferme déjà tout le back-office au technicien) : un décompte
+ * vide pour la mauvaise raison dirait « jamais déplacée » quand c'est
+ * seulement « vous ne pouvez pas le savoir » (D50 ne couvre que les refus qui
+ * ne mentent pas) — même si, depuis D283, cette raison ne se présente plus
+ * pour aucun rôle qui atteint réellement la fiche.
  */
 export async function historiqueDesEmplacements(
   contexte: ContexteSession,

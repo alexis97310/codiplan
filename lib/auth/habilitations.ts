@@ -89,6 +89,14 @@ export const CAPACITES = [
   // plutôt qu'une garde de rôle écrite dans la route : le patron que D131,
   // D153 et D199 suivent déjà pour tout geste nommé séparément du §5.2.
   "deplacer_machine",
+  // D283 (23/11/2026, point 3 de la séance, ticket 9L38) — seconde moitié de
+  // D280 : « l'historique des emplacements » (la LECTURE, distincte de
+  // `deplacer_machine` ci-dessus qui en est l'ÉCRITURE) s'ouvre à tout rôle
+  // qui voit la fiche machine, plutôt qu'aux seuls `admin_societe`/`direction`
+  // de `consulter_journal_audit`. La migration qui l'accompagne pose une
+  // politique RLS scopée aux seules lignes de déménagement (`journal_audit_
+  // lecture_emplacements_machine`) : le journal entier reste réservé.
+  "consulter_historique_emplacements",
   "gerer_client_site",
   "consulter_parc_complet",
   "consulter_parc_propre",
@@ -185,6 +193,13 @@ const MATRICE: Readonly<Record<Capacite, Ligne>> = {
   // machine (ligne au-dessus), mais ne la déplace jamais. Aucun ○ : un
   // déplacement est accepté entièrement ou refusé, jamais partiel.
   deplacer_machine: { complet: [ADMS, DIR, RM, RS, ADV] },
+  // D283 (23/11/2026, 9L38) — tout rôle qui voit la fiche machine (D221 ferme
+  // déjà tout le back-office au technicien ; TEC est listé quand même, pour
+  // rester exact si D221 s'assouplissait un jour — voir la condition de
+  // réouverture de D280).
+  consulter_historique_emplacements: {
+    complet: [ADMS, DIR, RM, RS, ADV, TEC],
+  },
   // D130 : la fiche client et la fiche site sont du référentiel commercial,
   // pas de l'exploitation — responsable_materiel et responsable_sav en sont
   // délibérément absents, malgré leur accès complet à la machine.

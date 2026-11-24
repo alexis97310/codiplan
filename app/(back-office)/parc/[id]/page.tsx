@@ -215,17 +215,18 @@ export default async function PageMachine({
   const aujourdHui = instantDuJour(jourDe(maintenant(fuseau).local));
 
   const historique = await historiqueDeLaMachine(contexte, machine.id);
-  // L'HISTORIQUE DES EMPLACEMENTS (9L20-DEPLACER-MACHINE) — lu dans le
-  // journal d'audit (I8), dont la politique `journal_audit_lecture` (migration
-  // `20260829120000_journal_audit`) ne s'ouvre qu'à `admin_societe` et
-  // `direction` (matrice §5.2, `consulter_journal_audit`) : un rôle qui ne
-  // l'a pas recevrait zéro ligne SOUS RLS, ce qui dirait « jamais déplacée »
-  // d'une machine qui l'a pourtant été — un FAUX NÉGATIF, pas un refus
-  // honnête (D50 ne couvre que les refus qui ne mentent pas). Le bloc est
-  // donc ABSENT pour les autres rôles, jamais montré vide.
+  // L'HISTORIQUE DES EMPLACEMENTS (9L20-DEPLACER-MACHINE, ouvert à tout rôle
+  // qui voit la fiche depuis D283/9L38) — lu dans le journal d'audit (I8),
+  // sous une politique RLS DÉDIÉE (`journal_audit_lecture_emplacements_
+  // machine`, migration `20261124100000_historique_emplacements_tous_
+  // roles_9l38`) qui n'ouvre que les lignes de déménagement d'une machine, à
+  // TOUT rôle de la société — le journal entier reste réservé à
+  // `consulter_journal_audit` (ADMS, DIR). La capacité ci-dessous est donc le
+  // filtrage par RÔLE, posé côté application (§12.2) : ADMS, DIR, RM, RS, ADV
+  // (TEC ne l'atteint jamais, D221 fermant déjà tout le back-office).
   const peutConsulterEmplacements =
     contexte.role !== null &&
-    peutPleinement(contexte.role, "consulter_journal_audit");
+    peutPleinement(contexte.role, "consulter_historique_emplacements");
   const emplacements = peutConsulterEmplacements
     ? await historiqueDesEmplacements(contexte, machine.id)
     : [];
@@ -637,9 +638,10 @@ export default async function PageMachine({
 
           {/* L'HISTORIQUE DES EMPLACEMENTS (9L20-DEPLACER-MACHINE) — lu dans
               le journal d'audit (I8), jamais dans une table dédiée (voir
-              `historiqueDesEmplacements`, `lib/machines/historique.ts`).
-              ABSENT, jamais vide, pour un rôle sans `consulter_journal_audit`
-              — voir la note au-dessus de `peutConsulterEmplacements`. */}
+              `historiqueDesEmplacements`, `lib/machines/emplacements.ts`).
+              ABSENT, jamais vide, pour un rôle sans
+              `consulter_historique_emplacements` — voir la note au-dessus de
+              `peutConsulterEmplacements`. */}
           {peutConsulterEmplacements ? (
             <CarteEnTete
               bloc="carte-emplacements"
