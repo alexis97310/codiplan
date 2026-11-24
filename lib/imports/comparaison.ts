@@ -73,3 +73,34 @@ export function porteEncore(
     return false;
   });
 }
+
+/**
+ * REMPLACE, SUR CES CHAMPS, LA VALEUR PRÉPARÉE PAR CELLE DÉJÀ EN FICHE
+ * (9L40, 25/11/2026) — jamais le défaut qu'un schéma de saisie pose quand
+ * aucune cellule ne porte la colonne.
+ *
+ * **Une cellule vide ne remplace jamais une valeur existante.** Un gabarit
+ * qui n'expose pas une colonne — `annee_fabrication`, avant ce ticket — rend
+ * cette colonne TOUJOURS absente de la saisie préparée ; le schéma lui donne
+ * alors son défaut Zod (souvent `null`), et l'écrire à chaque modification,
+ * même motivée par une AUTRE colonne, efface silencieusement la valeur
+ * saisie à la main. `champs` nomme les colonnes qu'aucune ligne de ce
+ * gabarit ne peut jamais porter : pour elles, `avant` fait foi.
+ *
+ * Sans `champs`, rend `valeur` telle quelle — le régime de tout gabarit qui
+ * n'a pas ce problème. **Appelée sur `ecrit` ET sur `comparaison`, avec le
+ * même `avant`** : les deux doivent voir la même valeur, sans quoi
+ * `porteEncore` comparerait une colonne à une valeur qu'on ne s'apprête plus
+ * à écrire, et classerait « modifiée » une ligne qui ne l'est pas.
+ */
+export function conserverLesChampsAbsents<T extends Record<string, unknown>>(
+  valeur: T,
+  avant: FicheComparable,
+  champs: readonly string[] | undefined,
+): T {
+  if (champs === undefined || champs.length === 0) return valeur;
+  return {
+    ...valeur,
+    ...Object.fromEntries(champs.map((champ) => [champ, avant[champ]])),
+  } as T;
+}

@@ -1264,25 +1264,33 @@ export const CHAMPS_EQUIPEMENTS_ECARTES: Readonly<Record<string, string>> = {
   // ticket du gabarit des équipements, pas de celui qui a levé la borne.
   // **Condition de levée, vérifiable :** un ticket sur ce gabarit qui appelle
   // `lireDate` sur ces trois colonnes et éprouve leur annulation.
+  // **Depuis 9L40 (25/11/2026), l'ABSENCE de cette colonne n'efface plus la
+  // valeur déjà en fiche** (`CHAMPS_EQUIPEMENTS_JAMAIS_ECRASES`,
+  // `lib/imports/application.ts`) — seule la LECTURE depuis une cellule
+  // reste un ticket de ce gabarit.
   date_mise_en_service:
-    "lisible depuis le 22/09/2026, non exposée : lecture, écriture et annulation d'une date sont un ticket de ce gabarit",
+    "lisible depuis le 22/09/2026, non exposée : lire une date et la comparer à l'annulation restent un ticket de ce gabarit ; une modification ne l'efface plus (9L40)",
   date_vente:
-    "lisible depuis le 22/09/2026, non exposée : lecture, écriture et annulation d'une date sont un ticket de ce gabarit",
+    "lisible depuis le 22/09/2026, non exposée : lire une date et la comparer à l'annulation restent un ticket de ce gabarit ; une modification ne l'efface plus (9L40)",
   garantie_fin:
-    "lisible depuis le 22/09/2026, non exposée : lecture, écriture et annulation d'une date sont un ticket de ce gabarit",
+    "lisible depuis le 22/09/2026, non exposée : lire une date et la comparer à l'annulation restent un ticket de ce gabarit ; une modification ne l'efface plus (9L40)",
   // MÊME RAISON que les trois dates ci-dessus (9I8C, 31/10/2026) : exposer
-  // cette colonne demande de la LIRE (un entier, pas une date — un chemin que
-  // `lireDate` ne couvre pas), de l'ÉCRIRE (bornée par `BORNE_ANNEE_
-  // FABRICATION_MIN`/`MAX`, `lib/machines/saisie.ts`) et de la COMPARER à
-  // l'annulation. **Condition de levée, vérifiable :** un ticket sur ce
-  // gabarit qui lit un entier depuis une cellule et éprouve son annulation.
+  // cette colonne demande encore de la LIRE (un entier, pas une date — un
+  // chemin que `lireDate` ne couvre pas) et de la COMPARER à l'annulation.
+  // **Condition de levée, vérifiable :** un ticket sur ce gabarit qui lit un
+  // entier depuis une cellule et éprouve son annulation. *Ce qui est fermé
+  // depuis 9L40 (25/11/2026) :* une modification pour une AUTRE colonne
+  // n'efface plus l'année saisie à la main — `CHAMPS_EQUIPEMENTS_
+  // JAMAIS_ECRASES`, `lib/imports/application.ts`.
   annee_fabrication:
-    "ajoutée le 31/10/2026 (9I8C), non exposée : lecture d'un entier, écriture et annulation sont un ticket de ce gabarit",
+    "ajoutée le 31/10/2026 (9I8C), non exposée : lire un entier et le comparer à l'annulation restent un ticket de ce gabarit ; une modification ne l'efface plus (9L40)",
   // *Un nombre dont la signification dépend d'une autre colonne ne voyage
   // jamais seul* (D56), et une référence de facture sans sa date de vente ni sa
   // fin de garantie est exactement cela : une trace qu'on ne peut pas dater.
+  // Une modification ne l'efface plus pour autant (9L40) — même garde que les
+  // trois dates.
   facture_origine:
-    "elle ne voyage pas sans la date de vente ni la fin de garantie, que la grammaire ne rend pas (D56)",
+    "elle ne voyage pas sans la date de vente ni la fin de garantie, que la grammaire ne rend pas (D56) ; une modification ne l'efface plus (9L40)",
   // Le cycle de vie est un geste daté — une réforme, une panne constatée —, et
   // `fusionnee` n'a qu'un producteur (D28, L3-10). *Une colonne « Statut »
   // permettrait à un fichier de déclarer une fusion que personne n'a faite.*

@@ -602,3 +602,109 @@ describe("un lot d'ÉQUIPEMENTS écrit des machines, et les TROIS parents sont r
     expect(apres?.complet).toBe(true);
   });
 });
+
+/* ════════════════════════════════════════════════════════════════════════
+ * 9L40 (25/11/2026) — UNE CELLULE QUE LE GABARIT N'EXPOSE PAS NE REMPLACE
+ * JAMAIS CE QUI A ÉTÉ SAISI À LA MAIN. Mesuré sur `annee_fabrication` et
+ * `facture_origine`, les deux absentes du gabarit « équipements » — voir
+ * `CHAMPS_EQUIPEMENTS_JAMAIS_ECRASES`, lib/imports/application.ts.
+ * ════════════════════════════════════════════════════════════════════════ */
+
+type LigneMachineEtendue = LigneMachine & {
+  annee_fabrication: number | null;
+  facture_origine: string | null;
+  localisation: string | null;
+};
+
+async function lireMachineEtendue(
+  serie: string,
+): Promise<LigneMachineEtendue | undefined> {
+  const [m] = await clientOwner().$queryRawUnsafe<LigneMachineEtendue[]>(
+    `SELECT "id", "numero_serie", "reference_interne", "complet",
+            "source_creation"::text AS "source_creation", "qr_token", "numero",
+            "site_id", "client_id", "modele_id", "annee_fabrication",
+            "facture_origine", "localisation"
+       FROM "machine"
+      WHERE "societe_id" = '${SOCIETE_A}' AND "numero_serie" = '${serie}'`,
+  );
+  return m;
+}
+
+describe("9L40 — une modification venue du gabarit ne touche jamais une colonne qu'il n'expose pas", () => {
+  it("l'année de fabrication et la référence de facture, saisies à la main, SURVIVENT à une modification sur une AUTRE colonne", async () => {
+    // 1. Création par import, ordinaire.
+    const { lotId: lotCreation } = await deposer("equipements", [
+      equipement("R6M-ANNEE-FAB"),
+    ]);
+    expect(
+      (await appliquerLeLotDeEquipements(SESSION, lotCreation, clientApp()))
+        .applique,
+    ).toBe(true);
+
+    // 2. Saisie À LA MAIN de deux colonnes qu'AUCUN gabarit n'expose — exactement
+    // le chemin de l'écran de modification, jamais celui de l'import.
+    const avant = await lireMachineEtendue("R6M-ANNEE-FAB");
+    expect(avant).toBeDefined();
+    await clientOwner().$executeRawUnsafe(
+      `UPDATE "machine"
+          SET "annee_fabrication" = 2016, "facture_origine" = 'FAC-2016-777'
+        WHERE "id" = '${avant?.id}'`,
+    );
+    const saisiAvantImport = await lireMachineEtendue("R6M-ANNEE-FAB");
+    expect(saisiAvantImport?.annee_fabrication).toBe(2016);
+    expect(saisiAvantImport?.facture_origine).toBe("FAC-2016-777");
+
+    // 3. Un fichier qui modifie une AUTRE colonne (la localisation) — le
+    // témoin que la ligne est une vraie modification, pas une no-op.
+    const { lotId: lotModification, modifications } = await deposer(
+      "equipements",
+      [
+        [
+          "C-001",
+          "Site A1-1",
+          "Ravaglioli",
+          "KPX-337",
+          "R6M-ANNEE-FAB",
+          "",
+          "Quai 9",
+          "",
+        ],
+      ],
+    );
+    expect(modifications).toBe(1);
+
+    const resultat = await appliquerLeLotDeEquipements(
+      SESSION,
+      lotModification,
+      clientApp(),
+    );
+    expect(resultat.applique).toBe(true);
+    if (!resultat.applique) return;
+    expect(resultat.modifications).toBe(1);
+
+    // 4. LA LOCALISATION A BIEN CHANGÉ — et pourtant l'année de fabrication et
+    // la référence de facture, qu'AUCUNE cellule de ce fichier ne porte, sont
+    // INTACTES : la règle du ticket, « une cellule vide du fichier ne
+    // remplace jamais une valeur existante », tenue sur une vraie écriture.
+    const apres = await lireMachineEtendue("R6M-ANNEE-FAB");
+    expect(apres?.localisation).toBe("Quai 9");
+    expect(apres?.annee_fabrication).toBe(2016);
+    expect(apres?.facture_origine).toBe("FAC-2016-777");
+  });
+
+  it("ISOLATION, INCHANGÉE : un équipement inconnu du parc de la société reste une CRÉATION, jamais une fusion avec une fiche d'une autre société", async () => {
+    // *9L40 lit `avant` pour conserver des colonnes — jamais pour désigner
+    // une cible.* La cible reste celle du parc INDEXÉ PAR SOCIÉTÉ
+    // (`indexerLeParcEquipements`, filtré par la politique RLS, D22) : ce
+    // test rejoue le témoin déjà écrit plus haut (« le site d'une autre
+    // société est introuvable ») pour s'assurer que ce lot n'a RIEN changé à
+    // ce cloisonnement.
+    const { creations, modifications, motifs } = await deposer(
+      "equipements",
+      [equipement("R6M-ISOLATION-9L40", "", "Site B1-1")],
+    );
+    expect(motifs).toEqual(["site_introuvable"]);
+    expect(creations).toBe(0);
+    expect(modifications).toBe(0);
+  });
+});

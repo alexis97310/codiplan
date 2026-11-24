@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { porteEncore } from "@/lib/imports/comparaison";
+import { conserverLesChampsAbsents, porteEncore } from "@/lib/imports/comparaison";
 
 /**
  * `porteEncore` — CINQ formes comparables (R6-03, et la cinquième ajoutée au
@@ -57,5 +57,65 @@ describe("porteEncore — la forme TABLEAU, comparée comme un ENSEMBLE", () => 
     expect(
       porteEncore({ types: "curatif" }, { types: ["curatif"] }, ["types"]),
     ).toBe(false);
+  });
+});
+
+/**
+ * `conserverLesChampsAbsents` — 9L40 (25/11/2026). La règle du ticket, telle
+ * qu'écrite : une cellule vide du fichier ne remplace JAMAIS une valeur déjà
+ * en fiche ; une cellule remplie et différente, elle, remplace.
+ */
+describe("conserverLesChampsAbsents — une cellule que le gabarit ne porte jamais ne remplace jamais la fiche", () => {
+  it("reprend la valeur déjà en fiche sur les champs nommés, même si la saisie préparée porte un défaut", () => {
+    const avant = { annee_fabrication: 2018, localisation: "Atelier" };
+    const prepare = { annee_fabrication: null, localisation: "Atelier" };
+
+    expect(
+      conserverLesChampsAbsents(prepare, avant, ["annee_fabrication"]),
+    ).toEqual({ annee_fabrication: 2018, localisation: "Atelier" });
+  });
+
+  it("laisse une colonne REMPLIE et DIFFÉRENTE remplacer — elle n'est pas dans la liste des champs jamais écrasés", () => {
+    const avant = { localisation: "Atelier", criticite: "normale" };
+    const prepare = { localisation: "Quai 2", criticite: "normale" };
+
+    expect(conserverLesChampsAbsents(prepare, avant, ["criticite"])).toEqual({
+      localisation: "Quai 2",
+      criticite: "normale",
+    });
+  });
+
+  it("sans liste de champs, rend la saisie préparée telle quelle", () => {
+    const avant = { annee_fabrication: 2018 };
+    const prepare = { annee_fabrication: null };
+
+    expect(conserverLesChampsAbsents(prepare, avant, undefined)).toBe(
+      prepare,
+    );
+    expect(conserverLesChampsAbsents(prepare, avant, [])).toBe(prepare);
+  });
+
+  it("une liste à plusieurs champs reprend chacun indépendamment", () => {
+    const avant = {
+      annee_fabrication: 2015,
+      facture_origine: "FAC-2015-042",
+      localisation: "Atelier",
+    };
+    const prepare = {
+      annee_fabrication: null,
+      facture_origine: null,
+      localisation: "Atelier",
+    };
+
+    expect(
+      conserverLesChampsAbsents(prepare, avant, [
+        "annee_fabrication",
+        "facture_origine",
+      ]),
+    ).toEqual({
+      annee_fabrication: 2015,
+      facture_origine: "FAC-2015-042",
+      localisation: "Atelier",
+    });
   });
 });

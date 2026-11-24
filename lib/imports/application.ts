@@ -43,7 +43,7 @@ import { uuidv7 } from "@/lib/db/uuid";
 import type { SaisieAssujettissementFamille } from "@/lib/vgp/assujettissement";
 
 import { CHAMPS_ECRITS_CLIENTS, CHAMPS_SITES_MODIFIES } from "./annulation";
-import { porteEncore } from "./comparaison";
+import { conserverLesChampsAbsents, porteEncore } from "./comparaison";
 import { DELAIS_APPLICATION } from "./delais";
 import {
   CHAMPS_CLIENTS,
@@ -302,6 +302,20 @@ async function appliquerLesLignes<
       cible: string,
       ecrit: Ecrit,
     ) => Promise<number>;
+    /**
+     * LES CHAMPS QU'UNE CELLULE VIDE NE REMPLACE JAMAIS (9L40, 25/11/2026).
+     *
+     * Une colonne que le gabarit n'expose pas est une cellule TOUJOURS vide,
+     * et le schéma de saisie lui donne alors son défaut Zod — jamais la
+     * valeur déjà en fiche. *Sans ce réglage, toute ligne jugée modifiée pour
+     * une AUTRE raison effaçait silencieusement ces colonnes à l'écriture* —
+     * mesuré sur `annee_fabrication`, qui n'a jamais de colonne dans le
+     * gabarit des équipements. La valeur retenue est celle d'AVANT
+     * (`avantParId`, issue de `config.lireAvant`), posée ICI — avant la
+     * comparaison ET avant l'écriture — jamais dans `preparerModification`,
+     * qui tourne avant la lecture groupée et n'a donc pas encore `avant`.
+     */
+    readonly champsConservesSiAbsents?: readonly string[];
   },
 ): Promise<ResultatApplication> {
   const societeId = exigerSocieteActive(contexte);
@@ -429,12 +443,26 @@ async function appliquerLesLignes<
           // introuvable ailleurs dans ce fichier.
           if (avant === undefined) continue;
 
+          // Voir `champsConservesSiAbsents` ci-dessus : AVANT toute
+          // comparaison, les colonnes qu'aucune cellule ne peut porter
+          // reprennent la valeur déjà en fiche — jamais le défaut du schéma.
+          const ecrit = conserverLesChampsAbsents(
+            m.ecrit,
+            avant,
+            config.champsConservesSiAbsents,
+          );
+          const comparaison = conserverLesChampsAbsents(
+            m.comparaison,
+            avant,
+            config.champsConservesSiAbsents,
+          );
+
           // **UNE MODIFICATION QUI NE MODIFIE RIEN N'EST PAS UNE MODIFICATION**
           // (point 1, 16/09/2026) : mesuré en production, un même fichier
           // redéposé sans changement a fait réécrire 615 fiches à
           // l'identique — à la fois inutile et FAUX pour le journal d'audit
           // (I8), qui inscrit une trace par écriture.
-          if (porteEncore(avant, m.comparaison, config.champsComparaison)) {
+          if (porteEncore(avant, comparaison, config.champsComparaison)) {
             inchangees += 1;
             continue;
           }
@@ -442,7 +470,7 @@ async function appliquerLesLignes<
           // **Zéro ligne touchée n'est pas une erreur, c'est la politique qui a
           // refusé**, et elle refuse en silence. La ligne est alors laissée en
           // l'état, comme une fiche disparue : le lot continue.
-          const touchees = await config.modifierUn(tx, m.cible, m.ecrit);
+          const touchees = await config.modifierUn(tx, m.cible, ecrit);
           if (touchees === 0) continue;
           await tracer(tx, m.ligne.id, config.entite, m.cible, avant);
           modifications += 1;
@@ -1132,9 +1160,17 @@ export async function appliquerLeLotDeFamilles(
  * MODIFICATION distinct — `schemaMachine` sert aux deux actions, et ses
  * `.default(null)` sur les trois dates et `facture_origine` s'appliquent
  * qu'une cellule soit vide ou que le gabarit ne l'expose simplement pas
- * (`CHAMPS_EQUIPEMENTS_ECARTES`). *Omettre une seule de ces colonnes de la
- * comparaison ferait juger « inchangée » une ligne dont l'écriture aurait en
- * réalité effacé une date — le défaut inverse de celui que ce ticket ferme.*
+ * (`CHAMPS_EQUIPEMENTS_ECARTES`).
+ *
+ * **Depuis 9L40 (25/11/2026), ce défaut n'écrase plus rien** :
+ * `CHAMPS_EQUIPEMENTS_JAMAIS_ECRASES`, ci-dessous, fait reprendre à ces
+ * colonnes la valeur déjà en fiche avant même cette comparaison (voir
+ * `champsConservesSiAbsents` dans `appliquerLesLignes`). Elles restent
+ * listées ici pour autant — `annee_fabrication` n'y est volontairement PAS,
+ * voir cette même constante — par prudence : si une colonne en sortait un
+ * jour de `CHAMPS_EQUIPEMENTS_JAMAIS_ECRASES` sans qu'on pense à l'ajouter
+ * ici, l'ANCIEN défaut reviendrait (une ligne « inchangée » qui efface une
+ * date) plutôt qu'une simple absence de garde.
  *
  * **Ce n'est pas la liste que compare `annulerLeLotDeEquipements`** — elle
  * varie selon l'action (`CHAMPS_EQUIPEMENTS_MODIFIES` contre
@@ -1154,6 +1190,27 @@ const CHAMPS_EQUIPEMENTS_ECRITS = [
   "complet",
 ] as const;
 
+/**
+ * LES CHAMPS QU'AUCUNE CELLULE DE CE GABARIT NE PORTE JAMAIS, ET QU'UNE
+ * MODIFICATION NE DOIT DONC JAMAIS EFFACER (9L40, 25/11/2026).
+ *
+ * *Exactement* `CHAMPS_EQUIPEMENTS_ECARTES` moins les trois parents (résolus,
+ * jamais saisis), la clé de rapprochement, le statut et `source_creation`
+ * (posés par le chemin, jamais par un défaut de schéma) : ceux-là ne
+ * retombent jamais sur `.default(null)` à l'improviste, ils sont TOUJOURS
+ * posés explicitement par `preparerUnEquipement`. **Ces cinq-là, si** —
+ * `annee_fabrication` ajoutée le 31/10/2026 (9I8C) sans qu'aucun gabarit
+ * n'ait encore été corrigé pour elle, exactement le défaut que les quatre
+ * autres portaient déjà et que ce ticket ferme pour les cinq à la fois.
+ */
+const CHAMPS_EQUIPEMENTS_JAMAIS_ECRASES = [
+  "facture_origine",
+  "date_mise_en_service",
+  "date_vente",
+  "garantie_fin",
+  "annee_fabrication",
+] as const;
+
 export async function appliquerLeLotDeEquipements(
   contexte: ContexteSession,
   lotId: string,
@@ -1171,6 +1228,7 @@ export async function appliquerLeLotDeEquipements(
     {
       entite: "machine",
       champsComparaison: CHAMPS_EQUIPEMENTS_ECRITS,
+      champsConservesSiAbsents: CHAMPS_EQUIPEMENTS_JAMAIS_ECRASES,
       preparerCreation: (ligne) => {
         const prepare = preparerUnEquipement(
           clients,
@@ -1226,6 +1284,7 @@ export async function appliquerLeLotDeEquipements(
             date_mise_en_service: true,
             date_vente: true,
             garantie_fin: true,
+            annee_fabrication: true,
             criticite: true,
             complet: true,
           },
