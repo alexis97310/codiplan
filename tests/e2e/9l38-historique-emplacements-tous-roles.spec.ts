@@ -181,18 +181,21 @@ test("l'ADV déplace la machine, puis voit l'historique sur sa propre fiche — 
   await capturer(page, "9l38-fiche-adv", 1280, "apres");
 });
 
+// AVANT D283, ce bloc était ABSENT pour `responsable_materiel` (il n'a pas
+// `consulter_journal_audit`) — la fiche elle-même ne portait alors AUCUN JSX
+// qui montre cet état, et son « avant » n'est donc pas reproductible sur CET
+// ARBRE, exactement pour la raison que `tests/e2e/9l20-deplacer-machine.spec.ts`
+// documente déjà pour un autre bloc. Seul l'APRÈS est versé ici.
 for (const largeur of [1280, 375]) {
   test(`responsable matériel (D283) : lit l'historique sans l'avoir posé — ${largeur}px`, async ({
     page,
   }) => {
     await ouvrirLaSessionSensible(page, COMPTE_RM_EPREUVE);
     await page.setViewportSize({ width: largeur, height: 1200 });
-    await capturer(page, "9l38-fiche-rm", largeur, "avant");
     await page.goto(`/parc/${MACHINE_9L38}`);
 
-    // AVANT D283, ce bloc était ABSENT pour `responsable_materiel` — il n'a
-    // pas `consulter_journal_audit`. Il est désormais VISIBLE, et montre le
-    // déplacement que l'ADV a posé ci-dessus, sans que RM n'ait rien écrit.
+    // Désormais VISIBLE pour RM, et montre le déplacement que l'ADV a posé
+    // ci-dessus, sans que RM n'ait rien écrit.
     await expect(
       page.getByText(fr["machine.fiche.emplacements_titre"]),
     ).toBeVisible();
