@@ -58,11 +58,6 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
       {
         statut: "a_ecrire",
         titre:
-          "M8 — Ma journée : tri par priorité puis par date, carte « À faire maintenant » (maquette 01-journee).",
-      },
-      {
-        statut: "a_ecrire",
-        titre:
           "P6 — Compléter le catalogue des prestations par l'import avant la mise en service (geste d'exploitation ; maquette 03-rapport).",
       },
       {
@@ -149,6 +144,11 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
   {
     titre: "Livré depuis le 31/10",
     elements: [
+      {
+        statut: "livre",
+        titre:
+          "M8 — Ma journée : tri par priorité puis par créneau, une intervention en cours ou suspendue en tête ; carte « À faire maintenant » en haut d'écran, en ligne et hors réseau — (9L41).",
+      },
       {
         statut: "livre",
         titre:

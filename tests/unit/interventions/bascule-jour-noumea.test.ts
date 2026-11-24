@@ -49,12 +49,18 @@ describe("repartirJourneeTechnicien — la fenêtre suit la bascule, borne J+8 e
   function ligneA(jourLocal: JourLocal): {
     readonly id: string;
     readonly date_planifiee: Date;
+    readonly statut: string;
+    readonly priorite: string;
+    readonly creneau_debut: Date | null;
   } {
     return {
       id: `ligne-${jourLocal.annee}-${jourLocal.mois}-${jourLocal.jour}`,
       date_planifiee: new Date(
         Date.UTC(jourLocal.annee, jourLocal.mois - 1, jourLocal.jour),
       ),
+      statut: "affectee",
+      priorite: "p3",
+      creneau_debut: null,
     };
   }
 

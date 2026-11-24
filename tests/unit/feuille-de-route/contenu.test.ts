@@ -24,6 +24,9 @@ import { SECTIONS_FEUILLE_DE_ROUTE } from "@/lib/feuille-de-route/contenu";
  * (couleurs) et m12 (cases à 26 px) ont été tranchés séparément — m12 est
  * livré et a migré vers « Livré depuis le 31/10 », m11 est NON RETENU et a
  * migré vers « Décisions prises » — trois éléments restent ici.
+ *
+ * 9L41-MA-JOURNEE-TRI-A-FAIRE (25/11/2026) : M8 est livré et a migré vers
+ * « Livré depuis le 31/10 » — deux éléments restent ici.
  */
 describe("la section « Application technicien — audit du 10/11/2026 »", () => {
   const section = SECTIONS_FEUILLE_DE_ROUTE.find(
@@ -34,9 +37,8 @@ describe("la section « Application technicien — audit du 10/11/2026 »", () =
     expect(section).toBeDefined();
   });
 
-  it("porte ses trois éléments restants, mot pour mot", () => {
+  it("porte ses deux éléments restants, mot pour mot", () => {
     expect(section?.elements.map((e) => e.titre)).toEqual([
-      "M8 — Ma journée : tri par priorité puis par date, carte « À faire maintenant » (maquette 01-journee).",
       "P6 — Compléter le catalogue des prestations par l'import avant la mise en service (geste d'exploitation ; maquette 03-rapport).",
       "m8, m10b et m13 — En-tête sur une ligne ; « Se déconnecter » et « Installer l'application » dans Profil ; pastille « En ligne / Hors ligne · saisies en attente » (maquettes 01-journee et 07-profil).",
     ]);
@@ -44,7 +46,6 @@ describe("la section « Application technicien — audit du 10/11/2026 »", () =
 
   it("porte les statuts attendus", () => {
     expect(section?.elements.map((e) => e.statut)).toEqual([
-      "a_ecrire",
       "a_ecrire",
       "a_ecrire",
     ]);

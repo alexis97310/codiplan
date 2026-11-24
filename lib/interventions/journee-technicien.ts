@@ -5,13 +5,25 @@ import {
   type JourLocal,
 } from "@/lib/calendar/fuseau";
 import { memeJour } from "@/lib/calendar/semaine";
+import { trierParPrioriteEtDate, type ClesTriJournee } from "@/lib/terrain/tri-journee";
 
 import { jourCivilDeDatePlanifiee } from "./retard";
 
 /** La ligne minimale dont la répartition a besoin. */
 type LigneDatee = {
   readonly date_planifiee: Date | null;
+  readonly statut: string;
+  readonly priorite: string;
+  readonly creneau_debut: Date | null;
 };
+
+function cles(ligne: LigneDatee): ClesTriJournee {
+  return {
+    statut: ligne.statut,
+    priorite: ligne.priorite,
+    instant: ligne.creneau_debut?.getTime() ?? null,
+  };
+}
 
 export type RepartitionJournee<T> = {
   readonly enRetard: readonly T[];
@@ -39,6 +51,13 @@ export type RepartitionJournee<T> = {
  * carte n'affiche qu'un compte et des jours distincts triés, sans lien : la
  * page Profil n'affiche aucune intervention, et un lien qui n'y menait à rien
  * serait une impasse (écart nommé à la maquette, voir `docs/arbitrages.md`).
+ *
+ * **« Aujourd'hui », « demain » et « sans date » sont triées par priorité
+ * puis par créneau** (9L41-MA-JOURNEE-TRI-A-FAIRE, M8) — voir
+ * `lib/terrain/tri-journee.ts`, la seule écriture de cette règle. « En
+ * retard » garde son tri par date seule (D210, ci-dessus) : ces lignes n'ont
+ * qu'un statut possible (`affectee`, filtré par l'appelant), la tête de tri
+ * par statut n'y changerait jamais rien.
  */
 export function repartirJourneeTechnicien<T extends LigneDatee>(
   lignes: readonly T[],
@@ -93,9 +112,9 @@ export function repartirJourneeTechnicien<T extends LigneDatee>(
 
   return {
     enRetard: enRetardTriee,
-    aujourdHui: aujourdHuiLignes,
-    demain: demainLignes,
+    aujourdHui: trierParPrioriteEtDate(aujourdHuiLignes, cles),
+    demain: trierParPrioriteEtDate(demainLignes, cles),
     suite: { nombre: suiteLignes.length, dates: datesSuite },
-    sansDate: sansDateLignes,
+    sansDate: trierParPrioriteEtDate(sansDateLignes, cles),
   };
 }

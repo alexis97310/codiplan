@@ -3196,6 +3196,9 @@ export const fr = {
   // d'Alexis, D210) — « en retard », « demain » et « les jours suivants »
   // rejoignent « aujourd'hui » et « sans date », dans l'ordre de la
   // maquette du 28/09.
+  // LA CARTE « À FAIRE MAINTENANT » (9L41-MA-JOURNEE-TRI-A-FAIRE, M8) — la
+  // prochaine intervention du tri priorité puis créneau, en tête de l'écran.
+  "terrain.a_faire_maintenant.titre": "À faire maintenant",
   "terrain.en_retard": "En retard",
   "terrain.carte.en_retard_prevue": "En retard · prévue",
   "terrain.aujourdhui": "Aujourd'hui",

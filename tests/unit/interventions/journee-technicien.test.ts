@@ -7,24 +7,47 @@ import { repartirJourneeTechnicien } from "@/lib/interventions/journee-technicie
  * « MA JOURNÉE » RÉPARTIE PAR JOUR CIVIL (9F2-TERRAIN-JOURS-MAQUETTE, décision
  * n° 92 d'Alexis, D210).
  *
- * `repartirJourneeTechnicien` ne lit ni la base ni l'horloge, ni les statuts :
- * le filtrage (transmis, jamais planifiée ni annulée ; en retard = affectée
- * seulement) est déjà fait par l'appelant (`listerPlanning`,
- * `interventionsEnRetard`) avant d'arriver ici — voir les épreuves de bout en
- * bout pour cette partie-là (§9, 01/09 : une seule lecture du critère).
+ * `repartirJourneeTechnicien` ne lit ni la base ni l'horloge : le filtrage
+ * (transmis, jamais planifiée ni annulée ; en retard = affectée seulement)
+ * est déjà fait par l'appelant (`listerPlanning`, `interventionsEnRetard`)
+ * avant d'arriver ici — voir les épreuves de bout en bout pour cette
+ * partie-là (§9, 01/09 : une seule lecture du critère).
+ *
+ * Elle lit le statut, la priorité et le créneau de chaque ligne pour les
+ * trier (9L41-MA-JOURNEE-TRI-A-FAIRE) — voir `tests/unit/terrain/
+ * tri-journee.test.ts` pour la règle elle-même ; ce fichier ne teste que la
+ * répartition par jour civil, avec des lignes toutes à `p3`/`affectee` par
+ * défaut sauf où le tri est précisément ce qui est vérifié.
  */
 
 const AUJOURDHUI: JourLocal = { annee: 2026, mois: 9, jour: 28 };
 
-type Ligne = { readonly id: string; readonly date_planifiee: Date | null };
+type Ligne = {
+  readonly id: string;
+  readonly date_planifiee: Date | null;
+  readonly statut: string;
+  readonly priorite: string;
+  readonly creneau_debut: Date | null;
+};
 
-function ligne(id: string, jour: JourLocal | null): Ligne {
+function ligne(
+  id: string,
+  jour: JourLocal | null,
+  options?: {
+    readonly statut?: string;
+    readonly priorite?: string;
+    readonly creneau_debut?: Date | null;
+  },
+): Ligne {
   return {
     id,
     date_planifiee:
       jour === null
         ? null
         : new Date(Date.UTC(jour.annee, jour.mois - 1, jour.jour)),
+    statut: options?.statut ?? "affectee",
+    priorite: options?.priorite ?? "p3",
+    creneau_debut: options?.creneau_debut ?? null,
   };
 }
 
@@ -116,6 +139,55 @@ describe("repartirJourneeTechnicien — les bornes J, J+1, J+2, J+7, J+8 exclu",
     expect(resultat.suite.dates).toEqual([
       jourSuivant(AUJOURDHUI, 3),
       jourSuivant(AUJOURDHUI, 5),
+    ]);
+  });
+
+  it("« aujourd'hui » est triée par priorité puis par créneau (9L41-MA-JOURNEE-TRI-A-FAIRE)", () => {
+    const resultat = repartirJourneeTechnicien(
+      [
+        ligne("tard_p3", AUJOURDHUI, {
+          priorite: "p3",
+          creneau_debut: new Date("2026-09-28T08:00:00Z"),
+        }),
+        ligne("tot_p1", AUJOURDHUI, {
+          priorite: "p1",
+          creneau_debut: new Date("2026-09-28T10:00:00Z"),
+        }),
+        ligne("tot_p3", AUJOURDHUI, {
+          priorite: "p3",
+          creneau_debut: new Date("2026-09-28T07:00:00Z"),
+        }),
+      ],
+      [],
+      AUJOURDHUI,
+    );
+    expect(resultat.aujourdHui.map((l) => l.id)).toEqual([
+      "tot_p1",
+      "tot_p3",
+      "tard_p3",
+    ]);
+  });
+
+  it("« aujourd'hui » : une ligne EN_COURS ou SUSPENDUE passe en tête, quelle que soit sa priorité", () => {
+    const resultat = repartirJourneeTechnicien(
+      [
+        ligne("p1_affectee", AUJOURDHUI, { priorite: "p1" }),
+        ligne("p4_suspendue", AUJOURDHUI, {
+          priorite: "p4",
+          statut: "suspendue",
+        }),
+        ligne("p3_en_cours", AUJOURDHUI, {
+          priorite: "p3",
+          statut: "en_cours",
+        }),
+      ],
+      [],
+      AUJOURDHUI,
+    );
+    expect(resultat.aujourdHui.map((l) => l.id)).toEqual([
+      "p3_en_cours",
+      "p4_suspendue",
+      "p1_affectee",
     ]);
   });
 

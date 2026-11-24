@@ -33,6 +33,7 @@ import {
   prestationsRealiseesDeLaFiche,
   rapportDeLaFiche,
 } from "@/lib/terrain/copie-validee";
+import { prochaineAFaire, type ClesTriJournee } from "@/lib/terrain/tri-journee";
 
 import { BandeauReseau } from "./bandeau-reseau";
 import { BoutonCompteurTerrain } from "./compteur-terrain";
@@ -157,8 +158,23 @@ function LienRetourSelonReseau() {
   );
 }
 
+function clesLigneJSON(ligne: LigneJSON): ClesTriJournee {
+  return {
+    statut: ligne.statut,
+    priorite: ligne.priorite,
+    instant: ligne.creneauDebut === null ? null : Date.parse(ligne.creneauDebut),
+  };
+}
+
 function Journee({ copie }: { readonly copie: InstantaneJSON }) {
   const { journee } = copie;
+  // LA MÊME CARTE « À FAIRE MAINTENANT » QU'EN LIGNE (9L41-MA-JOURNEE-TRI-A-
+  // FAIRE, M8 ; `components/terrain/liste-journee.tsx`) — même règle, même
+  // périmètre (en retard, aujourd'hui, sans date), jamais une seconde forme.
+  const aFaireMaintenant = prochaineAFaire(
+    [...journee.enRetard, ...journee.aujourdhui, ...journee.sansDate],
+    clesLigneJSON,
+  );
   return (
     <>
       {/* LA FRAÎCHEUR DE LA COPIE EST DITE UNE SEULE FOIS — par le bandeau
@@ -170,6 +186,17 @@ function Journee({ copie }: { readonly copie: InstantaneJSON }) {
           {t("terrain.hors_reseau.titre")}
         </h1>
       </header>
+
+      {aFaireMaintenant === null ? null : (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-app-encre-faible text-13 font-bold tracking-[0.6px] uppercase">
+            {t("terrain.a_faire_maintenant.titre")}
+          </h2>
+          <ul className="divide-app-bord flex flex-col divide-y">
+            <Carte ligne={aFaireMaintenant} fuseau={journee.fuseau} />
+          </ul>
+        </section>
+      )}
 
       {journee.enRetard.length === 0 ? null : (
         <Section

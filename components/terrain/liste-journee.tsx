@@ -12,6 +12,7 @@ import {
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import type { LigneJourneeAffichee } from "@/lib/terrain/projection-journee";
+import { prochaineAFaire, type ClesTriJournee } from "@/lib/terrain/tri-journee";
 import { CLASSES_STATUT, type StatutAffiche } from "@/lib/theme/statuts";
 
 import {
@@ -56,6 +57,14 @@ function libelleAnnonceNouvelles(n: number): string {
   return `${n} ${suffixe}`;
 }
 
+function clesLigne(ligne: LigneJourneeAffichee): ClesTriJournee {
+  return {
+    statut: ligne.statut,
+    priorite: ligne.priorite,
+    instant: ligne.creneau_debut?.getTime() ?? null,
+  };
+}
+
 export function ListeJournee({
   journee,
   jourActuel,
@@ -86,6 +95,15 @@ export function ListeJournee({
     (ligne) => ligne.vue_technicien_le === null,
   ).length;
 
+  // LA CARTE « À FAIRE MAINTENANT » (9L41-MA-JOURNEE-TRI-A-FAIRE, M8) — parmi
+  // ce qui est actionnable MAINTENANT (en retard, aujourd'hui, sans date ;
+  // jamais « demain » ni « les jours suivants », qui ne sont pas « maintenant »),
+  // la première du tri priorité/créneau qui n'est pas déjà terminée.
+  const aFaireMaintenant = prochaineAFaire(
+    [...journee.enRetard, ...journee.aujourdHui, ...journee.sansDate],
+    clesLigne,
+  );
+
   return (
     <>
       <p
@@ -100,6 +118,23 @@ export function ListeJournee({
           ? ""
           : libelleAnnonceNouvelles(nombreNonOuvertes)}
       </p>
+
+      {aFaireMaintenant === null ? null : (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-app-encre-faible text-13 font-bold tracking-[0.6px] uppercase">
+            {t("terrain.a_faire_maintenant.titre")}
+          </h2>
+          <ul className="divide-app-bord flex flex-col divide-y">
+            <Carte
+              ligne={aFaireMaintenant}
+              fuseau={fuseau}
+              enRetard={journee.enRetard.some(
+                (l) => l.id === aFaireMaintenant.id,
+              )}
+            />
+          </ul>
+        </section>
+      )}
 
       {journee.enRetard.length === 0 ? null : (
         <Section
