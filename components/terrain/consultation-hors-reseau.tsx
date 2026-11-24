@@ -33,7 +33,10 @@ import {
   prestationsRealiseesDeLaFiche,
   rapportDeLaFiche,
 } from "@/lib/terrain/copie-validee";
-import { prochaineAFaire, type ClesTriJournee } from "@/lib/terrain/tri-journee";
+import {
+  prochaineAFaire,
+  type ClesTriJournee,
+} from "@/lib/terrain/tri-journee";
 
 import { BandeauReseau } from "./bandeau-reseau";
 import { BoutonCompteurTerrain } from "./compteur-terrain";
@@ -162,7 +165,8 @@ function clesLigneJSON(ligne: LigneJSON): ClesTriJournee {
   return {
     statut: ligne.statut,
     priorite: ligne.priorite,
-    instant: ligne.creneauDebut === null ? null : Date.parse(ligne.creneauDebut),
+    instant:
+      ligne.creneauDebut === null ? null : Date.parse(ligne.creneauDebut),
   };
 }
 
@@ -192,9 +196,7 @@ function Journee({ copie }: { readonly copie: InstantaneJSON }) {
           <h2 className="text-app-encre-faible text-13 font-bold tracking-[0.6px] uppercase">
             {t("terrain.a_faire_maintenant.titre")}
           </h2>
-          <ul className="divide-app-bord flex flex-col divide-y">
-            <Carte ligne={aFaireMaintenant} fuseau={journee.fuseau} />
-          </ul>
+          <CarteApercu ligne={aFaireMaintenant} fuseau={journee.fuseau} />
         </section>
       )}
 
@@ -282,6 +284,46 @@ function Section({
         </ul>
       )}
     </section>
+  );
+}
+
+/**
+ * L'APERÇU DE « À FAIRE MAINTENANT » HORS RÉSEAU — même principe que
+ * `components/terrain/liste-journee.tsx` (M8, 9L41-MA-JOURNEE-TRI-A-FAIRE) :
+ * ni site, ni machines, ni panne, pour ne jamais donner à ce texte une
+ * seconde occurrence sur l'écran — cette ligne est déjà rendue plus bas,
+ * sous sa propre section. Même lien, même destination que `Carte`.
+ */
+function CarteApercu({
+  ligne,
+  fuseau,
+}: {
+  readonly ligne: LigneJSON;
+  readonly fuseau: InstantaneJSON["journee"]["fuseau"];
+}) {
+  const cleStatut = `statut.${ligne.statut}`;
+  return (
+    <Link
+      href={`/terrain-hors-reseau?id=${ligne.id}`}
+      className="border-app-bord flex flex-col gap-1.5 rounded-md border px-4 py-3"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-16 font-semibold tabular-nums">
+          {ligne.creneauDebut === null
+            ? t("terrain.sans_creneau")
+            : heureLocale(new Date(ligne.creneauDebut), fuseau)}
+        </span>
+        <span
+          className={
+            "rounded-full px-2 py-0.5 text-12 font-bold " +
+            "bg-app-surface border-app-bord border"
+          }
+        >
+          {estCleTraduction(cleStatut) ? t(cleStatut) : ligne.statut}
+        </span>
+      </div>
+      <p className="text-16 font-semibold">{ligne.client}</p>
+    </Link>
   );
 }
 

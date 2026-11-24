@@ -12,7 +12,10 @@ import {
 import { estCleTraduction, t } from "@/lib/i18n/fr";
 import { mot } from "@/lib/i18n/vocabulaire";
 import type { LigneJourneeAffichee } from "@/lib/terrain/projection-journee";
-import { prochaineAFaire, type ClesTriJournee } from "@/lib/terrain/tri-journee";
+import {
+  prochaineAFaire,
+  type ClesTriJournee,
+} from "@/lib/terrain/tri-journee";
 import { CLASSES_STATUT, type StatutAffiche } from "@/lib/theme/statuts";
 
 import {
@@ -124,15 +127,7 @@ export function ListeJournee({
           <h2 className="text-app-encre-faible text-13 font-bold tracking-[0.6px] uppercase">
             {t("terrain.a_faire_maintenant.titre")}
           </h2>
-          <ul className="divide-app-bord flex flex-col divide-y">
-            <Carte
-              ligne={aFaireMaintenant}
-              fuseau={fuseau}
-              enRetard={journee.enRetard.some(
-                (l) => l.id === aFaireMaintenant.id,
-              )}
-            />
-          </ul>
+          <CarteApercu ligne={aFaireMaintenant} fuseau={fuseau} />
         </section>
       )}
 
@@ -254,6 +249,47 @@ function SectionJoursSuivants({
         </p>
       )}
     </section>
+  );
+}
+
+/**
+ * L'APERÇU DE « À FAIRE MAINTENANT » — SON PROPRE RENDU, délibérément plus
+ * pauvre que `Carte` (ni site, ni machines, ni panne) : cette ligne apparaît
+ * DÉJÀ plus bas, sous sa propre section (« en retard », « aujourd'hui » ou
+ * « sans date ») — y répéter le site ou la panne donnerait à CE texte une
+ * seconde occurrence sur l'écran, piège pour toute épreuve qui le cherche
+ * par son nom de site (9F2-TERRAIN-JOURS-MAQUETTE et consorts cherchent
+ * ainsi). Même lien, même destination — « son action principale existante »
+ * (9L41-MA-JOURNEE-TRI-A-FAIRE, M8) — mais jamais la même forme que `Carte`.
+ */
+function CarteApercu({
+  ligne,
+  fuseau,
+}: {
+  readonly ligne: LigneJourneeAffichee;
+  readonly fuseau: Fuseau;
+}) {
+  const cleStatut = `statut.${ligne.statut}`;
+  return (
+    <Link
+      href={`/terrain/${ligne.id}`}
+      className="border-app-bord flex flex-col gap-1.5 rounded-md border px-4 py-3"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+        <span className="flex min-w-0 flex-wrap items-center gap-1.5">
+          <Priorite valeur={ligne.priorite} />
+          <span className="text-16 font-semibold tabular-nums">
+            {heureOuTiret(ligne.creneau_debut, ligne.creneau_fin, fuseau)}
+          </span>
+        </span>
+        <span
+          className={`${CLASSES_STATUT[ligne.statut as StatutAffiche]} rounded-full px-2 py-0.5 text-12 font-bold`}
+        >
+          {estCleTraduction(cleStatut) ? t(cleStatut) : ligne.statut}
+        </span>
+      </div>
+      <p className="text-16 font-semibold">{ligne.client.raison_sociale}</p>
+    </Link>
   );
 }
 

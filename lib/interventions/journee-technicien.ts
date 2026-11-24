@@ -5,7 +5,10 @@ import {
   type JourLocal,
 } from "@/lib/calendar/fuseau";
 import { memeJour } from "@/lib/calendar/semaine";
-import { trierParPrioriteEtDate, type ClesTriJournee } from "@/lib/terrain/tri-journee";
+import {
+  trierParPrioriteEtDate,
+  type ClesTriJournee,
+} from "@/lib/terrain/tri-journee";
 
 import { jourCivilDeDatePlanifiee } from "./retard";
 

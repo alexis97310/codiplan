@@ -75,7 +75,6 @@ export function prochaineAFaire<T>(
 ): T | null {
   const triees = trierParPrioriteEtDate(candidats, cles);
   return (
-    triees.find((ligne) => !STATUTS_DEJA_FAITS.has(cles(ligne).statut)) ??
-    null
+    triees.find((ligne) => !STATUTS_DEJA_FAITS.has(cles(ligne).statut)) ?? null
   );
 }

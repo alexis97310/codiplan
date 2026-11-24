@@ -62,10 +62,7 @@ describe("trierParPrioriteEtDate", () => {
       ],
       cles,
     );
-    expect(resultat.map((l) => l.id)).toEqual([
-      "avec_creneau",
-      "sans_creneau",
-    ]);
+    expect(resultat.map((l) => l.id)).toEqual(["avec_creneau", "sans_creneau"]);
   });
 
   it("EN_COURS passe en tête devant une priorité plus urgente", () => {
@@ -102,7 +99,10 @@ describe("trierParPrioriteEtDate", () => {
   });
 
   it("ne modifie pas le tableau reçu", () => {
-    const lignes = [ligne("a", "affectee", "p1", 0), ligne("b", "affectee", "p2", 0)];
+    const lignes = [
+      ligne("a", "affectee", "p1", 0),
+      ligne("b", "affectee", "p2", 0),
+    ];
     trierParPrioriteEtDate(lignes, cles);
     expect(lignes.map((l) => l.id)).toEqual(["a", "b"]);
   });
@@ -111,10 +111,7 @@ describe("trierParPrioriteEtDate", () => {
 describe("prochaineAFaire", () => {
   it("retourne la première du tri quand rien n'est en cours", () => {
     const resultat = prochaineAFaire(
-      [
-        ligne("p3", "affectee", "p3", 0),
-        ligne("p1", "affectee", "p1", 0),
-      ],
+      [ligne("p3", "affectee", "p3", 0), ligne("p1", "affectee", "p1", 0)],
       cles,
     );
     expect(resultat?.id).toBe("p1");
