@@ -68,11 +68,6 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
       {
         statut: "a_ecrire",
         titre:
-          "Statut machine : écritures simultanées, confirmation de sortie du parc renforcée.",
-      },
-      {
-        statut: "a_ecrire",
-        titre:
           "Finitions : liste déroulante sur téléphone (clavier, bas d'écran), écran de changement de mot de passe pour le technicien.",
       },
     ],
@@ -134,6 +129,11 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
         statut: "livre",
         titre:
           "Épreuves et captures manquantes sur 9I8C (fiche machine, bon interne et client, fiche terrain) et 9I8F1 (machine sortie du parc choisie dans une demande ou une intervention) — (9L45).",
+      },
+      {
+        statut: "livre",
+        titre:
+          "Statut machine : verrou optimiste contre deux écritures simultanées (refus nommé « modifiée entre-temps », rien n'est écrasé en silence) ; sortie du parc, confirmation renforcée — retaper le code de la machine avant que le bouton ne s'active — (9L44).",
       },
       {
         statut: "livre",

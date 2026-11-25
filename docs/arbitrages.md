@@ -9609,3 +9609,29 @@ Elle ne touche ni `consulter_historique_emplacements`, ni `peutConsulterEmplacem
 > Si une cinquième fonction `SECURITY DEFINER` est un jour proposée et reçoit une société ou un client en PARAMÈTRE plutôt que de la lire dans le contexte de session, c'est que cette condition a été oubliée : `tests/isolation/9l20-deplacer-machine.test.ts` (describe « app_historique_emplacements_machine — garanties posées par la migration (D284) ») doit alors être repris comme modèle, pas réinventé.
 
 Portée : `prisma/migrations/20261125013000_historique_emplacements_societe_de_session_9l38a/`, `lib/db/migrations-attendues.ts`, `lib/machines/emplacements.ts`, `tests/unit/db/security-definer-sous-arbitrage.test.ts`, `tests/isolation/9l20-deplacer-machine.test.ts`.
+
+## D285 — VERROU OPTIMISTE SUR LE STATUT MACHINE : LE STATUT LU, JAMAIS `modifie_le` ; SORTIE DU PARC, RETAPER LE CODE (9L44-STATUT-MACHINE-SIMULTANE-SORTIE)
+
+### CE QUI A ÉTÉ MESURÉ
+
+`changerStatutMachine` (`lib/machines/depot.ts`) lisait le statut d'une machine puis l'écrivait sans jamais revérifier qu'il n'avait pas changé entre les deux : deux écritures concurrentes sur la même fiche, la dernière écrasait la première en silence — aucun refus nommé, aucune trace de ce qui avait été perdu.
+
+La première forme écrite comparait `modifie_le` (le candidat naturel, déjà posé par `@updatedAt`) dans le `WHERE` de l'écriture. **Mesuré avant d'être retenu : elle ne fonctionnait JAMAIS, même sans aucune écriture concurrente.** La colonne est `timestamptz` (précision microseconde, Postgres), le `Date` JavaScript ne porte que la milliseconde — Prisma, en relisant puis en reposant la même valeur dans un `WHERE`, perd systématiquement les six derniers chiffres, et la comparaison ne matche alors plus jamais. Corriger la précision aurait exigé une migration (`modifie_le timestamptz(3)`), exclue de ce lot. Le statut LU, lui, est EXACTEMENT le champ que ce chemin dispute, ne perd aucune précision au passage par Prisma, et se compare très bien dans ce `WHERE` : le verrou porte sur lui.
+
+Pour la confirmation d'une sortie du parc : le dialogue existant (9I8F1-REPRISE-9I8F, D227) n'était qu'une case Confirmer/Revenir, sans texte à saisir — un double-clic distrait suffisait à sortir une machine du parc actif.
+
+### LA DÉCISION
+
+**Le verrou optimiste compare le statut, jamais `modifie_le`.** `changerStatutMachineDans` (`lib/machines/depot.ts`) reçoit en plus un `statutAttendu` optionnel ; fourni, il rejoint `id` dans le `WHERE` de l'`updateMany`. `changerStatutMachine` lit le statut puis le rejoue ainsi : une ligne déjà changée par une autre transaction depuis cette lecture ne matche plus — zéro ligne touchée, refus nommé `modifie_entre_temps`, jamais un écrasement silencieux. `deposerDemande` (`lib/demandes/depot.ts`), qui appelle le même dépôt pour une valeur ANNEXE à une création, n'est pas touché : il continue d'omettre ce paramètre, et garde son comportement déjà arbitré (une valeur qui ne correspond plus s'ignore, elle ne se dispute pas).
+
+**Une vraie sortie du parc (`remplacee`, `ferraillee` — jamais le RETOUR, qui vise un état actif) exige de retaper le code de la machine** avant que le bouton de confirmation ne s'active. `BoutonAvecConfirmation` (`components/ui/bouton-confirmation.tsx`) porte ce mécanisme comme un prop générique, `saisieDeControle` (un texte attendu, un libellé) — jamais spécifique à la machine —, réutilisable par un autre geste de ce dépôt qui le demanderait. Le code comparé est `referenceMachine(machine)` (`MAC-000123`, ou `Local-<6>` sans numéro affecté) — celui déjà affiché en tête de la fiche —, jamais le numéro de série, qui peut porter la marque « fiche à compléter » (N-11) et serait alors un mauvais texte à faire retaper.
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+Elle n'ajoute aucun champ « motif » à la sortie du parc : le cahier des charges n'en exige pas un ici, et le ticket l'interdisait explicitement sauf s'il existait déjà (il n'existait pas). Elle n'étend pas le retype au RETOUR d'une machine sortie : seule une sortie RÉELLE (la cible est `remplacee`/`ferraillee`) le réclame, un retour garde son dialogue Confirmer/Revenir simple. Elle ne touche à aucune migration ni au type de la colonne `modifie_le`, qui reste `timestamptz` sans précision réduite — une future décision qui voudrait verrouiller sur `modifie_le` ailleurs dans ce dépôt devra d'abord poser `@db.Timestamptz(3)` (ou équivalent) par migration, sous peine de retrouver exactement ce défaut.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Si un futur chemin d'écriture de ce dépôt compare `modifie_le` dans un `WHERE` Prisma SANS avoir d'abord réduit sa précision par migration, c'est que cette mesure a été oubliée : la note de tête de `changerStatutMachineDans` (`lib/machines/depot.ts`) et ce D285 doivent être relus avant d'écrire une seule ligne. Si Alexis demande un jour d'étendre le retype à une autre action irréversible (hors machine), `saisieDeControle` est fait pour ça — un second composant dédié serait alors la redite que ce D285 a cherché à éviter.
+
+Portée : `lib/machines/depot.ts`, `components/ui/bouton-confirmation.tsx`, `components/machines/changer-statut.tsx`, `app/(back-office)/parc/presentation.ts`, `app/(back-office)/parc/[id]/page.tsx`, `app/(back-office)/interventions/[id]/page.tsx`, `lib/i18n/fr.ts`, `tests/isolation/changer-statut-machine.test.ts`, `tests/unit/ui/carte-pas-recopiee.test.ts`, `tests/e2e/9l44-sortie-du-parc-retype.spec.ts` (nouveau), `lib/feuille-de-route/contenu.ts`.
