@@ -1669,8 +1669,7 @@ export async function changerStatutMachineDans(
   statutAttendu?: StatutMachine,
 ): Promise<number> {
   const touchees = await tx.machine.updateMany({
-    where:
-      statutAttendu === undefined ? { id } : { id, statut: statutAttendu },
+    where: statutAttendu === undefined ? { id } : { id, statut: statutAttendu },
     data: { statut },
   });
   return touchees.count;
