@@ -60,11 +60,6 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
         titre:
           "P6 — Compléter le catalogue des prestations par l'import avant la mise en service (geste d'exploitation ; maquette 03-rapport).",
       },
-      {
-        statut: "a_ecrire",
-        titre:
-          "m8, m10b et m13 — En-tête sur une ligne ; « Se déconnecter » et « Installer l'application » dans Profil ; pastille « En ligne / Hors ligne · saisies en attente » (maquettes 01-journee et 07-profil).",
-      },
     ],
   },
   {
@@ -143,6 +138,11 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
         statut: "livre",
         titre:
           "Sécurité : second facteur conservé dans la session neuve après un changement de mot de passe ; limite d'essais sur l'ancien mot de passe, partagée avec celle de la connexion ; trace du changement dans le journal des accès — (9L43).",
+      },
+      {
+        statut: "livre",
+        titre:
+          "m8, m10b et m13 — En-tête de « Ma journée » et de « Profil » sur une ligne, avec la pastille « En ligne »/« Hors ligne · N saisie(s) en attente » ; « Installer l'application » rangé dans Profil, retiré de « Ma journée » (maquettes 01-journee et 07-profil). Réserve : « Se déconnecter » reste aussi dans le bandeau du haut, commun aux trois coques (N-02, 16/09/2026) — non retiré de là, à trancher avec Alexis s'il doit disparaître du terrain seul — (9L42).",
       },
       {
         statut: "livre",
