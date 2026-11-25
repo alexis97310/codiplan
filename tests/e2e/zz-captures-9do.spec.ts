@@ -76,6 +76,30 @@ async function nettoyer(client: PrismaClient): Promise<void> {
   });
 }
 
+/**
+ * REJOUABLE : `9DOA`/`9DOB` sont les SEULS identifiants FIXES de cette
+ * scène (`CLIENT_HOMO_1`/`2` sont tirés au sort à chaque exécution) — si une
+ * tentative précédente a été interrompue avant son `afterAll` (ex. SIGABRT
+ * du worker), un client survit sous le même `code_externe` et ferait
+ * échouer la contrainte unique `(societe_id, code_externe)`.
+ */
+async function nettoyerHomonymesPrecedents(
+  client: PrismaClient,
+  societeId: string,
+): Promise<void> {
+  const anciens = await client.client.findMany({
+    where: { societe_id: societeId, code_externe: { in: ["9DOA", "9DOB"] } },
+    select: { id: true },
+  });
+  if (anciens.length === 0) return;
+  const idsAnciens = anciens.map((client_) => client_.id);
+  await client.contact.deleteMany({
+    where: { client_id: { in: idsAnciens } },
+  });
+  await client.site.deleteMany({ where: { client_id: { in: idsAnciens } } });
+  await client.client.deleteMany({ where: { id: { in: idsAnciens } } });
+}
+
 test.beforeAll(async () => {
   const client = admin();
   try {
@@ -84,6 +108,7 @@ test.beforeAll(async () => {
       where: { code: "CODIMA-NC" },
       select: { id: true },
     });
+    await nettoyerHomonymesPrecedents(client, societe.id);
     const agence = await client.agence.findFirstOrThrow({
       where: { societe_id: societe.id, code: "DUCOS" },
       select: { id: true },

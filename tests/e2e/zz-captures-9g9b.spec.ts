@@ -71,6 +71,7 @@ const identitesCreees: string[] = [];
 
 /** Ouvre une identité `direction` jetable, jamais enrôlée, par le chemin administratif. */
 async function nouveauCompte(etiquette: string): Promise<string> {
+  const email = `9g9b.${etiquette}@codima.test`;
   const proprietaire = admin();
   let societeId = "";
   try {
@@ -79,11 +80,30 @@ async function nouveauCompte(etiquette: string): Promise<string> {
       select: { id: true },
     });
     societeId = societe.id;
+
+    // REJOUABLE : l'adresse est FIXE (phase × largeur, un petit ensemble
+    // clos) — si une tentative précédente a été interrompue avant son
+    // `afterAll` (ex. SIGABRT du worker), elle survit sous la même adresse
+    // et `signUpEmail` refuserait (« User already exists »).
+    const compteAncien = await proprietaire.utilisateur.findFirst({
+      where: { email },
+      select: { id: true },
+    });
+    if (compteAncien !== null) {
+      await proprietaire.journalAcces.deleteMany({
+        where: { utilisateur_id: compteAncien.id },
+      });
+      await proprietaire.utilisateurSociete.deleteMany({
+        where: { utilisateur_id: compteAncien.id },
+      });
+      await proprietaire.utilisateur.deleteMany({
+        where: { id: compteAncien.id },
+      });
+    }
   } finally {
     await proprietaire.$disconnect();
   }
 
-  const email = `9g9b.${etiquette}@codima.test`;
   const applicatif = new PrismaClient({
     datasources: { db: { url: urlApplicative() } },
   });

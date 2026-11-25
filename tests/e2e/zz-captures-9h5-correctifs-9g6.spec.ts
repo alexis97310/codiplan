@@ -75,6 +75,26 @@ test.beforeAll(async () => {
       select: { id: true },
     });
     societeId = societe.id;
+
+    // REJOUABLE : `EMAIL_ENROLEMENT` est FIXE — si une tentative précédente
+    // a été interrompue avant son `afterAll` (ex. SIGABRT du worker), elle
+    // survit sous la même adresse et `signUpEmail` refuserait (« User
+    // already exists »).
+    const compteAncien = await proprietaire.utilisateur.findFirst({
+      where: { email: EMAIL_ENROLEMENT },
+      select: { id: true },
+    });
+    if (compteAncien !== null) {
+      await proprietaire.journalAcces.deleteMany({
+        where: { utilisateur_id: compteAncien.id },
+      });
+      await proprietaire.utilisateurSociete.deleteMany({
+        where: { utilisateur_id: compteAncien.id },
+      });
+      await proprietaire.utilisateur.deleteMany({
+        where: { id: compteAncien.id },
+      });
+    }
   } finally {
     await proprietaire.$disconnect();
   }

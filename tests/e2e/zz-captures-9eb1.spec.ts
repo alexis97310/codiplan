@@ -70,6 +70,30 @@ async function nettoyer(client: PrismaClient): Promise<void> {
   });
 }
 
+/**
+ * REJOUABLE : `9EB1-CAPT-001` est le SEUL identifiant FIXE de cette scène
+ * (`CLIENT_ACTIF` est tiré au sort à chaque exécution) — si une tentative
+ * précédente a été interrompue avant son `afterAll` (ex. SIGABRT du
+ * worker), un client survit sous le même `code_externe` et ferait échouer
+ * la contrainte unique `(societe_id, code_externe)`.
+ */
+async function nettoyerClientPrecedent(
+  client: PrismaClient,
+  societeId: string,
+): Promise<void> {
+  const ancien = await client.client.findFirst({
+    where: { societe_id: societeId, code_externe: "9EB1-CAPT-001" },
+    select: { id: true },
+  });
+  if (ancien === null) return;
+  await client.intervention.deleteMany({
+    where: { client_id: ancien.id },
+  });
+  await client.contact.deleteMany({ where: { client_id: ancien.id } });
+  await client.site.deleteMany({ where: { client_id: ancien.id } });
+  await client.client.deleteMany({ where: { id: ancien.id } });
+}
+
 test.beforeAll(async () => {
   const client = admin();
   try {
@@ -78,6 +102,7 @@ test.beforeAll(async () => {
       where: { code: "CODIMA-NC" },
       select: { id: true },
     });
+    await nettoyerClientPrecedent(client, societe.id);
     const agence = await client.agence.findFirstOrThrow({
       where: { societe_id: societe.id, code: "DUCOS" },
       select: { id: true },

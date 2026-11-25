@@ -57,6 +57,24 @@ test.beforeAll(async () => {
     });
     agenceId = agence.id;
 
+    // REJOUABLE : si une tentative précédente a été interrompue avant son
+    // `afterAll` (ex. SIGABRT du worker), le modèle de checklist — SEUL
+    // identifiant FIXE de cette scène, `CLIENT_ID` et consorts étant tirés
+    // au sort à chaque exécution — survit sous le même code et ferait
+    // échouer la contrainte unique `(societe_id, code)`.
+    const modelePrecedent = await client.checklistModele.findFirst({
+      where: { societe_id: societeId, code: "ZZ9L08D-GENERIQUE" },
+      select: { id: true },
+    });
+    if (modelePrecedent !== null) {
+      await client.checklistVersion.deleteMany({
+        where: { checklist_modele_id: modelePrecedent.id },
+      });
+      await client.checklistModele.deleteMany({
+        where: { id: modelePrecedent.id },
+      });
+    }
+
     await client.client.create({
       data: {
         id: CLIENT_ID,
