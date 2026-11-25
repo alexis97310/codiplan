@@ -35,7 +35,7 @@ export type SectionFeuilleDeRoute = {
 };
 
 /** La date affichée en sous-titre de la page. */
-export const DATE_ETAT_FEUILLE_DE_ROUTE = "25/11/2026";
+export const DATE_ETAT_FEUILLE_DE_ROUTE = "26/11/2026";
 
 export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
   {
@@ -70,11 +70,6 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
   {
     titre: "Réserves des revues, à regrouper",
     elements: [
-      {
-        statut: "a_ecrire",
-        titre:
-          "Sécurité : second facteur recopié dans la session neuve après un changement de mot de passe ; limite d'essais sur l'ancien mot de passe ; trace du changement dans le journal.",
-      },
       {
         statut: "a_ecrire",
         titre:
@@ -144,6 +139,11 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
   {
     titre: "Livré depuis le 31/10",
     elements: [
+      {
+        statut: "livre",
+        titre:
+          "Sécurité : second facteur conservé dans la session neuve après un changement de mot de passe ; limite d'essais sur l'ancien mot de passe, partagée avec celle de la connexion ; trace du changement dans le journal des accès — (9L43).",
+      },
       {
         statut: "livre",
         titre:
