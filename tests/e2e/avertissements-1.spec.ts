@@ -155,15 +155,29 @@ test.beforeAll(async () => {
     // `/terrain` (qui lit `instantDuJour(jourDe(maintenant(fuseau).local))`)
     // montre la journée de la VEILLE au sens UTC, et la carte du badge
     // n'apparaissait plus. Même règle ici que sur l'écran.
+    //
+    // SANS CRÉNEAU (9L41E, 25/11/2026) — `/terrain` (`listerPlanning`) ne
+    // range la carte du jour que par `date_planifiee`, jamais par
+    // `creneau_debut` (lu seulement pour l'AFFICHAGE et le tri intra-
+    // journée, `lib/terrain/tri-journee.ts`, qui traite `null` comme la fin
+    // de liste). Poser `creneau_debut`/`creneau_fin` à `now()`/`+1h` faisait
+    // donc un travail inutile à l'écran, et un travail NUISIBLE à la base :
+    // `technicienDucos` porte un créneau FIXE du semis de démonstration à une
+    // heure différente CHAQUE JOUR DE LA SEMAINE (`INTERVENTIONS_DEMONSTRATION`,
+    // `prisma/seed-data.ts`), et `now()`/`+1h` finit, selon l'heure où la
+    // suite tourne, par recouvrir cette heure-là — `intervention_sans_
+    // chevauchement_technicien` (9L19) refuse alors l'INSERT (23P01), *selon
+    // l'heure de la journée*. La contrainte ne s'applique qu'aux lignes dont
+    // le créneau n'est PAS nul : rester sans créneau est disjoint de
+    // n'importe quelle heure, pour n'importe quel autre scénario.
     const aujourdHui = jourDe(maintenant(reperes.fuseau).local);
     await client.$executeRawUnsafe(
       `INSERT INTO "intervention"
          ("id", "societe_id", "client_id", "site_id", "agence_id", "type",
-          "statut", "technicien_id", "date_planifiee", "creneau_debut",
-          "creneau_fin", "duree_estimee_min", "modifie_le")
+          "statut", "technicien_id", "date_planifiee", "duree_estimee_min",
+          "modifie_le")
        VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif',
-               'affectee', $6::uuid, $7::date, now(), now() + interval '1 hour',
-               60, now())`,
+               'affectee', $6::uuid, $7::date, 60, now())`,
       INTERVENTION_BADGE,
       societeId,
       CLIENT_AVEC,
