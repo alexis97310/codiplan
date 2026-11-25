@@ -1571,6 +1571,7 @@ export default async function PageIntervention({
                                   valeur,
                                   libelle: t(`statut_machine.${valeur}`),
                                   confirmation: false,
+                                  sortie: false,
                                 }),
                               )}
                               libelleChamp={t("machine.changer_etat.champ")}

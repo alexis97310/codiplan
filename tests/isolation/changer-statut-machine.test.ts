@@ -210,3 +210,100 @@ describe("changerStatutMachine — une machine fusionnée ne change jamais de st
     }
   });
 });
+
+function attendre(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * UN VERROU POSÉ DEPUIS UNE CONNEXION EXTERNE (`clientOwner`), tenu jusqu'à
+ * ce que l'appelant le relâche explicitement.
+ *
+ * SANS LUI, la course ci-dessous dépendrait du hasard du réseau : une simple
+ * lecture (`findFirst`) ne bloque jamais sur un verrou de ligne sous
+ * PostgreSQL — seule une ÉCRITURE le fait. Ce verrou `FOR UPDATE` force donc
+ * les deux appels concurrents à lire la MÊME version avant que l'un des deux
+ * ne puisse écrire, pour que l'issue de la course soit déterministe : celui
+ * qui écrit en second relit une ligne déjà changée, et c'est CE refus que
+ * l'épreuve vérifie — jamais un hasard de calendrier d'exécution.
+ */
+async function tenirLeVerrouSurLaLigne(
+  id: string,
+): Promise<() => Promise<void>> {
+  let aPris: () => void = () => {};
+  const pris = new Promise<void>((resolve) => {
+    aPris = resolve;
+  });
+  let peutLiberer: () => void = () => {};
+  const libere = new Promise<void>((resolve) => {
+    peutLiberer = resolve;
+  });
+  const transaction = clientOwner().$transaction(async (tx) => {
+    await tx.$executeRawUnsafe(
+      `SELECT 1 FROM "machine" WHERE "id" = '${id}' FOR UPDATE`,
+    );
+    aPris();
+    await libere;
+  });
+  await pris;
+  return async () => {
+    peutLiberer();
+    await transaction;
+  };
+}
+
+/**
+ * ÉCRITURES SIMULTANÉES (9L44-STATUT-MACHINE-SIMULTANE-SORTIE) — le verrou
+ * optimiste de `changerStatutMachine` (`lib/machines/depot.ts`) : deux
+ * transactions qui ont lu la MÊME fiche, l'une des deux voit son écriture
+ * refusée plutôt que d'écraser silencieusement celle qui l'a précédée.
+ */
+describe("changerStatutMachine — deux écritures concurrentes sur la même fiche", () => {
+  it("l'une des deux est acceptée, l'autre refusée « modifie_entre_temps », rien n'est écrasé en silence", async () => {
+    const relacher = await tenirLeVerrouSurLaLigne(MACHINE_B1);
+    try {
+      const concurrentes = Promise.all([
+        changerStatutMachine(
+          SESSION_INTERNE_B,
+          MACHINE_B1,
+          "en_panne",
+          false,
+          clientApp(),
+        ),
+        changerStatutMachine(
+          SESSION_INTERNE_B,
+          MACHINE_B1,
+          "arretee",
+          false,
+          clientApp(),
+        ),
+      ]);
+      // Laisse aux deux lectures le temps d'arriver — chacune n'attend
+      // jamais ce verrou (une lecture ne bloque pas sur un verrou de ligne),
+      // cette marge n'existe que pour que les deux soient bien parties avant
+      // qu'on ne libère les écritures.
+      await attendre(50);
+      await relacher();
+      const [a, b] = await concurrentes;
+
+      const resultats = [a, b];
+      const acceptes = resultats.filter((r) => r.accepte);
+      const refuses = resultats.filter((r) => !r.accepte);
+      expect(acceptes).toHaveLength(1);
+      expect(refuses).toEqual([
+        { accepte: false, motif: "modifie_entre_temps" },
+      ]);
+
+      const fiche = await lireMachine(SESSION_INTERNE_B, MACHINE_B1);
+      expect(["en_panne", "arretee"]).toContain(fiche?.statut);
+    } finally {
+      // `relacher` est idempotent (résoudre une promesse déjà résolue ne
+      // fait rien) : un échec AVANT l'appel ci-dessus laisserait sinon le
+      // verrou externe ouvert, et `fermerClients` ne s'en sortirait jamais.
+      await relacher();
+      await clientOwner().$executeRawUnsafe(
+        `UPDATE "machine" SET "statut" = 'en_service' WHERE "id" = '${MACHINE_B1}'`,
+      );
+    }
+  });
+});

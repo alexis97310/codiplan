@@ -261,12 +261,20 @@ export function optionsChangerStatutMachine(
   readonly valeur: StatutMachineChoisissable;
   readonly libelle: string;
   readonly confirmation: boolean;
+  /**
+   * LA CIBLE EST UNE SORTIE RÉELLE (9L44-STATUT-MACHINE-SIMULTANE-SORTIE) —
+   * `remplacee`/`ferraillee`, jamais le RETOUR d'une machine déjà sortie
+   * (qui vise un état actif) : seule une sortie exige de retaper le code,
+   * `FormulaireChangerStatutMachine` ne le demande donc jamais au retour.
+   */
+  readonly sortie: boolean;
 }[] {
   const actuelEstUneSortie = SORTIES_DU_PARC.has(statutActuel);
   return STATUTS_MACHINE_CHOISISSABLES.map((statut) => ({
     valeur: statut,
     libelle: t(`statut_machine.${statut}`),
     confirmation: SORTIES_DU_PARC.has(statut) !== actuelEstUneSortie,
+    sortie: SORTIES_DU_PARC.has(statut),
   }));
 }
 

@@ -69,6 +69,7 @@ export function BoutonAvecConfirmation({
   dialogueActif = true,
   coteLargeur,
   texteConfirmation,
+  saisieDeControle,
   boutonConfirmer,
   boutonRevenir,
 }: {
@@ -79,18 +80,31 @@ export function BoutonAvecConfirmation({
   dialogueActif?: boolean;
   coteLargeur?: "large" | "etroit";
   texteConfirmation: ReactNode;
+  /**
+   * RETAPER POUR CONFIRMER (9L44-STATUT-MACHINE-SIMULTANE-SORTIE) — un geste
+   * qu'un clic distrait ne doit pas pouvoir déclencher : `boutonConfirmer`
+   * reste désactivé jusqu'à ce que le champ saisi (espaces de bord ignorés)
+   * égale EXACTEMENT `attendu`. Absent, le dialogue reste celui d'avant —
+   * Confirmer/Revenir, sans saisie.
+   */
+  saisieDeControle?: { readonly attendu: string; readonly libelle: ReactNode };
   boutonConfirmer: string;
   boutonRevenir: string;
 }) {
   const boutonInterneRef = useRef<HTMLButtonElement>(null);
   const dialogueRef = useRef<HTMLDialogElement>(null);
   const [dialogueOuvert, setDialogueOuvert] = useState(false);
+  const [saisieControle, setSaisieControle] = useState("");
   const [dialogueMontable, setDialogueMontable] = useState(
     coteLargeur === undefined,
   );
   const idTitreDialogue = useId();
+  const idSaisieControle = useId();
   const dialogueOuvertRef = useRef(dialogueOuvert);
   dialogueOuvertRef.current = dialogueOuvert;
+  const confirmationBloquee =
+    saisieDeControle !== undefined &&
+    saisieControle.trim() !== saisieDeControle.attendu;
 
   useEffect(() => {
     if (coteLargeur === undefined) {
@@ -150,7 +164,10 @@ export function BoutonAvecConfirmation({
       {!dialogueMontable ? null : (
         <dialog
           ref={dialogueRef}
-          onClose={() => setDialogueOuvert(false)}
+          onClose={() => {
+            setDialogueOuvert(false);
+            setSaisieControle("");
+          }}
           aria-labelledby={idTitreDialogue}
           className={cn(
             CLASSES_FEUILLE_BASSE,
@@ -160,6 +177,24 @@ export function BoutonAvecConfirmation({
           <p id={idTitreDialogue} className="text-[13px] font-bold">
             {texteConfirmation}
           </p>
+          {saisieDeControle === undefined ? null : (
+            <label
+              htmlFor={idSaisieControle}
+              className="mt-3 flex flex-col gap-1.5 text-[13px] font-bold"
+            >
+              {saisieDeControle.libelle}
+              <input
+                id={idSaisieControle}
+                type="text"
+                autoComplete="off"
+                value={saisieControle}
+                onChange={(evenement) =>
+                  setSaisieControle(evenement.target.value)
+                }
+                className="border-app-bord bg-app-surface rounded-md border px-3 py-1.5 text-[13px] font-bold"
+              />
+            </label>
+          )}
           <div className="mt-4 flex justify-end gap-2">
             <Button
               type="button"
@@ -173,6 +208,7 @@ export function BoutonAvecConfirmation({
               type="button"
               variant={variant}
               size="sm"
+              disabled={confirmationBloquee}
               onClick={() => {
                 setDialogueOuvert(false);
                 boutonInterneRef.current?.form?.requestSubmit();

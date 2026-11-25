@@ -414,6 +414,7 @@ export default async function PageMachine({
             retour={`/parc/${machine.id}`}
             statutActuel={machine.statut}
             options={optionsChangerStatutMachine(machine.statut)}
+            codeMachine={referenceMachine(machine)}
             libelleChamp={t("machine.changer_etat.champ")}
             libelleBouton={t("machine.changer_etat.bouton")}
             texteConfirmationAvant={t(

@@ -4599,6 +4599,18 @@ export const fr = {
   "machine.refus.fusionnee": "Une machine fusionnée ne change plus d'état.",
   "machine.refus.sortie_sans_confirmation":
     "Cette sortie du parc (ou ce retour) doit être confirmée.",
+  // 9L44-STATUT-MACHINE-SIMULTANE-SORTIE — le verrou optimiste de
+  // `changerStatutMachine` (`lib/machines/depot.ts`) : jamais un
+  // écrasement silencieux d'une écriture concurrente.
+  "machine.refus.modifie_entre_temps":
+    "Cette machine a été modifiée entre-temps : rechargez la fiche avant de réessayer.",
+  // ── SORTIE DU PARC — retaper le code (9L44-STATUT-MACHINE-SIMULTANE-SORTIE,
+  // réserve des revues) : le dialogue de confirmation simple de
+  // `machine.changer_etat.confirmation_avant/apres` reste celui du RETOUR ;
+  // une vraie sortie (`remplacee`, `ferraillee`) en exige un, ci-dessous.
+  "machine.changer_etat.sortie_retape_avant":
+    "Pour confirmer la sortie du parc, retapez le code de la machine,",
+  "machine.changer_etat.sortie_retape_apres": ", ci-dessous.",
   // ── DÉPLACER LA MACHINE (9L20-DEPLACER-MACHINE, décision d'Alexis du
   // 10/11/2026) — namespace propre (`machine.deplacer.refus.*`), jamais
   // `machine.refus.*` : `reference_invalide` y porte déjà un texte qui cite

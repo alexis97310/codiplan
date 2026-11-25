@@ -345,6 +345,12 @@ const EXCEPTIONS: readonly Exception[] = [
     raison: "le bouton d'action groupée désactivable",
   },
   {
+    chemin: "components/ui/bouton-confirmation.tsx",
+    categories: ["champ"],
+    raison:
+      "le <input> de retype (9L44-STATUT-MACHINE-SIMULTANE-SORTIE, saisieDeControle)",
+  },
+  {
     chemin: "components/ui/carte-entite.tsx",
     categories: ["composant-maquette-distinct"],
     raison:

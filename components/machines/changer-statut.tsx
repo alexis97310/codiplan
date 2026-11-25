@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { BoutonAvecConfirmation } from "@/components/ui/bouton-confirmation";
+import { t } from "@/lib/i18n/fr";
 
 /**
  * CHANGER L'ÉTAT D'UNE MACHINE (9I8F-STATUT-MACHINE-MODIFIABLE) — le même
@@ -15,12 +16,21 @@ import { BoutonAvecConfirmation } from "@/components/ui/bouton-confirmation";
  * soumission, si l'état visé est l'une de celles que `options` marque
  * `confirmation: true` — c'est la seule raison pour laquelle ce composant
  * est un composant CLIENT.
+ *
+ * **UNE VRAIE SORTIE DU PARC RETAPE LE CODE** (9L44-STATUT-MACHINE-SIMULTANE-
+ * SORTIE, réserve des revues) — `optionChoisie.sortie` (remplacee/ferraillee,
+ * jamais le retour) ajoute, au dialogue, le champ que
+ * `BoutonAvecConfirmation` désactive tant qu'il ne reprend pas exactement
+ * `codeMachine` : une confirmation à un clic ne peut plus sortir une machine
+ * du parc par erreur. `codeMachine` est absent de la tuile Machine, qui ne
+ * propose jamais de sortie.
  */
 export function FormulaireChangerStatutMachine({
   machineId,
   retour,
   statutActuel,
   options,
+  codeMachine,
   libelleChamp,
   libelleBouton,
   texteConfirmationAvant,
@@ -35,7 +45,9 @@ export function FormulaireChangerStatutMachine({
     readonly valeur: string;
     readonly libelle: string;
     readonly confirmation: boolean;
+    readonly sortie: boolean;
   }[];
+  codeMachine?: string;
   libelleChamp: string;
   libelleBouton: string;
   texteConfirmationAvant: string;
@@ -92,6 +104,20 @@ export function FormulaireChangerStatutMachine({
             <b className="font-bold">{optionChoisie?.libelle}</b>
             {texteConfirmationApres}
           </>
+        }
+        saisieDeControle={
+          optionChoisie?.sortie === true && codeMachine !== undefined
+            ? {
+                attendu: codeMachine,
+                libelle: (
+                  <>
+                    {t("machine.changer_etat.sortie_retape_avant")}{" "}
+                    <b className="font-bold">{codeMachine}</b>
+                    {t("machine.changer_etat.sortie_retape_apres")}
+                  </>
+                ),
+              }
+            : undefined
         }
         boutonConfirmer={boutonConfirmer}
         boutonRevenir={boutonRevenir}

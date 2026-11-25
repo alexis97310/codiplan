@@ -1468,6 +1468,17 @@ export type MotifRefusMachine =
    * réellement une machine est `deplacerMachine`, jamais celui-ci.
    */
   | "deplacement_requis"
+  /**
+   * CHANGEMENT SIMULTANÉ (9L44-STATUT-MACHINE-SIMULTANE-SORTIE) — entre la
+   * lecture de la fiche par `changerStatutMachine` et son écriture, une
+   * AUTRE transaction a déjà changé ce statut : `changerStatutMachineDans`
+   * a posé `modifie_le` lu à cet instant dans son `WHERE`, et l'écriture
+   * tardive touche zéro ligne au lieu d'écraser silencieusement celle qui
+   * l'a précédée. Jamais levé par `deposerDemande` (`lib/demandes/depot.ts`),
+   * qui n'appelle `changerStatutMachineDans` sans ce verrou — une valeur
+   * annexe à une création s'ignore, elle ne se dispute pas (`./garde-statut.ts`).
+   */
+  | "modifie_entre_temps"
   /** Les deux refus nommés de la garde du statut (`./garde-statut.ts`). */
   | MotifRefusEtatMachine;
 
@@ -1633,14 +1644,33 @@ export async function modifierMachine(
  * transaction (voir `changerStatutMachine` pour l'écran autonome, et
  * `creerIntervention`/`deposerDemande` pour l'écriture au fil d'une
  * création).
+ *
+ * `statutAttendu` (9L44-STATUT-MACHINE-SIMULTANE-SORTIE) — le VERROU
+ * OPTIMISTE : fourni, c'est le statut LU avant décision, rejoint `id` dans le
+ * `WHERE` ; une ligne déjà changée par une autre transaction depuis cette
+ * lecture ne matche plus — zéro ligne touchée, PAS une écriture qui écrase.
+ * Omis (le chemin de `deposerDemande`, qui n'a jamais rejugé ce qu'il lit),
+ * le comportement d'avant ce lot : la dernière écriture gagne, par
+ * construction (une valeur annexe à une création, pas un geste qui se
+ * dispute).
+ *
+ * **Pas `modifie_le`** malgré son nom (mesuré pendant ce lot) : la colonne
+ * est `timestamptz` (microseconde), le `Date` JavaScript ne porte que la
+ * milliseconde — Prisma relu-puis-reposé perd toujours les six derniers
+ * chiffres, et le `WHERE` ne matche alors JAMAIS, même sans aucune autre
+ * écriture. Le statut lu, lui, est EXACTEMENT le champ que ce chemin
+ * dispute : le comparer ici revient au même verrou, sans perte et sans
+ * migration.
  */
 export async function changerStatutMachineDans(
   tx: Prisma.TransactionClient,
   id: string,
   statut: StatutMachineChoisissable,
+  statutAttendu?: StatutMachine,
 ): Promise<number> {
   const touchees = await tx.machine.updateMany({
-    where: { id },
+    where:
+      statutAttendu === undefined ? { id } : { id, statut: statutAttendu },
     data: { statut },
   });
   return touchees.count;
@@ -1657,6 +1687,16 @@ export async function changerStatutMachineDans(
  * MÊME transaction : une machine `fusionnee` ne change jamais de statut, et
  * une sortie du parc (ou un retour) sans `confirmationSortieDuParc` est un
  * refus nommé, jamais une réactivation silencieuse.
+ *
+ * **Le VERROU OPTIMISTE** (9L44-STATUT-MACHINE-SIMULTANE-SORTIE) — le statut
+ * lu ci-dessous est rejoué dans `changerStatutMachineDans` (voir sa note de
+ * tête sur `modifie_le`, écarté). La machine existait à CETTE lecture
+ * (`machine !== null`) ; si l'écriture touche quand même zéro ligne, ce
+ * n'est jamais qu'elle aurait disparu — aucun chemin ne supprime une
+ * `machine` hors `lib/imports/annulation.ts`, qui n'annule jamais un import
+ * déjà appliqué sous ce même id en vol —, c'est qu'une AUTRE transaction l'a
+ * changée entre la lecture et l'écriture : `modifie_entre_temps`, jamais
+ * `introuvable`, qui dirait une chose fausse.
  */
 export async function changerStatutMachine(
   contexte: ContexteSession,
@@ -1670,7 +1710,8 @@ export async function changerStatutMachine(
     async (
       tx,
     ): Promise<
-      { readonly touchees: number } | { readonly refuse: MotifRefusEtatMachine }
+      | { readonly touchees: number; readonly conflit: boolean }
+      | { readonly refuse: MotifRefusEtatMachine }
     > => {
       const restriction = await perimetreParcDuTechnicien(
         tx,
@@ -1681,7 +1722,7 @@ export async function changerStatutMachine(
         select: { statut: true },
       });
       if (machine === null) {
-        return { touchees: 0 };
+        return { touchees: 0, conflit: false };
       }
       const decision = decisionDepuisLaFiche(
         machine.statut,
@@ -1691,18 +1732,26 @@ export async function changerStatutMachine(
       if (decision.action === "refuser") {
         return { refuse: decision.motif };
       }
-      return {
-        touchees: await changerStatutMachineDans(tx, id, decision.statut),
-      };
+      const touchees = await changerStatutMachineDans(
+        tx,
+        id,
+        decision.statut,
+        machine.statut,
+      );
+      return { touchees, conflit: touchees === 0 };
     },
     client,
   );
   if ("refuse" in resultat) {
     return { accepte: false, motif: resultat.refuse };
   }
-  return resultat.touchees === 0
-    ? { accepte: false, motif: "introuvable" }
-    : { accepte: true, id };
+  if (resultat.touchees === 0) {
+    return {
+      accepte: false,
+      motif: resultat.conflit ? "modifie_entre_temps" : "introuvable",
+    };
+  }
+  return { accepte: true, id };
 }
 
 /* ────────────────────────────────────────────────────────────────────────
