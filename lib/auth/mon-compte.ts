@@ -1,15 +1,25 @@
-import { type PrismaClient } from "@prisma/client";
+import { EvenementAcces, type PrismaClient } from "@prisma/client";
 import { APIError } from "better-auth/api";
 import { z } from "zod";
 
 import { prisma as clientParDefaut } from "@/lib/db/client";
+import { uuidv7 } from "@/lib/db/uuid";
 import { VARIABLE_SESSION_UTILISATEUR } from "@/lib/db/rls";
 
 import { auth, type Auth } from "./config";
 import { dansUnEchangeAuth } from "./echange";
+import { avecDesignationAuth } from "./lecture-identite";
+import {
+  enregistrerEchec,
+  extraireAdresseIp,
+  identifiantConnexion,
+  reinitialiserEchecs,
+  verrouille,
+  type SujetLimiteur,
+} from "./limiteur-connexion";
 import { LONGUEUR_MAXIMALE, LONGUEUR_MINIMALE } from "./premier-acces";
 import { type Role } from "./roles";
-import { obtenirSession } from "./session";
+import { obtenirSession, type SessionServeur } from "./session";
 
 /**
  * MON COMPTE — changer son mot de passe EN ÉTANT CONNECTÉ (9I9-MON-COMPTE).
@@ -79,6 +89,38 @@ import { obtenirSession } from "./session";
  * faute de société active sur la session neuve. Ce module reporte donc, dans
  * la MÊME transaction, la société et le rôle que la session D'AVANT portait —
  * lus avant l'appel, par `obtenirSession`, jamais devinés.
+ *
+ * ## Second facteur de la session neuve (9L43, réserve de revue)
+ *
+ * `databaseHooks.session.create.before` (`lib/auth/config.ts`) déduit
+ * `second_facteur_valide` de `utilisateur.mfa_actif` AU MOMENT de la création
+ * — jamais d'un paramètre reçu. C'est la MÊME déduction qui a posé la valeur
+ * de la session D'AVANT à SA création : `mfa_actif` ne change pas pendant un
+ * changement de mot de passe, donc la session neuve porte nécessairement le
+ * même second facteur que l'ancienne — sans qu'il y ait quoi que ce soit à
+ * reporter ici. `tests/isolation/mon-compte-second-facteur.test.ts` pince ce
+ * fait plutôt que de le supposer.
+ *
+ * ## Limite d'essais sur le mot de passe ACTUEL (9L43, réserve de revue)
+ *
+ * Ce module RÉUTILISE le limiteur du ticket 9L07 (D258,
+ * `lib/auth/limiteur-connexion.ts`) plutôt que d'en écrire un second : même
+ * table, même seuil, même fenêtre. `sujet.identifiant` vient du courriel de
+ * LA SESSION — jamais d'une saisie — donc les échecs côté connexion et ceux
+ * côté « Mon compte » partagent le MÊME budget pour un même compte : scinder
+ * les deux aurait ouvert une porte dérobée à qui connaît un budget épuisé
+ * d'un côté et tente l'autre. Verrouillé, le mot de passe actuel n'est même
+ * pas vérifié — même parti pris que `lib/auth/connexion.ts` — et l'issue
+ * rendue est `actuel_incorrect`, IDENTIQUE à celle d'une saisie simplement
+ * fausse : rien ne distingue les deux côté appelant (pas d'oracle sur l'état
+ * du verrou).
+ *
+ * ## Trace du changement (9L43, réserve de revue)
+ *
+ * Un aboutissement pose une ligne dans `journal_acces`
+ * (`EvenementAcces.mot_de_passe_change`) — qui, quand —, jamais le mot de
+ * passe ni un condensat. Même mécanisme que les autres événements de ce
+ * journal (`connexion_temporisee`, `reinitialisation_second_facteur`, …).
  */
 
 const Saisie = z.object({
@@ -161,6 +203,29 @@ async function fermerLesAutresSessions(
 }
 
 /**
+ * JOURNALISE l'aboutissement — qui, quand (9L43). Jamais le mot de passe ni
+ * un condensat : `detail` ne porte que ce qui s'est passé, pas ce qu'il
+ * valait. `societe_id_cible` et `role` sont ceux de la session D'AVANT —
+ * informatifs, jamais filtrants (D34) — `null` si elle avait disparu.
+ */
+async function journaliserChangementMotDePasse(
+  client: PrismaClient,
+  utilisateurId: string,
+  sessionAvant: SessionServeur | null,
+): Promise<void> {
+  await avecDesignationAuth(client).journalAcces.create({
+    data: {
+      id: uuidv7(),
+      utilisateur_id: utilisateurId,
+      evenement: EvenementAcces.mot_de_passe_change,
+      societe_id_cible: sessionAvant?.contexte.societeId ?? null,
+      role: sessionAvant?.contexte.role ?? null,
+      detail: "changement de mot de passe depuis Mon compte",
+    },
+  });
+}
+
+/**
  * Change le mot de passe de la personne dont `entetes` porte la session.
  *
  * `entetes` est ce que l'appelant HTTP a reçu de la requête — les cookies de
@@ -194,6 +259,27 @@ export async function changerSonMotDePasse(
     // « MESURÉ » ci-dessus). `null` si la session a disparu entre-temps —
     // `fermerLesAutresSessions` s'abstient alors de reporter quoi que ce soit.
     const sessionAvant = await obtenirSession(entetes, instance);
+
+    // LE SUJET DU LIMITEUR (9L43) — tiré du courriel de LA SESSION, jamais
+    // d'une saisie : `null` si la session a disparu, auquel cas il n'y a rien
+    // à verrouiller (`changePassword` refusera de toute façon, faute de
+    // session). Voir « Limite d'essais sur le mot de passe ACTUEL » ci-dessus.
+    const sujet: SujetLimiteur | null =
+      sessionAvant === null
+        ? null
+        : {
+            identifiant: identifiantConnexion(sessionAvant.identite.email),
+            adresseIp: extraireAdresseIp(entetes),
+          };
+
+    // LE VERROU SE VÉRIFIE AVANT TOUT APPEL À LA BIBLIOTHÈQUE, même parti pris
+    // que `lib/auth/connexion.ts` (D258) : verrouillé, le mot de passe actuel
+    // n'est jamais vérifié, et l'issue rendue est IDENTIQUE à celle d'une
+    // saisie fausse — rien ne distingue les deux côté appelant.
+    if (sujet !== null && (await verrouille(sujet, client))) {
+      return { issue: "actuel_incorrect" as const };
+    }
+
     try {
       // `asResponse` plutôt que le corps seul (L1-02f) : c'est la RÉPONSE qui
       // porte les `Set-Cookie` de la session neuve que `revokeOtherSessions`
@@ -215,6 +301,9 @@ export async function changerSonMotDePasse(
         const corps = await reponse.json().catch(() => null);
         const erreur = schemaCorpsErreur.safeParse(corps);
         if (erreur.success && erreur.data.code === "INVALID_PASSWORD") {
+          if (sujet !== null) {
+            await enregistrerEchec(sujet, client);
+          }
           return { issue: "actuel_incorrect" as const };
         }
         return { issue: "refuse" as const };
@@ -232,6 +321,16 @@ export async function changerSonMotDePasse(
             role: sessionAvant?.contexte.role ?? null,
           },
         );
+        // Un mot de passe actuel confirmé rompt la série d'échecs — même
+        // parti pris que `lib/auth/connexion.ts` sur une connexion réussie.
+        if (sujet !== null) {
+          await reinitialiserEchecs(sujet.identifiant, client);
+        }
+        await journaliserChangementMotDePasse(
+          client,
+          corps.data.user.id,
+          sessionAvant,
+        );
       }
       return { issue: "abouti" as const, cookies };
     } catch (erreur) {
@@ -239,6 +338,9 @@ export async function changerSonMotDePasse(
         erreur instanceof APIError &&
         erreur.body?.code === "INVALID_PASSWORD"
       ) {
+        if (sujet !== null) {
+          await enregistrerEchec(sujet, client);
+        }
         return { issue: "actuel_incorrect" as const };
       }
       // Session absente, greffon indisponible, ou tout autre refus de la

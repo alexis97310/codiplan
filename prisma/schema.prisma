@@ -1444,6 +1444,11 @@ enum EvenementAcces {
   /// ne correspond à rien. Cette asymétrie ne fuite rien (D35) : elle ne
   /// change pas la réponse HTTP, identique dans les deux cas.
   connexion_temporisee
+  /// CHANGEMENT DE MOT DE PASSE EN ÉTANT CONNECTÉ (9L43-SECURITE-CHANGEMENT-MOT-DE-PASSE).
+  /// Posé par `changerSonMotDePasse` une fois l'aboutissement confirmé — qui,
+  /// quand — jamais le mot de passe ni un condensat, qui n'ont rien à faire
+  /// dans un journal d'accès.
+  mot_de_passe_change
 }
 
 /// Journal des accès — distinct du `journal_audit` du ticket L0-10, qui portera

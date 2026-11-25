@@ -175,4 +175,5 @@ export const MIGRATIONS_ATTENDUES: readonly string[] = [
   "20261124090000_annuler_demarrage_9l36",
   "20261124100000_historique_emplacements_tous_roles_9l38",
   "20261125013000_historique_emplacements_societe_de_session_9l38a",
+  "20261126003000_mot_de_passe_change_9l43",
 ];

@@ -1,8 +1,14 @@
 import { afterAll, describe, expect, it } from "vitest";
 
 import { creerAuth } from "@/lib/auth/config";
+import { tenterConnexion } from "@/lib/auth/connexion";
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { avecDesignationAuth } from "@/lib/auth/lecture-identite";
+import {
+  SEUIL_ECHECS_CONNEXION,
+  identifiantConnexion,
+  reinitialiserEchecs,
+} from "@/lib/auth/limiteur-connexion";
 import {
   changerSonMotDePasse,
   type SaisieChangementMotDePasse,
@@ -13,7 +19,7 @@ import { obtenirSession } from "@/lib/auth/session";
 import { avecContexteRls } from "@/lib/db/rls";
 import { uuidv7 } from "@/lib/db/uuid";
 
-import { clientApp, fermerClients } from "./setup/db";
+import { clientApp, fermerClients, observerSousProprietaire } from "./setup/db";
 import { SOCIETE_A } from "./setup/fixtures";
 
 /**
@@ -339,5 +345,152 @@ describe("changer son mot de passe en étant connecté", () => {
     expect(await sessionEnBase(sessionBAvant.jetonSession)).toBe(true);
     expect(await obtenirSession(entetesA, auth)).not.toBeNull();
     expect(await obtenirSession(entetesB, auth)).not.toBeNull();
+  });
+
+  // ── LIMITE D'ESSAIS SUR LE MOT DE PASSE ACTUEL (9L43, réutilise D258) ────
+  describe("limite d'essais sur le mot de passe actuel", () => {
+    it(
+      `${SEUIL_ECHECS_CONNEXION} essais faux verrouillent, même avec le BON ` +
+        "mot de passe ensuite",
+      async () => {
+        const email = await compteHabilite(Role.adv);
+        const entetes = await connecter(email);
+
+        for (let essai = 0; essai < SEUIL_ECHECS_CONNEXION; essai += 1) {
+          const issue = await changerSonMotDePasse(
+            {
+              motDePasseActuel: "ce-n-est-pas-le-bon-mot-de-passe",
+              motDePasse: "UnAutreMotDePasse1",
+              confirmation: "UnAutreMotDePasse1",
+            },
+            entetes,
+            auth,
+            clientApp(),
+          );
+          expect(issue.issue).toBe("actuel_incorrect");
+        }
+
+        // LE VERROU EST ATTEINT : le BON mot de passe actuel est maintenant
+        // refusé lui aussi, avec la MÊME issue — aucun oracle ne distingue un
+        // verrouillage d'une saisie fausse.
+        const issueVerrouillee = await changerSonMotDePasse(
+          {
+            motDePasseActuel: MOT_DE_PASSE,
+            motDePasse: "UnAutreMotDePasse1",
+            confirmation: "UnAutreMotDePasse1",
+          },
+          entetes,
+          auth,
+          clientApp(),
+        );
+        expect(issueVerrouillee.issue).toBe("actuel_incorrect");
+        expect(await ouvre(email, MOT_DE_PASSE)).toBe(true);
+      },
+    );
+
+    it(
+      "le verrou PARTAGE son budget avec la connexion (D258) : des échecs à " +
+        "la connexion verrouillent aussi le changement de mot de passe",
+      async () => {
+        const email = await compteHabilite(Role.adv);
+        const entetes = await connecter(email);
+        const identifiant = identifiantConnexion(email);
+        await reinitialiserEchecs(identifiant, clientApp());
+
+        for (let essai = 0; essai < SEUIL_ECHECS_CONNEXION; essai += 1) {
+          await tenterConnexion(
+            { email, motDePasse: "ce-n-est-pas-le-bon-mot-de-passe" },
+            auth,
+            clientApp(),
+          );
+        }
+
+        // Le budget est épuisé côté CONNEXION ; « Mon compte » le voit déjà
+        // épuisé, sans qu'aucun essai n'y ait jamais été fait.
+        const issue = await changerSonMotDePasse(
+          {
+            motDePasseActuel: MOT_DE_PASSE,
+            motDePasse: "UnAutreMotDePasse1",
+            confirmation: "UnAutreMotDePasse1",
+          },
+          entetes,
+          auth,
+          clientApp(),
+        );
+        expect(issue.issue).toBe("actuel_incorrect");
+        expect(await ouvre(email, MOT_DE_PASSE)).toBe(true);
+      },
+    );
+
+    it("un aboutissement rompt la série d'échecs", async () => {
+      const email = await compteHabilite(Role.adv);
+      const entetes = await connecter(email);
+
+      await changerSonMotDePasse(
+        {
+          motDePasseActuel: "ce-n-est-pas-le-bon-mot-de-passe",
+          motDePasse: "UnAutreMotDePasse1",
+          confirmation: "UnAutreMotDePasse1",
+        },
+        entetes,
+        auth,
+        clientApp(),
+      );
+
+      const nouveau = "MotDePasseQuiRompLaSerie1";
+      const issue = await changerSonMotDePasse(
+        {
+          motDePasseActuel: MOT_DE_PASSE,
+          motDePasse: nouveau,
+          confirmation: nouveau,
+        },
+        entetes,
+        auth,
+        clientApp(),
+      );
+      expect(issue.issue).toBe("abouti");
+
+      // La série précédente est rompue : une connexion avec le bon (nouveau)
+      // mot de passe réussit sans être prise pour un verrou résiduel.
+      expect(await ouvre(email, nouveau)).toBe(true);
+    });
+  });
+
+  // ── TRACE DU CHANGEMENT (9L43) ────────────────────────────────────────────
+  it("un aboutissement journalise `mot_de_passe_change`, jamais le mot de passe", async () => {
+    const email = await compteHabilite(Role.adv);
+    const entetes = await connecter(email);
+    const session = await obtenirSession(entetes, auth);
+    if (session === null) {
+      throw new Error("la connexion doit ouvrir une session");
+    }
+    const nouveau = "MotDePasseJournalise1";
+
+    const issue = await changerSonMotDePasse(
+      {
+        motDePasseActuel: MOT_DE_PASSE,
+        motDePasse: nouveau,
+        confirmation: nouveau,
+      },
+      entetes,
+      auth,
+      clientApp(),
+    );
+    expect(issue.issue).toBe("abouti");
+
+    const journal = await observerSousProprietaire(
+      "relire le journal des accès, dont la lecture est bornée à la " +
+        "désignation depuis L1-02d : le harnais observe le contenu de la " +
+        "trace, il n'en tire aucune conclusion de cloisonnement",
+    ).journalAcces.findMany({
+      where: {
+        utilisateur_id: session.contexte.utilisateurId,
+        evenement: "mot_de_passe_change",
+      },
+    });
+
+    expect(journal.length).toBe(1);
+    expect(journal[0]?.detail ?? "").not.toContain(nouveau);
+    expect(journal[0]?.detail ?? "").not.toContain(MOT_DE_PASSE);
   });
 });
