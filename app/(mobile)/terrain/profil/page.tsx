@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { BoutonInstallerCodiplan } from "@/components/pwa/bouton-installer";
+import { PastilleReseau } from "@/components/terrain/pastille-reseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { obtenirSession } from "@/lib/auth/session";
 import { t } from "@/lib/i18n/fr";
@@ -60,10 +61,18 @@ export default async function PageProfilTerrain() {
 
   return (
     <main className="flex flex-col gap-4">
-      <header className="flex flex-col gap-1">
+      {/* TITRE + PASTILLE, SUR UNE LIGNE (audit du 10/11/2026, m8/m13,
+          maquette 07-profil) — même disposition que « Ma journée »
+          (`app/(mobile)/terrain/page.tsx`), jamais une seconde forme du même
+          bandeau (§9, 01/09). */}
+      <header className="flex flex-wrap items-center gap-2">
         <h1 className="text-24 font-extrabold tracking-tight">
           {t("terrain.profil.titre")}
         </h1>
+        <PastilleReseau
+          utilisateurId={contexte.utilisateurId}
+          societeId={contexte.societeId}
+        />
       </header>
 
       <section className="bg-app-surface border-app-bord flex flex-col gap-2.5 rounded-lg border px-4 py-3.5 text-16 font-bold">

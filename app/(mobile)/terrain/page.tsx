@@ -4,11 +4,11 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { BoutonInstallerCodiplan } from "@/components/pwa/bouton-installer";
 import { BandeauCompteurEnCours } from "@/components/terrain/bandeau-compteur";
 import { BandeauReseau } from "@/components/terrain/bandeau-reseau";
 import { BoutonEnvoyer } from "@/components/terrain/bouton-envoyer";
 import { ListeJournee } from "@/components/terrain/liste-journee";
+import { PastilleReseau } from "@/components/terrain/pastille-reseau";
 import { libelleJourLongEnTeteDePhrase } from "@/components/terrain/presentation";
 import { RafraichissementAutomatique } from "@/components/terrain/rafraichissement-auto";
 import { obtenirSession } from "@/lib/auth/session";
@@ -222,9 +222,20 @@ export default async function PageTerrain() {
     <main className="flex flex-col gap-4">
       <header className="flex items-start justify-between gap-2">
         <div className="flex flex-col gap-1">
-          <h1 className="text-24 font-semibold tracking-tight">
-            {t("terrain.titre")}
-          </h1>
+          {/* TITRE + PASTILLE, SUR UNE LIGNE (audit du 10/11/2026, m8/m13,
+              maquette 01-journee) — `flex-wrap` ne casse rien à 375 px dans
+              le cas courant (« En ligne », court) et ne coupe jamais le
+              libellé le plus long (« Hors ligne · N saisie(s) en attente »),
+              qui descend sous le titre plutôt que de déborder. */}
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-24 font-semibold tracking-tight">
+              {t("terrain.titre")}
+            </h1>
+            <PastilleReseau
+              utilisateurId={contexte.utilisateurId}
+              societeId={contexte.societeId}
+            />
+          </div>
           <p className="text-app-encre-faible text-16 font-medium">
             {libelleJourLongEnTeteDePhrase(aujourdHui)}
           </p>
@@ -246,8 +257,10 @@ export default async function PageTerrain() {
         </Link>
       </header>
 
+      {/* « INSTALLER L'APPLICATION » A DÉMÉNAGÉ DANS PROFIL (audit du
+          10/11/2026, m10b) — un geste d'installation n'a rien à faire en
+          tête de la journée, consultée des dizaines de fois par jour. */}
       <BandeauReseau genereLe={instant.instant.toISOString()} fuseau={fuseau} />
-      <BoutonInstallerCodiplan />
       <RafraichissementAutomatique />
       <BoutonEnvoyer
         utilisateurId={contexte.utilisateurId}

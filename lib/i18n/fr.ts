@@ -3576,6 +3576,16 @@ export const fr = {
     "Retirer cette saisie ? Elle ne sera pas envoyée.",
   "terrain.file.retirer_confirmer": "Retirer",
   "terrain.file.retirer_revenir": "Revenir",
+
+  // ── LA PASTILLE RÉSEAU (audit du 10/11/2026, m13, 9L42-TERRAIN-ENTETE-
+  // PROFIL-PASTILLE) — MÊME SOURCE que « Envoyer » (`compterEnAttente`,
+  // `EVENEMENT_FILE_MODIFIEE`) : jamais une seconde lecture du même fait
+  // (§9, 01/09). Composée hors du JSX par `libellePastilleReseau`
+  // (`components/terrain/pastille-reseau.tsx`), où aucun littéral n'est
+  // admis (L0-11).
+  "terrain.reseau.en_ligne": "En ligne",
+  "terrain.reseau.hors_ligne": "Hors ligne",
+  "terrain.reseau.saisie_attente": "saisie(s) en attente",
   // ── « TERMINER » MIS EN FILE, PLUTÔT QUE REFUSÉ (point 1, décision
   // n° 108) — remplace `terrain.terminer.sans_reseau` dans ce cas précis.
   "terrain.terminer.en_attente_envoi":
