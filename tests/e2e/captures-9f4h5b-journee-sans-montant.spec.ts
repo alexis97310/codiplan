@@ -152,7 +152,9 @@ for (const largeur of LARGEURS) {
     await expect(
       carte.getByText(fr["terrain.badge_nouveau"], { exact: true }),
     ).toBeVisible();
-    await expect(page.getByRole("status")).toBeVisible();
+    await expect(
+      page.getByRole("status").filter({ hasText: /transmis/ }),
+    ).toBeVisible();
 
     await capturer(page, `ma-journee-nouveau-${largeur}`);
   });
