@@ -93,3 +93,37 @@ M8 passé à « livré » dans `lib/feuille-de-route/contenu.ts`, section « Liv
 
 `pnpm test`, `pnpm test:isolation`, `pnpm typecheck`, `pnpm lint`, `pnpm format:check` passent tous, rejoués en
 avant-plan. `CI=1 pnpm verify` à rejouer avant de rendre la main (voir la suite de la session).
+
+## Reprise 9L41D-REPRISE-MA-JOURNEE (25/11/2026)
+
+9L41 avait été RECALÉ deux fois (`tickets/recales/9L41-MA-JOURNEE-TRI-A-FAIRE.md`), mais sur une cause mesurée
+comme étrangère à ce lot : un worker Chromium mort (SIGABRT) dans des scènes `zz-captures-*` sans rapport, aux
+deux passages sur des fichiers différents (1ᵉʳ : `zz-captures-9g9b.spec.ts`, 2ᵉ : `zz-captures-9h5-correctifs-9g6.spec.ts:132`).
+9L41C-E2E-CAPTURES-RELANCE-SURE (publiée sur `origin/main` avant cette reprise) a rendu ces amorçages rejouables ;
+le travail de 9L41 lui-même — tri, carte « à faire maintenant », i18n, épreuves unitaires et e2e, captures — n'a
+jamais été mis en cause.
+
+**Reporté sans conflit** : les 5 commits de la branche-garde `9L41-MA-JOURNEE-TRI-A-FAIRE-garde` (points 1 à 5
+ci-dessus), cherry-pickés tels quels sur `origin/main` (qui inclut 9L41C). Aucun conflit avec 9L41C — les deux
+touchent des fichiers disjoints (9L41C : amorçages e2e de scènes à identifiant fixe ; 9L41 : tri, carte, i18n,
+sa propre épreuve e2e dédiée).
+
+**Audit des localisateurs de la même famille** (locators non exacts, sans portée, ou comptant des éléments, sur
+les écrans touchés — `liste-journee.tsx`, `consultation-hors-reseau.tsx`) :
+- Les deux correctifs déjà posés par 9L41 (point 3 ci-dessus, `.first()` sur `tests/e2e/offline/9f4h1-consultation.spec.ts`
+  et `9f4h4-ouverture-a-froid.spec.ts`) sont bien présents après le report.
+- `zz-captures-9g9b.spec.ts` (fiche terrain, ligne 231) utilise `evaluateAll` + `.find()` sur un tableau de
+  `href`, jamais un `locator()` résolu en mode strict — immunisé contre la duplication de lien introduite par
+  la carte « à faire maintenant ».
+- Les autres épreuves qui posent un client dédié (`raison_sociale` propre à la scène, ex. `9f4h5-nouvelle-intervention.spec.ts`,
+  `9di-tp-ter1-journee-fiche.spec.ts`, `9f2-terrain-jours-maquette.spec.ts`…) n'utilisent ce nom que comme donnée de
+  seed, jamais comme texte localisé sur `/terrain` — aucune ne cherche le nom du client ou du site par `getByText`
+  sans `.first()` sur cet écran. Aucun autre localisateur à rendre précis trouvé.
+
+**Épreuves rejouées au premier plan** (`CI=1 --workers=1`) : `tests/e2e/9l41-ma-journee-tri-a-faire.spec.ts`,
+`tests/e2e/offline/9f4h1-consultation.spec.ts`, `tests/e2e/offline/9f4h4-ouverture-a-froid.spec.ts` (3 passed),
+`tests/e2e/tous-les-ecrans-rendent.spec.ts` (61 passed, 4 skipped) — aucun SIGABRT rencontré. Puis `CI=1 pnpm verify`
+(6095 tests unitaires + 2573 tests d'isolation, exit 0), `pnpm test:isolation` seul (2573 passed), et un second
+`CI=1 pnpm verify` (même résultat) — tout vert, aucune assertion touchée.
+
+Branche `9L41D-REPRISE-MA-JOURNEE`, partie d'`origin/main` à jour. Jamais poussée.
