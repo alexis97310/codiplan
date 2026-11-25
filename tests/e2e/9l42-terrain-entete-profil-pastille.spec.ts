@@ -60,9 +60,7 @@ test("à 375 px, « Ma journée » et « Profil » tiennent sur une ligne, pasti
   expect(await scrollWidth(page)).toBeLessThanOrEqual(FENETRE_TELEPHONE.width);
   await expect(page.getByText(fr["pwa.installer.autre"])).toBeVisible();
   await expect(
-    page
-      .locator("main")
-      .getByRole("button", { name: fr["nav.deconnexion"] }),
+    page.locator("main").getByRole("button", { name: fr["nav.deconnexion"] }),
   ).toBeVisible();
 });
 

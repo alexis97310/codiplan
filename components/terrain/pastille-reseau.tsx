@@ -3,7 +3,10 @@
 import { useEffect, useState } from "react";
 
 import { t } from "@/lib/i18n/fr";
-import { compterEnAttente, EVENEMENT_FILE_MODIFIEE } from "@/lib/terrain/file-saisies";
+import {
+  compterEnAttente,
+  EVENEMENT_FILE_MODIFIEE,
+} from "@/lib/terrain/file-saisies";
 import { cn } from "@/lib/utils";
 
 /** `3 saisie(s) en attente` — composé hors du JSX (L0-11). */
@@ -17,8 +20,13 @@ function libelleSaisiesEnAttente(n: number): string {
  * 9L42-TERRAIN-ENTETE-PROFIL-PASTILLE) : un envoi qui échoue répétitivement
  * laisse des saisies en attente alors que le réseau est revenu.
  */
-export function libellePastilleReseau(enLigne: boolean, enAttente: number): string {
-  const etat = enLigne ? t("terrain.reseau.en_ligne") : t("terrain.reseau.hors_ligne");
+export function libellePastilleReseau(
+  enLigne: boolean,
+  enAttente: number,
+): string {
+  const etat = enLigne
+    ? t("terrain.reseau.en_ligne")
+    : t("terrain.reseau.hors_ligne");
   if (enAttente === 0) {
     return etat;
   }
@@ -86,7 +94,10 @@ export function PastilleReseau({
           : "bg-app-surface-creuse text-app-encre-faible",
       )}
     >
-      <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" />
+      <span
+        aria-hidden
+        className="h-1.5 w-1.5 shrink-0 rounded-full bg-current"
+      />
       {libellePastilleReseau(enLigne, enAttente)}
     </span>
   );
