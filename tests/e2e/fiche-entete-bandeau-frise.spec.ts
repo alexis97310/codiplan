@@ -9,13 +9,9 @@ import { instantDuJour, jourDe, maintenant } from "@/lib/calendar/fuseau";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
-import { creneauUtc } from "./setup/creneaux";
+import { creneauLibreDepuis } from "./setup/creneaux";
 import { reperesDeLaScene } from "./setup/reperes";
-import {
-  cleDeJour,
-  COMPTE_RS_EPREUVE,
-  MOT_DE_PASSE_EPREUVE,
-} from "./setup/scene";
+import { COMPTE_RS_EPREUVE, MOT_DE_PASSE_EPREUVE } from "./setup/scene";
 import { ouvrirUneSession } from "./setup/session";
 
 /**
@@ -67,18 +63,18 @@ test.beforeAll(async () => {
     const hier = instantDuJour(jourLocal, -1);
     const dansCinqJours = instantDuJour(jourLocal, 5);
     // CRÉNEAUX DISTINCTS (9L19, garde `intervention_sans_chevauchement_
-    // technicien`) : les quatre interventions du jour partagent le même
-    // technicien, chacune sa propre heure. 9, pas 3 (9L32A, mesuré dans la
-    // nuit du 23 au 24/11/2026 : la suite a franchi minuit EN COURS
-    // D'EXÉCUTION — « aujourd'hui », lu en direct par ce fichier, est alors
-    // devenu MARDI de la scène partagée, et l'heure UTC 3 retombe, en LOCAL,
-    // sur 14:00–15:00 — le créneau que `redimensionnable` (`tests/e2e/setup/
-    // scene.ts`) réserve pour ce MÊME technicien sur MARDI).
-    const cleAujourdhui = cleDeJour(jourLocal);
-    const creneauEnCours = creneauUtc(cleAujourdhui, 1);
-    const creneauSuspendue = creneauUtc(cleAujourdhui, 9);
-    const creneauTermineeRefusee = creneauUtc(cleAujourdhui, 5);
-    const creneauTermineePrete = creneauUtc(cleAujourdhui, 7);
+    // technicien`) : les six interventions de ce fichier partagent le même
+    // technicien, chacune sa propre heure. Fixer une heure UTC à l'avance
+    // (comme le faisait ce fichier avant 9L44B) ne suffit pas : le semis de
+    // démonstration (`INTERVENTIONS_DEMONSTRATION`, `prisma/seed-data.ts`)
+    // pose sur CE MÊME technicien un créneau fixe différent chaque jour de
+    // la semaine, et une heure choisie à l'avance retombe dessus selon le
+    // jour où la suite tourne (9L44B, mesuré le 26/11/2026 — `23P01`, le
+    // bandeau « en retard » posé par `now() - interval '1 day'`). Chaque
+    // créneau ci-dessous est donc demandé à `creneauLibreDepuis`, juste
+    // avant l'INSERT qu'il sert : elle relit ce que ce technicien tient déjà
+    // (semis ET les lignes déjà posées plus haut dans ce même fichier) et
+    // recule jusqu'à une heure réellement libre.
 
     await client.client.create({
       data: {
@@ -132,15 +128,25 @@ test.beforeAll(async () => {
       agence.id,
     );
 
-    // PLANIFIÉE, DATÉE D'HIER — en retard.
+    // PLANIFIÉE, DATÉE D'HIER — en retard. `enRetard` (`lib/interventions/
+    // retard.ts`) ne lit que `date_planifiee` : l'heure du créneau n'importe
+    // pas à l'assertion, seulement qu'elle ne percute aucune ligne déjà
+    // posée pour ce technicien.
+    const creneauRetard = await creneauLibreDepuis(
+      client,
+      reperes.societeId,
+      technicienId,
+      new Date(hier.getTime() + 3 * 3600_000),
+      60,
+    );
     await client.$executeRawUnsafe(
       `INSERT INTO "intervention"
          ("id", "societe_id", "client_id", "site_id", "agence_id", "type",
           "priorite", "statut", "date_planifiee", "creneau_debut",
           "creneau_fin", "duree_estimee_min", "technicien_id", "modifie_le")
        VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif',
-               'p3', 'planifiee', $6::date, now() - interval '1 day',
-               now() - interval '1 day' + interval '1 hour', 60, $7::uuid, now())`,
+               'p3', 'planifiee', $6::date, $8::timestamptz,
+               $9::timestamptz, 60, $7::uuid, now())`,
       INTERVENTION_EN_RETARD,
       reperes.societeId,
       CLIENT_9EE,
@@ -148,9 +154,18 @@ test.beforeAll(async () => {
       agence.id,
       hier,
       technicienId,
+      creneauRetard.creneau_debut,
+      creneauRetard.creneau_fin,
     );
 
     // EN COURS — un segment ouvert.
+    const creneauEnCours = await creneauLibreDepuis(
+      client,
+      reperes.societeId,
+      technicienId,
+      new Date(aujourdhui.getTime() + 1 * 3600_000),
+      60,
+    );
     await client.$executeRawUnsafe(
       `INSERT INTO "intervention"
          ("id", "societe_id", "client_id", "site_id", "agence_id", "type",
@@ -183,6 +198,13 @@ test.beforeAll(async () => {
     );
 
     // SUSPENDUE — motif et pièce attendue.
+    const creneauSuspendue = await creneauLibreDepuis(
+      client,
+      reperes.societeId,
+      technicienId,
+      new Date(aujourdhui.getTime() + 9 * 3600_000),
+      60,
+    );
     await client.$executeRawUnsafe(
       `INSERT INTO "intervention"
          ("id", "societe_id", "client_id", "site_id", "agence_id", "type",
@@ -211,6 +233,13 @@ test.beforeAll(async () => {
     // (RG-INT-03, D278, 9H1) : ce fichier isole le refus « temps manquant »,
     // pas celui de RG-INT-03, qui le jugerait en premier et masquerait la
     // raison que ce scénario éprouve.
+    const creneauTermineeRefusee = await creneauLibreDepuis(
+      client,
+      reperes.societeId,
+      technicienId,
+      new Date(aujourdhui.getTime() + 5 * 3600_000),
+      60,
+    );
     await client.$executeRawUnsafe(
       `INSERT INTO "intervention"
          ("id", "societe_id", "client_id", "site_id", "agence_id", "type",
@@ -233,6 +262,13 @@ test.beforeAll(async () => {
 
     // TERMINÉE, AVEC TEMPS MESURÉ (un segment fermé) ET RAPPORT VALIDÉ
     // (RG-INT-03, D278, 9H1) — prête à clôturer.
+    const creneauTermineePrete = await creneauLibreDepuis(
+      client,
+      reperes.societeId,
+      technicienId,
+      new Date(aujourdhui.getTime() + 7 * 3600_000),
+      60,
+    );
     await client.$executeRawUnsafe(
       `INSERT INTO "intervention"
          ("id", "societe_id", "client_id", "site_id", "agence_id", "type",
