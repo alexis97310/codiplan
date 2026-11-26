@@ -153,7 +153,15 @@ Aucun écran touché ni créé — ce lot ne modifie que l'outillage e2e (`playw
   descendants Chromium en conditions réelles (6 processus, ~490 Mo) avant de mesurer le sous-ensemble suspect.
 - La mesure retenue : `CI=1 E2E_MESURE_MEMOIRE=1 pnpm test:e2e tests/e2e/zz-captures-*.spec.ts` — 124 passées,
   56 sautées (attendu), 0 imprévue, 0 chancelante.
-- `pnpm test` : à confirmer dans la foulée (voir ci-dessous — lancé après la rédaction de cette passation).
+- `pnpm test` : 540 fichiers, 6098 tests, vert.
+- `pnpm test:isolation` : 268 fichiers, 2581 tests. Un premier passage a donné 1 échec isolé
+  (`tests/isolation/document.test.ts`, forme du plan `EXPLAIN` attendue — non lié à ce lot, aucun fichier
+  touché ici ne s'en approche) ; rejoué seul puis la suite entière : vert les deux fois. Flaky,
+  dépendant des statistiques PostgreSQL vivantes au moment de l'`EXPLAIN`, plausiblement perturbées par les
+  nombreuses exécutions e2e menées dans la même session sur la même base `codiplan_test` (mémoire :
+  TEST et E2E partagent cette base). Non touché, conformément à l'interdit de modifier un test pour faire
+  passer la vérification.
+- `CI=1 pnpm verify` (format:check + typecheck + lint + test + test:isolation + build) : vert.
 - Aucune assertion retirée, élargie, ni `skip`/`fixme`/`retries` touché.
 
 ## Ce qui reste dû
