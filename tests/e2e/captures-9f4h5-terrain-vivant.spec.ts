@@ -157,7 +157,9 @@ test.beforeAll(async () => {
             client,
             reperes.societeId,
             reperes.technicienDucos,
-            new Date(`${cle}T${String(heureCompteur).padStart(2, "0")}:00:00.000Z`),
+            new Date(
+              `${cle}T${String(heureCompteur).padStart(2, "0")}:00:00.000Z`,
+            ),
             60,
           )),
         },
@@ -174,7 +176,9 @@ test.beforeAll(async () => {
             client,
             reperes.societeId,
             reperes.technicienDucos,
-            new Date(`${cle}T${String(heureNouvelle).padStart(2, "0")}:00:00.000Z`),
+            new Date(
+              `${cle}T${String(heureNouvelle).padStart(2, "0")}:00:00.000Z`,
+            ),
             60,
           )),
         },

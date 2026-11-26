@@ -120,7 +120,9 @@ test.beforeAll(async () => {
           client,
           reperes.societeId,
           reperes.technicienDucos,
-          new Date(`${cleePassee}T${String(heure).padStart(2, "0")}:00:00.000Z`),
+          new Date(
+            `${cleePassee}T${String(heure).padStart(2, "0")}:00:00.000Z`,
+          ),
           60,
         );
       await client.intervention.create({

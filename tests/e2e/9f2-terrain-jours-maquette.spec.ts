@@ -176,7 +176,10 @@ test.describe("« Ma journée » remplie — en retard, aujourd'hui, demain, les
       // recule jusqu'à une heure réellement libre.
       const creneauDe = async (
         jour: ReturnType<typeof jourDe>,
-      ): Promise<{ readonly creneau_debut: Date; readonly creneau_fin: Date }> => {
+      ): Promise<{
+        readonly creneau_debut: Date;
+        readonly creneau_fin: Date;
+      }> => {
         const cle = cleJour(jour);
         return creneauLibreDepuis(
           client,
