@@ -17,7 +17,7 @@
     "format:check": "prettier --check .",
     "test": "vitest run --project unit",
     "test:isolation": "vitest run --project isolation",
-    "test:e2e": "playwright test",
+    "test:e2e": "tsx scripts/e2e-tranches.mts",
     "audit:visuel": "playwright test --config=playwright.audit.config.ts",
     "audit:fonctionnel": "playwright test --config=playwright.audit-fonctionnel.config.ts",
     "db:migrate": "prisma migrate dev",
