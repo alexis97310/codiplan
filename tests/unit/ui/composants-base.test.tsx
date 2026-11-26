@@ -405,7 +405,10 @@ describe('tous les boutons du terrain portent size="lg" (décision du 30/09/2026
     // 9L04H-TERRAIN-RECAPITULATIF-SIGNATURE : dans `rapport-automatique.tsx`,
     // « Voir le récapitulatif » (rubrique Signature), « Fermer » (la feuille
     // du récapitulatif) et « Valider la signature » (sous le canevas) —
-    // 29 + 3 = 32. Voir `tests/unit/ui/retouches-2a.test.ts`, même population.
-    expect(total).toBe(32);
+    // 29 + 3 = 32. PUIS 9L46-FINITIONS-LISTE-TELEPHONE-MDP-TECHNICIEN : le
+    // nouvel écran `terrain/profil/mot-de-passe/page.tsx` ajoute son bouton
+    // « Enregistrer mon mot de passe » — 32 + 1 = 33. Voir
+    // `tests/unit/ui/retouches-2a.test.ts`, même population.
+    expect(total).toBe(33);
   });
 });
