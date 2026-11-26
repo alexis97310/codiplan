@@ -38,52 +38,56 @@ if (process.env.E2E_MESURE_MEMOIRE === "1") {
   const DOSSIER = join(process.cwd(), "test-results", "mesure-memoire");
   mkdirSync(DOSSIER, { recursive: true });
   const FICHIER = join(DOSSIER, `worker-${process.pid}.ndjson`);
-  const INTERVALLE_MS = 5000;
+  const INTERVALLE_MS = 2000;
 
-  // `/proc/<pid>/task/<tid>/children` (Linux ≥ 3.5) : les pid enfants
-  // DIRECTS d'un processus, sans dépendre de `ps` ni d'un paquet externe.
-  // Parcours en largeur pour obtenir tous les DESCENDANTS — le worker lance
-  // Chromium, qui lance lui-même zygote/GPU/rendu en sous-processus.
+  // `/proc/<pid>/task/<tid>/children` (Linux ≥ 3.5, `CONFIG_CHECKPOINT_RESTORE`)
+  // N'EXISTE PAS sous le noyau WSL2 de ce poste (mesuré : `ENOENT` sur un
+  // PID qui a pourtant des enfants) — PAS un indicateur fiable d'absence de
+  // descendants, un indicateur d'absence de la fonctionnalité elle-même.
+  // Repli universel : chaque `/proc/<pid>/status` porte `PPid:` — un parcours
+  // de TOUT `/proc` reconstruit l'arbre sans dépendre de cette fonctionnalité.
+  function statutDe(pid) {
+    try {
+      return readFileSync(`/proc/${pid}/status`, "utf8");
+    } catch {
+      return null;
+    }
+  }
+
+  function rssKoDeStatut(statut) {
+    const m = /^VmRSS:\s+(\d+) kB$/m.exec(statut);
+    return m ? Number(m[1]) : null;
+  }
+
   function descendants(pidRacine) {
+    let pids;
+    try {
+      pids = readdirSync("/proc").filter((n) => /^\d+$/.test(n));
+    } catch {
+      return [];
+    }
+    const enfantsDe = new Map();
+    for (const pid of pids) {
+      const statut = statutDe(pid);
+      if (statut === null) continue;
+      const m = /^PPid:\s+(\d+)$/m.exec(statut);
+      if (!m) continue;
+      const ppid = m[1];
+      if (!enfantsDe.has(ppid)) enfantsDe.set(ppid, []);
+      enfantsDe.get(ppid).push(pid);
+    }
     const vus = new Set();
-    const file = [pidRacine];
+    const file = [String(pidRacine)];
     while (file.length > 0) {
       const pid = file.shift();
-      let tids;
-      try {
-        tids = readdirSync(`/proc/${pid}/task`);
-      } catch {
-        continue;
-      }
-      for (const tid of tids) {
-        let enfants;
-        try {
-          enfants = readFileSync(`/proc/${pid}/task/${tid}/children`, "utf8")
-            .trim()
-            .split(/\s+/)
-            .filter(Boolean);
-        } catch {
-          continue;
-        }
-        for (const enfant of enfants) {
-          if (!vus.has(enfant)) {
-            vus.add(enfant);
-            file.push(enfant);
-          }
+      for (const enfant of enfantsDe.get(pid) ?? []) {
+        if (!vus.has(enfant)) {
+          vus.add(enfant);
+          file.push(enfant);
         }
       }
     }
     return Array.from(vus);
-  }
-
-  function rssKo(pid) {
-    try {
-      const statut = readFileSync(`/proc/${pid}/status`, "utf8");
-      const m = /^VmRSS:\s+(\d+) kB$/m.exec(statut);
-      return m ? Number(m[1]) : null;
-    } catch {
-      return null;
-    }
   }
 
   function echantillon() {
@@ -91,7 +95,8 @@ if (process.env.E2E_MESURE_MEMOIRE === "1") {
     let chromiumRssKo = 0;
     let chromiumProcessus = 0;
     for (const pid of descendantsPids) {
-      const rss = rssKo(pid);
+      const statut = statutDe(pid);
+      const rss = statut === null ? null : rssKoDeStatut(statut);
       if (rss !== null) {
         chromiumRssKo += rss;
         chromiumProcessus += 1;
