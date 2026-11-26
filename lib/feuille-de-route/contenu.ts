@@ -63,16 +63,6 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
     ],
   },
   {
-    titre: "Réserves des revues, à regrouper",
-    elements: [
-      {
-        statut: "a_ecrire",
-        titre:
-          "Finitions : liste déroulante sur téléphone (clavier, bas d'écran), écran de changement de mot de passe pour le technicien.",
-      },
-    ],
-  },
-  {
     titre: "Décisions prises",
     elements: [
       {
@@ -125,6 +115,11 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
   {
     titre: "Livré depuis le 31/10",
     elements: [
+      {
+        statut: "livre",
+        titre:
+          "Finitions : liste déroulante de recherche (clients, sites, modèles) qui ne s'ouvrait plus dans l'espace réellement visible quand le clavier tactile était ouvert ; écran de changement de mot de passe pour le technicien, depuis « Profil » — (9L46).",
+      },
       {
         statut: "livre",
         titre:
