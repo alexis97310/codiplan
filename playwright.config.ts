@@ -61,6 +61,26 @@ function environnementDuServeur(): Record<string, string> {
 }
 
 /**
+ * INSTRUMENTATION DE DIAGNOSTIC (9L47), DÉSACTIVÉE PAR DÉFAUT — voir
+ * `tests/e2e/setup/mesure-memoire.cjs`. Posée ICI, au chargement de la
+ * configuration, donc AVANT que Playwright ne lance (`child_process.fork`,
+ * qui copie `process.env` du processus principal) le premier worker : un
+ * `NODE_OPTIONS` mué ici est vu par chaque worker à son propre démarrage,
+ * jamais par le processus principal de Playwright lui-même (qui a déjà lu le
+ * sien). Le rapport JSON, sous la même variable, journalise l'horodatage de
+ * fin de chaque épreuve — nécessaire pour mettre en correspondance, après
+ * coup, un échantillon de mémoire (pris par intervalle de temps, pas par
+ * épreuve) avec un numéro d'épreuve.
+ */
+const MESURE_MEMOIRE = process.env.E2E_MESURE_MEMOIRE === "1";
+if (MESURE_MEMOIRE) {
+  const requisPrealable = `--require ${join(RACINE, "tests/e2e/setup/mesure-memoire.cjs")}`;
+  process.env.NODE_OPTIONS = process.env.NODE_OPTIONS
+    ? `${process.env.NODE_OPTIONS} ${requisPrealable}`
+    : requisPrealable;
+}
+
+/**
  * Porte `pnpm test:e2e`, incluse dans `pnpm verify:full` seulement (D14).
  * Le serveur testé est une compilation de production : c'est celui-là qui part
  * chez le client, et le mode développement masque les erreurs de rendu serveur.
@@ -77,7 +97,22 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: process.env.CI ? "github" : "list",
+  reporter: MESURE_MEMOIRE
+    ? [
+        process.env.CI ? ["github"] : ["list"],
+        [
+          "json",
+          {
+            outputFile: join(
+              RACINE,
+              "test-results/mesure-memoire-resultats.json",
+            ),
+          },
+        ],
+      ]
+    : process.env.CI
+      ? "github"
+      : "list",
   use: {
     baseURL: BASE_URL,
     locale: "fr-FR",
