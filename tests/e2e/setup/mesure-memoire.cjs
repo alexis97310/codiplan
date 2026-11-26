@@ -2,12 +2,12 @@
 
 // Ce fichier est chargé par `NODE_OPTIONS=--require`, donc nécessairement en
 // CommonJS synchrone — même contrainte que `double-courriel.cjs`.
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 const {
   appendFileSync,
   mkdirSync,
   readFileSync,
   readdirSync,
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
 } = require("node:fs");
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { join } = require("node:path");
