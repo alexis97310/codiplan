@@ -150,3 +150,53 @@ lui-même — verrou optimiste, retype de confirmation — était déjà fini et
 - `pnpm verify:full` NON joué — laissé à la file, comme demandé.
 
 Rebase propre sur `origin/main` au moment de rendre la main, arbre propre, rien poussé.
+
+## Reprise 9L44C-REPRISE-STATUT-MACHINE
+
+Condition d'arrêt du ticket de reprise vérifiée avant tout geste : `origin/main` ne contenait **pas** de
+commit `9L44A-REPRISE-STATUT-MACHINE`, et la branche `9L44A-REPRISE-STATUT-MACHINE-garde` existait — aucun
+arrêt immédiat requis.
+
+**Note sur le chemin de ce fichier** : le ticket de reprise demandait une section dans
+`docs/propositions/9L44A-REPRISE-STATUT-MACHINE/passation.md`. Ce répertoire n'a jamais existé — 9L44A a
+suivi la convention déjà en place ici (section « Reprise 9L44A-REPRISE-STATUT-MACHINE » ci-dessus, dans le
+fichier du lot d'origine). Cette reprise fait de même, par cohérence avec 9L44A plutôt qu'avec le chemin
+littéral du ticket.
+
+**Ce qui a été fait ici** :
+
+1. Branche `9L44C-REPRISE-STATUT-MACHINE` ouverte à jour d'`origin/main` (déjà porteur de 9L42B, 9L44B et
+   9L45). Les six commits de `9L44A-REPRISE-STATUT-MACHINE-garde` ont été reportés par `git cherry-pick`, un
+   par un, dans l'ordre d'origine, sans les modifier.
+2. **Un conflit**, sur `lib/feuille-de-route/contenu.ts` — pas avec 9L42B ni 9L44B comme l'anticipait le
+   ticket (ces deux-là étaient déjà résolus côté 9L44A), mais avec **9L45**, publié sur `origin/main` après
+   9L44A-REPRISE-STATUT-MACHINE-garde : les deux lots retiraient chacun leur propre ligne de la section « Réserves des
+   revues, à regrouper » au même endroit du tableau (celle de 9L44 : « Statut machine : écritures
+   simultanées… » ; celle de 9L45 : « Épreuves et captures manquantes sur 9I8C et 9I8F1. »), et ajoutaient
+   chacun leur propre ligne en tête de « Livré depuis le 31/10 » au même endroit. Résolu en gardant **les
+   deux intentions** : les deux lignes retirées de « à écrire », les deux lignes ajoutées à « livré »
+   (9I8C/9I8F1 — 9L45 — suivie de Statut machine — 9L44). Rien d'autre n'a été changé dans ce fichier.
+3. **Audit des localisateurs e2e de la même famille** (non exacts, sans portée, ou qui comptent des boutons)
+   pouvant rencontrer l'écran modifié (`/parc/[id]`, le dialogue de changement de statut, le champ de retype) :
+   repris intégralement — aucun nouveau localisateur fragile. Point notable relevé en creusant les libellés :
+   `machine.changer_etat.bouton` et `machine.changer_etat.confirmer` valent tous deux « Changer l'état » (le
+   bouton déclencheur et le bouton de confirmation du dialogue partagent le même texte) ; sans risque ici car
+   `tests/e2e/9l44-sortie-du-parc-retype.spec.ts` et `9i8f-statut-machine-modifiable.spec.ts` scopent
+   systématiquement leurs `getByRole("button", …)` au `<form>` ou au `<dialogue>` ouvert, jamais à la page
+   entière. Aucun autre spec de `tests/e2e/**` ne transite vers `remplacee`/`ferraillee` par l'interface (les
+   autres mentions de ces statuts posent la donnée directement en base par Prisma, sans jamais ouvrir le
+   dialogue).
+4. Rien d'autre ajouté au lot.
+
+## Épreuves de la reprise 9L44C
+
+- `CI=1 npx playwright test tests/e2e/9l44-sortie-du-parc-retype.spec.ts --workers=1` — 2 passed (couvre à la
+  fois 9L44 et 9L44A, qui n'a ajouté aucun code, seulement sa passation).
+- `CI=1 npx playwright test tests/e2e/tous-les-ecrans-rendent.spec.ts --workers=1` — 61 passed, 4 skipped
+  (skip déjà présent hors de ce lot, non touché).
+- `pnpm test:isolation` — 268 fichiers, 2581 tests, vert.
+- `CI=1 pnpm verify` (format:check + typecheck + lint + test + test:isolation + build) — vert de bout en
+  bout.
+- `pnpm verify:full` NON joué — laissé à la file, comme demandé.
+
+Rebase sur `origin/main` fait avant de rendre la main, arbre propre, rien poussé.
