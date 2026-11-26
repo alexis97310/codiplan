@@ -94,3 +94,59 @@ lot dédié, soit confirmer qu'il reste attendu à chaque ticket malgré son co�
   futur verrou sur `modifie_le` sans migration préalable de précision — à relire avant toute tentative.
 - `saisieDeControle` (`components/ui/bouton-confirmation.tsx`) est prêt à être réemployé par un autre geste
   irréversible qui en aurait besoin, sans dupliquer le mécanisme.
+
+## Reprise 9L44A-REPRISE-STATUT-MACHINE
+
+9L44 était RECALÉ deux fois sur la MÊME cause, hors lot : `tests/e2e/captures-9f4h5b-journee-sans-montant.
+spec.ts:155` levait « strict mode violation » sur un `getByRole("status")` non filtré, ambigu dès que la
+pastille réseau (9L42) et le message d'annonce coexistaient dans le DOM. 9L42B, publié sur `origin/main`
+entre les deux passages, a déjà rendu ce localisateur précis (`.filter({ hasText: /transmis/ })`) et a déjà
+audité toutes les occurrences `getByRole("status")` des e2e (voir sa passation). Le travail de 9L44
+lui-même — verrou optimiste, retype de confirmation — était déjà fini et vert avant le recalage.
+
+**Ce qui a été fait ici** :
+
+1. Branche `9L44A-REPRISE-STATUT-MACHINE` ouverte à jour d'`origin/main` (qui contient déjà 9L42B). Les cinq
+   commits de `9L44-STATUT-MACHINE-SIMULTANE-SORTIE-garde` ont été reportés par `git cherry-pick`, un par un, dans l'ordre
+   d'origine — **aucun conflit** avec 9L42B : les deux lots touchent des fichiers disjoints (9L42B ne touche
+   que le spec de capture et sa pastille réseau ; 9L44 touche `lib/machines/depot.ts`,
+   `components/ui/bouton-confirmation.tsx`, `app/(back-office)/parc/presentation.ts`, `lib/i18n/fr.ts`,
+   `docs/arbitrages.md`, `lib/feuille-de-route/contenu.ts` et son propre spec e2e neuf).
+2. `tickets/recales/9L44-STATUT-MACHINE-SIMULTANE-SORTIE.md` et `traces/9L44-STATUT-MACHINE-SIMULTANE-SORTIE-verify-{1,2}.txt`, cités par
+   le ticket de reprise comme référence, **n'existent nulle part** sur ce poste (ni sur `origin/main`, ni sur
+   la branche garde, ni dans les autres copies de travail du dépôt accessibles). Le contenu mesuré par le
+   pilote était déjà repris en entier dans le corps du ticket de reprise lui-même (cause, fichier, ligne,
+   lots en cause) : j'ai travaillé sur cette base sans pouvoir ouvrir les fichiers sources. À signaler au
+   pilote si cette trace devait être conservée ailleurs.
+3. **Audit des localisateurs de la même famille** (non exacts, sans portée, ou qui comptent des boutons)
+   pouvant rencontrer l'écran modifié par 9L44 (`/parc/[id]`, le dialogue de changement de statut, le champ
+   de retype neuf) :
+   - `grep -rn 'selectOption("remplacee")\|selectOption("ferraillee")' tests/e2e/` — **seul**
+     `9l44-sortie-du-parc-retype.spec.ts` vise ces deux statuts. Aucun autre spec ne peut donc faire
+     apparaître le dialogue de retype neuf ; aucune collision possible avec son
+     `getByRole("textbox")` (scopé au dialogue, qui n'y porte qu'un seul champ) ni avec son bouton
+     « Confirmer » (scopé de même).
+   - `grep -rn 'getByRole("textbox"' tests/e2e/` — les quatre autres occurrences (mentions légales, checklist
+     terrain, note interne d'intervention, qualité du signataire) portent toutes un `name` précis et ne
+     visitent jamais `/parc/[id]`.
+   - `grep -rln '/parc/\${'` (24 fichiers visitant la fiche machine) croisé avec la liste ci-dessus : aucun ne
+     sélectionne `remplacee`/`ferraillee` — `9i8f-statut-machine-modifiable.spec.ts`, le plus proche (même
+     formulaire `changer-statut`), ne transite qu'entre `en_service`/`en_panne`/`arretee`, jamais touché par
+     le retype.
+   - `grep -rn 'dialog\[open\]' tests/e2e/` (une cinquantaine d'occurrences) : toutes scopées à un seul
+     dialogue par test, convention déjà uniforme dans ce dépôt — aucune n'est ambiguë au sens de 9L42B
+     (deux éléments simultanément visibles), parce qu'un seul `<dialog>` est `[open]` à la fois.
+   Aucun localisateur à corriger : l'audit ne trouve aucune ambiguïté neuve introduite par ce lot.
+
+## Épreuves de la reprise
+
+- `CI=1 pnpm playwright test --workers=1 tests/e2e/9l44-sortie-du-parc-retype.spec.ts` — 2 passed.
+- `CI=1 pnpm playwright test --workers=1 tests/e2e/captures-9f4h5b-journee-sans-montant.spec.ts
+  tests/e2e/tous-les-ecrans-rendent.spec.ts` — 63 passed, 4 skipped (déjà skip hors de ce lot).
+- `pnpm test:isolation` — 267 fichiers, 2579 tests, vert.
+- `CI=1 pnpm verify` (format:check + typecheck + lint + test + test:isolation + build), joué **deux fois** —
+  `pnpm test` 540 fichiers/6096 tests, `pnpm test:isolation` 267 fichiers/2579 tests, lint/typecheck/format/
+  build verts les deux fois.
+- `pnpm verify:full` NON joué — laissé à la file, comme demandé.
+
+Rebase propre sur `origin/main` au moment de rendre la main, arbre propre, rien poussé.
