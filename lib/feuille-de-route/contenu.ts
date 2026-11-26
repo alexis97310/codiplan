@@ -118,6 +118,11 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
       {
         statut: "livre",
         titre:
+          "« Profil » et son écran de changement de mot de passe migrés vers les jetons de la fiche terrain « épurée » (fond blanc, filets plutôt que cartes, boutons et champs des mêmes composants que la fiche) — (9L49).",
+      },
+      {
+        statut: "livre",
+        titre:
           "Finitions : liste déroulante de recherche (clients, sites, modèles) qui ne s'ouvrait plus dans l'espace réellement visible quand le clavier tactile était ouvert ; écran de changement de mot de passe pour le technicien, depuis « Profil » — (9L46).",
       },
       {
