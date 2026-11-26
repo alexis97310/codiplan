@@ -4640,6 +4640,11 @@ export const fr = {
   // `tests/e2e/9i8f-statut-machine-modifiable.spec.ts` interroge à l'écran
   // (filtre du parc) passe par ici plutôt que par une chaîne en dur.
   "9i8f.e2e.numero_serie": "9I8F-SN-STATUT",
+  // L0-11 (même discipline que `9i8f.e2e.numero_serie`) : les numéros de
+  // série que `tests/e2e/captures-9i8c-infos-machine-fiche-et-bon.spec.ts`
+  // interroge à l'écran (fiche machine) passent par ici.
+  "9i8c.e2e.numero_serie_hors_garantie": "9I8C-SN-HORS-GARANTIE",
+  "9i8c.e2e.numero_serie_sous_garantie": "9I8C-SN-SOUS-GARANTIE",
   "parametres.colonne_pas": "Pas",
   "parametres.colonne_creneaux": "Créneaux",
   "parametres.aucune_agence":
