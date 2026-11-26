@@ -109,6 +109,23 @@ import { t } from "@/lib/i18n/fr";
  * (`volet.tsx`, `z-50` lui aussi), reste dans le contexte d'empilement que
  * le volet forme — au-dessus du reste de son contenu — sans avoir besoin
  * d'une valeur hors échelle.
+ *
+ * ## LE CLAVIER TACTILE N'EST PAS UN REDIMENSIONNEMENT DE LA FENÊTRE
+ * (9L46-FINITIONS-LISTE-TELEPHONE-MDP-TECHNICIEN)
+ *
+ * Mesuré à 375 px : `window.innerHeight` (le viewport de MISE EN PAGE) ne
+ * rétrécit pas quand le clavier tactile s'ouvre sur la plupart des
+ * navigateurs mobiles — seul `window.visualViewport.height` (le viewport
+ * VISIBLE) le fait. En gardant `window.innerHeight` comme hauteur « visible »,
+ * ce composant ouvrait le panneau vers le bas sur la foi d'un espace qui
+ * n'existait plus à l'écran — recouvert par le clavier — ou bornait sa
+ * hauteur à une valeur trop grande. `hauteurVisible` lit `visualViewport`
+ * quand il existe (tout navigateur tactile cible), sinon `innerHeight`
+ * (tests de composant en environnement sans `visualViewport`). Les deux
+ * évènements de `visualViewport` (`resize` à l'ouverture/fermeture du
+ * clavier, `scroll` au défilement qu'il impose) rejoignent ceux de `window`
+ * déjà écoutés, pour la même raison : recalculer PENDANT que le panneau est
+ * ouvert, jamais seulement à son ouverture.
  */
 
 export type OptionRecherche = {
@@ -144,14 +161,28 @@ type PositionListe =
     };
 
 /**
+ * LA HAUTEUR RÉELLEMENT VISIBLE — `visualViewport` plutôt que `innerHeight`
+ * quand il existe (voir la note de tête sur le clavier tactile).
+ */
+function hauteurVisible(): number {
+  return window.visualViewport?.height ?? window.innerHeight;
+}
+
+/**
  * LE CHAMP EST-IL RÉELLEMENT VISIBLE — PAS SEULEMENT DANS LES BORNES DE LA
  * FENÊTRE, MAIS NON RECOUVERT ? Même technique que `assertListeVisibleEt
  * Cliquable` (`tests/e2e/setup/selecteur-recherche.ts`) : `elementFromPoint`
  * au centre du champ répond à la question sans que ce fichier ait besoin de
- * connaître la hauteur du bandeau sticky ou de la barre basse fixe qui
- * pourraient le recouvrir au défilement — quel que soit l'écran.
+ * connaître la hauteur du bandeau sticky, de la barre basse fixe, ou du
+ * clavier tactile qui pourraient le recouvrir — quel que soit l'écran.
+ * `hauteur` est celle du viewport VISIBLE (`hauteurVisible()`), jamais
+ * `window.innerHeight` directement — voir la note de tête.
  */
-function champEstVisible(champ: HTMLInputElement, rect: DOMRect): boolean {
+function champEstVisible(
+  champ: HTMLInputElement,
+  rect: DOMRect,
+  hauteur: number,
+): boolean {
   // AUCUNE GÉOMÉTRIE RÉELLE (jsdom, dans les épreuves de composant — jamais
   // un navigateur réel) : `getBoundingClientRect`/`elementFromPoint` y
   // rendent des zéros, pas une absence de mise en page. Rien à conclure,
@@ -159,13 +190,10 @@ function champEstVisible(champ: HTMLInputElement, rect: DOMRect): boolean {
   if (rect.width === 0 && rect.height === 0) {
     return true;
   }
-  if (rect.bottom <= 0 || rect.top >= window.innerHeight) {
+  if (rect.bottom <= 0 || rect.top >= hauteur) {
     return false;
   }
-  const y = Math.min(
-    Math.max(rect.top + rect.height / 2, 0),
-    window.innerHeight - 1,
-  );
+  const y = Math.min(Math.max(rect.top + rect.height / 2, 0), hauteur - 1);
   const x = rect.left + rect.width / 2;
   const element = document.elementFromPoint(x, y);
   return element === champ || (element?.contains(champ) ?? false);
@@ -249,12 +277,13 @@ export function SelecteurRecherche<TOption extends OptionRecherche>({
         return;
       }
       const rectChamp = champ.getBoundingClientRect();
-      if (!champEstVisible(champ, rectChamp)) {
+      const hauteur = hauteurVisible();
+      if (!champEstVisible(champ, rectChamp, hauteur)) {
         setOuvert(false);
         setPositionListe(null);
         return;
       }
-      const espaceBas = window.innerHeight - rectLabel.bottom - MARGE_LISTE_PX;
+      const espaceBas = hauteur - rectLabel.bottom - MARGE_LISTE_PX;
       const espaceHaut = rectLabel.top - MARGE_LISTE_PX;
       const versLeHaut =
         espaceBas < HAUTEUR_LISTE_SOUHAITEE_PX && espaceHaut > espaceBas;
@@ -286,9 +315,13 @@ export function SelecteurRecherche<TOption extends OptionRecherche>({
     recalculer();
     window.addEventListener("scroll", recalculer, true);
     window.addEventListener("resize", recalculer);
+    window.visualViewport?.addEventListener("resize", recalculer);
+    window.visualViewport?.addEventListener("scroll", recalculer);
     return () => {
       window.removeEventListener("scroll", recalculer, true);
       window.removeEventListener("resize", recalculer);
+      window.visualViewport?.removeEventListener("resize", recalculer);
+      window.visualViewport?.removeEventListener("scroll", recalculer);
     };
   }, [ouvert]);
 
