@@ -4,14 +4,12 @@ import { join } from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { test, type Page } from "@playwright/test";
 
-import { jourDe, maintenant } from "@/lib/calendar/fuseau";
 import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
-import { creneauUtc } from "./setup/creneaux";
+import { creneauLibreDepuis } from "./setup/creneaux";
 import { reperesDeLaScene } from "./setup/reperes";
-import { cleDeJour } from "./setup/scene";
 import { ouvrirUneSession } from "./setup/session";
 
 /**
@@ -92,15 +90,12 @@ test.beforeAll(async () => {
     const technicienId = reperes.technicienDucos;
     // CRÉNEAUX DISTINCTS (9L19, garde `intervention_sans_chevauchement_
     // technicien`) : les trois interventions avec créneau partagent le même
-    // technicien, chacune sa propre heure. 9, pas 3 (9L32A, même mesure que
-    // `fiche-entete-bandeau-frise.spec.ts` : l'heure UTC 3 retombe, en
-    // LOCAL, sur 14:00–15:00 de MARDI de la scène — le créneau que
-    // `redimensionnable` réserve pour ce MÊME technicien — dès que la suite
-    // franchit minuit en cours d'exécution).
-    const cleAujourdhui = cleDeJour(jourDe(maintenant(reperes.fuseau).local));
-    const creneauEnCours = creneauUtc(cleAujourdhui, 1);
-    const creneauTerminee = creneauUtc(cleAujourdhui, 9);
-    const creneauCloturee = creneauUtc(cleAujourdhui, 5);
+    // technicien, chacune sa propre heure. Une heure UTC fixée À L'AVANCE
+    // (comme avant 9L44B) ne suffit pas : le semis de démonstration pose sur
+    // CE MÊME technicien un créneau fixe différent chaque jour de la
+    // semaine, et retombe dessus selon le jour où la suite tourne —
+    // `creneauLibreDepuis` relit ce qu'il tient déjà et recule jusqu'à une
+    // heure réellement libre, juste avant chaque INSERT.
 
     await client.client.create({
       data: {
@@ -159,6 +154,13 @@ test.beforeAll(async () => {
     );
 
     // EN COURS — un segment ouvert.
+    const creneauEnCours = await creneauLibreDepuis(
+      client,
+      reperes.societeId,
+      technicienId,
+      new Date(Date.now() + 1 * 3600_000),
+      60,
+    );
     await client.$executeRawUnsafe(
       `INSERT INTO "intervention"
          ("id", "societe_id", "client_id", "site_id", "agence_id", "contact_id",
@@ -191,6 +193,13 @@ test.beforeAll(async () => {
     );
 
     // TERMINÉE, AVEC TEMPS MESURÉ — prête à clôturer.
+    const creneauTerminee = await creneauLibreDepuis(
+      client,
+      reperes.societeId,
+      technicienId,
+      new Date(Date.now() + 9 * 3600_000),
+      60,
+    );
     await client.$executeRawUnsafe(
       `INSERT INTO "intervention"
          ("id", "societe_id", "client_id", "site_id", "agence_id", "contact_id",
@@ -229,6 +238,13 @@ test.beforeAll(async () => {
     );
 
     // CLÔTURÉE.
+    const creneauCloturee = await creneauLibreDepuis(
+      client,
+      reperes.societeId,
+      technicienId,
+      new Date(Date.now() + 5 * 3600_000),
+      60,
+    );
     await client.$executeRawUnsafe(
       `INSERT INTO "intervention"
          ("id", "societe_id", "client_id", "site_id", "agence_id", "contact_id",

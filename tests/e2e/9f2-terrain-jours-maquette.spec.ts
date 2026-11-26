@@ -19,7 +19,7 @@ import { avecSociete, avecSocieteEtRole } from "@/lib/db/rls";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
-import { creneauUtc } from "./setup/creneaux";
+import { creneauLibreDepuis } from "./setup/creneaux";
 import { reperesDeLaScene } from "./setup/reperes";
 import {
   COMPTE_TECHNICIEN_EPREUVE,
@@ -166,18 +166,26 @@ test.describe("« Ma journée » remplie — en retard, aujourd'hui, demain, les
     const jPlus4 = jourSuivant(aujourdHui, 4);
     const jPlus9 = jourSuivant(aujourdHui, 9);
 
-    // 16h UTC : distincte des autres scènes « aujourd'hui » de la famille
-    // 9DD/9F4H5 (9L19, garde `intervention_sans_chevauchement_technicien` —
-    // tests/e2e/setup/creneaux.ts).
-    const creneauDe = (
-      jour: ReturnType<typeof jourDe>,
-    ): { readonly creneau_debut: Date; readonly creneau_fin: Date } => {
-      const cle = cleJour(jour);
-      return creneauUtc(cle, 16);
-    };
-
     const client = admin();
     try {
+      // 16h UTC, PAR DÉFAUT : distincte des autres scènes « aujourd'hui » de
+      // la famille 9DD/9F4H5 (9L19, garde `intervention_sans_chevauchement_
+      // technicien` — tests/e2e/setup/creneaux.ts). `creneauLibreDepuis`
+      // (9L44B) relit en plus ce que le semis, fixe et différent chaque
+      // jour de la semaine, tient déjà sur ce technicien ce jour précis, et
+      // recule jusqu'à une heure réellement libre.
+      const creneauDe = async (
+        jour: ReturnType<typeof jourDe>,
+      ): Promise<{ readonly creneau_debut: Date; readonly creneau_fin: Date }> => {
+        const cle = cleJour(jour);
+        return creneauLibreDepuis(
+          client,
+          reperes.societeId,
+          reperes.technicienDucos,
+          new Date(`${cle}T16:00:00.000Z`),
+          60,
+        );
+      };
       const agence = await client.agence.findFirstOrThrow({
         where: { societe_id: reperes.societeId, code: "DUCOS" },
         select: { id: true },
@@ -264,7 +272,7 @@ test.describe("« Ma journée » remplie — en retard, aujourd'hui, demain, les
           site_id: SITE_RETARD_ID,
           statut: "affectee",
           date_planifiee: instantDuJour(hier),
-          ...creneauDe(hier),
+          ...(await creneauDe(hier)),
           ...commun,
         },
       });
@@ -274,7 +282,7 @@ test.describe("« Ma journée » remplie — en retard, aujourd'hui, demain, les
           site_id: SITE_AUJOURDHUI_ID,
           statut: "affectee",
           date_planifiee: instantDuJour(aujourdHui),
-          ...creneauDe(aujourdHui),
+          ...(await creneauDe(aujourdHui)),
           ...commun,
         },
       });
@@ -284,7 +292,7 @@ test.describe("« Ma journée » remplie — en retard, aujourd'hui, demain, les
           site_id: SITE_DEMAIN_ID,
           statut: "affectee",
           date_planifiee: instantDuJour(demain),
-          ...creneauDe(demain),
+          ...(await creneauDe(demain)),
           ...commun,
         },
       });
@@ -294,7 +302,7 @@ test.describe("« Ma journée » remplie — en retard, aujourd'hui, demain, les
           site_id: SITE_SUITE_ID,
           statut: "affectee",
           date_planifiee: instantDuJour(jPlus4),
-          ...creneauDe(jPlus4),
+          ...(await creneauDe(jPlus4)),
           ...commun,
         },
       });
@@ -304,7 +312,7 @@ test.describe("« Ma journée » remplie — en retard, aujourd'hui, demain, les
           site_id: SITE_HORS_FENETRE_ID,
           statut: "affectee",
           date_planifiee: instantDuJour(jPlus9),
-          ...creneauDe(jPlus9),
+          ...(await creneauDe(jPlus9)),
           ...commun,
         },
       });
@@ -317,7 +325,13 @@ test.describe("« Ma journée » remplie — en retard, aujourd'hui, demain, les
           // MÊME JOUR que `INTERVENTION_DEMAIN_ID`, MÊME technicien : une
           // heure distincte, sinon la garde du chevauchement (9L19) refuse
           // la seconde ligne.
-          ...creneauUtc(cleJour(demain), 18),
+          ...(await creneauLibreDepuis(
+            client,
+            reperes.societeId,
+            reperes.technicienDucos,
+            new Date(`${cleJour(demain)}T18:00:00.000Z`),
+            60,
+          )),
           ...commun,
         },
       });

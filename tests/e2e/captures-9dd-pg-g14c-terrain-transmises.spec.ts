@@ -9,7 +9,7 @@ import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
-import { creneauUtc } from "./setup/creneaux";
+import { creneauLibreDepuis } from "./setup/creneaux";
 import { reperesDeLaScene } from "./setup/reperes";
 import { COMPTE_TECHNICIEN_EPREUVE, MOT_DE_PASSE_EPREUVE } from "./setup/scene";
 
@@ -73,24 +73,6 @@ test.beforeAll(async () => {
   const aujourdHui = jourDe(maintenant(reperes.fuseau).local);
   const cle = cleJour(aujourdHui);
   const datePlanifiee = new Date(`${cle}T00:00:00.000Z`);
-  // DEUX HEURES DISTINCTES, ET DISTINCTES DE CELLES DE
-  // `9dd-pg-g14c-terrain-transmises.spec.ts` (9L19, garde `intervention_
-  // sans_chevauchement_technicien` — tests/e2e/setup/creneaux.ts).
-  // 13, pas 21 (9L31B, mesuré un LUNDI) : une heure UTC de 21 ou 22 avec `cle`
-  // = aujourd'hui retombe, en LOCAL, sur 08:00–09:00 de DEMAIN (`creneauUtc`
-  // bascule le jour local dès l'heure UTC 13) — exactement le créneau que la
-  // scène partagée (`tests/e2e/setup/scene.ts`) réserve à `obstacle`, sur ce
-  // MÊME technicien, quand `demain` tombe sur MARDI de la scène (le cas où
-  // aujourd'hui est déjà lundi).
-  const { creneau_debut: creneauDebut, creneau_fin: creneauFin } = creneauUtc(
-    cle,
-    13,
-  );
-  const {
-    creneau_debut: creneauDebutPlanifiee,
-    creneau_fin: creneauFinPlanifiee,
-  } = creneauUtc(cle, 15);
-
   const client = admin();
   try {
     const agence = await client.agence.findFirstOrThrow({
@@ -140,29 +122,47 @@ test.beforeAll(async () => {
       type: "curatif" as const,
       priorite: "p3" as const,
       date_planifiee: datePlanifiee,
-      creneau_debut: creneauDebut,
-      creneau_fin: creneauFin,
       duree_estimee_min: 60,
       mode_valorisation: "temps_passe" as const,
       devise_code: "XPF",
       description: "9DD — intervention forgée pour une capture",
     };
+    // DEUX CRÉNEAUX DISTINCTS (9L19, garde `intervention_sans_chevauchement_
+    // technicien`) — `creneauLibreDepuis` (9L44B) relit ce que le semis,
+    // fixe et différent chaque jour de la semaine, tient déjà sur ce
+    // technicien, plutôt qu'une heure UTC fixée à l'avance.
+    const creneauPlanifiee = await creneauLibreDepuis(
+      client,
+      reperes.societeId,
+      reperes.technicienDucos,
+      new Date(Date.now() + 15 * 3600_000),
+      60,
+    );
     await client.intervention.create({
       data: {
         id: INTERVENTION_PLANIFIEE_ID,
         site_id: SITE_PLANIFIEE_ID,
         statut: "planifiee",
         ...commun,
-        creneau_debut: creneauDebutPlanifiee,
-        creneau_fin: creneauFinPlanifiee,
+        creneau_debut: creneauPlanifiee.creneau_debut,
+        creneau_fin: creneauPlanifiee.creneau_fin,
       },
     });
+    const creneauAffectee = await creneauLibreDepuis(
+      client,
+      reperes.societeId,
+      reperes.technicienDucos,
+      new Date(Date.now() + 13 * 3600_000),
+      60,
+    );
     await client.intervention.create({
       data: {
         id: INTERVENTION_AFFECTEE_ID,
         site_id: SITE_AFFECTEE_ID,
         statut: "affectee",
         ...commun,
+        creneau_debut: creneauAffectee.creneau_debut,
+        creneau_fin: creneauAffectee.creneau_fin,
       },
     });
     await client.intervention.create({
@@ -176,7 +176,7 @@ test.beforeAll(async () => {
         // `9dd-pg-g14c-terrain-transmises.spec.ts` : évite un défaut
         // préexistant (23514) hors territoire de ce ticket plutôt que de
         // le masquer.
-        vue_technicien_le: creneauDebut,
+        vue_technicien_le: creneauAffectee.creneau_debut,
         ...commun,
       },
     });

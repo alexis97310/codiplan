@@ -9,7 +9,7 @@ import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
-import { creneauUtc } from "./setup/creneaux";
+import { creneauLibreDepuis } from "./setup/creneaux";
 import { reperesDeLaScene } from "./setup/reperes";
 import { cleDeJour } from "./setup/scene";
 import { ouvrirUneSession } from "./setup/session";
@@ -102,17 +102,27 @@ test.beforeAll(async () => {
     // UNE HEURE PAR LARGEUR (9L19, garde `intervention_sans_chevauchement_
     // technicien`) : les deux largeurs partagent le même technicien, le même
     // jour (`cleAVenir` d'une part, `cleePassee` de l'autre).
+    // `creneauLibreDepuis` (9L44B) relit ce que le semis tient déjà sur ce
+    // technicien à ces jours-là, plutôt qu'une heure UTC fixée à l'avance.
     const heureParLargeur: Record<number, number> = { 1280: 8, 375: 9 };
     for (const largeur of [1280, 375] as const) {
       const heure = heureParLargeur[largeur];
-      const { creneau_debut: debutAVenir, creneau_fin: finAVenir } = creneauUtc(
-        cleAVenir,
-        heure,
-      );
-      const { creneau_debut: debutPassee, creneau_fin: finPassee } = creneauUtc(
-        cleePassee,
-        heure,
-      );
+      const { creneau_debut: debutAVenir, creneau_fin: finAVenir } =
+        await creneauLibreDepuis(
+          client,
+          reperes.societeId,
+          reperes.technicienDucos,
+          new Date(`${cleAVenir}T${String(heure).padStart(2, "0")}:00:00.000Z`),
+          60,
+        );
+      const { creneau_debut: debutPassee, creneau_fin: finPassee } =
+        await creneauLibreDepuis(
+          client,
+          reperes.societeId,
+          reperes.technicienDucos,
+          new Date(`${cleePassee}T${String(heure).padStart(2, "0")}:00:00.000Z`),
+          60,
+        );
       await client.intervention.create({
         data: {
           id: PRETE_A_VENIR[largeur],

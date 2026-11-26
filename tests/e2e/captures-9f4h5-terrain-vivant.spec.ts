@@ -9,7 +9,7 @@ import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
-import { creneauUtc } from "./setup/creneaux";
+import { creneauLibreDepuis } from "./setup/creneaux";
 import { reperesDeLaScene } from "./setup/reperes";
 import { COMPTE_TECHNICIEN_EPREUVE, MOT_DE_PASSE_EPREUVE } from "./setup/scene";
 import { ouvrirUneSession } from "./setup/session";
@@ -153,7 +153,13 @@ test.beforeAll(async () => {
           site_id: SITES_COMPTEUR[largeur],
           statut: "affectee",
           ...commun,
-          ...creneauUtc(cle, heureCompteur),
+          ...(await creneauLibreDepuis(
+            client,
+            reperes.societeId,
+            reperes.technicienDucos,
+            new Date(`${cle}T${String(heureCompteur).padStart(2, "0")}:00:00.000Z`),
+            60,
+          )),
         },
       });
       // PLANIFIEE — invisible du terrain tant qu'elle n'est pas transmise
@@ -164,7 +170,13 @@ test.beforeAll(async () => {
           site_id: SITES_NOUVELLE[largeur],
           statut: "planifiee",
           ...commun,
-          ...creneauUtc(cle, heureNouvelle),
+          ...(await creneauLibreDepuis(
+            client,
+            reperes.societeId,
+            reperes.technicienDucos,
+            new Date(`${cle}T${String(heureNouvelle).padStart(2, "0")}:00:00.000Z`),
+            60,
+          )),
         },
       });
     }

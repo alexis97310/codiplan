@@ -6,7 +6,7 @@ import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
-import { creneauUtc } from "./setup/creneaux";
+import { creneauLibreDepuis } from "./setup/creneaux";
 import { reperesDeLaScene } from "./setup/reperes";
 import { COMPTE_TECHNICIEN_EPREUVE, MOT_DE_PASSE_EPREUVE } from "./setup/scene";
 import { ouvrirUneSession } from "./setup/session";
@@ -80,20 +80,6 @@ test.beforeAll(async () => {
   const aujourdHui = jourDe(maintenant(reperes.fuseau).local);
   const cle = cleJour(aujourdHui);
   const datePlanifiee = new Date(`${cle}T00:00:00.000Z`);
-  // DEUX HEURES DISTINCTES (9L19, garde `intervention_sans_chevauchement_
-  // technicien`) : Planifiée et Affectée portent le même technicien et ne
-  // peuvent plus partager un créneau, même hors ouverture. 14h et 20h UTC
-  // n'appartiennent à aucune autre scène de la famille 9DD/9F4H5
-  // (`tests/e2e/setup/creneaux.ts`).
-  const { creneau_debut: creneauDebut, creneau_fin: creneauFin } = creneauUtc(
-    cle,
-    20,
-  );
-  const {
-    creneau_debut: creneauDebutPlanifiee,
-    creneau_fin: creneauFinPlanifiee,
-  } = creneauUtc(cle, 14);
-
   const client = admin();
   try {
     const agence = await client.agence.findFirstOrThrow({
@@ -143,29 +129,49 @@ test.beforeAll(async () => {
       type: "curatif" as const,
       priorite: "p3" as const,
       date_planifiee: datePlanifiee,
-      creneau_debut: creneauDebut,
-      creneau_fin: creneauFin,
       duree_estimee_min: 60,
       mode_valorisation: "temps_passe" as const,
       devise_code: "XPF",
       description: "9DD — intervention forgée par l'épreuve",
     };
+    // DEUX CRÉNEAUX DISTINCTS (9L19, garde `intervention_sans_chevauchement_
+    // technicien`) : Planifiée et Affectée portent le même technicien et ne
+    // peuvent plus partager un créneau, même hors ouverture. `creneauLibre
+    // Depuis` (9L44B) relit ce que le semis — fixe, différent chaque jour de
+    // la semaine — tient déjà sur ce technicien, et recule jusqu'à une heure
+    // réellement libre, plutôt qu'une heure UTC fixée à l'avance.
+    const creneauPlanifiee = await creneauLibreDepuis(
+      client,
+      reperes.societeId,
+      technicienId,
+      new Date(Date.now() + 14 * 3600_000),
+      60,
+    );
     await client.intervention.create({
       data: {
         id: INTERVENTION_PLANIFIEE_ID,
         site_id: SITE_PLANIFIEE_ID,
         statut: "planifiee",
         ...commun,
-        creneau_debut: creneauDebutPlanifiee,
-        creneau_fin: creneauFinPlanifiee,
+        creneau_debut: creneauPlanifiee.creneau_debut,
+        creneau_fin: creneauPlanifiee.creneau_fin,
       },
     });
+    const creneauAffectee = await creneauLibreDepuis(
+      client,
+      reperes.societeId,
+      technicienId,
+      new Date(Date.now() + 20 * 3600_000),
+      60,
+    );
     await client.intervention.create({
       data: {
         id: INTERVENTION_AFFECTEE_ID,
         site_id: SITE_AFFECTEE_ID,
         statut: "affectee",
         ...commun,
+        creneau_debut: creneauAffectee.creneau_debut,
+        creneau_fin: creneauAffectee.creneau_fin,
       },
     });
     await client.intervention.create({

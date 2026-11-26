@@ -9,7 +9,7 @@ import { uuidv7 } from "@/lib/db/uuid";
 import { fr } from "@/lib/i18n";
 
 import { urlAdministration } from "./setup/base";
-import { creneauUtc } from "./setup/creneaux";
+import { creneauLibreDepuis } from "./setup/creneaux";
 import { reperesDeLaScene } from "./setup/reperes";
 import { COMPTE_TECHNICIEN_EPREUVE, MOT_DE_PASSE_EPREUVE } from "./setup/scene";
 
@@ -93,9 +93,14 @@ test.beforeAll(async () => {
           libelle: `9F4H5BCAP — site ${largeur}`,
         },
       });
-      const { creneau_debut, creneau_fin } = creneauUtc(
-        cle,
-        heureParLargeur[largeur],
+      const { creneau_debut, creneau_fin } = await creneauLibreDepuis(
+        client,
+        reperes.societeId,
+        reperes.technicienDucos,
+        new Date(
+          `${cle}T${String(heureParLargeur[largeur]).padStart(2, "0")}:00:00.000Z`,
+        ),
+        60,
       );
       await client.intervention.create({
         data: {
