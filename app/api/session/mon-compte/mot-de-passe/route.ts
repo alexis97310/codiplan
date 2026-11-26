@@ -4,6 +4,7 @@ import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { changerSonMotDePasse } from "@/lib/auth/mon-compte";
 import { exigerSessionActive } from "@/lib/auth/porte";
 import { estRolePortail } from "@/lib/auth/roles";
+import { perimetreDuPlanning } from "@/lib/interventions/perimetre-technicien";
 
 import { champ, redirectionAvecMotif } from "../../reponses";
 
@@ -39,12 +40,21 @@ async function traiter(requete: Request): Promise<Response> {
   );
 
   // LA DESTINATION SUIT LE RÔLE, PAS UNE VALEUR REÇUE (9K06) : un compte du
-  // portail n'atteint jamais `/mon-compte` (I5) ; cette route change le mot
-  // de passe de TOUT rôle de bureau connecté sans le distinguer, voir
+  // portail n'atteint jamais `/mon-compte` (I5), et un technicien (accès
+  // RESTREINT au planning, `perimetreDuPlanning`) n'atteint jamais non plus
+  // `/mon-compte` — fermé pour lui par le garde-fou de D221
+  // (`app/(back-office)/template.tsx`) — mais bien son pendant terrain
+  // (9L46-FINITIONS-LISTE-TELEPHONE-MDP-TECHNICIEN). Cette route change le
+  // mot de passe de TOUT rôle connecté sans le distinguer autrement, voir
   // l'en-tête — seule la redirection qui suit a besoin de savoir où le
   // ramener.
+  const destination = estRolePortail(contexte.role)
+    ? "/portail/mon-compte"
+    : perimetreDuPlanning(contexte).acces === "restreint"
+      ? "/terrain/profil/mot-de-passe"
+      : "/mon-compte";
   return redirectionAvecMotif(
-    estRolePortail(contexte.role) ? "/portail/mon-compte" : "/mon-compte",
+    destination,
     `mon_compte.mot_de_passe.${issue.issue}`,
     issue.issue === "abouti" ? issue.cookies : [],
   );

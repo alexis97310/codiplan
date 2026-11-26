@@ -3294,6 +3294,17 @@ export const fr = {
   "terrain.profil.titre": "Profil",
   "terrain.profil.societe": "Société",
 
+  // CHANGEMENT DE MOT DE PASSE DU TECHNICIEN (9L46-FINITIONS-LISTE-
+  // TELEPHONE-MDP-TECHNICIEN) — le pendant, pour `/terrain/profil`, de
+  // `/mon-compte` au bureau. Les libellés de champ et les motifs de retour
+  // réutilisent ceux de `mon_compte.mot_de_passe.*` (texte identique, même
+  // geste derrière les deux écrans) ; seul le titre d'écran et le lien qui
+  // l'ouvre depuis le profil ont besoin d'une clé propre au terrain.
+  "terrain.mot_de_passe.titre": "Changer mon mot de passe",
+  "terrain.mot_de_passe.retour": "← Retour au profil",
+
+
+
   // ── LE RAPPORT DE TERRAIN (ticket 17-BON-2 ; enregistrement automatique,
   // 9F4-TERRAIN-ENREGISTREMENT-AUTO, décision d'Alexis n° 95) ──────────────
   "terrain.rapport.titre": "Rapport",
@@ -8113,6 +8124,12 @@ export const fr = {
   // copier.spec.ts) — sa PROPRE scène, préfixée `9I6B`, créée et supprimée
   // par l'épreuve, même discipline que `acces9dj.e2e.*`.
   "acces9i6b.e2e.nom": "9I6B — Compte à activer par lien copié",
+
+  // ── FIXTURE DE L'ÉPREUVE DE BOUT EN BOUT (tests/e2e/
+  // 9l46-finitions-liste-telephone-mdp-technicien.spec.ts) — sa PROPRE scène,
+  // préfixée `9L46`, créée et supprimée par l'épreuve, même discipline que
+  // `acces9i6b.e2e.*` ci-dessus.
+  "acces9l46.e2e.nom": "9L46 — Technicien, mot de passe depuis le terrain",
 
   // ── FIXTURE DES CAPTURES (tests/e2e/captures-9i6b-lien-acces-a-copier.
   // spec.ts) — préfixe DISTINCT de `acces9i6b.e2e.*` ci-dessus (même raison

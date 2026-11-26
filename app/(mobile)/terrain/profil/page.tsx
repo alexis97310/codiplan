@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { headers } from "next/headers";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { BoutonInstallerCodiplan } from "@/components/pwa/bouton-installer";
@@ -84,6 +85,13 @@ export default async function PageProfilTerrain() {
       </section>
 
       <BoutonInstallerCodiplan />
+
+      <Link
+        href="/terrain/profil/mot-de-passe"
+        className="border-app-bord bg-app-surface w-full rounded-md border px-4 py-2.5 text-center text-16 font-bold"
+      >
+        {t("terrain.mot_de_passe.titre")}
+      </Link>
 
       <form action="/api/session/deconnexion" method="post">
         <button
