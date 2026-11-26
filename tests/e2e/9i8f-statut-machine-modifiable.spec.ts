@@ -245,3 +245,45 @@ test("une demande créée « en panne » le montre sur la fiche machine ; le bou
   await page.goto("/parc?statut=en_panne");
   await expect(page.getByText(NUMERO_SERIE).first()).toBeVisible();
 });
+
+/**
+ * 9L45-EPREUVES-CAPTURES-9I8C-9I8F1 — le cas nommé dans la passation de
+ * 9I8F1-REPRISE-9I8F comme jamais écrit : une machine SORTIE DU PARC
+ * (`remplacee`) choisie dans le volet « nouvelle demande » n'affiche plus le
+ * `<select name="etat_machine">` — seulement son état en lecture
+ * (`etatMachineEstProposable`, `lib/machines/saisie.ts`).
+ */
+test("une machine « remplacee » choisie dans le volet « nouvelle demande » n'affiche plus le champ « état de la machine », seulement son état en lecture", async ({
+  page,
+}) => {
+  const client = new PrismaClient({
+    datasources: { db: { url: urlAdministration() } },
+  });
+  try {
+    await client.machine.update({
+      where: { id: MACHINE_ID },
+      data: { statut: "remplacee" },
+    });
+  } finally {
+    await client.$disconnect();
+  }
+
+  await page.goto("/demandes?nouvelle=1");
+  const volet = page.getByRole("dialog");
+  await expect(volet).toBeVisible();
+
+  await volet.locator('label:has(input[name="source"][value="appel"])').click();
+  await choisirResultatParTexte(
+    volet,
+    "client_id",
+    RAISON_SOCIALE,
+    RAISON_SOCIALE,
+  );
+  await choisirResultatParTexte(volet, "site_id", LIBELLE_SITE, LIBELLE_SITE);
+  await volet.locator('select[name="machine_id"]').selectOption(MACHINE_ID);
+
+  await expect(volet.locator('select[name="etat_machine"]')).toHaveCount(0);
+  await expect(
+    volet.getByText(dictionnaire["statut_machine.remplacee"]),
+  ).toBeVisible();
+});
