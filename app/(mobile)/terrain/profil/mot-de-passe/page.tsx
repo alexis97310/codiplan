@@ -4,9 +4,9 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { Champ } from "@/components/session/formulaire";
-import { ChampsNouveauMotDePasse } from "@/components/session/champs-nouveau-mot-de-passe";
+import { ChampsNouveauMotDePasseTerrain } from "@/components/terrain/champs-nouveau-mot-de-passe";
 import { Button } from "@/components/ui/button";
+import { Icone } from "@/components/ui/icone";
 import { Message } from "@/components/ui/message";
 import { LONGUEUR_MINIMALE } from "@/lib/auth/premier-acces";
 import { obtenirSession } from "@/lib/auth/session";
@@ -61,16 +61,22 @@ export default async function PageMotDePasseTerrain({
 
   return (
     <main className="flex flex-col gap-4">
-      <Link
-        href="/terrain/profil"
-        className="text-app-encre-faible text-16 font-bold"
-      >
-        {t("terrain.mot_de_passe.retour")}
-      </Link>
-
-      <h1 className="text-24 font-extrabold tracking-tight">
-        {t("terrain.mot_de_passe.titre")}
-      </h1>
+      {/* L'EN-TÊTE 60 PX, RETOUR + TITRE (9L49-TERRAIN-PROFIL-JETONS-EPURES)
+          — même ligne que l'en-tête de la fiche (`app/(mobile)/terrain/
+          [id]/page.tsx`) : une flèche seule, jamais un lien de texte, sur un
+          filet `border-b`. */}
+      <header className="border-app-bord flex min-h-[60px] items-center gap-3 border-b py-2">
+        <Link
+          href="/terrain/profil"
+          aria-label={t("terrain.mot_de_passe.retour")}
+          className="text-app-encre flex size-11 shrink-0 items-center justify-center"
+        >
+          <Icone nom="chev-l" taille={22} />
+        </Link>
+        <h1 className="text-app-encre text-17 font-semibold">
+          {t("terrain.mot_de_passe.titre")}
+        </h1>
+      </header>
 
       {typeof motif === "string" && estCleTraduction(motif) ? (
         <Message ton={tonDuMotif(motif)} titre={t(motif)} />
@@ -81,13 +87,17 @@ export default async function PageMotDePasseTerrain({
         method="post"
         className="flex flex-col gap-4"
       >
-        <Champ
-          nom="motDePasseActuel"
-          type="password"
-          libelle={libelleChampObligatoire(t("mon_compte.mot_de_passe.actuel"))}
-          autoComplete="current-password"
-        />
-        <ChampsNouveauMotDePasse
+        <label className="flex flex-col gap-1.5 text-16 font-medium">
+          {libelleChampObligatoire(t("mon_compte.mot_de_passe.actuel"))}
+          <input
+            name="motDePasseActuel"
+            type="password"
+            required
+            autoComplete="current-password"
+            className="bg-app-terrain-champ-fond text-app-terrain-encre w-full rounded-md border-none px-2 py-1.5 text-16 font-medium"
+          />
+        </label>
+        <ChampsNouveauMotDePasseTerrain
           libelleMotDePasse={libelleChampObligatoire(
             t("mon_compte.mot_de_passe.nouveau"),
           )}
@@ -100,7 +110,7 @@ export default async function PageMotDePasseTerrain({
           )}
           longueurMinimale={LONGUEUR_MINIMALE}
         />
-        <Button type="submit" size="lg" className="w-full">
+        <Button type="submit" size="lg" className="w-full text-16">
           {t("mon_compte.mot_de_passe.valider")}
         </Button>
       </form>

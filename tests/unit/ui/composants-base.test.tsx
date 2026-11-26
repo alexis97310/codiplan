@@ -407,8 +407,13 @@ describe('tous les boutons du terrain portent size="lg" (décision du 30/09/2026
     // du récapitulatif) et « Valider la signature » (sous le canevas) —
     // 29 + 3 = 32. PUIS 9L46-FINITIONS-LISTE-TELEPHONE-MDP-TECHNICIEN : le
     // nouvel écran `terrain/profil/mot-de-passe/page.tsx` ajoute son bouton
-    // « Enregistrer mon mot de passe » — 32 + 1 = 33. Voir
-    // `tests/unit/ui/retouches-2a.test.ts`, même population.
-    expect(total).toBe(33);
+    // « Enregistrer mon mot de passe » — 32 + 1 = 33. PUIS
+    // 9L49-TERRAIN-PROFIL-JETONS-EPURES : `terrain/profil/page.tsx` passe
+    // de deux liens/bouton bruts à deux `<Button variant="outline">`
+    // (« Changer mon mot de passe », « Déconnexion ») — 33 + 2 = 35. Voir
+    // `tests/unit/ui/retouches-2a.test.ts`, même population (`FICHIERS_
+    // TERRAIN` n'inclut pas `terrain/profil/page.tsx` : son compte n'y
+    // bouge pas).
+    expect(total).toBe(35);
   });
 });

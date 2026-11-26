@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 
 import { BoutonInstallerCodiplan } from "@/components/pwa/bouton-installer";
 import { PastilleReseau } from "@/components/terrain/pastille-reseau";
+import { Button } from "@/components/ui/button";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { obtenirSession } from "@/lib/auth/session";
 import { t } from "@/lib/i18n/fr";
@@ -67,7 +68,7 @@ export default async function PageProfilTerrain() {
           (`app/(mobile)/terrain/page.tsx`), jamais une seconde forme du même
           bandeau (§9, 01/09). */}
       <header className="flex flex-wrap items-center gap-2">
-        <h1 className="text-24 font-extrabold tracking-tight">
+        <h1 className="text-24 font-semibold tracking-tight">
           {t("terrain.profil.titre")}
         </h1>
         <PastilleReseau
@@ -76,30 +77,37 @@ export default async function PageProfilTerrain() {
         />
       </header>
 
-      <section className="bg-app-surface border-app-bord flex flex-col gap-2.5 rounded-lg border px-4 py-3.5 text-16 font-bold">
-        <p>{session.identite.nom}</p>
-        <p className="text-app-encre-faible">{session.identite.email}</p>
-        <p className="text-app-encre-faible">
+      {/* AUCUN CADRE NI CARTE (décision d'Alexis du 13/11/2026) — un filet
+          `border-b` sépare ce bloc du suivant, comme chaque section de la
+          fiche (`app/(mobile)/terrain/[id]/page.tsx`), jamais un
+          `rounded-lg border` qui en ferait une carte. */}
+      <section className="border-app-bord flex flex-col gap-2 border-b px-4 py-3.5">
+        <p className="text-16 font-semibold">{session.identite.nom}</p>
+        <p className="text-app-encre-faible text-16 font-medium">
+          {session.identite.email}
+        </p>
+        <p className="text-app-encre-faible text-16 font-medium">
           {ligneSociete(societe?.raison_sociale ?? null)}
         </p>
       </section>
 
       <BoutonInstallerCodiplan />
 
-      <Link
-        href="/terrain/profil/mot-de-passe"
-        className="border-app-bord bg-app-surface w-full rounded-md border px-4 py-2.5 text-center text-16 font-bold"
-      >
-        {t("terrain.mot_de_passe.titre")}
-      </Link>
+      <Button asChild variant="outline" size="lg" className="w-full text-16">
+        <Link href="/terrain/profil/mot-de-passe">
+          {t("terrain.mot_de_passe.titre")}
+        </Link>
+      </Button>
 
       <form action="/api/session/deconnexion" method="post">
-        <button
+        <Button
           type="submit"
-          className="border-app-bord bg-app-surface w-full rounded-md border px-4 py-2.5 text-16 font-bold"
+          variant="outline"
+          size="lg"
+          className="w-full text-16"
         >
           {t("nav.deconnexion")}
-        </button>
+        </Button>
       </form>
     </main>
   );
