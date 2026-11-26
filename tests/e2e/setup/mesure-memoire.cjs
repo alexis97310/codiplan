@@ -40,6 +40,61 @@ if (process.env.E2E_MESURE_MEMOIRE === "1") {
   const FICHIER = join(DOSSIER, `worker-${process.pid}.ndjson`);
   const INTERVALLE_MS = 2000;
 
+  /**
+   * INSTANTANÉS DE TAS (9L48) — DÉSACTIVÉ PAR DÉFAUT, derrière
+   * `E2E_INSTANTANES_TAS=1`, AU-DESSUS de la mesure par intervalle ci-dessus
+   * (les deux variables sont indépendantes ; celle-ci exige celle du dessus).
+   *
+   * Aucun crochet par épreuve n'existe à ce niveau (chargé par
+   * `--require`, avant Playwright) : comme la mesure par intervalle, le
+   * déclenchement se fait par ÉCHANTILLON (toutes les 2 s), pas par épreuve —
+   * le numéro d'échantillon se recoupe après coup avec le journal JSON, comme
+   * pour la mesure ci-dessus. Trois instantanés seulement (premier, 10e, 50e
+   * échantillon — environ 0, 20 et 100 s après le lancement du navigateur) :
+   * chacun coûte une pause du worker et plusieurs dizaines de Mo sur disque,
+   * et trois suffisent à voir CE QUI croît entre tôt et tard.
+   */
+  const INSTANTANES_TAS = process.env.E2E_INSTANTANES_TAS === "1";
+  const DOSSIER_INSTANTANES = join(
+    process.cwd(),
+    "test-results",
+    "instantanes-tas",
+  );
+  const ECHANTILLONS_INSTANTANE = new Set([1, 10, 50]);
+  let compteurEchantillons = 0;
+  function instantaneTasSiDu() {
+    compteurEchantillons += 1;
+    if (
+      !INSTANTANES_TAS ||
+      !ECHANTILLONS_INSTANTANE.has(compteurEchantillons)
+    ) {
+      return;
+    }
+    try {
+      mkdirSync(DOSSIER_INSTANTANES, { recursive: true });
+      // `v8.writeHeapSnapshot()` NE force PAS de ramasse-miettes complet : sans
+      // `global.gc()` (exposé par `--expose-gc`), un instantané peut montrer
+      // de la mémoire JUSTE PAS ENCORE balayée — qui ressemble à une fuite
+      // sans en être une. Forcer deux passages (un cycle suffit rarement à
+      // casser les références faibles posées par un cycle précédent) avant de
+      // figer l'instantané : ce qui RESTE après coup est vraiment atteignable.
+      if (typeof global.gc === "function") {
+        global.gc();
+        global.gc();
+      }
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const v8 = require("node:v8");
+      v8.writeHeapSnapshot(
+        join(
+          DOSSIER_INSTANTANES,
+          `worker-${process.pid}-echantillon${compteurEchantillons}.heapsnapshot`,
+        ),
+      );
+    } catch {
+      // Un instantané manqué n'est pas une mesure fausse — voir plus haut.
+    }
+  }
+
   // `/proc/<pid>/task/<tid>/children` (Linux ≥ 3.5, `CONFIG_CHECKPOINT_RESTORE`)
   // N'EXISTE PAS sous le noyau WSL2 de ce poste (mesuré : `ENOENT` sur un
   // PID qui a pourtant des enfants) — PAS un indicateur fiable d'absence de
@@ -116,6 +171,7 @@ if (process.env.E2E_MESURE_MEMOIRE === "1") {
       // nettoie `test-results/` en fin de suite — sans conséquence, une
       // mesure manquante n'est pas une mesure fausse.
     }
+    instantaneTasSiDu();
   }
 
   const minuteur = setInterval(echantillon, INTERVALLE_MS);
