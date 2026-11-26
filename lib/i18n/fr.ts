@@ -3303,8 +3303,6 @@ export const fr = {
   "terrain.mot_de_passe.titre": "Changer mon mot de passe",
   "terrain.mot_de_passe.retour": "← Retour au profil",
 
-
-
   // ── LE RAPPORT DE TERRAIN (ticket 17-BON-2 ; enregistrement automatique,
   // 9F4-TERRAIN-ENREGISTREMENT-AUTO, décision d'Alexis n° 95) ──────────────
   "terrain.rapport.titre": "Rapport",

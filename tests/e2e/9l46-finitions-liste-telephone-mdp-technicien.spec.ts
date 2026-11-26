@@ -106,7 +106,10 @@ test.describe("liste déroulante masquée par le clavier tactile (375 px)", () =
     const rect = await champ.evaluate((element) =>
       element.getBoundingClientRect(),
     );
-    await page.evaluate((delta) => window.scrollBy(0, delta), rect.top - yCible);
+    await page.evaluate(
+      (delta) => window.scrollBy(0, delta),
+      rect.top - yCible,
+    );
   }
 
   test("point 1 — un clavier simulé (visualViewport réduit, fenêtre inchangée) ne masque ni ne coupe la liste", async ({
@@ -146,7 +149,9 @@ test.describe("liste déroulante masquée par le clavier tactile (375 px)", () =
     // 400 — c'est exactement l'écart mesuré.
     await placerChampAUneHauteur(page, "client_id", 330);
 
-    const champ = page.locator('[data-selecteur="client_id"] input[type="text"]');
+    const champ = page.locator(
+      '[data-selecteur="client_id"] input[type="text"]',
+    );
     const motif = `q=${encodeURIComponent(PREFIXE)}`;
     await Promise.all([
       page.waitForResponse((reponse) => reponse.url().includes(motif)),
@@ -376,7 +381,9 @@ test.describe("changement de mot de passe du technicien, depuis /terrain/profil 
     ).toBeVisible();
 
     // ── 5. DÉCONNEXION, PUIS LE MOT DE PASSE FINAL OUVRE RÉELLEMENT LA SESSION
-    await pageTechnicien.getByRole("button", { name: fr["nav.deconnexion"] }).click();
+    await pageTechnicien
+      .getByRole("button", { name: fr["nav.deconnexion"] })
+      .click();
     await expect(pageTechnicien).toHaveURL(/\/connexion/);
 
     await pageTechnicien
