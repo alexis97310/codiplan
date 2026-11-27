@@ -37,9 +37,7 @@ function attendreLesEntetesCommunes(entetes: Record<string, string>): void {
   expect(entetes["content-security-policy"]).toContain(
     "frame-ancestors 'self'",
   );
-  expect(entetes["content-security-policy"]).not.toContain(
-    "frame-ancestors *",
-  );
+  expect(entetes["content-security-policy"]).not.toContain("frame-ancestors *");
 }
 
 async function connecterBureau(page: Page): Promise<void> {

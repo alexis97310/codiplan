@@ -2,7 +2,10 @@ import { expect, test, type Page } from "@playwright/test";
 
 import { fr } from "@/lib/i18n";
 
-import { COMPTE_TECHNICIEN_EPREUVE, MOT_DE_PASSE_EPREUVE } from "../setup/scene";
+import {
+  COMPTE_TECHNICIEN_EPREUVE,
+  MOT_DE_PASSE_EPREUVE,
+} from "../setup/scene";
 
 /**
  * 9L54A-TERRAIN-PRECHARGE-FRAME-SELF — RÉGRESSION SILENCIEUSE DU HORS RÉSEAU
