@@ -212,7 +212,9 @@ async function preparerLaScene(): Promise<void> {
       }
       const jeton = jetonDeLUrl(invitation.url);
       if (jeton === null) {
-        throw new Error("Le jeton n'a pas pu être extrait de l'URL d'invitation.");
+        throw new Error(
+          "Le jeton n'a pas pu être extrait de l'URL d'invitation.",
+        );
       }
       const issue = await choisirLePremierMotDePasse({
         jeton,

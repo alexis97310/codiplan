@@ -346,7 +346,8 @@ describe("la liste des interventions — une lecture par client, puis l'UNION", 
         const fiche = await premierSucces(
           surCetteSociete,
           contextePortail(null),
-          (contexte) => ficheInterventionDuParc(contexte, interventionId, clientApp()),
+          (contexte) =>
+            ficheInterventionDuParc(contexte, interventionId, clientApp()),
           (resultat) => resultat === null,
         );
         expect(fiche).not.toBeNull();
