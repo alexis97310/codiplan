@@ -8189,6 +8189,7 @@ export const fr = {
   "capacite.deplacer_machine": "Déplacer une machine",
   "capacite.consulter_historique_emplacements":
     "Consulter l'historique des emplacements",
+  "capacite.gerer_prets": "Gérer les prêts d'appareils",
   "capacite.consulter_parc_complet": "Consulter le parc complet",
   "capacite.consulter_parc_propre": "Consulter son propre parc",
   "capacite.voir_montants_vente": "Voir les montants de vente",

@@ -1107,6 +1107,10 @@ dans la table `parite` ci-dessous.*
 
 **`Intervention.checklist_version_id`** (nullable) — le gabarit PINNÉ, posé une seule fois à la première réponse (lot CK2, ultérieur) et jamais réévalué *(9K08-CHECKLIST-SCHEMA, D235)*.
 
+**appareil_pret** — `societe_id`, désignation, marque, modèle, numéro de série (les quatre textes libres), statut (trois états fermés : `disponible`, `prete`, `en_revision`), actif *(9L60-PRET-1-MODELE, D287)*. Le parc de prêt : des appareils qui appartiennent à la SOCIÉTÉ elle-même, jamais à un client ni à un site — table SÉPARÉE de `machine`, qui exige `client_id`/`site_id` NOT NULL (D6). Forme « société » (le cas ordinaire) : aucune colonne `client_id`, aucun chemin de portail.
+
+**pret_equipement** — `societe_id`, appareil, intervention (obligatoire — le motif du prêt), client et site (recopiés de l'intervention à la sortie), date de sortie, date de retour prévue, date de retour réelle (nulle tant que le prêt est en cours), état au départ, état au retour (textes courts), observations, auteur de la sortie et du retour ; réservées au lot 3 (bon de prêt signé à la remise) : nom et qualité du signataire, référence de l'image de signature, référence du bon figé, date de signature *(9L60-PRET-1-MODELE, décision d'Alexis du 27/11/2026, D287)*. Le prêt est GRATUIT : aucune colonne de montant. Un appareil ne tient qu'UN prêt en cours — index unique partiel `(societe_id, appareil_id) WHERE date_retour_reelle IS NULL` ; un retour, prévu ou réel, ne précède jamais la sortie (`CHECK`). Forme « interne » (D287, même régime que `notification`/D229 et `document_recu`/D94) : société ET `app.client_id` absent — décision d'Alexis, le bureau seul gère les prêts, jamais le portail. Fille de `client`, `site` ET `intervention` (les trois « parc ») : la forme « interne » ferme davantage que la filiation qu'elle aurait sinon réclamée, même raisonnement que `segment_travail` (D119).
+
 ### 11.3 Volumétrie estimée à 3 ans
 
 Révisée à la baisse compte tenu de l'effectif réel.

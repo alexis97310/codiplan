@@ -9655,3 +9655,33 @@ Elle ne touche à aucune autre directive de la politique de contenu (`script-src
 > Si `components/terrain/copie-locale.tsx` cesse un jour d'encadrer `/terrain-hors-reseau` dans une iframe (remplacé par `router.prefetch()` ou un autre mécanisme qui n'exige plus d'être encadré), `frame-ancestors` peut redevenir `'none'` — mais seulement après avoir vérifié qu'aucun autre composant du dépôt ne s'encadre lui-même, par la même mesure que 9L54 : `tests/e2e/offline/9l54a-terrain-precharge-frame-self.spec.ts` doit alors être relu avant d'être supprimé, pas effacé en même temps que le composant.
 
 Portée : `next.config.ts`, `tests/unit/entetes-http.test.ts` (nouveau), `tests/e2e/9l08-en-tetes-securite.spec.ts`, `tests/e2e/offline/9l54a-terrain-precharge-frame-self.spec.ts` (nouveau).
+
+## D287 — L'ÉQUIPEMENT DE PRÊT : TABLE SÉPARÉE DE `machine`, FORME « INTERNE » SUR LE PRÊT (9L60-PRET-1-MODELE)
+
+### CE QUI A ÉTÉ MESURÉ
+
+Décision d'Alexis, 27/11/2026 ~09h30 NC : « Je prête un équipement lorsqu'il y a une panne et un délai avant la réappro d'une pièce. » Rien n'existait : ni table, ni notion d'appareil appartenant à la société elle-même. `lib/feuille-de-route/contenu.ts` portait l'entrée « Équipement de prêt » au statut `a_ecrire`, « besoin à cadrer avec Alexis » — ce cadrage, posé le même jour : (1) le BUREAU SEUL enregistre la sortie et le retour, jamais le technicien, jamais le portail ; (2) le prêt est GRATUIT, aucun montant nulle part ; (3) un bon de prêt signé par le client à la remise (lot 3).
+
+Deux questions de modèle se posaient avant d'écrire la migration. **Où vit un appareil qui n'appartient à aucun client ?** `Machine` porte quatre colonnes obligatoires NOT NULL (D6) dont `client_id` et `site_id` — les rendre nullables aurait affaibli un invariant déjà posé pour tout le parc existant (des milliers de lignes réelles), pour le bénéfice d'une poignée de lignes de prêt qui ne sont d'ailleurs jamais sur un site tant qu'elles ne sont pas prêtées. **Quelle forme RLS pour le prêt lui-même ?** `pret_equipement` porte `client_id` et `site_id` (recopiés de l'intervention à la sortie) et est donc fille de trois tables « parc » (`client`, `site`, `intervention`) — le critère de la forme « filiation » la réclamerait par défaut, mais la filiation rendrait les lignes visibles à un compte portail restreint à son propre périmètre : il apprendrait qu'un appareil de remplacement lui a été prêté, une donnée sur le FONCTIONNEMENT DU BUREAU (combien de pannes, quelle fréquence de prêt), pas sur son parc — exactement le raisonnement déjà tranché pour `segment_travail` (D119) et `notification` (D229).
+
+### LA DÉCISION
+
+**Deux tables neuves, une seule migration pour les trois lots du module.**
+
+`appareil_pret` — le parc de prêt, propre à la société, forme « société » (le cas ordinaire de la première catégorie de I1) : désignation, marque, modèle, numéro de série, statut (`disponible`/`prete`/`en_revision`), actif. Table SÉPARÉE de `Machine`, par le raisonnement mesuré ci-dessus — la voie la plus simple et la plus sûre, puisqu'aucune colonne `client_id` n'y existe et qu'aucun écran de portail n'y a de chemin.
+
+`pret_equipement` — le prêt, forme « INTERNE » (même régime que `document_recu`/D94 et `notification`/D229), ajoutée à `TABLES_INTERNES` (`scripts/lib/politiques-rls.ts`) À SA NAISSANCE : société ET `app.client_id` absent. Toujours rattaché à une intervention (le motif du prêt, colonne obligatoire), un appareil, un client et un site (les deux derniers recopiés de l'intervention à la sortie, jamais redéduits ensuite). Colonnes réservées au lot 3 (bon de prêt signé) posées dès cette migration et non écrites par ce lot : `signataire_nom`, `signataire_qualite`, `signature_objet_cle`, `bon_document_id`, `date_signature`.
+
+**Deux gardes en base, pas seulement côté application** (I1 : une garantie qui ne vit que dans la couche applicative n'en est pas une) : un index unique PARTIEL `(societe_id, appareil_id) WHERE date_retour_reelle IS NULL` interdit deux prêts en cours sur le même appareil — une contrainte d'exclusion GiST n'était pas nécessaire ici, faute de plage de temps à comparer, l'index partiel exprime exactement « au plus une ligne non retournée » au moindre coût ; deux `CHECK` interdisent qu'un retour, prévu ou réel, précède la sortie.
+
+**La capacité `gerer_prets`** (`ADMS`, `DIR`, `RM`, `RS`, `ADV` au complet ; ni `TEC` ni `CLI`) est vérifiée dans `lib/prets/depot.ts` LUI-MÊME, pas seulement à une porte de route — ce lot ne pose aucun écran, donc aucune route n'existe encore pour l'intercepter ; les lots 2 et 3 appelleront `exigerCapaciteComplete("gerer_prets")` EN PLUS de cette garde du dépôt, jamais à sa place (même principe que `lib/machines/garde-statut.ts`).
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+Elle n'ajoute aucune colonne de montant, de prix ou de facturation : le prêt est gratuit, et l'argent reste un point d'arrêt (CLAUDE.md §8) que personne n'a levé ici. Elle ne crée aucun écran, aucune route, aucune capture : ce lot pose le socle (modèle, dépôt, capacité, épreuves) ; les écrans viennent aux lots 2 et 3. Elle ne ferme pas la classe des tables de forme « société » au portail — comme D94 et D229 le disent déjà, elle ferme la table qu'elle crée.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Si un écran ou une route de portail doit un jour lire `pret_equipement` (un client qui verrait ses propres prêts en cours, par exemple), la forme « interne » SE RETIRE — elle ne s'assouplit pas — et `pret_equipement` rejoint la forme « filiation » qu'elle évite aujourd'hui : `tests/unit/db/formes-du-lot-8.test.ts` et `tests/isolation/prets.test.ts` doivent alors être repris comme modèle, pas réinventés.
+
+Portée : `prisma/schema.prisma`, `prisma/migrations/20261128060000_pret_equipement_9l60/`, `lib/db/migrations-attendues.ts`, `lib/auth/habilitations.ts`, `lib/i18n/fr.ts`, `lib/prets/saisie.ts`, `lib/prets/depot.ts`, `lib/prets/retard.ts`, `scripts/lib/politiques-rls.ts`, `lib/feuille-de-route/contenu.ts`, `docs/cahier-des-charges.md` (chapitre 11.2), `docs/constitution/organisation-du-code.md` (§6), `tests/unit/prets/retard.test.ts`, `tests/isolation/prets.test.ts`, `tests/unit/auth/habilitations.test.ts`, `tests/unit/db/formes-du-lot-8.test.ts`, `tests/unit/db/perimetre-audit.test.ts`, `tests/unit/db/inventaire.test.ts`.

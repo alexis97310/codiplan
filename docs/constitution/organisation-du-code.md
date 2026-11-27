@@ -19,53 +19,54 @@ _Les numéros de ligne du sommaire sont RECALCULÉS, jamais saisis à la main : 
 
 ### Sommaire
 
-- `app/` — ligne 73
-- `lib/` — ligne 78
-- `lib/db/` — ligne 79
-- `lib/auth/` — ligne 125
-- `lib/absences/` — ligne 160
-- `lib/clients/` — ligne 216
-- `lib/habilitations/` — ligne 219
-- `lib/contacts/` — ligne 227
-- `lib/demandes/` — ligne 237
-- `lib/agences/` — ligne 271
-- `lib/sites/` — ligne 286
-- `lib/machines/` — ligne 316
-- `lib/interventions/` — ligne 367
-- `lib/materiel/` — ligne 541
-- `lib/tarification/` — ligne 574
-- `lib/navigation/` — ligne 670
-- `lib/money/` — ligne 706
-- `lib/courriel/` — ligne 708
-- `lib/avertissements/` — ligne 740
-- `lib/compteurs/` — ligne 753
-- `lib/calendar/` — ligne 772
-- `lib/sync/` — ligne 798
-- `lib/documents/` — ligne 799
-- `lib/excel/` — ligne 825
-- `lib/imports/` — ligne 883
-- `lib/notifications/` — ligne 1035
-- `lib/prestations/` — ligne 1050
-- `lib/portail/` — ligne 1076
-- `lib/pdf/` — ligne 1092
-- `lib/reporting/` — ligne 1093
-- `lib/vgp/` — ligne 1094
-- `lib/techniciens/` — ligne 1147
-- `lib/terrain/` — ligne 1152
-- `lib/theme/` — ligne 1161
-- `lib/i18n/` — ligne 1196
-- `lib/tri/` — ligne 1199
-- `lib/societes/` — ligne 1204
-- `lib/audit/` — ligne 1208
-- `lib/tableau-de-bord/` — ligne 1212
-- `lib/feuille-de-route/` — ligne 1216
-- `lib/pwa/` — ligne 1222
-- `lib/suite-a-donner/` — ligne 1226
-- `lib/checklists/` — ligne 1255
-- `components/` — ligne 1266
-- `prisma/` — ligne 1267
-- `tests/` — ligne 1268
-- `docs/` — ligne 1287
+- `app/` — ligne 74
+- `lib/` — ligne 79
+- `lib/db/` — ligne 80
+- `lib/auth/` — ligne 126
+- `lib/absences/` — ligne 161
+- `lib/clients/` — ligne 217
+- `lib/habilitations/` — ligne 220
+- `lib/contacts/` — ligne 228
+- `lib/demandes/` — ligne 238
+- `lib/agences/` — ligne 272
+- `lib/sites/` — ligne 287
+- `lib/machines/` — ligne 317
+- `lib/interventions/` — ligne 368
+- `lib/materiel/` — ligne 542
+- `lib/tarification/` — ligne 575
+- `lib/navigation/` — ligne 671
+- `lib/money/` — ligne 707
+- `lib/courriel/` — ligne 709
+- `lib/avertissements/` — ligne 741
+- `lib/compteurs/` — ligne 754
+- `lib/calendar/` — ligne 773
+- `lib/sync/` — ligne 799
+- `lib/documents/` — ligne 800
+- `lib/excel/` — ligne 826
+- `lib/imports/` — ligne 884
+- `lib/notifications/` — ligne 1036
+- `lib/prestations/` — ligne 1051
+- `lib/portail/` — ligne 1077
+- `lib/pdf/` — ligne 1093
+- `lib/reporting/` — ligne 1094
+- `lib/vgp/` — ligne 1095
+- `lib/techniciens/` — ligne 1148
+- `lib/terrain/` — ligne 1153
+- `lib/theme/` — ligne 1162
+- `lib/i18n/` — ligne 1197
+- `lib/tri/` — ligne 1200
+- `lib/societes/` — ligne 1205
+- `lib/audit/` — ligne 1209
+- `lib/tableau-de-bord/` — ligne 1213
+- `lib/feuille-de-route/` — ligne 1217
+- `lib/pwa/` — ligne 1223
+- `lib/suite-a-donner/` — ligne 1227
+- `lib/checklists/` — ligne 1256
+- `lib/prets/` — ligne 1267
+- `components/` — ligne 1283
+- `prisma/` — ligne 1284
+- `tests/` — ligne 1285
+- `docs/` — ligne 1304
 
 ---
 
@@ -1263,6 +1264,22 @@ lib/
               checklist_reponse — la SEULE des quatre qu'un compte portail lit
               AUCUN gabarit semé en production ni en démonstration par ce
               ticket (CK4, après l'atelier, le fera)
+  prets/      L'ÉQUIPEMENT DE PRÊT (9L60-PRET-1-MODELE, décision d'Alexis du
+              27/11/2026, D287) — le socle du module : modèle, dépôt,
+              capacité `gerer_prets`, aucun écran encore (lots 2 et 3)
+              appareil_pret (forme « société », propre à la société, séparée
+              de `machine` qui exige client_id/site_id NOT NULL, D6) et
+              pret_equipement (forme « interne », D287 — société ET
+              app.client_id absent, le bureau seul gère les prêts)
+              depot.ts : la capacité `gerer_prets` est vérifiée DANS le
+              dépôt, pas seulement à une porte de route — aucune route
+              n'existe encore pour l'intercepter dans ce lot
+              un appareil ne tient qu'UN prêt en cours (index unique
+              partiel, jamais une contrainte d'exclusion — aucune plage de
+              temps à comparer ici) ; un retour ne précède jamais la sortie
+              (CHECK en base)
+              retard.ts : « en retard » est une LECTURE, jamais un statut
+              stocké — même patron que `lib/interventions/retard.ts`
 components/
 prisma/       schema.prisma, migrations/, seed.ts
 tests/

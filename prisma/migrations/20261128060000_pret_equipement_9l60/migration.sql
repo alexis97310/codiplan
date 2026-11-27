@@ -77,6 +77,24 @@ CREATE POLICY "cloisonnement_societe" ON "appareil_pret"
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON "appareil_pret" TO "codiplan_app";
 
+-- LE VERROU PORTAIL (9K16, D237) — variante ÉCRITURE : aucun chemin du
+-- portail ne lit ni n'écrit cette table aujourd'hui, mais la forme
+-- « société » seule ne le dit pas, et une table métier créée après 9K16
+-- reçoit ce verrou à sa naissance, comme `sous_type_materiel` ou
+-- `prestation_type_intervention` avant elle.
+CREATE POLICY "verrou_ecriture_portail_insertion" ON "appareil_pret"
+  AS RESTRICTIVE FOR INSERT
+  WITH CHECK (NULLIF(current_setting('app.client_id', true), '') IS NULL);
+
+CREATE POLICY "verrou_ecriture_portail_modification" ON "appareil_pret"
+  AS RESTRICTIVE FOR UPDATE
+  USING (NULLIF(current_setting('app.client_id', true), '') IS NULL)
+  WITH CHECK (NULLIF(current_setting('app.client_id', true), '') IS NULL);
+
+CREATE POLICY "verrou_ecriture_portail_suppression" ON "appareil_pret"
+  AS RESTRICTIVE FOR DELETE
+  USING (NULLIF(current_setting('app.client_id', true), '') IS NULL);
+
 CREATE TRIGGER "journal_audit" AFTER INSERT OR UPDATE OR DELETE ON "appareil_pret"
   FOR EACH ROW EXECUTE FUNCTION "journal_audit_tracer"();
 
@@ -226,6 +244,25 @@ CREATE POLICY "cloisonnement_interne" ON "pret_equipement"
   );
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON "pret_equipement" TO "codiplan_app";
+
+-- LE VERROU PORTAIL (9K16, D237) — variante ÉCRITURE, posé en plus de la
+-- forme « interne » elle-même : même geste que sur `notification` et
+-- `document_recu` (migration 9K16), qui sont pourtant déjà fermées en
+-- lecture ET en écriture par leur propre clause — la forme borne CE QUI EST
+-- VISIBLE, le verrou est une seconde ligne de défense NOMMÉE, mesurée dans
+-- `pg_policies` plutôt que supposée de la forme.
+CREATE POLICY "verrou_ecriture_portail_insertion" ON "pret_equipement"
+  AS RESTRICTIVE FOR INSERT
+  WITH CHECK (NULLIF(current_setting('app.client_id', true), '') IS NULL);
+
+CREATE POLICY "verrou_ecriture_portail_modification" ON "pret_equipement"
+  AS RESTRICTIVE FOR UPDATE
+  USING (NULLIF(current_setting('app.client_id', true), '') IS NULL)
+  WITH CHECK (NULLIF(current_setting('app.client_id', true), '') IS NULL);
+
+CREATE POLICY "verrou_ecriture_portail_suppression" ON "pret_equipement"
+  AS RESTRICTIVE FOR DELETE
+  USING (NULLIF(current_setting('app.client_id', true), '') IS NULL);
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- 3. L'AUDIT (I8, D55) — le périmètre est INVERSÉ : ces tables sont métier et

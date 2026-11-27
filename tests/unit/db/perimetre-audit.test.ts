@@ -230,7 +230,7 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
     );
   });
 
-  it("les cinquante tables auditées aujourd'hui sont exactement celles attendues", () => {
+  it("les cinquante-deux tables auditées aujourd'hui sont exactement celles attendues", () => {
     // Le décompte, écrit en toutes lettres, pour qu'un déclencheur posé
     // ailleurs — ou disparu — se voie. C'est la constitution confrontée aux
     // migrations, pas les migrations confrontées à elles-mêmes.
@@ -287,6 +287,11 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
     expect([...declenchees].sort()).toEqual([
       "absence",
       "agence",
+      // `appareil_pret` s'y ajoute au ticket 9L60-PRET-1-MODELE, et par le
+      // même chemin : première catégorie de I1, donc auditée à sa naissance.
+      // « Qui a créé cet appareil de prêt, et quand il a changé d'état » est
+      // la question même d'un litige sur le parc de prêt.
+      "appareil_pret",
       "calendrier",
       "calendrier_ferie",
       "calendrier_plage",
@@ -400,6 +405,12 @@ describe("le périmètre d'audit est INVERSÉ (D55, I8, L0-10)", () => {
       // litige au même titre qu'un changement de durée standard.
       "prestation_famille_materiel",
       "prestation_type_intervention",
+      // `pret_equipement` s'y ajoute au ticket 9L60-PRET-1-MODELE, décision
+      // d'Alexis du 27/11/2026 (D287), et par le même chemin : première
+      // catégorie de I1, donc auditée à sa naissance. « Qui a sorti cet
+      // appareil, à qui, et qui a enregistré le retour » est exactement la
+      // question qu'un litige sur un prêt pose.
+      "pret_equipement",
       // `saisie_apres_cloture` s'y ajoute au ticket 9L14-FIGE-A-LA-CLOTURE,
       // décision d'Alexis du 10/11/2026, et par le même chemin : première
       // catégorie de I1, donc auditée à sa naissance. « Qui a tenté cette

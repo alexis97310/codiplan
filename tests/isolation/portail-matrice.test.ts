@@ -188,6 +188,10 @@ const CLASSIFICATION_LECTURE: Record<string, ClassificationLecture> = {
   import_lot_ligne: "fermee",
   notification: "fermee",
   checklist_modele: "fermee",
+  // AJOUTÉE AU TICKET 9L60-PRET-1-MODELE (D287, 27/11/2026) : même
+  // raisonnement que `notification`/D229 — le bureau seul gère les prêts,
+  // jamais le portail, quel que soit son client.
+  pret_equipement: "fermee",
   // Exception nommée (9J22A) : une brèche de filiation l'ouvre sur SA PROPRE
   // intervention. Voir l'en-tête du fichier.
   segment_travail: "client",
@@ -249,6 +253,9 @@ const CLASSIFICATION_LECTURE: Record<string, ClassificationLecture> = {
 
   // SOCIÉTÉ — forme par défaut de la première catégorie de I1. Un compte
   // portail muni d'une société active les lit EN ENTIER, sans filtre client.
+  // AJOUTÉE AU TICKET 9L60-PRET-1-MODELE (D287) : le parc de prêt, propre à
+  // la société, aucune colonne `client_id`.
+  appareil_pret: "societe",
   agence: "societe",
   calendrier: "societe",
   calendrier_plage: "societe",

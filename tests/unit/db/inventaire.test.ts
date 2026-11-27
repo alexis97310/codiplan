@@ -95,6 +95,10 @@ function ligne(surcharge: Partial<LigneInventaire> = {}): LigneInventaire {
       checklist_modele_type_intervention: 0,
       prestation_famille_materiel: 0,
       saisie_apres_cloture: 0,
+      // 9L60-PRET-1-MODELE — même chemin : les deux tables sont entrées le
+      // jour où elles sont nées.
+      appareil_pret: 0,
+      pret_equipement: 0,
     },
     ...surcharge,
   };
@@ -162,6 +166,8 @@ function inventaire(surcharge: Partial<Inventaire> = {}): Inventaire {
         checklist_modele_type_intervention: 0,
         prestation_famille_materiel: 0,
         saisie_apres_cloture: 0,
+        appareil_pret: 0,
+        pret_equipement: 0,
       },
     }),
   ];
@@ -265,6 +271,10 @@ describe("inventaire à plat", () => {
       // 9L14-FIGE-A-LA-CLOTURE — même chemin : la table est entrée le jour
       // où elle est née.
       saisie_apres_cloture: 0,
+      // 9L60-PRET-1-MODELE — même chemin : les deux tables sont entrées le
+      // jour où elles sont nées.
+      appareil_pret: 0,
+      pret_equipement: 0,
     });
   });
 

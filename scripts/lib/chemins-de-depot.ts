@@ -342,6 +342,11 @@ export const MODULES_SANS_CHEMIN: readonly {
     motif:
       "La consolidation est du lot 5, et elle n'a AUCUN appelant par décision : c'est la seule zone autorisée à convertir des devises (I2), et son rôle de base porte un secret distinct qui n'existe pas encore (D38).",
   },
+  {
+    module: "lib/prets",
+    motif:
+      "9L60-PRET-1-MODELE pose le socle du module de prêt d'équipement (D287) — modèle, dépôt, capacité `gerer_prets` — sans aucun écran : les lots 2 (parc et sortie/retour) et 3 (bon de prêt signé) l'ouvriront.",
+  },
 ];
 
 /**
@@ -695,4 +700,57 @@ export const FONCTIONS_SANS_CHEMIN: readonly SansChemin[] = [
   // `checklistDeLIntervention` S'EST RETIRÉE AU 9K21-CHECKLIST-TERRAIN-
   // SAISIE (CK5) : `app/(mobile)/terrain/[id]/page.tsx` la lit désormais
   // pour nourrir `components/terrain/checklist-terrain.tsx`.
+  // ── 9L60-PRET-1-MODELE (27/11/2026, D287) — LE SOCLE SANS ÉCRAN ──────────
+  //
+  // Les NEUF fonctions de `lib/prets/depot.ts` : ce lot pose le modèle, le
+  // dépôt et la capacité `gerer_prets`, sans aucun écran. `lib/prets` figure
+  // aussi dans `MODULES_SANS_CHEMIN` ci-dessus — les deux listes sont
+  // distinctes, et chaque fonction doit être nommée ici individuellement.
+  {
+    module: "lib/prets/depot.ts",
+    fonction: "creerAppareilPretDans",
+    motif: "Lot 2 (écran du parc de prêt).",
+  },
+  {
+    module: "lib/prets/depot.ts",
+    fonction: "creerAppareilPret",
+    motif: "Lot 2 (écran du parc de prêt).",
+  },
+  {
+    module: "lib/prets/depot.ts",
+    fonction: "listerAppareilsPret",
+    motif: "Lot 2 (écran du parc de prêt).",
+  },
+  {
+    module: "lib/prets/depot.ts",
+    fonction: "sortirPretDans",
+    motif: "Lot 2 (écran de sortie d'un prêt, lié à une intervention).",
+  },
+  {
+    module: "lib/prets/depot.ts",
+    fonction: "sortirPret",
+    motif: "Lot 2 (écran de sortie d'un prêt, lié à une intervention).",
+  },
+  {
+    module: "lib/prets/depot.ts",
+    fonction: "enregistrerRetourPretDans",
+    motif: "Lot 2 (écran du retour d'un prêt).",
+  },
+  {
+    module: "lib/prets/depot.ts",
+    fonction: "enregistrerRetourPret",
+    motif: "Lot 2 (écran du retour d'un prêt).",
+  },
+  {
+    module: "lib/prets/depot.ts",
+    fonction: "listerPretsEnCours",
+    motif:
+      "Lot 2 (prêt en cours visible sur la fiche intervention et la fiche client) et le tableau de bord du bureau (alerte de retour en retard).",
+  },
+  {
+    module: "lib/prets/depot.ts",
+    fonction: "listerPretsEnRetard",
+    motif:
+      "Lot 2 — l'alerte de retour en retard au tableau de bord du bureau, décrite dans le cadrage de D287.",
+  },
 ];

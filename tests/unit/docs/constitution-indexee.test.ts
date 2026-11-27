@@ -368,18 +368,18 @@ describe("ÉPREUVE — le sommaire à LIGNES et l'arbre divergent (DOC-1)", () =
   }
 
   it("un numéro de ligne faussé au sommaire est vu dans les deux sens", () => {
-    const mutant = texte.replace("`lib/db/` — ligne 79", "`lib/db/` — ligne 80");
+    const mutant = texte.replace("`lib/db/` — ligne 80", "`lib/db/` — ligne 81");
     expect(mutant).not.toEqual(texte);
 
     const attendues = attenduesDe(mutant);
     const entrees = entreesDuSommaire(mutant);
     // Fantôme : le sommaire pointe vers une ligne que l'arbre ne tient pas.
     expect(entrees.filter((e) => !attendues.includes(e))).toEqual([
-      "`lib/db/` — ligne 80",
+      "`lib/db/` — ligne 81",
     ]);
-    // Orphelin : la vraie ligne 79 n'a plus son entrée.
+    // Orphelin : la vraie ligne 80 n'a plus son entrée.
     expect(attendues.filter((a) => !entrees.includes(a))).toEqual([
-      "`lib/db/` — ligne 79",
+      "`lib/db/` — ligne 80",
     ]);
   });
 
@@ -393,10 +393,10 @@ describe("ÉPREUVE — le sommaire à LIGNES et l'arbre divergent (DOC-1)", () =
     const attendues = attenduesDe(mutant);
     const entrees = entreesDuSommaire(mutant);
     expect(entrees.filter((e) => !attendues.includes(e))).toEqual([
-      "`lib/auth/` — ligne 125",
+      "`lib/auth/` — ligne 126",
     ]);
     expect(attendues.filter((a) => !entrees.includes(a))).toEqual([
-      "`lib/authx/` — ligne 125",
+      "`lib/authx/` — ligne 126",
     ]);
   });
 
