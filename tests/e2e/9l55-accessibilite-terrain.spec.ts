@@ -92,14 +92,16 @@ async function auditerEcran(page: Page, ecran: string): Promise<void> {
   });
 
   const graves = resultats.violations.filter(
-    (v) => v.impact !== null && GRAVITES_BLOQUANTES.has(v.impact),
+    (v) =>
+      v.impact !== null &&
+      v.impact !== undefined &&
+      GRAVITES_BLOQUANTES.has(v.impact),
   );
   expect(
     graves,
     graves
       .map(
-        (v) =>
-          `${v.impact} — ${v.id} (${v.nodes.length} nœud(s)) : ${v.help}`,
+        (v) => `${v.impact} — ${v.id} (${v.nodes.length} nœud(s)) : ${v.help}`,
       )
       .join("\n"),
   ).toEqual([]);
@@ -263,10 +265,20 @@ async function creerScene(client: PrismaClient): Promise<Scene> {
     data: { checklist_version_id: versionId },
   });
 
-  return { clientId, siteId, contactId, interventionId, prestationId, modeleId };
+  return {
+    clientId,
+    siteId,
+    contactId,
+    interventionId,
+    prestationId,
+    modeleId,
+  };
 }
 
-async function nettoyerScene(client: PrismaClient, scene: Scene): Promise<void> {
+async function nettoyerScene(
+  client: PrismaClient,
+  scene: Scene,
+): Promise<void> {
   await client.checklistReponse.deleteMany({
     where: { intervention_id: scene.interventionId },
   });

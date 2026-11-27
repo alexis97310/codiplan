@@ -141,7 +141,10 @@ async function creerScene(client: PrismaClient): Promise<Scene> {
   return { clientId, siteId, interventionId, modeleId };
 }
 
-async function nettoyerScene(client: PrismaClient, scene: Scene): Promise<void> {
+async function nettoyerScene(
+  client: PrismaClient,
+  scene: Scene,
+): Promise<void> {
   await client.checklistReponse.deleteMany({
     where: { intervention_id: scene.interventionId },
   });
