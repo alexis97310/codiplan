@@ -287,7 +287,7 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
       {
         statut: "livre",
         titre:
-          "Fiche terrain « épurée » : style, checklist, photos, rapport à phrases types, récapitulatif de signature, zone de signature agrandie avec le nom du signataire prérempli (9L04C à 9L04M).",
+          "Fiche terrain « épurée » : style, checklist, photos, rapport à phrases types, récapitulatif de signature, zone de signature agrandie (220 px) avec le nom du signataire prérempli (9L04C à 9L04M, 9L52).",
       },
       {
         statut: "livre",
