@@ -69,6 +69,14 @@ export type Mesure = {
   readonly ouvert: Segment | null;
   /** Combien de segments fermés composent `minutes` — le témoin de ce qu'on additionne. */
   readonly segmentsFermes: number;
+  /**
+   * LA FIN DU DERNIER SEGMENT FERMÉ (9L53-TERRAIN-TERMINEE-ETAT-HEURE) —
+   * `null` si aucun segment n'est encore fermé. *Le plus TARDIF des `fin`*,
+   * jamais le dernier de la liste reçue : un renfort hors ordre peut avoir
+   * fermé son segment avant un autre déjà présent, et l'écran qui affiche
+   * « terminée à » veut l'instant le plus récent, pas l'ordre d'arrivée.
+   */
+  readonly finDuDernierSegmentFerme: Date | null;
 };
 
 /** Le segment ouvert, ou `null`. La base n'en autorise qu'un par personne. */
@@ -136,10 +144,18 @@ export function mesurer(segments: readonly Segment[]): Mesure {
     (total, s) => total + (s.fin.getTime() - s.debut.getTime()),
     0,
   );
+  const finDuDernierSegmentFerme = fermes.reduce<Date | null>(
+    (plusTardif, s) =>
+      plusTardif === null || s.fin.getTime() > plusTardif.getTime()
+        ? s.fin
+        : plusTardif,
+    null,
+  );
   return {
     minutes: minutesDepuisMillisecondes(millisecondes),
     ouvert: segmentOuvert(segments),
     segmentsFermes: fermes.length,
+    finDuDernierSegmentFerme,
   };
 }
 

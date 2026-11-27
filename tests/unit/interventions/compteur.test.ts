@@ -93,8 +93,25 @@ describe("ce que les segments mesurent", () => {
       minutes: 0,
       ouvert: null,
       segmentsFermes: 0,
+      finDuDernierSegmentFerme: null,
     });
     expect(segmentOuvert([])).toBeNull();
+  });
+
+  it("la fin du dernier segment fermé est la plus TARDIVE, jamais la dernière de la liste", () => {
+    const mesure = mesurer([
+      segment(T(14), T(16), "b"),
+      segment(T(8), T(10), "a"),
+    ]);
+    expect(mesure.finDuDernierSegmentFerme).toEqual(T(16));
+  });
+
+  it("un segment qui tourne encore n'avance pas la fin du dernier segment fermé", () => {
+    const mesure = mesurer([
+      segment(T(8), T(10), "a"),
+      segment(T(14), null, "b"),
+    ]);
+    expect(mesure.finDuDernierSegmentFerme).toEqual(T(10));
   });
 });
 
