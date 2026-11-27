@@ -374,6 +374,11 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
         titre:
           "Photos du bon visibles au portail après clôture (9L28), et désormais pour TOUS les clients rattachés à un même compte, pas seulement le premier (9L50).",
       },
+      {
+        statut: "livre",
+        titre:
+          "Une intervention terminée ou clôturée affiche l'heure de fin du dernier segment de travail, sur la carte de Ma journée et en tête de la fiche terrain (9L53).",
+      },
     ],
   },
 ];
