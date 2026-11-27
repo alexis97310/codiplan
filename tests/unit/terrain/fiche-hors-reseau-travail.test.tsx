@@ -1,4 +1,10 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import type { InstantaneJSON } from "@/app/api/terrain/instantane/route";
@@ -359,5 +365,49 @@ describe("aucune copie du tout — le lien de retour apparaît quand le réseau 
         }),
       ).toBeVisible(),
     );
+  });
+});
+
+// 9L52-TERRAIN-SIGNATURE-ZONE-NOM, point 4 : HORS RÉSEAU, LE NOM DU
+// SIGNATAIRE SE PRÉREMPLIT DEPUIS LE CONTACT EMPORTÉ PAR L'INSTANTANÉ —
+// même comportement qu'en ligne (`contactSurPlaceNom`, lu depuis
+// `fiche.contact`, jamais recalculé hors réseau). `statut` passe à
+// `en_cours` (au lieu d'`affectee`, fixture par défaut) : les boutons
+// d'issue de signature restent `disabled` tant que l'intervention n'est pas
+// démarrée (`nonDemarree`), ce que la fixture par défaut ne permet pas de
+// mesurer.
+describe("hors réseau, le nom du signataire se prérempli comme en ligne (point 4, 9L52)", () => {
+  it("avec le contact sur place emporté par l'instantané", async () => {
+    restaurerIndexedDB = installerIndexedDBFactice();
+    Object.defineProperty(window.navigator, "onLine", {
+      configurable: true,
+      value: true,
+    });
+    vi.mocked(lireCopie).mockResolvedValueOnce({
+      ...INSTANTANE,
+      fiches: {
+        [FICHE_ID]: {
+          ...INSTANTANE.fiches[FICHE_ID]!,
+          statut: "en_cours",
+          contact: { nom: "zz9L52 Contact hors réseau", numeros: [] },
+        },
+      },
+    });
+
+    render(<ConsultationHorsReseau />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("heading", { name: fr["terrain.signature.titre"] }),
+      ).toBeVisible(),
+    );
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: fr["terrain.signature.option_signee"],
+      }),
+    );
+    expect(
+      screen.getByLabelText(fr["terrain.signature.nom_libelle"]),
+    ).toHaveValue("zz9L52 Contact hors réseau");
   });
 });
