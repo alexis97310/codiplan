@@ -9635,3 +9635,23 @@ Elle n'ajoute aucun champ « motif » à la sortie du parc : le cahier des charg
 > Si un futur chemin d'écriture de ce dépôt compare `modifie_le` dans un `WHERE` Prisma SANS avoir d'abord réduit sa précision par migration, c'est que cette mesure a été oubliée : la note de tête de `changerStatutMachineDans` (`lib/machines/depot.ts`) et ce D285 doivent être relus avant d'écrire une seule ligne. Si Alexis demande un jour d'étendre le retype à une autre action irréversible (hors machine), `saisieDeControle` est fait pour ça — un second composant dédié serait alors la redite que ce D285 a cherché à éviter.
 
 Portée : `lib/machines/depot.ts`, `components/ui/bouton-confirmation.tsx`, `components/machines/changer-statut.tsx`, `app/(back-office)/parc/presentation.ts`, `app/(back-office)/parc/[id]/page.tsx`, `app/(back-office)/interventions/[id]/page.tsx`, `lib/i18n/fr.ts`, `tests/isolation/changer-statut-machine.test.ts`, `tests/unit/ui/carte-pas-recopiee.test.ts`, `tests/e2e/9l44-sortie-du-parc-retype.spec.ts` (nouveau), `lib/feuille-de-route/contenu.ts`.
+
+## D286 — `frame-ancestors 'self'`, PAS `'none'` : L'ENCADREMENT SAME-ORIGIN RESTE POSSIBLE (9L54A-TERRAIN-PRECHARGE-FRAME-SELF)
+
+### CE QUI A ÉTÉ MESURÉ
+
+9L08-EN-TETES-SECURITE (décision d'Alexis du 10/11/2026) a posé `frame-ancestors 'none'` / `X-Frame-Options: DENY` sur TOUTES les réponses, au motif qu'« aucun écran n'est destiné à être encadré ». C'était faux d'une exception : `components/terrain/copie-locale.tsx` (`PrechargementCoquille`, ticket 9F4H4B) encadre `/terrain-hors-reseau` dans un `<iframe>` caché de SA PROPRE origine, à chaque montage de `/terrain`, pour préchauffer le cache du service worker hors ligne (I4) — c'est le seul moment où le script compilé de cette coquille est jamais récupéré si personne ne l'a ouverte directement. `frame-ancestors 'none'` refuse tout encadrement, y compris same-origin : l'iframe atterrissait sur `chrome-error://chromewebdata/`, la console portait une violation CSP, et le préchargement échouait en silence par la conception même du composant (il « n'échoue jamais bruyamment »). Trouvé par 9L54 (régénération de la galerie de captures), par la mesure — l'écart apparaissait dans la colonne « erreurs console » de `docs/captures/README.md`, pas dans un témoin de capture.
+
+### LA DÉCISION
+
+`frame-ancestors` passe de `'none'` à `'self'`, et `X-Frame-Options` de `DENY` à `SAMEORIGIN`, sur TOUTES les réponses (`next.config.ts`). Un encadrement par un AUTRE site reste refusé — la protection contre le détournement de clic (clickjacking) que 9L08 visait reste entière. Seul l'encadrement par la même origine redevient possible, ce qui est exactement ce que `PrechargementCoquille` demande.
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+Elle ne touche à aucune autre directive de la politique de contenu (`script-src`, `img-src`, `connect-src`, etc.), ni à aucun autre en-tête de 9L08 (`X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`). Elle n'ouvre l'encadrement à aucun domaine tiers : `frame-ancestors *` ou un domaine nommé referait exactement la faute que 9L08 corrigeait, et un gardien (`tests/unit/entetes-http.test.ts`) refuse les deux.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Si `components/terrain/copie-locale.tsx` cesse un jour d'encadrer `/terrain-hors-reseau` dans une iframe (remplacé par `router.prefetch()` ou un autre mécanisme qui n'exige plus d'être encadré), `frame-ancestors` peut redevenir `'none'` — mais seulement après avoir vérifié qu'aucun autre composant du dépôt ne s'encadre lui-même, par la même mesure que 9L54 : `tests/e2e/offline/9l54a-terrain-precharge-frame-self.spec.ts` doit alors être relu avant d'être supprimé, pas effacé en même temps que le composant.
+
+Portée : `next.config.ts`, `tests/unit/entetes-http.test.ts` (nouveau), `tests/e2e/9l08-en-tetes-securite.spec.ts`, `tests/e2e/offline/9l54a-terrain-precharge-frame-self.spec.ts` (nouveau).
