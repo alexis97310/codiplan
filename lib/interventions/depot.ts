@@ -3007,10 +3007,7 @@ export async function listerPlanning(
         ],
         select: SELECTION_LIGNE_FILE_A_TRAITER,
       });
-      return lignes.map(({ _count, ...ligne }) => ({
-        ...ligne,
-        aDesSegments: _count.segments > 0,
-      }));
+      return lignes.map(ligneDepuisSelection);
     },
     client,
   );
@@ -3045,14 +3042,42 @@ const SELECTION_LIGNE_FILE_A_TRAITER = {
   client: { select: { raison_sociale: true } },
   site: { select: { libelle: true, commune: true, zone_geo: true } },
   _count: { select: { segments: true } },
+  /**
+   * LA FIN DU DERNIER SEGMENT FERMÉ (9L53-TERRAIN-TERMINEE-ETAT-HEURE) — un
+   * seul, le plus récent, jamais la liste entière : la carte de Ma journée
+   * n'affiche qu'un instant, pas un historique de segments.
+   */
+  segments: {
+    where: { fin: { not: null } },
+    orderBy: { fin: "desc" },
+    take: 1,
+    select: { fin: true },
+  },
 } as const;
 
 export type LigneFileATraiter = Omit<
   Prisma.InterventionGetPayload<{
     select: typeof SELECTION_LIGNE_FILE_A_TRAITER;
   }>,
-  "_count"
-> & { readonly aDesSegments: boolean };
+  "_count" | "segments"
+> & {
+  readonly aDesSegments: boolean;
+  readonly finDuDernierSegmentFerme: Date | null;
+};
+
+function ligneDepuisSelection({
+  _count,
+  segments,
+  ...ligne
+}: Prisma.InterventionGetPayload<{
+  select: typeof SELECTION_LIGNE_FILE_A_TRAITER;
+}>): LigneFileATraiter {
+  return {
+    ...ligne,
+    aDesSegments: _count.segments > 0,
+    finDuDernierSegmentFerme: segments[0]?.fin ?? null,
+  };
+}
 
 async function ligneFileATraiter(
   tx: Prisma.TransactionClient,
@@ -3063,10 +3088,7 @@ async function ligneFileATraiter(
     select: SELECTION_LIGNE_FILE_A_TRAITER,
     orderBy: [{ priorite: "asc" }, { cree_le: "asc" }, { id: "asc" }],
   });
-  return lignes.map(({ _count, ...ligne }) => ({
-    ...ligne,
-    aDesSegments: _count.segments > 0,
-  }));
+  return lignes.map(ligneDepuisSelection);
 }
 
 /**

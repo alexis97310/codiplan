@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { LignePlanning } from "@/lib/interventions/depot";
+import type { LigneFileATraiter } from "@/lib/interventions/depot";
 import {
   projeterLigneJournee,
   type LigneJourneeAffichee,
@@ -18,7 +18,7 @@ import {
  * ouverte de champs à exclure un par un, §9 01/09).
  */
 
-const LIGNE_COMPLETE: LignePlanning = {
+const LIGNE_COMPLETE: LigneFileATraiter = {
   id: "0199999-0000-7000-8000-000000000001",
   numero: 42,
   annee: 2026,
@@ -50,11 +50,15 @@ const LIGNE_COMPLETE: LignePlanning = {
   suspendue_le: null,
   machines: [{ machine_id: "0199999-0000-7000-8000-000000000008" }],
   vue_technicien_le: null,
-  client: { raison_sociale: "CODIMA", code_externe: "CLI-SECRET" },
-  site: { libelle: "Atelier Ducos", commune: "Nouméa" },
+  client: { raison_sociale: "CODIMA" },
+  site: { libelle: "Atelier Ducos", commune: "Nouméa", zone_geo: "nord" },
   cree_le: new Date("2026-10-01T00:00:00.000Z"),
   deplanifiee_date: null,
-  cloturee_le: null,
+  deplanifiee_creneau_debut: null,
+  deplanifiee_creneau_fin: null,
+  deplanifiee_absent_id: null,
+  aDesSegments: true,
+  finDuDernierSegmentFerme: new Date("2026-10-22T20:55:00.000Z"),
 };
 
 const CLES_INTERDITES = [
@@ -109,6 +113,7 @@ describe("projeterLigneJournee — n'emporte aucun champ de montant, de temps ou
       // `date_planifiee` tombe un jeudi (2026-10-22T00:00:00Z, UTC) : voir
       // `jourEtDateAbregee`, `lib/interventions/presentation-partagee.ts`.
       enRetardPrevueLibelle: "jeu. 22/10",
+      finDuDernierSegmentFerme: LIGNE_COMPLETE.finDuDernierSegmentFerme,
     };
     expect(projection).toEqual(attendu);
   });

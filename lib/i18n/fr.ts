@@ -3201,6 +3201,9 @@ export const fr = {
   "terrain.a_faire_maintenant.titre": "À faire maintenant",
   "terrain.en_retard": "En retard",
   "terrain.carte.en_retard_prevue": "En retard · prévue",
+  // L'HEURE DE FIN (9L53-TERRAIN-TERMINEE-ETAT-HEURE) — la fin du dernier
+  // segment de travail fermé, sur la carte ET en tête de fiche.
+  "terrain.carte.termine_a": "Terminée à",
   "terrain.aujourdhui": "Aujourd'hui",
   "terrain.demain": "Demain",
   "terrain.demain.vide":

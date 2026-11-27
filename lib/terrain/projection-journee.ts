@@ -55,6 +55,8 @@ type LigneSource = {
   readonly description: string | null;
   readonly machines: readonly { readonly machine_id: string }[];
   readonly date_planifiee: Date | null;
+  /** La fin du dernier segment de travail fermé (9L53), ou `null`. */
+  readonly finDuDernierSegmentFerme: Date | null;
 };
 
 export type LigneJourneeAffichee = {
@@ -74,6 +76,8 @@ export type LigneJourneeAffichee = {
   readonly machinesLibelle: string | null;
   /** `null` hors d'« En retard », ou quand la ligne n'a pas de date planifiée. */
   readonly enRetardPrevueLibelle: string | null;
+  /** La fin du dernier segment de travail fermé (9L53), ou `null`. */
+  readonly finDuDernierSegmentFerme: Date | null;
 };
 
 /** Projette une ligne lue par `listerPlanning`/`interventionsEnRetard` vers ce que la carte affiche. */
@@ -100,5 +104,6 @@ export function projeterLigneJournee(
       ligne.date_planifiee === null
         ? null
         : jourEtDateAbregee(ligne.date_planifiee, false),
+    finDuDernierSegmentFerme: ligne.finDuDernierSegmentFerme,
   };
 }

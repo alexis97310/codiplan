@@ -553,6 +553,16 @@ export default async function PageInterventionTerrain({
           >
             {t(`statut.${statut}`)}
           </span>
+          {/* L'HEURE DE FIN (9L53-TERRAIN-TERMINEE-ETAT-HEURE) — la fin du
+            dernier segment de travail fermé, au fuseau de l'agence de cette
+            intervention (D5) ; absente quand aucun segment n'est fermé. */}
+          {(ligne.statut === "terminee" || ligne.statut === "cloturee") &&
+          mesure.finDuDernierSegmentFerme !== null ? (
+            <span className="text-app-encre-faible text-14 font-medium">
+              {t("terrain.carte.termine_a")}{" "}
+              {heureLocale(mesure.finDuDernierSegmentFerme, fiche.fuseau)}
+            </span>
+          ) : null}
         </div>
 
         <BandeauReseau genereLe={genereLe} fuseau={fiche.fuseau} fiche />

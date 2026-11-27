@@ -350,6 +350,18 @@ function Carte({
           </span>
         </div>
         <p className="text-16 font-semibold">{ligne.client.raison_sociale}</p>
+        {/* L'HEURE DE FIN (9L53-TERRAIN-TERMINEE-ETAT-HEURE) — seulement
+          quand il y a quelque chose à dire : une terminée ou une clôturée
+          sans aucun segment fermé (temps saisi autrement) ne porte pas
+          cette ligne plutôt que d'afficher un tiret qui ne répondrait à
+          rien. */}
+        {(ligne.statut === "terminee" || ligne.statut === "cloturee") &&
+        ligne.finDuDernierSegmentFerme !== null ? (
+          <p className="text-app-encre-faible text-16 font-medium">
+            {t("terrain.carte.termine_a")}{" "}
+            {enHeureLocale(ligne.finDuDernierSegmentFerme, fuseau)}
+          </p>
+        ) : null}
         <p className="text-app-encre-faible text-16 font-medium">
           {lieuDit(ligne.site.libelle)}
         </p>
