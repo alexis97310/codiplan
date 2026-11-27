@@ -237,6 +237,7 @@ function Avancement({
     <div className="flex flex-col gap-2">
       <div
         role="progressbar"
+        aria-label={t("checklist.terrain.avancement_titre")}
         aria-valuemin={0}
         aria-valuemax={total}
         aria-valuenow={repondus}

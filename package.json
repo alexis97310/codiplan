@@ -61,6 +61,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.1",
     "@better-auth/utils": "0.4.2",
     "@eslint/eslintrc": "^3.3.3",
     "@playwright/test": "^1.56.1",

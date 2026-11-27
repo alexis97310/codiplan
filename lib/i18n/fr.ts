@@ -5419,6 +5419,11 @@ export const fr = {
   // ── LA FICHE « ÉPURÉE » (9L04D-TERRAIN-CHECKLIST-EPUREE, décision
   // d'Alexis du 13/11/2026) ────────────────────────────────────────────────
   "checklist.terrain.legende": "✓ conforme · ✕ non conforme · – sans objet",
+  // NOM ACCESSIBLE DE LA BARRE DE PROGRESSION (9L55-ACCESSIBILITE-TERRAIN) —
+  // `role="progressbar"` exige un nom, jamais seulement le texte visible
+  // juste dessous (`libelleAvancement`) : un lecteur d'écran qui annonce le
+  // rôle sans nom ne dit rien de ce qu'il mesure.
+  "checklist.terrain.avancement_titre": "Avancement de la checklist",
   "checklist.terrain.sur": "sur",
   "checklist.terrain.hors_reseau": "Hors réseau",
   "checklist.terrain.a_envoyer": "à envoyer",
