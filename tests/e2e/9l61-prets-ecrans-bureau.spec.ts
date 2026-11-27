@@ -29,6 +29,15 @@ const INTERVENTION_RETARD = uuidv7();
 const APPAREIL_RETARD = uuidv7();
 const PRET_RETARD = uuidv7();
 
+/**
+ * LES DÉSIGNATIONS CRÉÉES PAR CHAQUE CYCLE (une par largeur) — un UUID, SANS
+ * AUCUN PRÉFIXE LISIBLE : `getByText` interroge l'écran (L0-11), et tout
+ * littéral qui y arriverait — fût-ce un simple préfixe — ferait rougir le
+ * gardien `tests/unit/i18n/sans-chaine-visible-en-dur.test.ts`. Le nettoyage
+ * les retrouve donc par cette liste, jamais par un motif de nom.
+ */
+const DESIGNATIONS_CREEES: string[] = [];
+
 function admin(): PrismaClient {
   return new PrismaClient({
     datasources: { db: { url: urlAdministration() } },
@@ -155,7 +164,7 @@ test.afterAll(async () => {
       where: { id: { in: [APPAREIL_RETARD] } },
     });
     await client.appareilPret.deleteMany({
-      where: { designation: { startsWith: "9L61 appareil créé" } },
+      where: { designation: { in: DESIGNATIONS_CREEES } },
     });
     await client.intervention.deleteMany({
       where: { client_id: CLIENT_9L61 },
@@ -191,7 +200,8 @@ for (const largeur of [1280, 375] as const) {
     await page.setViewportSize({ width: largeur, height: 1000 });
     await ouvrirUneSession(page);
 
-    const designation = `9L61 appareil créé ${largeur}`;
+    const designation = uuidv7();
+    DESIGNATIONS_CREEES.push(designation);
 
     // 1. CRÉER L'APPAREIL AU PARC DE PRÊT.
     await page.goto("/parametres/prets");
