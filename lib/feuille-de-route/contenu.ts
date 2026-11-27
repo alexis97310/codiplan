@@ -35,7 +35,7 @@ export type SectionFeuilleDeRoute = {
 };
 
 /** La date affichée en sous-titre de la page. */
-export const DATE_ETAT_FEUILLE_DE_ROUTE = "26/11/2026";
+export const DATE_ETAT_FEUILLE_DE_ROUTE = "27/11/2026";
 
 export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
   {
@@ -368,6 +368,11 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
         statut: "livre",
         titre:
           "Un nouveau lien d'accès (premier accès ou mot de passe oublié) annule les liens antérieurs non utilisés du même compte (9L35, D281, complète D266).",
+      },
+      {
+        statut: "livre",
+        titre:
+          "Photos du bon visibles au portail après clôture (9L28), et désormais pour TOUS les clients rattachés à un même compte, pas seulement le premier (9L50).",
       },
     ],
   },
