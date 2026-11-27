@@ -66,7 +66,15 @@ const nextConfig: NextConfig = {
    *   (polices locales, `next/font/local` ; photos et signatures servies par
    *   `/api/documents/[id]/octets`, same-origin) : `connect-src`, `font-src`
    *   restent à `'self'` seul.
-   * - `frame-ancestors 'none'` : aucun écran n'est destiné à être encadré.
+   * - `frame-ancestors 'self'` (9L54A-TERRAIN-PRECHARGE-FRAME-SELF, corrige une
+   *   régression de ce lot) : aucun écran n'est destiné à être encadré par un
+   *   AUTRE site — la protection contre le détournement de clic reste entière
+   *   — mais `components/terrain/copie-locale.tsx` encadre `/terrain-hors-
+   *   reseau` dans une iframe cachée de MÊME ORIGINE pour préchauffer le cache
+   *   du service worker hors ligne (9F4H4B) : `'none'` bloquait aussi ce
+   *   cadre-là, dégradant I4 en silence sur les écrans jamais ouverts
+   *   autrement qu'en préchargement (mesuré par 9L54, constat « erreurs
+   *   console » de `docs/captures/README.md`).
    *   `object-src 'none'` : aucune balise `<object>`/`<embed>` dans le dépôt.
    */
   async headers() {
@@ -80,7 +88,7 @@ const nextConfig: NextConfig = {
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
-      "frame-ancestors 'none'",
+      "frame-ancestors 'self'",
     ].join("; ");
 
     return [
@@ -88,7 +96,7 @@ const nextConfig: NextConfig = {
         source: "/(.*)",
         headers: [
           { key: "Content-Security-Policy", value: politiqueDeContenu },
-          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
           { key: "X-Content-Type-Options", value: "nosniff" },
           {
             key: "Referrer-Policy",

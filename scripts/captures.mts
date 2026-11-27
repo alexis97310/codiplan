@@ -311,7 +311,7 @@ const ECRANS: readonly Ecran[] = [
     passe: "sans-societe",
     refusConnu:
       "Cette image exige un compte habilité sur AU MOINS DEUX sociétés — sur " +
-      "la démonstration, `direction@codima.test` — et se connecte sous " +
+      "la démonstration, `admin.societe@codima.test` — et se connecte sous " +
       "`COURRIEL_MULTI` / `MOT_DE_PASSE_MULTI`, une identité DÉDIÉE et " +
       "distincte de `COURRIEL` (99O, constat C-A2) : les confondre a déjà " +
       "produit deux images identiques à l'octet près, l'écran « aucune " +
@@ -2042,7 +2042,7 @@ function redigerReadme(
     "# 4. La prise de vue.",
     "BASE=http://127.0.0.1:3100 COURRIEL=… MOT_DE_PASSE=… \\",
     "  COURRIEL_PORTAIL=… MOT_DE_PASSE_PORTAIL=… \\",
-    "  COURRIEL_MULTI=direction@codima.test MOT_DE_PASSE_MULTI=… \\",
+    "  COURRIEL_MULTI=admin.societe@codima.test MOT_DE_PASSE_MULTI=… \\",
     "  pnpm exec tsx scripts/captures.mts",
     "```",
     "",
@@ -2054,7 +2054,7 @@ function redigerReadme(
     "",
     "`COURRIEL_PORTAIL` désigne une **seconde identité**, et elle est nécessaire plutôt que commode : un compte portail n'a aucune ligne dans `utilisateur_societe` (D10), donc aucun compte interne n'atteint `/portail`. Sans elle, les quatre images du portail sont refusées et le refus le dit.",
     "",
-    "`COURRIEL_MULTI` désigne une **troisième identité, habilitée sur AU MOINS DEUX sociétés** — sur la base jetable de démonstration, `direction@codima.test`, dont le mot de passe se pose comme celui de `COURRIEL` (étape 3, `scripts/amorcage-premier-compte.mts --reemettre`). Elle sert à la SEULE image « aucune société active » : rien ne garantit que `COURRIEL`, choisi pour le reste de la prise, soit multi-société, et les confondre a déjà produit deux images identiques à l'octet près (99O, constat C-A2). Sans elle, cette seule image est refusée et le refus le dit — jamais un repli silencieux sur `COURRIEL`.",
+    "`COURRIEL_MULTI` désigne une **troisième identité, habilitée sur AU MOINS DEUX sociétés** — sur la base jetable de démonstration, `admin.societe@codima.test`, à qui il faut ajouter EN SQL une seconde habilitation (sur la seule base jetable de la prise, jamais dans `prisma/seed-data.ts`) pour qu'elle le soit ; son mot de passe se pose comme celui de `COURRIEL` (étape 3, `scripts/amorcage-premier-compte.mts --reemettre`). Elle sert à la SEULE image « aucune société active » : rien ne garantit que `COURRIEL`, choisi pour le reste de la prise, soit multi-société, et les confondre a déjà produit deux images identiques à l'octet près (99O, constat C-A2). Sans elle, cette seule image est refusée et le refus le dit — jamais un repli silencieux sur `COURRIEL`.",
     "",
     ...sectionSurface(commit),
     "## Ce que le script REFUSE de photographier",

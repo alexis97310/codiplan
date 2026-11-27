@@ -20,7 +20,7 @@ import {
  */
 
 const ENTETES_COMMUNES = {
-  "x-frame-options": "DENY",
+  "x-frame-options": "SAMEORIGIN",
   "x-content-type-options": "nosniff",
   "permissions-policy": "camera=(self), microphone=(), geolocation=()",
 } as const;
@@ -30,8 +30,15 @@ function attendreLesEntetesCommunes(entetes: Record<string, string>): void {
     expect(entetes[nom]).toBe(valeur);
   }
   expect(entetes["content-security-policy"]).toContain("default-src 'self'");
+  // `'self'` (9L54A) : jamais `'none'` (bloquerait le préchargement
+  // `/terrain-hors-reseau` de `copie-locale.tsx`), jamais `*` (ouvrirait
+  // l'encadrement à un site tiers — la protection contre le détournement de
+  // clic doit rester entière).
   expect(entetes["content-security-policy"]).toContain(
-    "frame-ancestors 'none'",
+    "frame-ancestors 'self'",
+  );
+  expect(entetes["content-security-policy"]).not.toContain(
+    "frame-ancestors *",
   );
 }
 
