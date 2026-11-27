@@ -304,6 +304,17 @@ export const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   "app/api/interventions/[id]/reprendre/route.ts":
     "suspendre_reprendre_intervention",
   "app/api/vgp/enregistrer/[id]/route.ts": "enregistrer_vgp",
+  // 9L61-PRET-2-ECRANS-BUREAU (D287) — le parc de prêt (bureau seul, D287
+  // point 1) : créer/modifier un appareil, basculer son statut manuel
+  // (disponible/en révision) ou son activité.
+  "app/api/parametres/prets/creer/route.ts": "gerer_prets",
+  "app/api/parametres/prets/[id]/modifier/route.ts": "gerer_prets",
+  "app/api/parametres/prets/[id]/statut/route.ts": "gerer_prets",
+  "app/api/parametres/prets/[id]/activite/route.ts": "gerer_prets",
+  // Prêter un appareil depuis la fiche intervention, et enregistrer son
+  // retour — même capacité.
+  "app/api/interventions/[id]/preter/route.ts": "gerer_prets",
+  "app/api/prets/[id]/retour/route.ts": "gerer_prets",
 };
 
 /**
@@ -376,4 +387,14 @@ export const PORTE_COMPLETE: readonly string[] = [
   "app/api/interventions/suites-a-donner/[id]/devis-envoye/route.ts",
   "app/api/interventions/suites-a-donner/[id]/accord/route.ts",
   "app/api/interventions/suites-a-donner/[id]/piece-recue/route.ts",
+  // 9L61-PRET-2-ECRANS-BUREAU (D287) — `gerer_prets` ne porte AUCUN ○ (ADMS,
+  // DIR, RM, RS, ADV au complet) : la porte complète et la porte simple
+  // coïncident déjà en pratique, mais la passation de 9L60 demande
+  // explicitement `exigerCapaciteComplete` pour ces six routes.
+  "app/api/parametres/prets/creer/route.ts",
+  "app/api/parametres/prets/[id]/modifier/route.ts",
+  "app/api/parametres/prets/[id]/statut/route.ts",
+  "app/api/parametres/prets/[id]/activite/route.ts",
+  "app/api/interventions/[id]/preter/route.ts",
+  "app/api/prets/[id]/retour/route.ts",
 ];

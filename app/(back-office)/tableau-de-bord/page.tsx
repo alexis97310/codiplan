@@ -36,6 +36,10 @@ import { BlocJournal } from "@/components/tableau-de-bord/bloc-journal";
 import { BlocMiseEnRoute } from "@/components/tableau-de-bord/bloc-mise-en-route";
 import { BlocMois } from "@/components/tableau-de-bord/bloc-mois";
 import {
+  BlocPretsEnRetard,
+  type LignePretEnRetard,
+} from "@/components/tableau-de-bord/bloc-prets-en-retard";
+import {
   dernieresEcrituresDuJour,
   compterEcrituresDuJour,
 } from "@/lib/audit/journal";
@@ -44,6 +48,7 @@ import { obtenirSession } from "@/lib/auth/session";
 import {
   bornesDuMois,
   cleJour,
+  dateCivile,
   instantDuJour,
   jourDe,
   jourSuivant,
@@ -87,6 +92,7 @@ import {
 } from "@/lib/interventions/occupation";
 import { compterLeParc, JOURS_GARANTIE } from "@/lib/machines/depot";
 import { schemaRechercheParc } from "@/lib/machines/saisie";
+import { listerAppareilsPret, listerPretsEnRetard } from "@/lib/prets/depot";
 import {
   aucunResponsableSavActif,
   compterHabilitationsExpirees,
@@ -411,6 +417,22 @@ export default async function PageTableauDeBord({
     ? compterLesLots(contexte, "a-appliquer")
     : Promise.resolve(0);
 
+  // « PRÊTS EN RETARD » (9L61-PRET-2-ECRANS-BUREAU, D287) — le bureau seul
+  // gère les prêts (décision 1 du cadrage) ; `gerer_prets` ne porte aucun ○
+  // (ADMS/DIR/RM/RS/ADV au complet), `peutPleinement` vaut donc `peut` ici.
+  const peutVoirPrets = peutPleinement(role, "gerer_prets");
+  const lecturePretsEnRetard: Promise<
+    readonly [
+      Awaited<ReturnType<typeof listerPretsEnRetard>>,
+      Awaited<ReturnType<typeof listerAppareilsPret>>,
+    ]
+  > = peutVoirPrets
+    ? Promise.all([
+        listerPretsEnRetard(contexte),
+        listerAppareilsPret(contexte),
+      ])
+    : Promise.resolve([[], []]);
+
   // D241 (amende D173, point 3) — le bandeau « aucun responsable SAV actif »
   // n'est jamais lu hors des blocs d'administration.
   const lectureSansResponsableSav: Promise<boolean> = administre
@@ -449,6 +471,7 @@ export default async function PageTableauDeBord({
     lotsAAppliquerCompte,
     [habilitationsExpireesCompte, habilitationsARenouvelerCompte],
     sansResponsableSavActif,
+    [pretsEnRetardLignes, appareilsPret],
   ] = await Promise.all([
     lectureMois,
     lectureAccesAOuvrir,
@@ -456,7 +479,18 @@ export default async function PageTableauDeBord({
     lectureLotsAAppliquer,
     lectureHabilitations,
     lectureSansResponsableSav,
+    lecturePretsEnRetard,
   ]);
+  const designationAppareilPret = new Map(
+    appareilsPret.map((a) => [a.id, a.designation]),
+  );
+  const lignesPretsEnRetard: readonly LignePretEnRetard[] =
+    pretsEnRetardLignes.map((pret) => ({
+      id: pret.id,
+      interventionId: pret.interventionId,
+      appareilDesignation: designationAppareilPret.get(pret.appareilId) ?? "—",
+      dateRetourPrevueLibelle: dateCivile(pret.dateRetourPrevue),
+    }));
 
   // ── « MISE EN ROUTE » (administrateur de société, ET la direction depuis
   // D91 — PU-1) — RÉUTILISE `accesAOuvrirLignes` déjà lu ci-dessus, jamais un
@@ -965,6 +999,10 @@ export default async function PageTableauDeBord({
 
           {voitLesBlocsDAdministration(composition) ? (
             <BlocDonneesACompleter points={pointsADC} />
+          ) : null}
+
+          {peutVoirPrets ? (
+            <BlocPretsEnRetard lignes={lignesPretsEnRetard} />
           ) : null}
 
           {composition === Role.adv ||

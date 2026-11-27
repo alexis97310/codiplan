@@ -70,6 +70,7 @@ import {
 } from "@/lib/machines/depot";
 import type { RechercheParc } from "@/lib/machines/saisie";
 import { libelleMaterielComplet } from "@/lib/machines/presentation";
+import { listerAppareilsPret, listerPretsDuClient } from "@/lib/prets/depot";
 import { equipementsParSite, resumeDesCartesSites } from "@/lib/sites/depot";
 import { avecContexteApplicatif } from "@/lib/db/client";
 import { estUuid } from "@/lib/identifiant";
@@ -410,10 +411,19 @@ export default async function PageClient({
     origine: null,
     page: 1,
   };
-  const [nombreMachines, resumeMachines] = await Promise.all([
-    compterLeParc(session.contexte, criteresTuileMachines, aujourdHui),
-    resumerLeParcFiltre(session.contexte, criteresTuileMachines, aujourdHui),
-  ]);
+  const [nombreMachines, resumeMachines, pretsDuClientLignes, appareilsPret] =
+    await Promise.all([
+      compterLeParc(session.contexte, criteresTuileMachines, aujourdHui),
+      resumerLeParcFiltre(session.contexte, criteresTuileMachines, aujourdHui),
+      // LES PRÊTS D'APPAREILS DE CE CLIENT (9L61-PRET-2-ECRANS-BUREAU, D287)
+      // — en cours ET historique récent, dans le MÊME bloc (le bureau seul
+      // les gère, décision 1 du cadrage ; cette fiche n'écrit rien).
+      listerPretsDuClient(session.contexte, client.id),
+      listerAppareilsPret(session.contexte),
+    ]);
+  const designationAppareilPret = new Map(
+    appareilsPret.map((a) => [a.id, a.designation]),
+  );
 
   // L'ONGLET « PARC » — première page du parc filtré sur ce client, jamais
   // une seconde lecture du critère de `/parc` (§9, 01/09).
@@ -879,6 +889,44 @@ export default async function PageClient({
               peutEcrire={peutGererSite}
               destinataireId={destinataireCourriels?.id ?? null}
             />
+
+            {/*
+              PRÊTS D'APPAREILS (9L61-PRET-2-ECRANS-BUREAU, D287) — en cours
+              et historique récent, les vingt plus récents
+              (`listerPretsDuClient`) ; le bureau seul les gère, cette fiche
+              n'écrit rien.
+            */}
+            <Carte titre={t("client.prets.titre")}>
+              {pretsDuClientLignes.length === 0 ? (
+                <p className="text-app-encre-faible px-4 py-3.5 text-13 font-bold">
+                  {t("client.prets.aucun")}
+                </p>
+              ) : (
+                <ul className="flex flex-col">
+                  {pretsDuClientLignes.map((pret) => (
+                    <li
+                      key={pret.id}
+                      className="border-app-bord flex flex-col gap-0.5 border-b px-4 py-2.5 text-13 font-bold last:border-b-0"
+                    >
+                      <Link
+                        href={`/interventions/${pret.interventionId}?depuis=client`}
+                        className={CLASSES_LIEN}
+                      >
+                        {designationAppareilPret.get(pret.appareilId) ??
+                          ouTiret(null)}
+                      </Link>
+                      <span className="text-app-encre-faible text-12 font-bold">
+                        {dateCivile(pret.dateSortie)}
+                        {t("ponctuation.separateur")}
+                        {pret.dateRetourReelle === null
+                          ? t("client.prets.en_cours")
+                          : t("client.prets.retourne")}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Carte>
 
             <Carte
               titre={t("clients.fiche.identite")}

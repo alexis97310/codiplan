@@ -1,4 +1,8 @@
-import { type Prisma, type PrismaClient } from "@prisma/client";
+import {
+  type Prisma,
+  type PrismaClient,
+  type StatutAppareilPret,
+} from "@prisma/client";
 
 import { peutPleinement } from "@/lib/auth/habilitations";
 import {
@@ -70,6 +74,19 @@ export class PretDejaRetourne extends Error {
   }
 }
 
+export class AppareilPretIntrouvable extends Error {
+  constructor() {
+    super("appareil_pret_introuvable");
+  }
+}
+
+/** Un appareil PRÊTÉ ne bascule pas manuellement (disponible/en révision) — seul le retour le fait sortir de cet état. */
+export class StatutAppareilVerrouille extends Error {
+  constructor() {
+    super("statut_appareil_verrouille");
+  }
+}
+
 function exigerCapaciteDepot(contexte: ContexteSession): void {
   const { role } = exigerContexteActif(contexte);
   if (!peutPleinement(role, "gerer_prets")) {
@@ -117,7 +134,7 @@ export type AppareilPretEnListe = {
   readonly marque: string | null;
   readonly modele: string | null;
   readonly numeroSerie: string | null;
-  readonly statut: string;
+  readonly statut: StatutAppareilPret;
   readonly actif: boolean;
 };
 
@@ -142,6 +159,98 @@ export async function listerAppareilsPret(
     statut: ligne.statut,
     actif: ligne.actif,
   }));
+}
+
+export async function modifierAppareilPret(
+  contexte: ContexteSession,
+  id: string,
+  saisie: SaisieAppareilPret,
+  client?: PrismaClient,
+): Promise<void> {
+  exigerCapaciteDepot(contexte);
+  await avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const resultat = await tx.appareilPret.updateMany({
+        where: { id },
+        data: {
+          designation: saisie.designation,
+          marque: saisie.marque,
+          modele: saisie.modele,
+          numero_serie: saisie.numero_serie,
+        },
+      });
+      if (resultat.count === 0) {
+        throw new AppareilPretIntrouvable();
+      }
+    },
+    client,
+  );
+}
+
+/**
+ * ACTIVER OU DÉSACTIVER UN APPAREIL DU PARC (le retirer du choix, jamais le
+ * supprimer — même doctrine que le référentiel matériel). L'état visé est
+ * ENVOYÉ, jamais déduit d'une bascule (même raison que `lib/materiel/depot.ts`).
+ */
+export async function basculerActiviteAppareilPret(
+  contexte: ContexteSession,
+  id: string,
+  actif: boolean,
+  client?: PrismaClient,
+): Promise<void> {
+  exigerCapaciteDepot(contexte);
+  await avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const resultat = await tx.appareilPret.updateMany({
+        where: { id },
+        data: { actif },
+      });
+      if (resultat.count === 0) {
+        throw new AppareilPretIntrouvable();
+      }
+    },
+    client,
+  );
+}
+
+/** Les deux seuls statuts qu'un geste MANUEL peut viser — `prete` ne se pose que par la sortie. */
+export type StatutManuelAppareilPret = "disponible" | "en_revision";
+
+/**
+ * CHANGER MANUELLEMENT LE STATUT D'UN APPAREIL (disponible ↔ en révision).
+ * Un appareil `prete` refuse : il est verrouillé par le prêt en cours, et
+ * seul le retour (`enregistrerRetourPret`) le fait changer d'état.
+ */
+export async function changerStatutAppareilPret(
+  contexte: ContexteSession,
+  id: string,
+  statutVise: StatutManuelAppareilPret,
+  client?: PrismaClient,
+): Promise<void> {
+  exigerCapaciteDepot(contexte);
+  await avecContexteApplicatif(
+    contexte,
+    async (tx) => {
+      const appareil = await tx.appareilPret.findFirst({
+        where: { id },
+        select: { statut: true },
+      });
+      if (appareil === null) {
+        throw new AppareilPretIntrouvable();
+      }
+      if (appareil.statut === "prete") {
+        throw new StatutAppareilVerrouille();
+      }
+      await tx.appareilPret.update({
+        where: { id },
+        data: { statut: statutVise },
+        select: { id: true },
+      });
+    },
+    client,
+  );
 }
 
 /**
@@ -354,4 +463,43 @@ export async function listerPretsEnRetard(
 ): Promise<readonly PretEnListe[]> {
   const lignes = await listerPretsEnCours(contexte, client);
   return lignes.filter((ligne) => ligne.enRetard);
+}
+
+export type PretDuClient = {
+  readonly id: string;
+  readonly appareilId: string;
+  readonly interventionId: string;
+  readonly dateSortie: Date;
+  readonly dateRetourPrevue: Date;
+  readonly dateRetourReelle: Date | null;
+};
+
+/**
+ * LES PRÊTS D'UN CLIENT (en cours ET passés, les vingt plus récents) — la
+ * fiche client affiche les deux dans le même bloc, distingués par
+ * `dateRetourReelle` (`null` = en cours).
+ */
+export async function listerPretsDuClient(
+  contexte: ContexteSession,
+  clientId: string,
+  client?: PrismaClient,
+): Promise<readonly PretDuClient[]> {
+  const lignes = await avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.pretEquipement.findMany({
+        where: { client_id: clientId },
+        orderBy: { date_sortie: "desc" },
+        take: 20,
+      }),
+    client,
+  );
+  return lignes.map((ligne) => ({
+    id: ligne.id,
+    appareilId: ligne.appareil_id,
+    interventionId: ligne.intervention_id,
+    dateSortie: ligne.date_sortie,
+    dateRetourPrevue: ligne.date_retour_prevue,
+    dateRetourReelle: ligne.date_retour_reelle,
+  }));
 }

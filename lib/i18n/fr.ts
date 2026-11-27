@@ -5289,6 +5289,89 @@ export const fr = {
   "materiel.recherche_aucun_resultat_detail":
     "Aucune ligne ne correspond à cette recherche.",
 
+  // ── LE PRÊT D'ÉQUIPEMENT (9L61-PRET-2-ECRANS-BUREAU, D287) ───────────────
+  //
+  // « appareil », jamais « équipement » : « équipement » est un synonyme
+  // FERMÉ de Machine hors du domaine `materiel.*` (mesuré par
+  // `tests/unit/i18n/vocabulaire-impose.test.ts`, voir la passation de
+  // 9L60) — un appareil du parc de prêt n'est délibérément PAS une Machine
+  // (D287), et ce choix de mot le garde visible aussi dans le texte.
+  "prets.parc.titre": "Parc de prêt",
+  "prets.parc.sous_titre":
+    "Les appareils que la société prête en attendant une pièce.",
+  "prets.parc.aucun_appareil": "Aucun appareil de prêt n’est enregistré.",
+  "prets.parc.aucun_appareil_detail":
+    "Ajoutez-en un pour pouvoir le prêter depuis une intervention.",
+  "prets.parc.colonne_designation": "Désignation",
+  "prets.parc.colonne_marque": "Marque",
+  "prets.parc.colonne_modele": "Modèle",
+  "prets.parc.colonne_numero_serie": "N° de série",
+  "prets.parc.colonne_statut": "Statut",
+  "prets.parc.colonne_activite": "Activité",
+  "prets.parc.colonne_actions": "Actions",
+  "prets.statut.disponible": "Disponible",
+  "prets.statut.prete": "Prêté",
+  "prets.statut.en_revision": "En révision",
+  "prets.actif": "Actif",
+  "prets.inactif": "Inactif",
+  "prets.activer": "Réactiver",
+  "prets.desactiver": "Désactiver",
+  "prets.passer_en_revision": "Passer en révision",
+  "prets.remettre_disponible": "Remettre disponible",
+  "prets.creer_action": "Ajouter un appareil",
+  "prets.creer_titre": "Ajouter un appareil",
+  "prets.modifier_titre": "Modifier l’appareil",
+  "prets.modifier": "Modifier",
+  "prets.enregistrer": "Enregistrer",
+  "prets.annuler": "Annuler",
+  "prets.champ_designation": "Désignation",
+  "prets.champ_marque": "Marque",
+  "prets.champ_modele": "Modèle",
+  "prets.champ_numero_serie": "Numéro de série",
+  "prets.aucune_suppression":
+    "Un appareil ne se supprime jamais : seule sa disponibilité bascule.",
+  "prets.refus.saisie": "La désignation ne peut pas être vide.",
+  "prets.refus.introuvable": "Cet appareil est introuvable.",
+  "prets.refus.statut_verrouille":
+    "Cet appareil est prêté : seul son retour change son état.",
+
+  // ── LE PRÊT SUR LA FICHE INTERVENTION ────────────────────────────────────
+  "intervention.pret.titre": "Prêt d’appareil",
+  "intervention.pret.aucun_disponible":
+    "Aucun appareil de prêt n’est disponible.",
+  "intervention.pret.champ_appareil": "Appareil",
+  "intervention.pret.champ_date_sortie": "Date de sortie",
+  "intervention.pret.champ_retour_prevu": "Retour prévu",
+  "intervention.pret.champ_etat_depart": "État au départ",
+  "intervention.pret.champ_observations": "Observations",
+  "intervention.pret.preter_action": "Prêter un appareil",
+  "intervention.pret.en_cours_titre": "Prêt en cours",
+  "intervention.pret.en_retard": "En retard",
+  "intervention.pret.champ_date_retour": "Date de retour",
+  "intervention.pret.champ_etat_retour": "État au retour",
+  "intervention.pret.case_en_revision": "Envoyer en révision",
+  "intervention.pret.retour_action": "Enregistrer le retour",
+  "intervention.pret.refus.saisie": "La saisie du prêt est refusée.",
+  "intervention.pret.refus.appareil_indisponible":
+    "Cet appareil n’est plus disponible.",
+  "intervention.pret.refus.intervention_introuvable":
+    "Cette intervention est introuvable.",
+  "intervention.pret.refus.retour_avant_sortie":
+    "La date de retour ne peut pas précéder la date de sortie.",
+  "intervention.pret.refus.pret_introuvable": "Ce prêt est introuvable.",
+  "intervention.pret.refus.pret_deja_retourne": "Ce prêt a déjà été retourné.",
+
+  // ── LE PRÊT SUR LA FICHE CLIENT ──────────────────────────────────────────
+  "client.prets.titre": "Prêts d’appareils",
+  "client.prets.aucun": "Aucun prêt pour ce client.",
+  "client.prets.en_cours": "En cours",
+  "client.prets.retourne": "Retourné",
+
+  // ── « PRÊTS EN RETARD » AU TABLEAU DE BORD ───────────────────────────────
+  "tableau_de_bord.prets_en_retard.titre": "Prêts en retard",
+  "tableau_de_bord.prets_en_retard.vide": "Aucun prêt en retard.",
+  "tableau_de_bord.prets_en_retard.voir": "Voir l’intervention",
+
   // ── LES MODÈLES DE CHECKLIST (9K19-CHECKLIST-PARAMETRAGE, CK3) ───────────
   "checklist.parametrage.titre": "Modèles de checklist",
   "checklist.parametrage.sous_titre":
@@ -5513,6 +5596,11 @@ export const fr = {
   "parametres.index_checklists_titre": "Checklists",
   "parametres.index_checklists_resume":
     "Les modèles de contrôle et leurs versions publiées",
+  // LA PORTE « PARC DE PRÊT » (9L61-PRET-2-ECRANS-BUREAU, D287) — ABSENTE DE
+  // LA MAQUETTE, même raison que « Checklists » juste au-dessus.
+  "parametres.index_prets_titre": "Parc de prêt",
+  "parametres.index_prets_resume":
+    "Les appareils que la société prête en attendant une pièce",
   // LA PORTE « DONNÉES À COMPLÉTER » (9DT-TP-MOD2-INDICATEURS-DONNEES, QT-20,
   // QE-19, MO-7) — ouverte à l'ADV (decision D170).
   "parametres.index_donnees_titre": "Données à compléter",

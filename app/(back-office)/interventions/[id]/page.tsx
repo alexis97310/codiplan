@@ -34,6 +34,7 @@ import { MenuPlus } from "@/components/ui/menu-plus";
 import { Onglets } from "@/components/ui/onglets";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CaseACocher } from "@/components/ui/case-a-cocher";
 import { absencesDeLaPeriode } from "@/lib/absences/depot";
 import { annuaireDesPersonnes } from "@/lib/auth/annuaire";
 import { type ChecklistFiche } from "@/lib/checklists/depot";
@@ -85,6 +86,7 @@ import {
 } from "@/lib/interventions/depot";
 import { explicationRegle } from "@/lib/interventions/presentation-partagee";
 import { saisiesApresClotureDeLIntervention } from "@/lib/interventions/saisie-tardive";
+import { listerAppareilsPret, listerPretsEnCours } from "@/lib/prets/depot";
 import {
   aSectionPiecesRemplacees,
   derniereSignature,
@@ -164,6 +166,7 @@ import {
   titreDeLaFiche,
   VALEURS_ONGLET_FICHE,
 } from "../presentation";
+import { ouTiret } from "../../presentation";
 import { DisponibiliteTechnicien } from "./disponibilite-technicien";
 import { CLASSES_LIEN } from "@/lib/theme/apparence";
 
@@ -389,6 +392,15 @@ export default async function PageIntervention({
   const peutQualifierAffecter =
     session.contexte.role !== null &&
     peut(session.contexte.role, "qualifier_affecter");
+  // LE PRÊT D'APPAREIL (9L61-PRET-2-ECRANS-BUREAU, D287, décision 1 : le
+  // bureau seul). `gerer_prets` ne porte aucun ○ (ADMS/DIR/RM/RS/ADV au
+  // complet) — `peutPleinement` plutôt que `peut`, même si les deux
+  // coïncident ici, pour rester cohérent avec les routes qu'il gouverne
+  // (`exigerCapaciteComplete`, passation de 9L60).
+  const peutGererPrets =
+    !figee &&
+    session.contexte.role !== null &&
+    peutPleinement(session.contexte.role, "gerer_prets");
   // `peutPleinement`, pas `peut` (04/10/2026, 9DKA-REPRISE-9DK) — depuis TR-5
   // (D136), le technicien porte un ○ sur `modifier_planning` pour déclarer SA
   // PROPRE absence ; ce ○ n'a jamais été pensé pour « Transmettre » ni pour
@@ -732,6 +744,8 @@ export default async function PageIntervention({
     piecesRemplaceesFiche,
     historiqueStatut,
     saisiesApresCloture,
+    appareilsPret,
+    pretsEnCoursSociete,
   ] = await Promise.all([
     // LES MACHINES DU SITE DE L'INTERVENTION — connu côté serveur, aucun
     // filtrage JS n'est nécessaire ici (à la différence du formulaire de
@@ -768,6 +782,11 @@ export default async function PageIntervention({
     // LES SAISIES TERRAIN GARDÉES À PART (9L14-FIGE-A-LA-CLOTURE) — jamais
     // appliquées, visibles ici en lecture seule.
     saisiesApresClotureDeLIntervention(session.contexte, ligne.id),
+    // LE PARC DE PRÊT ET LES PRÊTS EN COURS DE LA SOCIÉTÉ (9L61, D287) — la
+    // LECTURE reste ouverte à tout rôle non technicien (même doctrine que le
+    // référentiel matériel) ; seule l'ÉCRITURE suit `peutGererPrets`.
+    listerAppareilsPret(session.contexte),
+    listerPretsEnCours(session.contexte),
   ]);
   // UN SECOND ANNUAIRE, PROPRE À CE BLOC (9L14-FIGE-A-LA-CLOTURE) — jamais
   // fusionné dans `annuaire` ci-dessus : `saisiesApresCloture` naît ICI,
@@ -810,6 +829,18 @@ export default async function PageIntervention({
   // l'onglet Résumé décide seule de son affichage, sans la répéter.
   const peutAjouterMachine =
     !figee && ligne.machines.length === 0 && peutQualifierAffecter;
+  // LE PRÊT D'APPAREIL DE CETTE INTERVENTION (9L61, D287) — au plus un prêt
+  // EN COURS par appareil (garde en base), mais rien n'empêche qu'une
+  // intervention en ait porté plusieurs successivement ; seul le prêt EN
+  // COURS s'affiche ici (l'historique complet vit sur la fiche client).
+  const designationAppareilPret = new Map(
+    appareilsPret.map((a) => [a.id, a.designation]),
+  );
+  const appareilsPretDisponibles = appareilsPret.filter(
+    (a) => a.actif && a.statut === "disponible",
+  );
+  const pretEnCoursDeCetteIntervention =
+    pretsEnCoursSociete.find((p) => p.interventionId === ligne.id) ?? null;
   const parametresReprise = {
     creeLe: fiche.creeLe,
     pauses: (pauses ?? []).map((p) => ({ debut: p.debut, fin: p.fin })),
@@ -1653,6 +1684,157 @@ export default async function PageIntervention({
                 )}
               </div>
             </Carte>
+
+            {/*
+              PRÊT D'APPAREIL (9L61-PRET-2-ECRANS-BUREAU, D287) — le bureau
+              seul le gère (décision 1 du cadrage) ; la LECTURE reste ouverte
+              à tout rôle non technicien, l'ÉCRITURE suit `peutGererPrets`.
+              La carte ne se rend QUE s'il y a quelque chose à montrer ou à
+              faire — à la différence de la carte Machine (toujours rendue,
+              RG-INT-01 y donne un sens à l'absence) : l'absence d'un prêt
+              n'a, elle, aucune règle à nommer.
+            */}
+            {pretEnCoursDeCetteIntervention === null &&
+            !peutGererPrets ? null : (
+              <Carte titre={t("intervention.pret.titre")}>
+                <div className="flex flex-col gap-3 px-4 py-3.5">
+                  {pretEnCoursDeCetteIntervention === null ? (
+                    !peutGererPrets ? null : appareilsPretDisponibles.length ===
+                      0 ? (
+                      <p className="text-app-encre-faible text-[12px] font-bold">
+                        {t("intervention.pret.aucun_disponible")}
+                      </p>
+                    ) : (
+                      <form
+                        action={`/api/interventions/${ligne.id}/preter`}
+                        method="post"
+                        className="flex flex-col gap-3"
+                      >
+                        <label className="flex flex-col gap-1.5 text-sm font-medium">
+                          {t("intervention.pret.champ_appareil")}
+                          <select
+                            name="appareil_id"
+                            required
+                            className="border-input bg-background w-full min-w-0 rounded-md border px-3 py-2 font-normal"
+                          >
+                            {appareilsPretDisponibles.map((appareil) => (
+                              <option key={appareil.id} value={appareil.id}>
+                                {appareil.designation}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="flex flex-col gap-1.5 text-sm font-medium">
+                          {t("intervention.pret.champ_date_sortie")}
+                          <input
+                            type="date"
+                            name="date_sortie"
+                            required
+                            className="border-input bg-background w-full min-w-0 rounded-md border px-3 py-2 font-normal"
+                          />
+                        </label>
+                        <label className="flex flex-col gap-1.5 text-sm font-medium">
+                          {t("intervention.pret.champ_retour_prevu")}
+                          <input
+                            type="date"
+                            name="date_retour_prevue"
+                            required
+                            className="border-input bg-background w-full min-w-0 rounded-md border px-3 py-2 font-normal"
+                          />
+                        </label>
+                        <label className="flex flex-col gap-1.5 text-sm font-medium">
+                          {t("intervention.pret.champ_etat_depart")}
+                          <input
+                            type="text"
+                            name="etat_depart"
+                            required
+                            className="border-input bg-background w-full min-w-0 rounded-md border px-3 py-2 font-normal"
+                          />
+                        </label>
+                        <label className="flex flex-col gap-1.5 text-sm font-medium">
+                          {t("intervention.pret.champ_observations")}
+                          <textarea
+                            name="observations"
+                            className="border-input bg-background w-full min-w-0 rounded-md border px-3 py-2 font-normal"
+                          />
+                        </label>
+                        <Button type="submit" variant="outline" size="sm">
+                          {t("intervention.pret.preter_action")}
+                        </Button>
+                      </form>
+                    )
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      <p className="text-13 font-bold">
+                        {ouTiret(
+                          designationAppareilPret.get(
+                            pretEnCoursDeCetteIntervention.appareilId,
+                          ) ?? null,
+                        )}
+                      </p>
+                      <p className="text-app-encre-faible text-12 font-bold">
+                        {t("intervention.pret.champ_retour_prevu")}
+                        {t("ponctuation.deux_points")}
+                        {dateCivile(
+                          pretEnCoursDeCetteIntervention.dateRetourPrevue,
+                        )}
+                      </p>
+                      {pretEnCoursDeCetteIntervention.enRetard ? (
+                        <Badge ton="rouge">
+                          {t("intervention.pret.en_retard")}
+                        </Badge>
+                      ) : null}
+                      {!peutGererPrets ? null : (
+                        <form
+                          action={`/api/prets/${pretEnCoursDeCetteIntervention.id}/retour`}
+                          method="post"
+                          className="flex flex-col gap-3"
+                        >
+                          <input
+                            type="hidden"
+                            name="intervention_id"
+                            value={ligne.id}
+                          />
+                          <label className="flex flex-col gap-1.5 text-sm font-medium">
+                            {t("intervention.pret.champ_date_retour")}
+                            <input
+                              type="date"
+                              name="date_retour_reelle"
+                              required
+                              className="border-input bg-background w-full min-w-0 rounded-md border px-3 py-2 font-normal"
+                            />
+                          </label>
+                          <label className="flex flex-col gap-1.5 text-sm font-medium">
+                            {t("intervention.pret.champ_etat_retour")}
+                            <input
+                              type="text"
+                              name="etat_retour"
+                              required
+                              className="border-input bg-background w-full min-w-0 rounded-md border px-3 py-2 font-normal"
+                            />
+                          </label>
+                          <CaseACocher
+                            name="en_revision"
+                            libelle={t("intervention.pret.case_en_revision")}
+                            className="flex items-center gap-1.5 text-13 font-bold"
+                          />
+                          <label className="flex flex-col gap-1.5 text-sm font-medium">
+                            {t("intervention.pret.champ_observations")}
+                            <textarea
+                              name="observations"
+                              className="border-input bg-background w-full min-w-0 rounded-md border px-3 py-2 font-normal"
+                            />
+                          </label>
+                          <Button type="submit" variant="outline" size="sm">
+                            {t("intervention.pret.retour_action")}
+                          </Button>
+                        </form>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </Carte>
+            )}
 
             {/*
               INTERVENTION (9I6) — numéro, nature, priorité, statut,

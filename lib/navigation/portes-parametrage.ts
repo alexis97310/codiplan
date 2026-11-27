@@ -244,6 +244,22 @@ export const PORTES_PARAMETRAGE: readonly PorteParametrage[] = [
     // ci-dessus : aucune `capacite`, l'écran lui-même gère son écriture.
   },
   {
+    // LA PORTE « PARC DE PRÊT » (9L61-PRET-2-ECRANS-BUREAU, D287). Le socle
+    // (9L60, modèle + dépôt + capacité `gerer_prets`) n'avait AUCUN écran.
+    // Aucune ligne de la maquette ne dessine cette porte — le module est
+    // postérieur à D95 — même précédent que « Checklists » juste au-dessous :
+    // une tuile neuve, sans texte de maquette à reprendre.
+    chemin: "/parametres/prets",
+    titre: "parametres.index_prets_titre",
+    resume: "parametres.index_prets_resume",
+    icone: "send",
+    section: "referentiels",
+    // Même lecture qu'une écriture : `gerer_prets` ne porte aucun ○ (ADMS,
+    // DIR, RM, RS, ADV au complet, jamais TEC ni CLI, D287) — `peut` et
+    // `peutPleinement` coïncident donc pour cette capacité.
+    capacite: "gerer_prets",
+  },
+  {
     // LA PORTE « CHECKLISTS » (9K19-CHECKLIST-PARAMETRAGE, CK3). Le moteur
     // (`checklist_modele`/`checklist_version`/`checklist_point`, 9K08, D235)
     // existait depuis 9K08-CHECKLIST-SCHEMA et n'avait aucun écran — ni pour
