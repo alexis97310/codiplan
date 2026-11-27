@@ -2206,6 +2206,16 @@ export const TABLES_INTERNES = [
   // client voit sa checklist RÉPONDUE (`checklist_reponse`, forme
   // « filiation »), jamais le modèle qui l'a produite.
   "checklist_modele",
+  // D287 (9L60-PRET-1-MODELE, 27/11/2026) — LE PRÊT D'ÉQUIPEMENT, et il prend
+  // cette forme à sa NAISSANCE, comme `notification` et `checklist_modele`
+  // avant lui. Décision d'Alexis : le bureau seul gère les prêts. *Un compte
+  // portail apprendrait, par filiation (`pret_equipement` est fille de
+  // `client`, `site` et `intervention`, les trois « parc »), qu'un appareil
+  // de remplacement lui a été prêté — une donnée sur le FONCTIONNEMENT DU
+  // BUREAU, pas sur son parc.* Même raisonnement que `segment_travail`
+  // (D119) : la forme « interne » ferme davantage que la filiation qu'elle
+  // aurait sinon réclamée.
+  "pret_equipement",
 ] as const;
 
 /** Les entrées que l'arbitrage D94 autorise. Recopiées : c'est la doctrine. */
@@ -2273,6 +2283,15 @@ const INTERNES_ARBITREES: ReadonlyArray<{
       "société — la façon de travailler de l'entreprise, pas le résultat " +
       "d'une intervention — et par filiation (checklist_version, checklist_" +
       "point) jusqu'au contenu détaillé de chaque point",
+  },
+  {
+    table: "pret_equipement",
+    ceQueLeRetraitRouvre:
+      "un compte portail lirait, par filiation (client, site, intervention, " +
+      "les trois « parc »), qu'un appareil de remplacement lui a été prêté " +
+      "pendant une panne — une donnée sur le FONCTIONNEMENT DU BUREAU, pas " +
+      "sur son parc, et contraire à la décision d'Alexis du 27/11/2026 : le " +
+      "bureau seul gère les prêts",
   },
 ];
 

@@ -449,6 +449,20 @@ describe("degrés d'accès", () => {
     );
   });
 
+  it("D287 (27/11/2026, 9L60) — « gerer_prets » : le bureau, jamais TEC ni CLI", () => {
+    for (const role of [
+      Role.admin_societe,
+      Role.direction,
+      Role.responsable_materiel,
+      Role.responsable_sav,
+      Role.adv,
+    ]) {
+      expect(niveau(role, "gerer_prets"), role).toBe("complet");
+    }
+    expect(niveau(Role.technicien, "gerer_prets")).toBe("aucun");
+    expect(niveau(Role.client, "gerer_prets")).toBe("aucun");
+  });
+
   it("aucune capacité n'est refusée à tout le monde", () => {
     // Une ligne où personne n'aurait rien serait une transcription fautive.
     for (const capacite of CAPACITES) {

@@ -97,6 +97,11 @@ export const CAPACITES = [
   // politique RLS scopée aux seules lignes de déménagement (`journal_audit_
   // lecture_emplacements_machine`) : le journal entier reste réservé.
   "consulter_historique_emplacements",
+  // D287 (27/11/2026, décision d'Alexis ~09h30, ticket 9L60) — absente du
+  // §5.2 : le bureau prête un équipement de remplacement pendant une panne.
+  // Ni TEC ni CLI : le technicien ne gère pas le parc de prêt, et le prêt
+  // n'est jamais visible ni géré depuis le portail (décision 1 du cadrage).
+  "gerer_prets",
   "gerer_client_site",
   "consulter_parc_complet",
   "consulter_parc_propre",
@@ -200,6 +205,11 @@ const MATRICE: Readonly<Record<Capacite, Ligne>> = {
   consulter_historique_emplacements: {
     complet: [ADMS, DIR, RM, RS, ADV, TEC],
   },
+  // D287 (27/11/2026, 9L60) — « je prête un équipement lorsqu'il y a une
+  // panne et un délai avant la réappro d'une pièce » : sortie, retour et
+  // parc de prêt sont un geste du bureau, comme `annuler_intervention`. Aucun
+  // ○ : un prêt est enregistré entièrement ou refusé, jamais partiel.
+  gerer_prets: { complet: [ADMS, DIR, RM, RS, ADV] },
   // D130 : la fiche client et la fiche site sont du référentiel commercial,
   // pas de l'exploitation — responsable_materiel et responsable_sav en sont
   // délibérément absents, malgré leur accès complet à la machine.

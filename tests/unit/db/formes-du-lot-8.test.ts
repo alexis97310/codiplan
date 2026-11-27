@@ -207,6 +207,11 @@ describe("la liste close de la TREIZIÈME forme — « interne »", () => {
     // cette liste qui soit aussi une FILLE d'une table du parc — le critère de
     // la filiation la réclamerait, et « interne » ferme davantage : la
     // comparaison est écrite dans `ecartsTablesFilles`, pas supposée.
+    //
+    // **`pret_equipement` s'y ajoute à D287 (9L60), à SA NAISSANCE elle
+    // aussi** : le bureau seul gère les prêts (décision d'Alexis du
+    // 27/11/2026), jamais le portail — même raisonnement que
+    // `segment_travail`, fille elle aussi d'une table du parc.
     expect([...TABLES_INTERNES]).toEqual([
       "document_recu",
       "absence",
@@ -215,6 +220,7 @@ describe("la liste close de la TREIZIÈME forme — « interne »", () => {
       "segment_travail",
       "notification",
       "checklist_modele",
+      "pret_equipement",
     ]);
   });
 
@@ -227,6 +233,7 @@ describe("la liste close de la TREIZIÈME forme — « interne »", () => {
       "segment_travail",
       "notification",
       "checklist_modele",
+      "pret_equipement",
       "taux_horaire",
     ]);
     expect(ecarts).toHaveLength(1);
@@ -235,7 +242,7 @@ describe("la liste close de la TREIZIÈME forme — « interne »", () => {
 
   it("le RETRAIT — le sens SILENCIEUX — est refusé lui aussi, et CHACUN dit ce qu'il rouvre", () => {
     const ecarts = ecartsListeInterne([]);
-    expect(ecarts).toHaveLength(7);
+    expect(ecarts).toHaveLength(8);
     expect(ecarts[0]).toMatch(/NOMS DE FICHIERS/);
     // Et celui de `segment_travail` ne parle ni de fichier ni de santé : il
     // parle de MINUTES. *Trois motifs distincts sur cinq entrées est ce qui

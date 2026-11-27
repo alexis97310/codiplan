@@ -150,6 +150,12 @@ model Societe {
 
   import_lots       ImportLot[]      @ignore
   import_lot_lignes ImportLotLigne[] @ignore
+
+  /// `@ignore` (9L60-PRET-1-MODELE) : même raisonnement — `lib/prets/
+  /// depot.ts` sélectionne toujours `appareil_pret`/`pret_equipement` par
+  /// requête filtrée, jamais par cette réciproque.
+  appareils_pret AppareilPret[]   @ignore
+  prets          PretEquipement[] @ignore
   // Les six `@ignore` ci-dessus (`trajets_par_zone` à `import_lot_lignes`)
   // suivent le même raisonnement que le bloc plus bas dans ce modèle (voir
   // son commentaire) — même mesure, même ticket (9L04A-MEMOIRE-BUILD-CAUSE,
@@ -851,6 +857,10 @@ model Client {
   /// vérifié : `Contact.client` non plus jamais sélectionné.
   contacts Contact[]           @ignore
   machines Machine[]
+  /// `@ignore` (9L60-PRET-1-MODELE, même motif que ci-dessus) : aucun chemin
+  /// de ce lot ne navigue `Client.prets` — `lib/prets/depot.ts` filtre
+  /// `PretEquipement` par `client_id` en scalaire.
+  prets    PretEquipement[]    @ignore
 
   @@unique([societe_id, code_externe])
   /// Clé composite technique — cible du chaînage de `site` et de
@@ -1035,6 +1045,9 @@ model Site {
   /// se lit toujours par sa propre requête filtrée.
   habilitations_requises SiteHabilitationRequise[] @ignore
   machines               Machine[]
+  /// `@ignore` (9L60-PRET-1-MODELE, même motif que ci-dessus) : aucun chemin
+  /// de ce lot ne navigue `Site.prets`.
+  prets                  PretEquipement[]          @ignore
 
   /// Cible du chaînage TRIPLE depuis `contact` : un contact rattaché à un site
   /// doit l'être à un site DE SON CLIENT, et c'est la clé qui le tient.
@@ -2280,6 +2293,10 @@ model Intervention {
   /// une version, immuable, ne s'efface jamais sous une intervention qui l'a
   /// pinnée.
   checklist_version ChecklistVersion? @relation(fields: [societe_id, checklist_version_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  /// `@ignore` (9L60-PRET-1-MODELE, même motif que `observations_vgp`) :
+  /// `lib/prets/depot.ts` filtre `PretEquipement` par `intervention_id` en
+  /// scalaire, jamais par cette réciproque.
+  prets             PretEquipement[]  @ignore
 
   @@unique([societe_id, id])
   @@unique([societe_id, annee, numero])
@@ -4819,4 +4836,142 @@ model NotificationLecture {
   @@unique([notification_id, utilisateur_id])
   @@index([societe_id, notification_id])
   @@map("notification_lecture")
+}
+
+// ── L'ÉQUIPEMENT DE PRÊT (9L60-PRET-1-MODELE, décision d'Alexis du
+// 27/11/2026 ~09h30 NC) ──────────────────────────────────────────────────
+//
+// « Je prête un équipement lorsqu'il y a une panne et un délai avant la
+// réappro d'une pièce. » Cadrage, validé le même jour : le BUREAU SEUL
+// enregistre sortie et retour — jamais le technicien, jamais le portail
+// (capacité `gerer_prets`, ni TEC ni CLI) ; le prêt est GRATUIT — AUCUNE
+// colonne de montant, l'argent restant un point d'arrêt (CLAUDE.md §8) ; un
+// bon de prêt signé par le client à la remise (lot 3, colonnes réservées
+// ci-dessous). Arbitrage D287.
+
+/// L'état d'un appareil du parc de prêt. `en_revision` couvre la remise en
+/// état entre deux prêts — un appareil qui revient endommagé n'est pas
+/// `disponible` tant que personne ne l'a vérifié.
+enum StatutAppareilPret {
+  disponible
+  prete
+  en_revision
+}
+
+/// LE PARC DE PRÊT (D287) — des appareils qui appartiennent à la SOCIÉTÉ
+/// elle-même, jamais à un client ni à un site. **Table SÉPARÉE de
+/// `Machine`, et c'est une décision nommée par D287** : `Machine` porte
+/// quatre colonnes obligatoires NOT NULL (D6) dont `client_id` et `site_id`
+/// — les rendre nullables pour accueillir un appareil sans client aurait
+/// affaibli un invariant déjà posé pour tout le parc existant, pour le
+/// bénéfice d'une poignée de lignes qui ne sont d'ailleurs jamais sur un
+/// site tant qu'elles ne sont pas prêtées.
+///
+/// Forme « société » (le cas ordinaire de la PREMIÈRE catégorie de I1) :
+/// aucune colonne `client_id` n'existe ici, donc aucune des douze formes
+/// plus étroites ne s'impose — un compte de portail n'a de toute façon
+/// aucun chemin qui lise cette table (aucun écran de ce lot, I1 §8).
+model AppareilPret {
+  id         String @id @db.Uuid
+  societe_id String @db.Uuid
+
+  designation  String
+  marque       String?
+  modele       String?
+  numero_serie String?
+
+  statut StatutAppareilPret @default(disponible)
+  actif  Boolean             @default(true)
+
+  cree_le    DateTime @default(now())
+  modifie_le DateTime @updatedAt
+
+  societe Societe          @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  /// `@ignore` : aucun chemin de ce lot ne navigue `AppareilPret.prets` —
+  /// `lib/prets/depot.ts` filtre `PretEquipement` par `appareil_id` en
+  /// scalaire, jamais par cette réciproque.
+  prets   PretEquipement[] @ignore
+
+  @@unique([societe_id, id])
+  @@index([societe_id, statut])
+  @@map("appareil_pret")
+}
+
+/// LE PRÊT (D287) — un appareil du parc de prêt, prêté le temps d'une
+/// réparation. TOUJOURS rattaché à une intervention (le motif du prêt,
+/// obligatoire) et à un client et un site (recopiés de cette intervention à
+/// la sortie, jamais redéduits ensuite : un prêt reste lié au client qu'il a
+/// servi même si l'intervention changeait de site plus tard, ce qui ne se
+/// produit d'ailleurs pas après D197).
+///
+/// Forme « interne » (D287, même régime que `Notification`/D229 et
+/// `DocumentRecu`/D94) — société ET `app.client_id` absent : décision
+/// d'Alexis du 27/11/2026, le bureau seul gère les prêts, jamais le portail.
+/// `pret_equipement` est fille de `client`, `site` ET `intervention`, les
+/// trois de forme « parc » — la forme « interne » ferme davantage que la
+/// filiation qu'elle aurait sinon réclamée, exactement comme pour
+/// `segment_travail` (D119) : un compte portail ne lirait, par filiation,
+/// AUCUNE prestation de ses propres interventions, mais apprendrait qu'un
+/// appareil leur a été prêté — une donnée sur le FONCTIONNEMENT DU BUREAU,
+/// pas sur son parc. **Aucun écran de portail n'en lit en V1** : le jour où
+/// cela change, cette forme SE RETIRE, elle ne s'assouplit pas.
+model PretEquipement {
+  id         String @id @db.Uuid
+  societe_id String @db.Uuid
+
+  appareil_id     String @db.Uuid
+  intervention_id String @db.Uuid
+  client_id       String @db.Uuid
+  site_id         String @db.Uuid
+
+  date_sortie        DateTime  @db.Date
+  date_retour_prevue DateTime  @db.Date
+  /// `NULL` tant que le prêt est EN COURS. La migration pose un index unique
+  /// PARTIEL `(societe_id, appareil_id) WHERE date_retour_reelle IS NULL` —
+  /// un appareil ne tient qu'UN prêt en cours — ancré sur cette nullité et
+  /// jamais sur `appareil.statut`, qui serait une seconde source du même
+  /// fait (§9, 01/09).
+  date_retour_reelle DateTime?
+
+  /// Texte court, les deux : le chapitre 10 ne donne aucune énumération
+  /// d'états d'appareil, et en fermer une ici déciderait une règle que
+  /// personne n'a arbitrée (CLAUDE.md §8).
+  etat_depart  String
+  etat_retour  String?
+  observations String?
+
+  /// Identités scalaires, SANS relation Prisma déclarée vers `Utilisateur`
+  /// — même choix que `Notification.destinataire_id` (D39) : une relation
+  /// ferait naître son INVERSE sur `utilisateur`, que le gardien de D39
+  /// refuserait à bon droit.
+  auteur_sortie_id String? @db.Uuid
+  auteur_retour_id String? @db.Uuid
+
+  /// ── RÉSERVÉ AU LOT 3 (bon de prêt signé à la remise) — AUCUNE de ces
+  /// cinq colonnes n'est écrite par ce lot, posées ici pour qu'UNE SEULE
+  /// migration couvre les trois lots du module (9L60). `bon_document_id`
+  /// référencera `Document` en base (clé composite, à sa propre migration)
+  /// sans relation Prisma déclarée non plus, pour la même raison que
+  /// `auteur_sortie_id` ci-dessus.
+  signataire_nom      String?
+  signataire_qualite  String?
+  signature_objet_cle String?
+  bon_document_id     String?   @db.Uuid
+  date_signature      DateTime?
+
+  cree_le    DateTime @default(now())
+  modifie_le DateTime @updatedAt
+
+  societe      Societe      @relation(fields: [societe_id], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  appareil     AppareilPret @relation(fields: [societe_id, appareil_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  intervention Intervention @relation(fields: [societe_id, intervention_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  client       Client       @relation(fields: [societe_id, client_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+  site         Site         @relation(fields: [societe_id, site_id], references: [societe_id, id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([societe_id, id])
+  @@index([societe_id, appareil_id])
+  @@index([societe_id, intervention_id])
+  @@index([societe_id, client_id])
+  @@index([societe_id, site_id])
+  @@map("pret_equipement")
 }
