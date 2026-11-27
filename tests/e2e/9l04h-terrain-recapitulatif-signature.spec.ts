@@ -395,9 +395,7 @@ test("375 px — le nom prérempli reste modifiable, et c'est le nom MODIFIÉ qu
       scene.interventionId,
     );
     expect(signature[0]?.signataire_nom).toBe(nomModifie);
-    expect(signature[0]?.signataire_nom).not.toBe(
-      fr["9l04h.e2e.contact_nom"],
-    );
+    expect(signature[0]?.signataire_nom).not.toBe(fr["9l04h.e2e.contact_nom"]);
   } finally {
     await nettoyerScene(client, scene);
   }
