@@ -337,3 +337,68 @@ test("375 px — le récapitulatif se lit avant la signature, sans aucun montant
     await nettoyerScene(client, scene);
   }
 });
+
+// 9L52-TERRAIN-SIGNATURE-ZONE-NOM, point 2 : le nom prérempli avec le
+// contact sur place N'EST JAMAIS IMPOSÉ — une modification avant l'envoi se
+// retrouve en base, pas le nom du contact. Seule la MODIFICATION distingue
+// cette épreuve de celle ci-dessus, qui envoie le nom prérempli tel quel.
+test("375 px — le nom prérempli reste modifiable, et c'est le nom MODIFIÉ qui est enregistré", async ({
+  page,
+}) => {
+  const client = admin();
+  let scene: Scene | null = null;
+  try {
+    scene = await creerScene(client, "9L52B");
+
+    await page.setViewportSize({ width: 375, height: 900 });
+    await ouvrirLaSessionSensible(page, COMPTE_TECHNICIEN_EPREUVE);
+    await page.goto(`/terrain/${scene.interventionId}`);
+
+    await page
+      .getByRole("button", { name: fr["terrain.signature.option_signee"] })
+      .click();
+    const nom = page.getByLabel(fr["terrain.signature.nom_libelle"]);
+    await expect(nom).toHaveValue(fr["9l04h.e2e.contact_nom"]);
+
+    const nomModifie = "zz9L52B Jean Dupont, sur place";
+    await nom.fill(nomModifie);
+    await expect(nom).toHaveValue(nomModifie);
+
+    await page.locator("canvas").evaluate((element) => {
+      const rectangle = element.getBoundingClientRect();
+      const envoyer = (type: string, x: number, y: number): void => {
+        element.dispatchEvent(
+          new PointerEvent(type, {
+            bubbles: true,
+            clientX: rectangle.left + x,
+            clientY: rectangle.top + y,
+            pointerId: 1,
+          }),
+        );
+      };
+      envoyer("pointerdown", 20, 20);
+      envoyer("pointermove", 60, 60);
+      envoyer("pointerup", 60, 60);
+    });
+
+    await page
+      .getByRole("button", { name: fr["terrain.signature.valider"] })
+      .click();
+    await expect(
+      page.getByText(fr["terrain.signature.enregistre"]),
+    ).toBeVisible();
+
+    const signature = await client.$queryRawUnsafe<
+      { signataire_nom: string }[]
+    >(
+      `SELECT signataire_nom FROM "intervention_signature" WHERE "intervention_id" = $1::uuid ORDER BY "cree_le" DESC LIMIT 1`,
+      scene.interventionId,
+    );
+    expect(signature[0]?.signataire_nom).toBe(nomModifie);
+    expect(signature[0]?.signataire_nom).not.toBe(
+      fr["9l04h.e2e.contact_nom"],
+    );
+  } finally {
+    await nettoyerScene(client, scene);
+  }
+});
