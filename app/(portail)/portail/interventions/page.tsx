@@ -25,18 +25,24 @@ export const metadata: Metadata = { title: t("portail.interventions.titre") };
  * LA LISTE DES INTERVENTIONS DU PORTAIL (9J07-PORTAIL-INTERVENTION-ETAT,
  * CLI-2.5, CLI-2.7) — L'ÉTAT COURANT SEUL.
  *
- * ## LA LECTURE DU CONTEXTE — IDENTIQUE AUX AUTRES ÉCRANS DU PORTAIL (D70,
- * D92), JAMAIS UNE SECONDE DÉSIGNATION
+ * ## LA LECTURE DU CONTEXTE — TOUS LES CLIENTS RATTACHÉS, PAS SEULEMENT LE
+ * PREMIER (9L50-PORTAIL-PHOTOS-TOUS-CLIENTS)
  *
- * Même chemin que `/portail/demandes` et `/portail/contacts` : rôle du
- * portail exigé, puis le PREMIER rattachement de ce compte sur la société
- * active.
+ * `app.client_id` ne désigne qu'UN client par lecture (D70) : un compte
+ * rattaché à plusieurs clients de la même société n'a donc pas de lecture
+ * unique pour « toutes mes interventions ». Cette page interroge chaque
+ * rattachement et CONCATÈNE — jamais `premierSucces` (`lib/portail/depot.ts`),
+ * réservée aux lectures PAR IDENTIFIANT : une intervention n'appartient qu'à
+ * un seul client, une LISTE en porte plusieurs à la fois. Mesuré avant ce
+ * ticket : un compte à deux clients ne voyait que les interventions du
+ * premier — exactement le défaut relevé sur les photos (revue de 9L28).
  *
  * ## FORME « PARC », AUCUN FILTRE ÉCRIT ICI
  *
  * `interventionsDuParc` (`./depot.ts`) lit sous le contexte — société, client
  * et périmètre de sites sont ceux que `intervention` porte déjà, exactement
- * comme `parcDuClient`. Aucune comparaison n'est recomposée dans cette page.
+ * comme `parcDuClient`. Aucune comparaison n'est recomposée dans cette page ;
+ * seule l'UNION de plusieurs lectures, une par client, l'est.
  *
  * ## AUCUNE ENTRÉE DE MENU N'EST AJOUTÉE
  *
@@ -69,17 +75,30 @@ export default async function PageInterventionsPortail() {
   const surCetteSociete = rattachements.filter(
     (r) => r.societeId === session.contexte.societeId,
   );
-  const premier = surCetteSociete[0];
-  if (premier === undefined) {
+  if (surCetteSociete.length === 0) {
     redirect("/arrivee");
   }
 
-  const contexte = { ...session.contexte, clientId: premier.clientId };
-  const [interventions, parc] = await Promise.all([
-    interventionsDuParc(contexte),
-    parcDuClient(contexte),
+  const [listesInterventions, listesSites] = await Promise.all([
+    Promise.all(
+      surCetteSociete.map((r) =>
+        interventionsDuParc({ ...session.contexte, clientId: r.clientId }),
+      ),
+    ),
+    Promise.all(
+      surCetteSociete.map((r) =>
+        parcDuClient({ ...session.contexte, clientId: r.clientId }),
+      ),
+    ),
   ]);
-  const siteParId = new Map(parc.sites.map((site) => [site.id, site.libelle]));
+  const interventions = listesInterventions
+    .flat()
+    .sort((a, b) => b.creeLe.getTime() - a.creeLe.getTime());
+  const siteParId = new Map(
+    listesSites.flatMap((parc) =>
+      parc.sites.map((site) => [site.id, site.libelle] as const),
+    ),
+  );
 
   return (
     <Page

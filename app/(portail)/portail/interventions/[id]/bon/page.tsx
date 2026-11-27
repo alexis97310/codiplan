@@ -31,7 +31,7 @@ import {
   type TypeIntervention,
 } from "@/lib/interventions/saisie";
 import { ENTREES_PORTAIL } from "@/lib/navigation/entrees";
-import { rattachementsDuCompte } from "@/lib/portail/depot";
+import { premierSucces, rattachementsDuCompte } from "@/lib/portail/depot";
 import { CLASSES_STATUT } from "@/lib/theme/statuts";
 
 import { bonInterventionDuParc } from "../../depot";
@@ -83,10 +83,26 @@ import {
  * `lib/interventions/bon.ts`) ; AUCUN montant ni taux ne les accompagne
  * (3.8, D37, 9I8B, et le reste de cette page) — un segment n'en porte
  * d'ailleurs aucun.
+ *
+ * ## Tous les clients rattachés, pas seulement le premier (9L50)
+ *
+ * `contexteEtBon` essayait SEULEMENT le premier rattachement de ce compte
+ * sur la société active — un compte rattaché à deux clients de la même
+ * société ne voyait jamais le bon (donc jamais les photos, 404 comme hors
+ * société) des interventions du second. Voir le docblock de `contexteEtBon`
+ * ci-dessous.
  */
 
 const sessionCache = cache(async () => obtenirSession(await headers()));
 
+/**
+ * ESSAIE CHAQUE CLIENT RATTACHÉ, PAS SEULEMENT LE PREMIER
+ * (9L50-PORTAIL-PHOTOS-TOUS-CLIENTS) — même défaut que la fiche d'état
+ * (`../depot.ts`) : un compte à deux clients de la même société ne voyait le
+ * bon QUE des interventions du premier, et donc jamais ses photos. Un bon
+ * n'appartient qu'à un seul client : `premierSucces` s'arrête au premier
+ * essai qui ne rend pas « introuvable », jamais un agrégat.
+ */
 async function contexteEtBon(id: string) {
   const session = await sessionCache();
   if (
@@ -100,14 +116,19 @@ async function contexteEtBon(id: string) {
   const rattachements = await rattachementsDuCompte(
     session.contexte.utilisateurId,
   );
-  const premier = rattachements.find(
+  const surCetteSociete = rattachements.filter(
     (r) => r.societeId === session.contexte.societeId,
   );
-  if (premier === undefined) {
+  if (surCetteSociete.length === 0) {
     return null;
   }
-  const contexte = { ...session.contexte, clientId: premier.clientId };
-  return bonInterventionDuParc(contexte, id);
+  const resultat = await premierSucces(
+    surCetteSociete,
+    session.contexte,
+    (contexte) => bonInterventionDuParc(contexte, id),
+    (resultat) => resultat.etat === "introuvable",
+  );
+  return resultat ?? { etat: "introuvable" as const };
 }
 const contexteEtBonCache = cache(contexteEtBon);
 

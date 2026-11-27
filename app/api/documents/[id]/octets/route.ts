@@ -1,11 +1,10 @@
-import { type ContexteSession } from "@/lib/auth/contexte";
 import { dansUnEchangeAuth } from "@/lib/auth/echange";
 import { exigerCapacite, exigerSessionActive } from "@/lib/auth/porte";
 import { estRolePortail } from "@/lib/auth/roles";
 import { lireDocument, octetsDocumentDuParc } from "@/lib/documents/depot";
 import { formatImageReconnu } from "@/lib/documents/formats-image";
 import { lireObjet } from "@/lib/documents/stockage";
-import { rattachementsDuCompte } from "@/lib/portail/depot";
+import { premierSucces, rattachementsDuCompte } from "@/lib/portail/depot";
 
 /**
  * `GET /api/documents/{id}/octets` — LES OCTETS D'UN DOCUMENT (BON-2).
@@ -27,6 +26,14 @@ import { rattachementsDuCompte } from "@/lib/portail/depot";
  * tuiles.tsx`), demande donc cette même route. Un second essai, sous le rôle
  * portail et `octetsDocumentDuParc`, couvre ce cas SANS toucher au premier.
  *
+ * **UN COMPTE RATTACHÉ À PLUSIEURS CLIENTS DE LA MÊME SOCIÉTÉ ESSAIE CHACUN**
+ * (9L50-PORTAIL-PHOTOS-TOUS-CLIENTS) — mesuré : avant ce ticket, seul le
+ * PREMIER rattachement était désigné (`app.client_id`, D70), et la photo
+ * d'une intervention d'un second client rendait 404 exactement comme une
+ * photo hors société. `premierSucces` (`lib/portail/depot.ts`) essaie chaque
+ * rattachement dans l'ordre et s'arrête au premier qui rend un document —
+ * jamais un agrégat : un document n'appartient qu'à un seul client.
+ *
  * **`exigerSessionActive`, jamais `headers()` relu ici** (9EZ-LOGO-SOCIETE-1)
  * — même couture de lecture qu'`exigerCapacite`, pour que les deux gardes de
  * cette route restent mockables par le même module dans les scénarios qui
@@ -41,17 +48,27 @@ export async function GET(
   return dansUnEchangeAuth(() => traiter(params));
 }
 
-async function contexteParc(): Promise<ContexteSession | null> {
+async function documentDuParcPourCompte(
+  id: string,
+): Promise<Awaited<ReturnType<typeof octetsDocumentDuParc>> | null> {
   const actif = await exigerSessionActive();
   if (actif === null || !estRolePortail(actif.role)) {
     return null;
   }
   const rattachements = await rattachementsDuCompte(actif.utilisateurId);
-  const premier = rattachements.find((r) => r.societeId === actif.societeId);
-  if (premier === undefined) {
+  const surCetteSociete = rattachements.filter(
+    (r) => r.societeId === actif.societeId,
+  );
+  if (surCetteSociete.length === 0) {
     return null;
   }
-  return { ...actif, clientId: premier.clientId };
+  const document = await premierSucces(
+    surCetteSociete,
+    actif,
+    (contexte) => octetsDocumentDuParc(contexte, id),
+    (resultat) => resultat === null,
+  );
+  return document ?? null;
 }
 
 async function traiter(params: Promise<{ id: string }>): Promise<Response> {
@@ -60,10 +77,7 @@ async function traiter(params: Promise<{ id: string }>): Promise<Response> {
   const document =
     contexteBureau !== null
       ? await lireDocument(contexteBureau, id)
-      : await (async () => {
-          const contexte = await contexteParc();
-          return contexte === null ? null : octetsDocumentDuParc(contexte, id);
-        })();
+      : await documentDuParcPourCompte(id);
   if (document === null) {
     return new Response(null, { status: 404 });
   }

@@ -82,6 +82,41 @@ export async function rattachementsDuCompte(
   }));
 }
 
+/**
+ * ESSAIE CHAQUE CLIENT RATTACHÉ, DANS L'ORDRE, ET S'ARRÊTE AU PREMIER QUI
+ * RÉUSSIT (9L50-PORTAIL-PHOTOS-TOUS-CLIENTS).
+ *
+ * `app.client_id` DÉSIGNE un seul client à la fois (D70, `ContexteSession.
+ * clientId`) : un compte qui tient plusieurs clients d'une même société
+ * (UNIQUE `(utilisateur_id, client_id)`, jamais `(utilisateur_id,
+ * societe_id)`) n'a donc pas de lecture unique pour « cette intervention,
+ * quel que soit le client auquel elle appartient » — une ligne n'appartient
+ * JAMAIS qu'à un seul client, donc aucun agrégat n'a de sens ici,
+ * contrairement à une LISTE (voir `/portail/interventions`, qui interroge
+ * chaque client et concatène). On essaie chaque désignation jusqu'à ce que
+ * l'une d'elles rende un résultat que `estUnEchec` ne reconnaît pas comme tel.
+ *
+ * Rend le DERNIER résultat si aucun n'a réussi — c'est celui qu'un compte à
+ * un seul rattachement, ou sans rattachement du tout, aurait déjà rendu avant
+ * ce ticket, pour que les refus existants (introuvable, hors périmètre) ne
+ * changent pas de forme.
+ */
+export async function premierSucces<T>(
+  rattachements: readonly Rattachement[],
+  contexte: ContexteSession,
+  lire: (contexte: ContexteSession) => Promise<T>,
+  estUnEchec: (resultat: T) => boolean,
+): Promise<T | undefined> {
+  let dernier: T | undefined;
+  for (const rattachement of rattachements) {
+    dernier = await lire({ ...contexte, clientId: rattachement.clientId });
+    if (!estUnEchec(dernier)) {
+      return dernier;
+    }
+  }
+  return dernier;
+}
+
 /** Ce que « Mon compte » du portail montre du client — rien que le nom et l'adresse. */
 export type FicheDuCompte = {
   readonly raisonSociale: string | null;

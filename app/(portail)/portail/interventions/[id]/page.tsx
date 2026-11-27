@@ -7,6 +7,7 @@ import { cache } from "react";
 
 import { Page } from "@/components/mise-en-page/page";
 import { CLASSE_BOUTON_PORTAIL } from "@/components/portail/gabarit";
+import { type ContexteSession } from "@/lib/auth/contexte";
 import { estRolePortail } from "@/lib/auth/roles";
 import { obtenirSession } from "@/lib/auth/session";
 import { maintenant, lireFuseau } from "@/lib/calendar/fuseau";
@@ -18,7 +19,7 @@ import { parcDuClient, rattachementsDuCompte } from "@/lib/portail/depot";
 import { historiqueInterventionDuClient } from "@/lib/portail/historique-etats";
 import { commentairesVisiblesClient } from "@/lib/portail/interventions";
 
-import { ficheInterventionDuParc } from "../depot";
+import { ficheInterventionDuParc, type InterventionDuPortail } from "../depot";
 import {
   dateDeLIntervention,
   identifiantDeLIntervention,
@@ -48,11 +49,29 @@ import {
  */
 const sessionCache = cache(async () => obtenirSession(await headers()));
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}): Promise<Metadata> {
+/**
+ * LE CLIENT QUI RÉSOUT CETTE INTERVENTION — ESSAYÉ PARMI TOUS LES
+ * RATTACHEMENTS, PAS SEULEMENT LE PREMIER (9L50-PORTAIL-PHOTOS-TOUS-CLIENTS).
+ *
+ * `commentairesVisiblesClient`, `historiqueInterventionDuClient` et
+ * `parcDuClient` exigent le MÊME `clientId` que celui qui a rendu la fiche —
+ * ce sont deux lectures du même objet, elles doivent voir le même périmètre.
+ * On résout donc le client UNE SEULE FOIS ici (au plus un essai par
+ * rattachement), et le reste de la page réutilise ce contexte confirmé —
+ * jamais une seconde résolution qui pourrait tomber sur un autre client.
+ *
+ * Mémoïsée par requête (`cache()`), comme `sessionCache` : `generateMetadata`
+ * et le corps de la page lisent la même fiche sans la relire deux fois.
+ */
+async function contexteEtFiche(id: string): Promise<
+  | { readonly etat: "aucun_rattachement" }
+  | { readonly etat: "introuvable" }
+  | {
+      readonly etat: "disponible";
+      readonly contexte: ContexteSession;
+      readonly fiche: InterventionDuPortail;
+    }
+> {
   const session = await sessionCache();
   if (
     session === null ||
@@ -60,30 +79,42 @@ export async function generateMetadata({
     session.contexte.role === null ||
     !estRolePortail(session.contexte.role)
   ) {
-    return { title: t("portail.interventions.titre") };
-  }
-  const { id } = await params;
-  if (!estUuid(id)) {
-    return { title: t("portail.interventions.titre") };
+    return { etat: "aucun_rattachement" };
   }
   const rattachements = await rattachementsDuCompte(
     session.contexte.utilisateurId,
   );
-  const premier = rattachements.find(
+  const surCetteSociete = rattachements.filter(
     (r) => r.societeId === session.contexte.societeId,
   );
-  if (premier === undefined) {
+  for (const rattachement of surCetteSociete) {
+    const contexte = { ...session.contexte, clientId: rattachement.clientId };
+    const fiche = await ficheInterventionDuParc(contexte, id);
+    if (fiche !== null) {
+      return { etat: "disponible", contexte, fiche };
+    }
+  }
+  return surCetteSociete.length === 0
+    ? { etat: "aucun_rattachement" }
+    : { etat: "introuvable" };
+}
+const contexteEtFicheCache = cache(contexteEtFiche);
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  if (!estUuid(id)) {
     return { title: t("portail.interventions.titre") };
   }
-  const fiche = await ficheInterventionDuParc(
-    { ...session.contexte, clientId: premier.clientId },
-    id,
-  );
+  const resultat = await contexteEtFicheCache(id);
   return {
     title:
-      fiche === null
-        ? t("portail.interventions.titre")
-        : titreDeLaFicheIntervention(fiche),
+      resultat.etat === "disponible"
+        ? titreDeLaFicheIntervention(resultat.fiche)
+        : t("portail.interventions.titre"),
   };
 }
 
@@ -117,19 +148,15 @@ export default async function PageFicheInterventionPortail({
     notFound();
   }
 
-  const rattachements = await rattachementsDuCompte(
-    session.contexte.utilisateurId,
-  );
-  const premier = rattachements.find(
-    (r) => r.societeId === session.contexte.societeId,
-  );
-  if (premier === undefined) {
+  const resultat = await contexteEtFicheCache(id);
+  if (resultat.etat === "aucun_rattachement") {
     redirect("/arrivee");
   }
-
-  const contexte = { ...session.contexte, clientId: premier.clientId };
-  const [fiche, commentaires, parc, historique, societe] = await Promise.all([
-    ficheInterventionDuParc(contexte, id),
+  if (resultat.etat === "introuvable") {
+    notFound();
+  }
+  const { contexte, fiche } = resultat;
+  const [commentaires, parc, historique, societe] = await Promise.all([
     commentairesVisiblesClient(contexte, id),
     parcDuClient(contexte),
     historiqueInterventionDuClient(contexte, id),
@@ -140,7 +167,7 @@ export default async function PageFicheInterventionPortail({
       }),
     ),
   ]);
-  if (fiche === null || commentaires === null) {
+  if (commentaires === null) {
     notFound();
   }
   const siteParId = new Map(parc.sites.map((site) => [site.id, site.libelle]));
