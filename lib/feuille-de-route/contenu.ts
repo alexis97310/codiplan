@@ -45,11 +45,6 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
         statut: "a_ecrire",
         titre: "Bug des pièces sur l'application technicien (à préciser).",
       },
-      {
-        statut: "a_ecrire",
-        titre:
-          "Équipement de prêt — prêter un appareil au client pendant une réparation et suivre le parc de remplacement (prévu en Version 2 au cahier des charges) : besoin à cadrer avec Alexis.",
-      },
     ],
   },
   {
@@ -94,6 +89,11 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
         statut: "tranche",
         titre:
           "m11 — Bleu pour l'état actif, rouge réservé à l'erreur, sur les cases de la fiche terrain : non retenu, couleurs natives inchangées. Tranché le 23/11/2026 (9L37).",
+      },
+      {
+        statut: "en_cours",
+        titre:
+          "Équipement de prêt — prêter un appareil en attendant une pièce. Cadrage tranché le 27/11/2026 (D287) : le bureau seul gère les prêts, c'est gratuit, un bon signé à la remise. Le socle (modèle, dépôt, capacité) est posé ; les écrans (parc, sortie/retour, bon signé) restent à écrire.",
       },
     ],
   },
