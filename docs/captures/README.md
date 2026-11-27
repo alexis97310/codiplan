@@ -4,8 +4,8 @@
 
 | | |
 |---|---|
-| **Commit photographié** | `6d207f061ad258910f70e8ced9528b033956c49d` (`6d207f0`) — lu dans `git rev-parse HEAD` au moment de la prise, jamais de mémoire |
-| **Date de la prise** | 2026-11-14 23:02 UTC — lue à l'horloge, jamais déduite |
+| **Commit photographié** | `2f7142bbbc6ed7d7e0aca3a05fc659107b4b8148` (`2f7142b`) — lu dans `git rev-parse HEAD` au moment de la prise, jamais de mémoire |
+| **Date de la prise** | 2026-11-27 11:40 UTC — lue à l'horloge, jamais déduite |
 | **Base** | un PostgreSQL 16 local et jetable, rempli par `pnpm db:seed` — aucune donnée réelle (I9) |
 | **Compte** | l'identité de démonstration du seed |
 
@@ -70,7 +70,7 @@ BASE=http://127.0.0.1:3100 COURRIEL=… MOT_DE_PASSE=… \
 pnpm captures:etat
 ```
 
-Elle compare `6d207f0` à `HEAD` sur les chemins ci-dessous et rend l'un de **trois** verdicts. Le troisième est celui qu'on oublie : dans un clone tronqué (`--depth`), l'empreinte photographiée n'existe pas, et *« je ne sais pas » se lirait « rien n'a changé »* — le silence qui a exactement la forme du succès. Elle sort en **1** dans ce cas, et en **0** dès que la question est répondue, quelle que soit la réponse : *un écran qui change entre deux prises est le cours ordinaire du travail, pas une faute, et rougir là-dessus ferait un contrôle qu'on apprend à ne plus lire.*
+Elle compare `2f7142b` à `HEAD` sur les chemins ci-dessous et rend l'un de **trois** verdicts. Le troisième est celui qu'on oublie : dans un clone tronqué (`--depth`), l'empreinte photographiée n'existe pas, et *« je ne sais pas » se lirait « rien n'a changé »* — le silence qui a exactement la forme du succès. Elle sort en **1** dans ce cas, et en **0** dès que la question est répondue, quelle que soit la réponse : *un écran qui change entre deux prises est le cours ordinaire du travail, pas une faute, et rougir là-dessus ferait un contrôle qu'on apprend à ne plus lire.*
 
 | Chemin | | Pourquoi un changement ici change l'image |
 |---|---|---|
@@ -90,13 +90,13 @@ Chaque écran porte un **témoin** : un texte qui doit s'y trouver. Si la page n
 
 ### Refusées à cette prise
 
-- `portail--clair--1280.png : Error: session absente — Error: la connexion du compte portail n'a pas abouti : http://127.0.0.1:3100/connexion?motif=auth.refus
+- `portail--clair--1280.png : Error: session absente — Error: aucun COURRIEL_PORTAIL / MOT_DE_PASSE_PORTAIL fourni : un compte portail n'a AUCUNE ligne dans `utilisateur_societe` (D10), donc aucun compte interne ne peut atteindre cet écran.
   Cet écran demande un compte PORTAIL, distinct du compte interne qui sert au reste de la prise de vue : `COURRIEL_PORTAIL` et `MOT_DE_PASSE_PORTAIL`. Sans eux, le refus dit qu'il manque une identité, jamais que l'écran est cassé. ET AUCUN COMPTE PORTAIL NE PEUT EN RECEVOIR AUJOURD'HUI (mesuré le 10/09/2026) : le seul émetteur d'un lien de premier accès est le geste d'amorçage, qui EXIGE une habilitation dans `utilisateur_societe` — et un compte portail n'en a aucune, par D10. Refus littéral : « L'identité portail@example.test n'est pas habilitée sur la société … ». La chaîne d'ENTRÉE du portail est donc murée un cran au-dessus de ce que D92 a ouvert : D92 a rendu le rattachement LISIBLE, rien ne rend le compte CONNECTABLE. C'est un arbitrage, pas un ticket.`
-- `portail--clair--1024.png : Error: session absente — Error: la connexion du compte portail n'a pas abouti : http://127.0.0.1:3100/connexion?motif=auth.refus
+- `portail--clair--1024.png : Error: session absente — Error: aucun COURRIEL_PORTAIL / MOT_DE_PASSE_PORTAIL fourni : un compte portail n'a AUCUNE ligne dans `utilisateur_societe` (D10), donc aucun compte interne ne peut atteindre cet écran.
   Cet écran demande un compte PORTAIL, distinct du compte interne qui sert au reste de la prise de vue : `COURRIEL_PORTAIL` et `MOT_DE_PASSE_PORTAIL`. Sans eux, le refus dit qu'il manque une identité, jamais que l'écran est cassé. ET AUCUN COMPTE PORTAIL NE PEUT EN RECEVOIR AUJOURD'HUI (mesuré le 10/09/2026) : le seul émetteur d'un lien de premier accès est le geste d'amorçage, qui EXIGE une habilitation dans `utilisateur_societe` — et un compte portail n'en a aucune, par D10. Refus littéral : « L'identité portail@example.test n'est pas habilitée sur la société … ». La chaîne d'ENTRÉE du portail est donc murée un cran au-dessus de ce que D92 a ouvert : D92 a rendu le rattachement LISIBLE, rien ne rend le compte CONNECTABLE. C'est un arbitrage, pas un ticket.`
-- `portail--clair--390.png : Error: session absente — Error: la connexion du compte portail n'a pas abouti : http://127.0.0.1:3100/connexion?motif=auth.refus
+- `portail--clair--390.png : Error: session absente — Error: aucun COURRIEL_PORTAIL / MOT_DE_PASSE_PORTAIL fourni : un compte portail n'a AUCUNE ligne dans `utilisateur_societe` (D10), donc aucun compte interne ne peut atteindre cet écran.
   Cet écran demande un compte PORTAIL, distinct du compte interne qui sert au reste de la prise de vue : `COURRIEL_PORTAIL` et `MOT_DE_PASSE_PORTAIL`. Sans eux, le refus dit qu'il manque une identité, jamais que l'écran est cassé. ET AUCUN COMPTE PORTAIL NE PEUT EN RECEVOIR AUJOURD'HUI (mesuré le 10/09/2026) : le seul émetteur d'un lien de premier accès est le geste d'amorçage, qui EXIGE une habilitation dans `utilisateur_societe` — et un compte portail n'en a aucune, par D10. Refus littéral : « L'identité portail@example.test n'est pas habilitée sur la société … ». La chaîne d'ENTRÉE du portail est donc murée un cran au-dessus de ce que D92 a ouvert : D92 a rendu le rattachement LISIBLE, rien ne rend le compte CONNECTABLE. C'est un arbitrage, pas un ticket.`
-- `portail--clair--375.png : Error: session absente — Error: la connexion du compte portail n'a pas abouti : http://127.0.0.1:3100/connexion?motif=auth.refus
+- `portail--clair--375.png : Error: session absente — Error: aucun COURRIEL_PORTAIL / MOT_DE_PASSE_PORTAIL fourni : un compte portail n'a AUCUNE ligne dans `utilisateur_societe` (D10), donc aucun compte interne ne peut atteindre cet écran.
   Cet écran demande un compte PORTAIL, distinct du compte interne qui sert au reste de la prise de vue : `COURRIEL_PORTAIL` et `MOT_DE_PASSE_PORTAIL`. Sans eux, le refus dit qu'il manque une identité, jamais que l'écran est cassé. ET AUCUN COMPTE PORTAIL NE PEUT EN RECEVOIR AUJOURD'HUI (mesuré le 10/09/2026) : le seul émetteur d'un lien de premier accès est le geste d'amorçage, qui EXIGE une habilitation dans `utilisateur_societe` — et un compte portail n'en a aucune, par D10. Refus littéral : « L'identité portail@example.test n'est pas habilitée sur la société … ». La chaîne d'ENTRÉE du portail est donc murée un cran au-dessus de ce que D92 a ouvert : D92 a rendu le rattachement LISIBLE, rien ne rend le compte CONNECTABLE. C'est un arbitrage, pas un ticket.`
 - `demande-detail--clair--1280.png : Error: le registre ne porte aucun lien de demande : il n'y a rien à détailler, et la capture est refusée plutôt que prise sur une page d'erreur.
   Cet écran n'existe que si le registre porte au moins une demande. Sur une base sans semis de démonstration, le refus est LÉGITIME et dit exactement cela — il ne se confond pas avec un écran cassé.`
@@ -308,14 +308,14 @@ Chaque écran est photographié à **1280 px** (poste de travail), **1024 px** (
 | `arrivee-sans-societe` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | `arrivee-sans-societe` | 390 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | `arrivee-sans-societe` | 375 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `terrain` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 13 |
-| `terrain` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 13 |
-| `terrain` | 390 | 0 | 1 | 0 | 0 | 0 | 0 | 13 |
-| `terrain` | 375 | 0 | 1 | 0 | 0 | 0 | 0 | 13 |
-| `terrain-intervention` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 17 |
-| `terrain-intervention` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 17 |
-| `terrain-intervention` | 390 | 0 | 3 | 0 | 0 | 0 | 0 | 17 |
-| `terrain-intervention` | 375 | 0 | 3 | 0 | 0 | 0 | 0 | 17 |
+| `terrain` | 1280 | 0 | 0 | 0 | 1 | 0 | 0 | 17 |
+| `terrain` | 1024 | 0 | 0 | 0 | 1 | 0 | 0 | 17 |
+| `terrain` | 390 | 0 | 1 | 0 | 1 | 0 | 0 | 17 |
+| `terrain` | 375 | 0 | 1 | 0 | 1 | 0 | 0 | 17 |
+| `terrain-intervention` | 1280 | 0 | 0 | 0 | 2 | 1 | 0 | 18 |
+| `terrain-intervention` | 1024 | 0 | 0 | 0 | 2 | 1 | 0 | 18 |
+| `terrain-intervention` | 390 | 0 | 4 | 0 | 2 | 1 | 0 | 18 |
+| `terrain-intervention` | 375 | 0 | 4 | 0 | 2 | 1 | 0 | 18 |
 | `connexion-code` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | `connexion-code` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | `connexion-code` | 390 | 0 | 1 | 0 | 0 | 0 | 0 | 0 |
@@ -422,8 +422,8 @@ Chaque écran est photographié à **1280 px** (poste de travail), **1024 px** (
 | `parametres-forfaits` | 375 | 0 | 4 | 0 | 0 | 0 | 0 | 0 |
 | `parametres-prestations` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | `parametres-prestations` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| `parametres-prestations` | 390 | 0 | 15 | 0 | 0 | 0 | 0 | 0 |
-| `parametres-prestations` | 375 | 0 | 15 | 0 | 0 | 0 | 0 | 0 |
+| `parametres-prestations` | 390 | 0 | 18 | 0 | 0 | 0 | 0 | 0 |
+| `parametres-prestations` | 375 | 0 | 18 | 0 | 0 | 0 | 0 | 0 |
 | `demandes` | 1280 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | `demandes` | 1024 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | `demandes` | 390 | 0 | 1 | 0 | 0 | 0 | 0 | 0 |
@@ -481,13 +481,23 @@ Chaque écran est photographié à **1280 px** (poste de travail), **1024 px** (
 
   - button.text-muted-foreground.hover:text-foreground — 108×20px — « Se déconnecter »
 
+**`terrain` à 1280 px — erreurs de console (5 premières) :**
+
+  - Refused to frame 'http://127.0.0.1:3100/' because an ancestor violates the following Content Security Policy directive: "frame-ancestors 'none'".
+
+
 **`terrain` à 1280 px — textes du terrain sous 16 px (5 premiers) :**
 
   - span.text-app-encre-faible.block — 12px — « SAV »
   - span.min-w-0.flex-1 — 13px — « CODIMA Nouvelle-Calédonie »
   - button.text-app-encre-faible.hover:bg-app-fond — 13px — « Se déconnecter »
   - span.bg-app-marque.text-app-marque-encre — 12px — « DG »
-  - h2.text-app-encre-faible.text-13 — 13px — « AUJOURD'HUI »
+  - span.inline-flex.shrink-0 — 13px — « En ligne »
+
+**`terrain` à 1024 px — erreurs de console (5 premières) :**
+
+  - Refused to frame 'http://127.0.0.1:3100/' because an ancestor violates the following Content Security Policy directive: "frame-ancestors 'none'".
+
 
 **`terrain` à 1024 px — textes du terrain sous 16 px (5 premiers) :**
 
@@ -495,11 +505,16 @@ Chaque écran est photographié à **1280 px** (poste de travail), **1024 px** (
   - span.min-w-0.flex-1 — 13px — « CODIMA Nouvelle-Calédonie »
   - button.text-app-encre-faible.hover:bg-app-fond — 13px — « Se déconnecter »
   - span.bg-app-marque.text-app-marque-encre — 12px — « DG »
-  - h2.text-app-encre-faible.text-13 — 13px — « AUJOURD'HUI »
+  - span.inline-flex.shrink-0 — 13px — « En ligne »
 
 **`terrain` à 390 px — cibles sous le seuil (5 premières) :**
 
   - a.flex.flex-shrink-0 — 123×38px — « CODIPLAN SAV »
+
+**`terrain` à 390 px — erreurs de console (5 premières) :**
+
+  - Refused to frame 'http://127.0.0.1:3100/' because an ancestor violates the following Content Security Policy directive: "frame-ancestors 'none'".
+
 
 **`terrain` à 390 px — textes du terrain sous 16 px (5 premiers) :**
 
@@ -507,11 +522,16 @@ Chaque écran est photographié à **1280 px** (poste de travail), **1024 px** (
   - span.min-w-0.flex-1 — 13px — « CODIMA Nouvelle-Calédonie »
   - button.text-app-encre-faible.hover:bg-app-fond — 13px — « Se déconnecter »
   - span.bg-app-marque.text-app-marque-encre — 12px — « DG »
-  - h2.text-app-encre-faible.text-13 — 13px — « AUJOURD'HUI »
+  - span.inline-flex.shrink-0 — 13px — « En ligne »
 
 **`terrain` à 375 px — cibles sous le seuil (5 premières) :**
 
   - a.flex.flex-shrink-0 — 123×38px — « CODIPLAN SAV »
+
+**`terrain` à 375 px — erreurs de console (5 premières) :**
+
+  - Refused to frame 'http://127.0.0.1:3100/' because an ancestor violates the following Content Security Policy directive: "frame-ancestors 'none'".
+
 
 **`terrain` à 375 px — textes du terrain sous 16 px (5 premiers) :**
 
@@ -519,7 +539,18 @@ Chaque écran est photographié à **1280 px** (poste de travail), **1024 px** (
   - span.min-w-0.flex-1 — 13px — « CODIMA Nouvelle-Calédonie »
   - button.text-app-encre-faible.hover:bg-app-fond — 13px — « Se déconnecter »
   - span.bg-app-marque.text-app-marque-encre — 12px — « DG »
-  - h2.text-app-encre-faible.text-13 — 13px — « AUJOURD'HUI »
+  - span.inline-flex.shrink-0 — 13px — « En ligne »
+
+**`terrain-intervention` à 1280 px — erreurs de console (5 premières) :**
+
+  - Refused to frame 'http://127.0.0.1:3100/' because an ancestor violates the following Content Security Policy directive: "frame-ancestors 'none'".
+
+  - Refused to frame 'http://127.0.0.1:3100/' because an ancestor violates the following Content Security Policy directive: "frame-ancestors 'none'".
+
+
+**`terrain-intervention` à 1280 px — textes hors échelle (5 premiers) :**
+
+  - h1.text-app-encre.truncate — 17px — « Atelier Ducos »
 
 **`terrain-intervention` à 1280 px — textes du terrain sous 16 px (5 premiers) :**
 
@@ -528,6 +559,17 @@ Chaque écran est photographié à **1280 px** (poste de travail), **1024 px** (
   - button.text-app-encre-faible.hover:bg-app-fond — 13px — « Se déconnecter »
   - span.bg-app-marque.text-app-marque-encre — 12px — « DG »
   - span.inline-grid.h-[22px] — 12px — « P1 — critique »
+
+**`terrain-intervention` à 1024 px — erreurs de console (5 premières) :**
+
+  - Refused to frame 'http://127.0.0.1:3100/' because an ancestor violates the following Content Security Policy directive: "frame-ancestors 'none'".
+
+  - Refused to frame 'http://127.0.0.1:3100/' because an ancestor violates the following Content Security Policy directive: "frame-ancestors 'none'".
+
+
+**`terrain-intervention` à 1024 px — textes hors échelle (5 premiers) :**
+
+  - h1.text-app-encre.truncate — 17px — « Atelier Ducos »
 
 **`terrain-intervention` à 1024 px — textes du terrain sous 16 px (5 premiers) :**
 
@@ -540,8 +582,20 @@ Chaque écran est photographié à **1280 px** (poste de travail), **1024 px** (
 **`terrain-intervention` à 390 px — cibles sous le seuil (5 premières) :**
 
   - a.flex.flex-shrink-0 — 123×38px — « CODIPLAN SAV »
-  - input#_R_q8lbsnpfebrb_.text-16.font-bold — 324×23px — «  »
-  - input#_R_q8lbsnpfebrbH1_.border-app-bord.bg-app-surface — 324×37px — «  »
+  - button.text-app-terrain-encre-secondaire.self-start — 106×23px — « Phrases types »
+  - input#_R_ip5bsnpfebrb_.sr-only — 1×1px — «  »
+  - input#_R_ip5bsnpfebrbH1_.sr-only — 1×1px — «  »
+
+**`terrain-intervention` à 390 px — erreurs de console (5 premières) :**
+
+  - Refused to frame 'http://127.0.0.1:3100/' because an ancestor violates the following Content Security Policy directive: "frame-ancestors 'none'".
+
+  - Refused to frame 'http://127.0.0.1:3100/' because an ancestor violates the following Content Security Policy directive: "frame-ancestors 'none'".
+
+
+**`terrain-intervention` à 390 px — textes hors échelle (5 premiers) :**
+
+  - h1.text-app-encre.truncate — 17px — « Atelier Ducos »
 
 **`terrain-intervention` à 390 px — textes du terrain sous 16 px (5 premiers) :**
 
@@ -554,8 +608,20 @@ Chaque écran est photographié à **1280 px** (poste de travail), **1024 px** (
 **`terrain-intervention` à 375 px — cibles sous le seuil (5 premières) :**
 
   - a.flex.flex-shrink-0 — 123×38px — « CODIPLAN SAV »
-  - input#_R_q8lbsnpfebrb_.text-16.font-bold — 309×23px — «  »
-  - input#_R_q8lbsnpfebrbH1_.border-app-bord.bg-app-surface — 309×37px — «  »
+  - button.text-app-terrain-encre-secondaire.self-start — 106×23px — « Phrases types »
+  - input#_R_ip5bsnpfebrb_.sr-only — 1×1px — «  »
+  - input#_R_ip5bsnpfebrbH1_.sr-only — 1×1px — «  »
+
+**`terrain-intervention` à 375 px — erreurs de console (5 premières) :**
+
+  - Refused to frame 'http://127.0.0.1:3100/' because an ancestor violates the following Content Security Policy directive: "frame-ancestors 'none'".
+
+  - Refused to frame 'http://127.0.0.1:3100/' because an ancestor violates the following Content Security Policy directive: "frame-ancestors 'none'".
+
+
+**`terrain-intervention` à 375 px — textes hors échelle (5 premiers) :**
+
+  - h1.text-app-encre.truncate — 17px — « Atelier Ducos »
 
 **`terrain-intervention` à 375 px — textes du terrain sous 16 px (5 premiers) :**
 
@@ -860,17 +926,17 @@ Chaque écran est photographié à **1280 px** (poste de travail), **1024 px** (
 **`parametres-agences` à 390 px — cibles sous le seuil (5 premières) :**
 
   - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
-  - input#pas-carte-01a1dc4b-bae8-72c2-be22-3476003e6610.border-app-bord.bg-app-surface — 80×29px — «  »
+  - input#pas-carte-01a21ccd-b822-73ad-9a0b-26e938644d11.border-app-bord.bg-app-surface — 80×29px — «  »
   - a.text-app-marque.underline — 324×20px — « Modifier »
-  - input#pas-carte-01a1dc4b-bae8-72c2-be22-3476003e6610.border-app-bord.bg-app-surface — 80×29px — «  »
+  - input#pas-carte-01a21ccd-b822-73ad-9a0b-26e938644d11.border-app-bord.bg-app-surface — 80×29px — «  »
   - a.text-app-marque.underline — 324×20px — « Modifier »
 
 **`parametres-agences` à 375 px — cibles sous le seuil (5 premières) :**
 
   - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
-  - input#pas-carte-01a1dc4b-bae8-72c2-be22-3476003e6610.border-app-bord.bg-app-surface — 80×29px — «  »
+  - input#pas-carte-01a21ccd-b822-73ad-9a0b-26e938644d11.border-app-bord.bg-app-surface — 80×29px — «  »
   - a.text-app-marque.underline — 309×20px — « Modifier »
-  - input#pas-carte-01a1dc4b-bae8-72c2-be22-3476003e6610.border-app-bord.bg-app-surface — 80×29px — «  »
+  - input#pas-carte-01a21ccd-b822-73ad-9a0b-26e938644d11.border-app-bord.bg-app-surface — 80×29px — «  »
   - a.text-app-marque.underline — 309×20px — « Modifier »
 
 **`parametres-forfaits` à 390 px — cibles sous le seuil (5 premières) :**
@@ -892,16 +958,16 @@ Chaque écran est photographié à **1280 px** (poste de travail), **1024 px** (
   - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
   - input#nouvelle-code.border-app-bord.bg-app-surface — 144×29px — «  »
   - input#nouvelle-libelle.border-app-bord.bg-app-surface — 256×29px — «  »
-  - select#nouvelle-famille.border-app-bord.bg-app-surface — 189×28px — « Aucune famille Accessoires de levage Com »
   - input#nouvelle-duree.border-app-bord.bg-app-surface — 144×29px — «  »
+  - input — 13×13px — «  »
 
 **`parametres-prestations` à 375 px — cibles sous le seuil (5 premières) :**
 
   - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
   - input#nouvelle-code.border-app-bord.bg-app-surface — 144×29px — «  »
   - input#nouvelle-libelle.border-app-bord.bg-app-surface — 256×29px — «  »
-  - select#nouvelle-famille.border-app-bord.bg-app-surface — 189×28px — « Aucune famille Accessoires de levage Com »
   - input#nouvelle-duree.border-app-bord.bg-app-surface — 144×29px — «  »
+  - input — 13×13px — «  »
 
 **`demandes` à 390 px — cibles sous le seuil (5 premières) :**
 
@@ -1016,16 +1082,16 @@ Chaque écran est photographié à **1280 px** (poste de travail), **1024 px** (
   - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
   - a.text-app-marque.text-13 — 121×19px — « Affiche à imprimer »
   - summary.cursor-pointer.text-[13px] — 316×19px — « Modifier — D. Garnier »
-  - select#01a1dc4b-bd45-770f-9b22-4a6932f29bb3-agence.border-app-bord.bg-app-surface — 239×28px — «  »
-  - select#01a1dc4b-bd45-770f-9b22-4a6932f29bb3-statut.border-app-bord.bg-app-surface — 176×28px — «  »
+  - select#01a21ccd-ba16-7e76-90fe-8e67eeadfe12-agence.border-app-bord.bg-app-surface — 239×28px — «  »
+  - select#01a21ccd-ba16-7e76-90fe-8e67eeadfe12-statut.border-app-bord.bg-app-surface — 176×28px — «  »
 
 **`parametres-equipe` à 375 px — cibles sous le seuil (5 premières) :**
 
   - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
   - a.text-app-marque.text-13 — 121×19px — « Affiche à imprimer »
   - summary.cursor-pointer.text-[13px] — 301×19px — « Modifier — D. Garnier »
-  - select#01a1dc4b-bd45-770f-9b22-4a6932f29bb3-agence.border-app-bord.bg-app-surface — 239×28px — «  »
-  - select#01a1dc4b-bd45-770f-9b22-4a6932f29bb3-statut.border-app-bord.bg-app-surface — 176×28px — «  »
+  - select#01a21ccd-ba16-7e76-90fe-8e67eeadfe12-agence.border-app-bord.bg-app-surface — 239×28px — «  »
+  - select#01a21ccd-ba16-7e76-90fe-8e67eeadfe12-statut.border-app-bord.bg-app-surface — 176×28px — «  »
 
 **`parametres-materiel` à 390 px — cibles sous le seuil (5 premières) :**
 
@@ -1074,18 +1140,18 @@ Chaque écran est photographié à **1280 px** (poste de travail), **1024 px** (
 **`agence-detail` à 390 px — cibles sous le seuil (5 premières) :**
 
   - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
-  - input#debut-01a1dc4b-baea-7174-abd4-a23ac451aeda.border-app-bord.bg-app-surface — 112×30px — «  »
-  - input#fin-01a1dc4b-baea-7174-abd4-a23ac451aeda.border-app-bord.bg-app-surface — 112×30px — «  »
-  - input#debut-01a1dc4b-baeb-77f8-8864-d5e5ed385647.border-app-bord.bg-app-surface — 112×30px — «  »
-  - input#fin-01a1dc4b-baeb-77f8-8864-d5e5ed385647.border-app-bord.bg-app-surface — 112×30px — «  »
+  - input#debut-01a21ccd-b823-72f0-ae82-4db222571b94.border-app-bord.bg-app-surface — 112×30px — «  »
+  - input#fin-01a21ccd-b823-72f0-ae82-4db222571b94.border-app-bord.bg-app-surface — 112×30px — «  »
+  - input#debut-01a21ccd-b824-744a-80db-55646b798a46.border-app-bord.bg-app-surface — 112×30px — «  »
+  - input#fin-01a21ccd-b824-744a-80db-55646b798a46.border-app-bord.bg-app-surface — 112×30px — «  »
 
 **`agence-detail` à 375 px — cibles sous le seuil (5 premières) :**
 
   - a.focus:bg-app-surface.focus:text-app-marque — 1×1px — « Aller au contenu »
-  - input#debut-01a1dc4b-baea-7174-abd4-a23ac451aeda.border-app-bord.bg-app-surface — 112×30px — «  »
-  - input#fin-01a1dc4b-baea-7174-abd4-a23ac451aeda.border-app-bord.bg-app-surface — 112×30px — «  »
-  - input#debut-01a1dc4b-baeb-77f8-8864-d5e5ed385647.border-app-bord.bg-app-surface — 112×30px — «  »
-  - input#fin-01a1dc4b-baeb-77f8-8864-d5e5ed385647.border-app-bord.bg-app-surface — 112×30px — «  »
+  - input#debut-01a21ccd-b823-72f0-ae82-4db222571b94.border-app-bord.bg-app-surface — 112×30px — «  »
+  - input#fin-01a21ccd-b823-72f0-ae82-4db222571b94.border-app-bord.bg-app-surface — 112×30px — «  »
+  - input#debut-01a21ccd-b824-744a-80db-55646b798a46.border-app-bord.bg-app-surface — 112×30px — «  »
+  - input#fin-01a21ccd-b824-744a-80db-55646b798a46.border-app-bord.bg-app-surface — 112×30px — «  »
 
 **`agence-creation` à 390 px — cibles sous le seuil (5 premières) :**
 
