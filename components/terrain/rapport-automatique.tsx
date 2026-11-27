@@ -2915,20 +2915,23 @@ export function RapportTerrainAutomatique({
                 rend le canevas fluide ; sa RÉSOLUTION de dessin
                 (`width`/`height`) est posée à la taille affichée par le
                 `useLayoutEffect` ci-dessus (point 1, 9H4-FINITIONS-AVANT-
-                AUDIT) — 320×190 n'est qu'un défaut avant sa première mesure.
+                AUDIT) — 320×220 n'est qu'un défaut avant sa première mesure.
                 `position()` met le point du pointeur à l'échelle de cette
                 résolution (`positionCanevas`, ci-dessus) — sans cette
-                échelle, le tracé dérivait du doigt qui le pose. 190 px et
-                le fond `app-terrain-champ-fond` (#F1F3F6) : la fiche épurée
-                (point 2, 9L04H, décision d'Alexis du 13/11/2026). */}
+                échelle, le tracé dérivait du doigt qui le pose. 220 px (au
+                lieu de 190, point m10a, 9L52-TERRAIN-SIGNATURE-ZONE-NOM :
+                l'audit du 10/11 jugeait la zone trop petite pour un tracé
+                confortable) et le fond `app-terrain-champ-fond` (#F1F3F6) :
+                la fiche épurée (point 2, 9L04H, décision d'Alexis du
+                13/11/2026). */}
             <canvas
               ref={canvasRef}
               width={320}
-              height={190}
+              height={220}
               className={
                 nonDemarree
-                  ? "bg-app-terrain-champ-fond pointer-events-none h-[190px] w-full touch-none rounded-md opacity-50"
-                  : "bg-app-terrain-champ-fond h-[190px] w-full touch-none rounded-md"
+                  ? "bg-app-terrain-champ-fond pointer-events-none h-[220px] w-full touch-none rounded-md opacity-50"
+                  : "bg-app-terrain-champ-fond h-[220px] w-full touch-none rounded-md"
               }
               onPointerDown={nonDemarree ? undefined : demarrerTrace}
               onPointerMove={nonDemarree ? undefined : tracer}
