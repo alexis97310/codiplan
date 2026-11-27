@@ -58,6 +58,7 @@ type Scene = {
   readonly siteId: string;
   readonly interventionId: string;
   readonly heureFinAttendue: string;
+  readonly raisonSociale: string;
 };
 
 async function creerScene(
@@ -76,11 +77,12 @@ async function creerScene(
   });
 
   const clientId = uuidv7();
+  const raisonSociale = `zz${prefixe} client terminee etat heure`;
   await client.client.create({
     data: {
       id: clientId,
       societe_id: reperes.societeId,
-      raison_sociale: `zz${prefixe} client terminee etat heure`,
+      raison_sociale: raisonSociale,
       actif: true,
     },
   });
@@ -147,7 +149,13 @@ async function creerScene(
     local.minutes,
   ).padStart(2, "0")}`;
 
-  return { clientId, siteId, interventionId, heureFinAttendue };
+  return {
+    clientId,
+    siteId,
+    interventionId,
+    heureFinAttendue,
+    raisonSociale,
+  };
 }
 
 async function nettoyer(client: PrismaClient, scene: Scene | null) {
@@ -208,9 +216,7 @@ test("375 px, Ma journée — la carte d'une TERMINÉE porte le même état et l
     await ouvrirLaSessionSensible(page, COMPTE_TECHNICIEN_EPREUVE);
     await page.goto("/terrain");
 
-    const carte = page.locator("li", {
-      has: page.getByText(`zz9L53B client terminee etat heure`),
-    });
+    const carte = page.locator("li", { hasText: scene.raisonSociale });
     await expect(carte).toBeVisible();
     await expect(
       carte.getByText(fr["statut.terminee"], { exact: true }),
