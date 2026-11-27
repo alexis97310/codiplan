@@ -3882,6 +3882,11 @@ export const fr = {
     "Ne s'applique qu'aux interventions clôturées après l'enregistrement : la décomposition d'une intervention déjà clôturée reste celle qui a servi à la facturer.",
   "tarifs.regle_facturation.refus_saisie":
     "Réglage invalide : vérifiez les trois valeurs (le seuil ne peut pas dépasser le palier).",
+  // `enregistrerRegleArrondi` (`lib/societes/identite.ts`) — revue de 9I8A1
+  // (31/10/2026) : le motif était renvoyé par le code sans clé associée ici,
+  // l'écran ne montrait donc rien au lieu du refus (9L51-I18N-MOTIFS-
+  // MANQUANTS).
+  "regle_arrondi.refus.droit": "Votre rôle ne permet pas cette action.",
   "tarifs.forfaits_titre": "Forfaits",
   "tarifs.forfaits_nouveau": "Nouveau forfait",
   "tarifs.forfaits_colonne_forfait": "Forfait",
