@@ -105,7 +105,8 @@ export async function creerAppareilPret(
   exigerCapaciteDepot(contexte);
   await avecContexteApplicatif(
     contexte,
-    (tx) => creerAppareilPretDans(tx, exigerSocieteActive(contexte), id, saisie),
+    (tx) =>
+      creerAppareilPretDans(tx, exigerSocieteActive(contexte), id, saisie),
     client,
   );
 }
@@ -216,7 +217,13 @@ export async function sortirPret(
   await avecContexteApplicatif(
     contexte,
     (tx) =>
-      sortirPretDans(tx, exigerSocieteActive(contexte), id, saisie, utilisateurId),
+      sortirPretDans(
+        tx,
+        exigerSocieteActive(contexte),
+        id,
+        saisie,
+        utilisateurId,
+      ),
     client,
   );
 }

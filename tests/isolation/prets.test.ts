@@ -78,7 +78,12 @@ async function creerUnAppareilPourA(): Promise<string> {
   await creerAppareilPret(
     ADV_A,
     id,
-    { designation: "Groupe électrogène de prêt", marque: null, modele: null, numero_serie: null },
+    {
+      designation: "Groupe électrogène de prêt",
+      marque: null,
+      modele: null,
+      numero_serie: null,
+    },
     clientApp(),
   );
   return id;
@@ -341,9 +346,9 @@ describe("le cycle complet, via le dépôt de production", () => {
     expect(enCoursApresSortie.map((p) => p.id)).toContain(pretId);
 
     const appareilsApresSortie = await listerAppareilsPret(ADV_A, clientApp());
-    expect(
-      appareilsApresSortie.find((a) => a.id === appareilId)?.statut,
-    ).toBe("prete");
+    expect(appareilsApresSortie.find((a) => a.id === appareilId)?.statut).toBe(
+      "prete",
+    );
 
     await enregistrerRetourPret(
       ADV_A,
@@ -361,9 +366,9 @@ describe("le cycle complet, via le dépôt de production", () => {
     expect(enCoursApresRetour.map((p) => p.id)).not.toContain(pretId);
 
     const appareilsApresRetour = await listerAppareilsPret(ADV_A, clientApp());
-    expect(
-      appareilsApresRetour.find((a) => a.id === appareilId)?.statut,
-    ).toBe("disponible");
+    expect(appareilsApresRetour.find((a) => a.id === appareilId)?.statut).toBe(
+      "disponible",
+    );
   });
 
   it("une intervention d'une AUTRE société ne peut pas recevoir un prêt — refus nommé", async () => {
