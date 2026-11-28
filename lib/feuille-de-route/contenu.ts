@@ -90,11 +90,6 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
         titre:
           "m11 — Bleu pour l'état actif, rouge réservé à l'erreur, sur les cases de la fiche terrain : non retenu, couleurs natives inchangées. Tranché le 23/11/2026 (9L37).",
       },
-      {
-        statut: "en_cours",
-        titre:
-          "Équipement de prêt — prêter un appareil en attendant une pièce. Cadrage tranché le 27/11/2026 (D287) : le bureau seul gère les prêts, c'est gratuit, un bon signé à la remise. Le socle (modèle, dépôt, capacité) est posé ; les écrans (parc, sortie/retour, bon signé) restent à écrire.",
-      },
     ],
   },
   {
@@ -115,6 +110,11 @@ export const SECTIONS_FEUILLE_DE_ROUTE: readonly SectionFeuilleDeRoute[] = [
   {
     titre: "Livré depuis le 31/10",
     elements: [
+      {
+        statut: "livre",
+        titre:
+          "Équipement de prêt — prêter un appareil en attendant une pièce (D287). Le bureau seul gère les prêts, c'est gratuit, et le bon de prêt est signé par le client à la remise (signature tactile ou motif obligatoire si absent/refus) puis figé en PDF (@react-pdf/renderer), téléchargeable depuis la fiche intervention et l'historique client — (9L60, 9L61, 9L62).",
+      },
       {
         statut: "livre",
         titre:

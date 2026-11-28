@@ -9685,3 +9685,39 @@ Elle n'ajoute aucune colonne de montant, de prix ou de facturation : le prêt es
 > Si un écran ou une route de portail doit un jour lire `pret_equipement` (un client qui verrait ses propres prêts en cours, par exemple), la forme « interne » SE RETIRE — elle ne s'assouplit pas — et `pret_equipement` rejoint la forme « filiation » qu'elle évite aujourd'hui : `tests/unit/db/formes-du-lot-8.test.ts` et `tests/isolation/prets.test.ts` doivent alors être repris comme modèle, pas réinventés.
 
 Portée : `prisma/schema.prisma`, `prisma/migrations/20261128060000_pret_equipement_9l60/`, `lib/db/migrations-attendues.ts`, `lib/auth/habilitations.ts`, `lib/i18n/fr.ts`, `lib/prets/saisie.ts`, `lib/prets/depot.ts`, `lib/prets/retard.ts`, `scripts/lib/politiques-rls.ts`, `lib/feuille-de-route/contenu.ts`, `docs/cahier-des-charges.md` (chapitre 11.2), `docs/constitution/organisation-du-code.md` (§6), `tests/unit/prets/retard.test.ts`, `tests/isolation/prets.test.ts`, `tests/unit/auth/habilitations.test.ts`, `tests/unit/db/formes-du-lot-8.test.ts`, `tests/unit/db/perimetre-audit.test.ts`, `tests/unit/db/inventaire.test.ts`.
+
+## D288 — LE BON DE PRÊT FIGÉ : SIGNATURE EN LIGNE, PDF RÉEL, MOTIF DANS LES OBSERVATIONS (9L62-PRET-3-BON-SIGNE)
+
+### CE QUI A ÉTÉ MESURÉ
+
+9L60 réservait cinq colonnes sur `pret_equipement` pour ce lot (`signataire_nom`, `signataire_qualite`, `signature_objet_cle`, `bon_document_id`, `date_signature`) sans en figer le format — le ticket l'écrivait explicitement : « AUCUNE migration. Si une colonne te manque, ARRÊTE-toi. » Trois questions d'implémentation se posaient, aucune n'étant une règle métier absente du chapitre 10 (donc aucune n'était un point d'arrêt CLAUDE.md §8 au sens strict), mais chacune engageait une convention durable.
+
+**Où vivent les octets de la signature ?** `lib/documents/stockage.ts` n'a plus d'appelant pour une photo depuis D96 (9EWB-PHOTOS-EN-BASE) — mesuré en production : `RACINE` n'est pas inscriptible sur l'hébergeur. Lui donner la signature comme second appelant referait l'erreur que D96 a corrigée. `InterventionSignature.image_base64` (D173) tient déjà la même donnée — un tracé de quelques kilo-octets — INLINE, avec ce motif écrit dans son docblock : « passer par `Document` pour un tracé de quelques kilo-octets aurait fait porter à un module de fichiers une donnée qui n'en est pas un. »
+
+**Comment produire un VRAI PDF téléchargeable ?** Le bon d'intervention existant (`app/(back-office)/interventions/[id]/bon/`) n'est pas un PDF généré : c'est une page imprimée par le navigateur (`window.print()`). Le ticket demande un bon « figé » et « téléchargeable », ce qu'un simple habillage d'impression ne produit pas. `@react-pdf/renderer` n'avait jamais eu d'appelant (`docs/backlog.md`, L3-15 : « une bibliothèque de mise en page sans rien à mettre en page ») — ce bon EST ce contenu.
+
+**Où vit le motif d'une remise sans signature ?** Le ticket demande « un motif obligatoire (client absent, refus), comme D173 » — mais 9L60 n'a réservé AUCUNE colonne `issue`/`motif` pour `pret_equipement` (à la différence d'`InterventionSignature`, qui porte les deux). Le cadrage de D287 lui-même ne nommait que « un bon signé », sans anticiper l'absence de signature : exigence réellement nouvelle, posée par ce ticket.
+
+### LA DÉCISION
+
+**`signature_objet_cle` porte le `data:image/png;base64,...` complet, en texte — malgré son nom.** Même raisonnement que `InterventionSignature.image_base64` : une signature de prêt n'est pas un document à cataloguer, c'est une donnée de quelques kilo-octets. Le nom posé par 9L60 suggérait la convention de `document.objet_cle` (une clé, les octets ailleurs) ; ce lot choisit la sécurité de production plutôt que la lettre du nom, et l'écrit ici plutôt que de la deviner en silence.
+
+**Le bon lui-même devient un VRAI `document`.** PDF rendu par `@react-pdf/renderer` (`lib/prets/bon-pdf.tsx`), stocké en base (`document.octets`, D96, plafond 1 Mo — un bon d'une page y reste large), cible `intervention_id` (la seule que `document_cible_unique` ouvre à ce module), classe **`interne`** — jamais `client` : `pret_equipement` est de forme interne (D287) précisément pour qu'aucun compte portail n'apprenne qu'un prêt existe, et un `document` `client` attaché à la même intervention serait lu par le bon du portail — la fuite que D287 ferme d'un côté se rouvrirait de l'autre. `pret_equipement.bon_document_id` référence cette ligne (FK déjà posée par 9L60).
+
+**`@react-pdf/renderer` est installé** — exerce une décision déjà prise (CLAUDE.md §2 l'impose pour le PDF), ce n'en est pas une nouvelle : L3-15 l'avait laissée de côté faute de contenu, et ce bon EST ce contenu.
+
+**La remise est DANS LE MÊME GESTE que la sortie**, jamais un second écran : `schemaSortiePret` porte désormais `signataire_nom`, `signataire_qualite`, `signature_donnees`, `motif_absence_signature`, fermés par deux `.refine()` — signature OU motif, jamais aucun, jamais les deux ; `signataire_nom` exigé si signature. `creerBonPretDans` (`lib/prets/bon.ts`) s'exécute DANS LA MÊME TRANSACTION que `sortirPretDans` : un prêt sans bon ne doit jamais s'observer (I6). Chaque sortie — signée ou motivée — fige donc un bon, toujours.
+
+**Le motif d'une remise sans signature est concaténé dans `pret_equipement.observations`**, préfixé d'un libellé du dictionnaire (`intervention.pret.bon.motif_remise_prefixe`). Aucune colonne neuve, aucune migration. `observations` porte déjà un texte libre à la sortie (état de l'appareil) ; ce lot y ajoute le motif SANS écraser ce qui y était déjà saisi (concaténation, jamais un remplacement).
+
+**« N° du bon » = `PRET-` + les six derniers caractères de l'identifiant du prêt**, même convention que `Local-…` (`referenceAffichee`, `app/(back-office)/interventions/presentation.ts`) pour une ligne sans séquence propre. Aucune séquence n'a été arbitrée pour le prêt (ce n'est pas une facture, aucune obligation légale de numérotation continue pour un prêt gratuit) ; en inventer une aurait été une règle de gestion non demandée.
+
+### CE QUE CETTE DÉCISION N'EST PAS
+
+Elle ne réouvre aucune des listes closes de I1. Elle n'ajoute aucun montant (le PDF ne porte aucune valeur chiffrée). Elle ne touche à aucune colonne d'`InterventionSignature` ni à sa contrainte `intervention_signature_issue_coherente` — le prêt n'emprunte que le RAISONNEMENT de D173, jamais sa structure.
+
+### CONDITION DE RÉOUVERTURE, vérifiable
+
+> Si l'exploitation demande un jour une numérotation séquentielle du bon de prêt (une obligation comptable, par exemple), `numeroBonAffiche` (`lib/prets/bon.ts`) se remplace par une vraie séquence posée en base — jamais une dérivation de l'identifiant. Si une quatrième issue de remise apparaît (au-delà de signée/motivée), ou si le motif doit devenir interrogeable séparément de `observations`, cette page se rouvre pour poser les colonnes qu'elle a sciemment évitées plutôt que d'étendre la concaténation.
+
+Portée : `prisma/schema.prisma` (aucun changement, colonnes déjà posées), `lib/prets/bon.ts`, `lib/prets/bon-pdf.tsx`, `lib/prets/depot.ts`, `lib/prets/saisie.ts`, `lib/theme/pdf.ts`, `components/prets/zone-signature.tsx`, `app/api/interventions/[id]/preter/route.ts`, `app/api/prets/[id]/bon/route.ts`, `app/(back-office)/interventions/[id]/page.tsx`, `app/(back-office)/clients/[id]/page.tsx`, `lib/i18n/fr.ts`, `scripts/lib/surface-decran.ts`, `package.json` (`@react-pdf/renderer`), `tests/unit/prets/bon.test.ts`, `tests/isolation/prets.test.ts`, `tests/e2e/9l62-pret-bon-signe.spec.ts`, `tests/e2e/9l61-prets-ecrans-bureau.spec.ts` (remise ajoutée à son scénario de sortie).

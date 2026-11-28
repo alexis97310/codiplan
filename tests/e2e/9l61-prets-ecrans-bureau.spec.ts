@@ -157,9 +157,25 @@ test.beforeAll(async () => {
 test.afterAll(async () => {
   const client = admin();
   try {
-    await client.pretEquipement.deleteMany({
+    // LES BONS FIGÉS (9L62-PRET-3-BON-SIGNE) — chaque sortie réussie pose
+    // désormais un `document` (`bon_document_id`), référencé par
+    // `document_societe_id_intervention_id_fkey` : il doit disparaître
+    // AVANT l'intervention qui le porte, et le prêt AVANT le document
+    // (`pret_equipement_societe_id_bon_document_id_fkey`, `ON DELETE
+    // RESTRICT` dans les deux sens).
+    const prets = await client.pretEquipement.findMany({
       where: { client_id: CLIENT_9L61 },
+      select: { id: true, bon_document_id: true },
     });
+    await client.pretEquipement.deleteMany({
+      where: { id: { in: prets.map((p) => p.id) } },
+    });
+    const documentIds = prets
+      .map((p) => p.bon_document_id)
+      .filter((id): id is string => id !== null);
+    if (documentIds.length > 0) {
+      await client.document.deleteMany({ where: { id: { in: documentIds } } });
+    }
     await client.appareilPret.deleteMany({
       where: { id: { in: [APPAREIL_RETARD] } },
     });
@@ -236,6 +252,17 @@ for (const largeur of [1280, 375] as const) {
     await page
       .getByLabel(fr["intervention.pret.champ_etat_depart"])
       .fill("Bon état");
+    // LA REMISE AU CLIENT (9L62-PRET-3-BON-SIGNE) — ajoutée à CE formulaire
+    // par le lot suivant, DANS LE MÊME GESTE que la sortie (voir son
+    // docblock) : sans elle, le serveur refuse désormais la saisie
+    // (signature OU motif, jamais aucun des deux). Ce scénario continue de
+    // prouver « prêter un appareil depuis la fiche », pas la remise elle-même
+    // — remplie au plus simple, un motif, pour que la sortie aboutisse
+    // toujours (la remise SIGNÉE a son propre scénario,
+    // `9l62-pret-bon-signe.spec.ts`).
+    await page
+      .getByLabel(fr["intervention.pret.champ_motif_absence_signature"])
+      .fill("Client absent (épreuve 9L61).");
     await page
       .getByRole("button", { name: fr["intervention.pret.preter_action"] })
       .click();
