@@ -96,8 +96,154 @@ async function creer(champs: {
   return id;
 }
 
+/**
+ * UNE LIGNE CLÔTURÉE, AVEC UN MONTANT RÉEL (9L64-GARDIEN-AUCUN-MONTANT-
+ * TERRAIN) — `montant_ht`/`devise_code`/`valorisation_figee` posés directement
+ * en SQL brut, comme `terminerIntervention` les écrit à la clôture (D272) :
+ * cette fixture ne passe pas par le chemin qu'elle sert à éprouver, sinon un
+ * défaut du dépôt la rendrait muette au lieu de la faire rougir (même
+ * doctrine que `FORFAITS_SCENE`, `tests/e2e/setup/scene.ts`).
+ */
+async function creerClotureeAvecMontant(champs: {
+  readonly societeId: string;
+  readonly clientId: string;
+  readonly siteId: string;
+  readonly agenceId: string;
+  readonly technicienId: string;
+}): Promise<string> {
+  const id = uuidv7();
+  posees.push({ id, societeId: champs.societeId });
+  const valorisationFigee = {
+    minutesReelles: 120,
+    minutesArrondies: 120,
+    minutesFacturees: 120,
+    plancherApplique: false,
+    regle: { plancherMinutes: 60, palierMinutes: 15, seuilPalierMinutes: 0 },
+    tauxHoraire: { valeur: "7000", devise: "XPF" },
+    mainDoeuvre: { valeur: "14000", devise: "XPF" },
+    forfaitDeplacement: null,
+    majoration: null,
+    totalHT: { valeur: "14000", devise: "XPF" },
+    motifTotalInconnu: null,
+  };
+  // L'INTERVENTION NAÎT D'ABORD, SANS TEMPS NI MONTANT (D120) — le temps
+  // mesuré n'est pas une saisie, un déclencheur refuse qu'il s'écarte de la
+  // somme des segments FERMÉS ; le segment se pose ensuite, puis une mise à
+  // jour pose le temps, le montant et la clôture, EXACTEMENT ce que
+  // `terminerIntervention` fait en trois temps elle aussi.
+  await clientOwner().$executeRawUnsafe(
+    `INSERT INTO "intervention" ("id", "societe_id", "client_id", "site_id",
+       "agence_id", "type", "statut", "priorite", "date_planifiee",
+       "duree_estimee_min", "technicien_id", "description", "cree_le",
+       "modifie_le")
+     VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, 'curatif',
+             'affectee', 'p3', NULL, 60, $6::uuid,
+             '9L64 — intervention clôturée, montant réel, forgée par l''épreuve',
+             now(), now())`,
+    id,
+    champs.societeId,
+    champs.clientId,
+    champs.siteId,
+    champs.agenceId,
+    champs.technicienId,
+  );
+  await clientOwner().$executeRawUnsafe(
+    `INSERT INTO "segment_travail" ("id", "societe_id", "intervention_id",
+       "utilisateur_id", "nom_technicien_affiche", "debut", "fin", "modifie_le")
+     VALUES (gen_random_uuid(), $1::uuid, $2::uuid, $3::uuid,
+             (SELECT "nom" FROM "utilisateur" WHERE "id" = $3::uuid),
+             now() - interval '120 minutes', now(), now())`,
+    champs.societeId,
+    id,
+    champs.technicienId,
+  );
+  // LA MATRICE D8 REFUSE UN SAUT DIRECT (`affectee` → `cloturee`) — trois
+  // transitions, dans l'ordre qu'un technicien suivrait réellement.
+  await clientOwner().$executeRawUnsafe(
+    `UPDATE "intervention" SET "statut" = 'en_cours' WHERE "id" = $1::uuid`,
+    id,
+  );
+  await clientOwner().$executeRawUnsafe(
+    `UPDATE "intervention"
+       SET "statut" = 'terminee', "temps_mesure_min" = 120,
+           "temps_valide_min" = 120, "temps_valide_par" = $2::uuid,
+           "temps_valide_le" = now(), "rapport_valide_par" = $2::uuid,
+           "rapport_valide_le" = now()
+       WHERE "id" = $1::uuid`,
+    id,
+    champs.technicienId,
+  );
+  await clientOwner().$executeRawUnsafe(
+    `UPDATE "intervention"
+       SET "statut" = 'cloturee', "montant_ht" = 14000,
+           "devise_code" = 'XPF', "valorisation_figee" = $2::jsonb,
+           "cloturee_le" = now()
+       WHERE "id" = $1::uuid`,
+    id,
+    JSON.stringify(valorisationFigee),
+  );
+  return id;
+}
+
+/**
+ * Les noms EXACTS que `tests/unit/gardiens/aucun-montant-terrain.test.ts`
+ * guette dans le code — répétés ici, jamais importés : ce fichier tourne
+ * sous `pnpm test:isolation`, contre une vraie base, et une divergence entre
+ * les deux listes doit faire rougir CHACUNE séparément, jamais une seule pour
+ * les deux (§9, 01/09).
+ */
+const CHAMPS_MONETAIRES = [
+  "montant_ht",
+  "montant_mineur",
+  "montantMineur",
+  "valorisation_figee",
+  "valorisationFigee",
+  "majoration_hors_ouverture_pct",
+  "majorationHorsOuverturePct",
+  "tauxHoraire",
+  "mainDoeuvre",
+  "forfaitDeplacement",
+  "totalHT",
+] as const;
+
+/** Parcourt récursivement un JSON et rend la première clé interdite trouvée, ou `null`. */
+function cleInterdite(
+  valeur: unknown,
+  interdits: readonly string[],
+): string | null {
+  if (Array.isArray(valeur)) {
+    for (const element of valeur) {
+      const trouvee = cleInterdite(element, interdits);
+      if (trouvee !== null) {
+        return trouvee;
+      }
+    }
+    return null;
+  }
+  if (valeur !== null && typeof valeur === "object") {
+    for (const [cle, sousValeur] of Object.entries(valeur)) {
+      if ((interdits as readonly string[]).includes(cle)) {
+        return cle;
+      }
+      const trouvee = cleInterdite(sousValeur, interdits);
+      if (trouvee !== null) {
+        return trouvee;
+      }
+    }
+    return null;
+  }
+  return null;
+}
+
 afterEach(async () => {
   for (const { id, societeId } of posees.splice(0)) {
+    // LE SEGMENT PART D'ABORD (D120, `ON DELETE RESTRICT`) — voir
+    // `creerClotureeAvecMontant` ; les lignes posées par `creer()` n'en ont
+    // jamais, cette suppression est alors un no-op.
+    await clientOwner().$executeRawUnsafe(
+      `DELETE FROM "segment_travail" WHERE "intervention_id" = $1::uuid`,
+      id,
+    );
     await clientOwner().$executeRawUnsafe(
       `DELETE FROM "intervention" WHERE "id" = $1::uuid AND "societe_id" = $2::uuid`,
       id,
@@ -216,5 +362,48 @@ describe("GET /api/terrain/instantane — cloisonnement par personne et par soci
     vi.mocked(exigerCapacite).mockResolvedValueOnce(null);
     const reponse = await GET();
     expect(reponse.status).toBe(403);
+  });
+
+  // 9L64-GARDIEN-AUCUN-MONTANT-TERRAIN — une ligne RÉELLEMENT clôturée, avec
+  // un montant non nul écrit en base exactement comme `terminerIntervention`
+  // l'écrit (`montant_ht`, `devise_code`, `valorisation_figee` — voir
+  // `creerClotureeAvecMontant`), rejouée par la VRAIE route : si un champ
+  // monétaire quelconque devait un jour s'y glisser, ce test le lirait dans
+  // le JSON envoyé au téléphone, pas seulement dans le code source (c'est la
+  // moitié que `tests/unit/gardiens/aucun-montant-terrain.test.ts` ne peut
+  // pas tenir).
+  it("AUCUN CHAMP MONÉTAIRE dans la réponse, même pour une ligne clôturée dont le montant réel est non nul", async () => {
+    const clotureeId = await creerClotureeAvecMontant({
+      societeId: SOCIETE_A,
+      clientId: CLIENT_A1,
+      siteId: SITE_A1_S1,
+      agenceId: AGENCE_A,
+      technicienId: TECHNICIEN_A,
+    });
+
+    vi.mocked(exigerCapacite).mockResolvedValueOnce(
+      contexteActif(SOCIETE_A, Role.technicien),
+    );
+    const reponse = await GET();
+    expect(reponse.status).toBe(200);
+    const corps = await reponse.json();
+
+    // TÉMOIN — la ligne forgée est bien dans la réponse (`sansDate`, voir le
+    // docblock de ce fichier) : sans lui, l'absence de montant ne prouverait
+    // rien, celle d'une ligne jamais rendue.
+    expect(
+      (
+        corps as { journee: { sansDate: { id: string }[] } }
+      ).journee.sansDate.map((l) => l.id),
+    ).toContain(clotureeId);
+    expect(
+      Object.keys((corps as { fiches: Record<string, unknown> }).fiches),
+    ).toContain(clotureeId);
+
+    const violation = cleInterdite(corps, CHAMPS_MONETAIRES);
+    expect(
+      violation,
+      `champ monétaire trouvé dans la réponse : ${violation}`,
+    ).toBeNull();
   });
 });
