@@ -12,7 +12,13 @@ import {
   sortirPret,
 } from "@/lib/prets/depot";
 
-import { avecPortail, clientApp, fermerClients, sousSociete } from "./setup/db";
+import {
+  avecPortail,
+  clientApp,
+  clientOwner,
+  fermerClients,
+  sousSociete,
+} from "./setup/db";
 import {
   CLIENT_A1,
   INTERVENTION_A1,
@@ -38,7 +44,40 @@ import {
  * pas une (I1).
  */
 
-afterAll(fermerClients);
+/**
+ * LES APPAREILS CRÉÉS PAR CE FICHIER (9L62-PRET-3-BON-SIGNE) — chaque sortie
+ * réussie fige désormais un bon (`creerBonPretDans`), donc une ligne
+ * `document` : `tests/isolation/document.test.ts` compte les lignes de cette
+ * table À L'EXACT, et une ligne laissée ici fausserait sa mesure. Nettoyé en
+ * `afterAll`, sous le PROPRIÉTAIRE (seul rôle qui franchit `ON DELETE
+ * RESTRICT` dans l'ordre : le prêt avant son bon, jamais l'inverse).
+ */
+const APPAREILS_CREES: string[] = [];
+
+afterAll(async () => {
+  if (APPAREILS_CREES.length > 0) {
+    const proprietaire = clientOwner();
+    const prets = await proprietaire.pretEquipement.findMany({
+      where: { appareil_id: { in: APPAREILS_CREES } },
+      select: { id: true, bon_document_id: true },
+    });
+    const documentIds = prets
+      .map((p) => p.bon_document_id)
+      .filter((id): id is string => id !== null);
+    await proprietaire.pretEquipement.deleteMany({
+      where: { id: { in: prets.map((p) => p.id) } },
+    });
+    if (documentIds.length > 0) {
+      await proprietaire.document.deleteMany({
+        where: { id: { in: documentIds } },
+      });
+    }
+    await proprietaire.appareilPret.deleteMany({
+      where: { id: { in: APPAREILS_CREES } },
+    });
+  }
+  await fermerClients();
+});
 
 function session(
   utilisateurId: string,
@@ -86,6 +125,7 @@ async function creerUnAppareilPourA(): Promise<string> {
     },
     clientApp(),
   );
+  APPAREILS_CREES.push(id);
   return id;
 }
 
@@ -101,6 +141,10 @@ async function sortirUnPretPourA1(appareilId: string): Promise<string> {
       date_retour_prevue: DEMAIN,
       etat_depart: "Bon état, plein de carburant",
       observations: null,
+      signataire_nom: null,
+      signataire_qualite: null,
+      signature_donnees: null,
+      motif_absence_signature: "Client absent au moment de la remise.",
     },
     clientApp(),
   );
@@ -205,6 +249,10 @@ describe("gerer_prets — le BUREAU seulement (D287)", () => {
           date_retour_prevue: DEMAIN,
           etat_depart: "Bon état",
           observations: null,
+          signataire_nom: null,
+          signataire_qualite: null,
+          signature_donnees: null,
+          motif_absence_signature: "Client absent au moment de la remise.",
         },
         clientApp(),
       ),
@@ -386,9 +434,86 @@ describe("le cycle complet, via le dépôt de production", () => {
           date_retour_prevue: DEMAIN,
           etat_depart: "Bon état",
           observations: null,
+          signataire_nom: null,
+          signataire_qualite: null,
+          signature_donnees: null,
+          motif_absence_signature: "Client absent au moment de la remise.",
         },
         clientApp(),
       ),
     ).rejects.toThrow();
+  });
+});
+
+/** Un PNG 1×1 valide, minimal — juste assez pour que `@react-pdf/renderer` l'embarque sans refuser le format. */
+const SIGNATURE_PNG_TEST =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+
+describe("le BON DE PRÊT FIGÉ (9L62-PRET-3-BON-SIGNE) — son document est cloisonné comme n'importe quel autre", () => {
+  it("une remise SIGNÉE porte un bon figé, lisible par A, jamais par B", async () => {
+    const appareilId = await creerUnAppareilPourA();
+    const id = uuidv7();
+    await sortirPret(
+      ADV_A,
+      id,
+      {
+        appareil_id: appareilId,
+        intervention_id: INTERVENTION_A1,
+        date_sortie: AUJOURDHUI,
+        date_retour_prevue: DEMAIN,
+        etat_depart: "Bon état",
+        observations: null,
+        signataire_nom: "Jean Essai",
+        signataire_qualite: "Gérant",
+        signature_donnees: SIGNATURE_PNG_TEST,
+        motif_absence_signature: null,
+      },
+      clientApp(),
+    );
+
+    const pretVuParA = await sousSociete(SOCIETE_A, (tx) =>
+      tx.pretEquipement.findFirstOrThrow({ where: { id } }),
+    );
+    expect(pretVuParA.bon_document_id).not.toBeNull();
+    expect(pretVuParA.signature_objet_cle).toBe(SIGNATURE_PNG_TEST);
+    expect(pretVuParA.signataire_nom).toBe("Jean Essai");
+
+    const bonId = pretVuParA.bon_document_id as string;
+    const documentVuParA = await sousSociete(SOCIETE_A, (tx) =>
+      tx.document.findFirst({ where: { id: bonId } }),
+    );
+    expect(documentVuParA).not.toBeNull();
+    expect(documentVuParA?.type_mime).toBe("application/pdf");
+    expect(documentVuParA?.classe).toBe("interne");
+    expect(
+      Buffer.from(documentVuParA?.octets ?? new Uint8Array())
+        .subarray(0, 4)
+        .toString(),
+    ).toBe("%PDF");
+
+    const documentVuParB = await sousSociete(SOCIETE_B, (tx) =>
+      tx.document.findFirst({ where: { id: bonId } }),
+    );
+    expect(documentVuParB).toBeNull();
+
+    const pretVuParB = await sousSociete(SOCIETE_B, (tx) =>
+      tx.pretEquipement.findFirst({ where: { id } }),
+    );
+    expect(pretVuParB).toBeNull();
+  });
+
+  it("une remise SANS SIGNATURE porte le motif, aucune image, et un bon figé quand même", async () => {
+    const appareilId = await creerUnAppareilPourA();
+    const id = await sortirUnPretPourA1(appareilId);
+
+    const pret = await sousSociete(SOCIETE_A, (tx) =>
+      tx.pretEquipement.findFirstOrThrow({ where: { id } }),
+    );
+    expect(pret.signature_objet_cle).toBeNull();
+    expect(pret.signataire_nom).toBeNull();
+    expect(pret.bon_document_id).not.toBeNull();
+    expect(pret.observations).toContain(
+      "Client absent au moment de la remise.",
+    );
   });
 });

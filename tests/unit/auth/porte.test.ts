@@ -396,7 +396,9 @@ describe("D-12 — chaque route mutante est GARDÉE ou EXEMPTÉE, jamais oublié
     // `.../[id]/modifier/route.ts`, `.../[id]/statut/route.ts`,
     // `.../[id]/activite/route.ts`, `app/api/interventions/[id]/preter/
     // route.ts` et `app/api/prets/[id]/retour/route.ts`.
-    expect(Object.keys(ROUTE_CAPACITE).length).toBe(125);
+    // 126 depuis 9L62-PRET-3-BON-SIGNE — `app/api/prets/[id]/bon/route.ts`,
+    // le PDF figé du bon de prêt.
+    expect(Object.keys(ROUTE_CAPACITE).length).toBe(126);
   });
 
   it("aucune exemption ne survit à son objet — adossement dans les deux sens", () => {

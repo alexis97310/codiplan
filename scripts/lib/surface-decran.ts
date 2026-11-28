@@ -73,6 +73,15 @@ export const SURFACE_DECRAN: readonly PortionDeSurface[] = [
     origine: "deduite",
   },
   {
+    prefixe: "lib/prets/",
+    motif:
+      "le gabarit du bon de prêt (9L62-PRET-3-BON-SIGNE, `lib/prets/bon-" +
+      "pdf.tsx`) — un PDF rendu par `@react-pdf/renderer`, donc du JSX qui " +
+      "RESTITUE au même sens que `components/` : une capture du bon de " +
+      "démonstration en montre directement la mise en page",
+    origine: "deduite",
+  },
+  {
     prefixe: "lib/i18n/",
     motif:
       "CHAQUE MOT qu'un humain lit en se servant de l'application (§5 de " +

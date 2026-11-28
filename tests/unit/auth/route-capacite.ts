@@ -315,6 +315,10 @@ export const ROUTE_CAPACITE: Readonly<Record<string, Capacite>> = {
   // retour — même capacité.
   "app/api/interventions/[id]/preter/route.ts": "gerer_prets",
   "app/api/prets/[id]/retour/route.ts": "gerer_prets",
+  // 9L62-PRET-3-BON-SIGNE — le PDF figé du bon de prêt : une LECTURE, même
+  // capacité que `app/api/documents/[id]/octets/route.ts` juste au-dessus,
+  // jamais `gerer_prets` (réservée à l'écriture).
+  "app/api/prets/[id]/bon/route.ts": "consulter_planning",
 };
 
 /**

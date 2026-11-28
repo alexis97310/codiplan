@@ -922,6 +922,14 @@ export default async function PageClient({
                           ? t("client.prets.en_cours")
                           : t("client.prets.retourne")}
                       </span>
+                      {pret.bonDocumentId === null ? null : (
+                        <a
+                          href={`/api/prets/${pret.id}/bon`}
+                          className="text-app-bleu-encre text-12 font-bold underline"
+                        >
+                          {t("intervention.pret.bon_telecharger_action")}
+                        </a>
+                      )}
                     </li>
                   ))}
                 </ul>

@@ -24,6 +24,7 @@ import {
   BarreActionCollee,
   LienPrimaire,
 } from "@/components/ui/action-primaire";
+import { ZoneSignature } from "@/components/prets/zone-signature";
 import { BandeauEtat } from "@/components/ui/bandeau-etat";
 import { Chronologie } from "@/components/ui/chronologie";
 import { Carte } from "@/components/ui/carte";
@@ -1758,6 +1759,53 @@ export default async function PageIntervention({
                             className="border-input bg-background w-full min-w-0 rounded-md border px-3 py-2 font-normal"
                           />
                         </label>
+                        {/*
+                          LA REMISE AU CLIENT (9L62-PRET-3-BON-SIGNE,
+                          décision d'Alexis du 27/11/2026, point 3) — DANS LA
+                          MÊME SAISIE que la sortie : le bureau ne prête
+                          jamais un appareil sans le remettre dans le même
+                          geste (voir le docblock de `schemaSortiePret`).
+                          Signature OU motif, jamais les deux, jamais aucun
+                          — fermé côté serveur, pas ici : un navigateur sans
+                          JavaScript doit pouvoir soumettre ce formulaire
+                          quand même et recevoir le refus nommé.
+                        */}
+                        <p className="text-app-encre-faible text-[12px] font-bold uppercase tracking-[0.6px]">
+                          {t("intervention.pret.titre_remise")}
+                        </p>
+                        <label className="flex flex-col gap-1.5 text-sm font-medium">
+                          {t("intervention.pret.champ_signataire_nom")}
+                          <input
+                            type="text"
+                            name="signataire_nom"
+                            defaultValue={fiche.contact ?? ""}
+                            className="border-input bg-background w-full min-w-0 rounded-md border px-3 py-2 font-normal"
+                          />
+                        </label>
+                        <label className="flex flex-col gap-1.5 text-sm font-medium">
+                          {t("intervention.pret.champ_signataire_qualite")}
+                          <input
+                            type="text"
+                            name="signataire_qualite"
+                            className="border-input bg-background w-full min-w-0 rounded-md border px-3 py-2 font-normal"
+                          />
+                        </label>
+                        <p className="text-sm font-medium">
+                          {t("intervention.pret.zone_signature")}
+                        </p>
+                        <ZoneSignature
+                          nomChamp="signature_donnees"
+                          libelleEffacer={t(
+                            "intervention.pret.signature_effacer_action",
+                          )}
+                        />
+                        <label className="flex flex-col gap-1.5 text-sm font-medium">
+                          {t("intervention.pret.champ_motif_absence_signature")}
+                          <textarea
+                            name="motif_absence_signature"
+                            className="border-input bg-background w-full min-w-0 rounded-md border px-3 py-2 font-normal"
+                          />
+                        </label>
                         <Button type="submit" variant="outline" size="sm">
                           {t("intervention.pret.preter_action")}
                         </Button>
@@ -1784,6 +1832,30 @@ export default async function PageIntervention({
                           {t("intervention.pret.en_retard")}
                         </Badge>
                       ) : null}
+                      {pretEnCoursDeCetteIntervention.bonDocumentId ===
+                      null ? null : (
+                        <div className="flex flex-col gap-1">
+                          <Badge
+                            ton={
+                              pretEnCoursDeCetteIntervention.signe
+                                ? "vert"
+                                : "orange"
+                            }
+                          >
+                            {t(
+                              pretEnCoursDeCetteIntervention.signe
+                                ? "intervention.pret.signe"
+                                : "intervention.pret.non_signe",
+                            )}
+                          </Badge>
+                          <a
+                            href={`/api/prets/${pretEnCoursDeCetteIntervention.id}/bon`}
+                            className="text-app-bleu-encre text-13 font-bold underline"
+                          >
+                            {t("intervention.pret.bon_telecharger_action")}
+                          </a>
+                        </div>
+                      )}
                       {!peutGererPrets ? null : (
                         <form
                           action={`/api/prets/${pretEnCoursDeCetteIntervention.id}/retour`}

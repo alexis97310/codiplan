@@ -45,6 +45,10 @@ async function traiter(
         jourCivilPret(formulaire, "date_retour_prevue") ?? new Date(Number.NaN),
       etat_depart: champ(formulaire, "etat_depart") ?? "",
       observations: champ(formulaire, "observations"),
+      signataire_nom: champ(formulaire, "signataire_nom"),
+      signataire_qualite: champ(formulaire, "signataire_qualite"),
+      signature_donnees: champ(formulaire, "signature_donnees"),
+      motif_absence_signature: champ(formulaire, "motif_absence_signature"),
     });
     if (!analyse.success) {
       return versLaFiche(id, "intervention.pret.refus.saisie");

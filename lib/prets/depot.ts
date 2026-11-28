@@ -13,6 +13,7 @@ import {
 import { lireFuseau, maintenant } from "@/lib/calendar/fuseau";
 import { avecContexteApplicatif } from "@/lib/db/client";
 
+import { creerBonPretDans } from "./bon";
 import { pretEnRetard, type LignePretPourRetard } from "./retard";
 import {
   type SaisieAppareilPret,
@@ -313,6 +314,30 @@ export async function sortirPretDans(
     data: { statut: "prete" },
     select: { id: true },
   });
+
+  // LA REMISE AU CLIENT (9L62-PRET-3-BON-SIGNE) — DANS LA MÊME TRANSACTION
+  // que la création ci-dessus : un prêt sans bon ne doit jamais s'observer
+  // (I6). `schemaSortiePret` a déjà fermé l'alternative (signature OU
+  // motif, jamais aucun, jamais les deux) avant que ce dépôt ne soit appelé.
+  await creerBonPretDans(tx, societeId, id, {
+    appareilId: saisie.appareil_id,
+    interventionId: saisie.intervention_id,
+    clientId: intervention.client_id,
+    siteId: intervention.site_id,
+    etatDepart: saisie.etat_depart,
+    dateSortie: saisie.date_sortie,
+    dateRetourPrevue: saisie.date_retour_prevue,
+    observationsSortie: saisie.observations,
+    signature:
+      saisie.signature_donnees === null
+        ? null
+        : {
+            nom: saisie.signataire_nom ?? "",
+            qualite: saisie.signataire_qualite,
+            donnees: saisie.signature_donnees,
+          },
+    motifAbsenceSignature: saisie.motif_absence_signature,
+  });
 }
 
 export async function sortirPret(
@@ -405,6 +430,10 @@ export type PretEnListe = {
   readonly dateRetourPrevue: Date;
   readonly dateRetourReelle: Date | null;
   readonly enRetard: boolean;
+  /** `null` : le bon n'a pas encore été figé (prêt créé avant 9L62). */
+  readonly bonDocumentId: string | null;
+  /** Signé par le client, à la différence d'une remise sans signature (motif tracé). */
+  readonly signe: boolean;
 };
 
 /**
@@ -452,6 +481,8 @@ export async function listerPretsEnCours(
       dateRetourPrevue: ligne.date_retour_prevue,
       dateRetourReelle: ligne.date_retour_reelle,
       enRetard: pretEnRetard(pourRetard, aujourdhuiLocal),
+      bonDocumentId: ligne.bon_document_id,
+      signe: ligne.signature_objet_cle !== null,
     };
   });
 }
@@ -472,6 +503,7 @@ export type PretDuClient = {
   readonly dateSortie: Date;
   readonly dateRetourPrevue: Date;
   readonly dateRetourReelle: Date | null;
+  readonly bonDocumentId: string | null;
 };
 
 /**
@@ -501,5 +533,31 @@ export async function listerPretsDuClient(
     dateSortie: ligne.date_sortie,
     dateRetourPrevue: ligne.date_retour_prevue,
     dateRetourReelle: ligne.date_retour_reelle,
+    bonDocumentId: ligne.bon_document_id,
   }));
+}
+
+/**
+ * LE DOCUMENT DU BON D'UN PRÊT, par l'identifiant DU PRÊT — `null` si le prêt
+ * est hors périmètre (la politique « interne » le cache déjà à tout compte
+ * portail) ou si son bon n'a pas encore été figé (prêt créé avant 9L62).
+ * L'appelant lit ensuite les octets par `lireDocument`
+ * (`lib/documents/depot.ts`), jamais une seconde requête ici — la LECTURE des
+ * octets reste l'affaire de ce module, pas du nôtre.
+ */
+export async function bonDocumentIdDuPret(
+  contexte: ContexteSession,
+  pretId: string,
+  client?: PrismaClient,
+): Promise<string | null> {
+  const pret = await avecContexteApplicatif(
+    contexte,
+    (tx) =>
+      tx.pretEquipement.findFirst({
+        where: { id: pretId },
+        select: { bon_document_id: true },
+      }),
+    client,
+  );
+  return pret?.bon_document_id ?? null;
 }

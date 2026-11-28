@@ -5361,6 +5361,33 @@ export const fr = {
   "intervention.pret.refus.pret_introuvable": "Ce prêt est introuvable.",
   "intervention.pret.refus.pret_deja_retourne": "Ce prêt a déjà été retourné.",
 
+  // ── LA REMISE AU CLIENT ET LE BON DE PRÊT (9L62-PRET-3-BON-SIGNE) ────────
+  "intervention.pret.titre_remise": "Remise au client",
+  "intervention.pret.champ_signataire_nom": "Nom du signataire",
+  "intervention.pret.champ_signataire_qualite": "Qualité du signataire",
+  "intervention.pret.zone_signature": "Signature du client",
+  "intervention.pret.signature_effacer_action": "Effacer la signature",
+  "intervention.pret.champ_motif_absence_signature":
+    "Motif, si le prêt est remis sans signature",
+  "intervention.pret.signe": "Signé",
+  "intervention.pret.non_signe": "Remis sans signature",
+  "intervention.pret.bon_telecharger_action": "Télécharger le bon de prêt",
+  "intervention.pret.bon.titre": "Bon de prêt",
+  "intervention.pret.bon.numero": "N°",
+  "intervention.pret.bon.section_client": "Client",
+  "intervention.pret.bon.client": "Client",
+  "intervention.pret.bon.intervention": "Intervention",
+  "intervention.pret.bon.section_appareil": "Appareil prêté",
+  "intervention.pret.bon.designation": "Désignation",
+  "intervention.pret.bon.marque_modele": "Marque et modèle",
+  "intervention.pret.bon.numero_serie": "N° de série",
+  "intervention.pret.bon.mention_gratuit": "Ce prêt est gratuit.",
+  "intervention.pret.bon.engagement_restitution":
+    "L'appareil prêté doit être restitué en bon état, dans le délai convenu.",
+  "intervention.pret.bon.section_signature": "Signature",
+  "intervention.pret.bon.non_signe": "Remis sans signature",
+  "intervention.pret.bon.motif_remise_prefixe": "Remise sans signature",
+
   // ── LE PRÊT SUR LA FICHE CLIENT ──────────────────────────────────────────
   "client.prets.titre": "Prêts d’appareils",
   "client.prets.aucun": "Aucun prêt pour ce client.",
