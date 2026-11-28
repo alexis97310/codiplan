@@ -8488,6 +8488,13 @@ export const fr = {
   // PROPRE scène, préfixée `9L17-CAP-`, créée et supprimée par l'épreuve.
   "9l17.e2e.client": "9L17 — client de l'épreuve",
   "9l17.e2e.lieu": "9L17 — lieu de l'épreuve",
+
+  // ── FIXTURE DE 9L64-GARDIEN-AUCUN-MONTANT-TERRAIN (tests/e2e/9l64-
+  // gardien-aucun-montant-terrain.spec.ts) — sa PROPRE scène, préfixée
+  // `9l64.e2e.`, créée et supprimée par l'épreuve.
+  "9l64.e2e.client": "zz9L64 client de l'épreuve",
+  "9l64.e2e.site": "zz9L64 Atelier de l'épreuve",
+  "9l64.e2e.contact_nom": "zz9L64 Jean Dupont",
 } as const;
 
 export type CleTraduction = keyof typeof fr;
